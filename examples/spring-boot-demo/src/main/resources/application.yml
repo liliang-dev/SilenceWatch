@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: silencewatch-demo
+  quartz:
+    job-store-type: memory
+
+silencewatch:
+  # The only two settings a real application needs.
+  api-key: ${SILENCEWATCH_API_KEY:}
+  base-url: ${SILENCEWATCH_BASE_URL:http://localhost:8080}
+
+  environment: demo
+  default-grace: 60s
+
+logging:
+  level:
+    com.silencewatch: DEBUG
+    com.acme.demo: INFO

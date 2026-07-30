@@ -19,7 +19,7 @@
     "build:web": "npm run build -w @silencewatch/web",
     "dev": "npm run dev -w @silencewatch/server",
     "dev:web": "npm run start -w @silencewatch/web",
-    "test": "npm run test -w @silencewatch/shared && npm run test -w @silencewatch/server",
+    "test": "npm run test -w @silencewatch/shared && npm run test -w @silencewatch/server && npm run test -w @silencewatch/web",
     "test:e2e": "npm run test:e2e -w @silencewatch/server",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write \"packages/*/src/**/*.{ts,html,scss}\"",

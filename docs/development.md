@@ -46,10 +46,12 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 ## Tests
 
 ```bash
-npm test                       # shared + server unit tests, no database
+npm test                       # shared, server and web unit tests, no database
 npm run test:e2e -w @silencewatch/server   # needs TEST_DATABASE_URL
 cd clients/spring-boot-starter && mvn test
 ```
+
+The web tests run on Vitest through the Angular builder; they need no browser.
 
 The end-to-end suite migrates and truncates the database it is pointed at, so give
 it its own:
@@ -78,6 +80,21 @@ For reference, a shared 2-core sandbox with PostgreSQL on the same host sustains
 ~1,600 heartbeats/second with no drops (p50 30 ms at 64 connections). Real
 hardware with a dedicated database does considerably better; the point of the
 number is the shape, not the record.
+
+## The Spring starter against a real server
+
+`examples/spring-boot-demo` is a plain Spring Boot application with two scheduled
+jobs and no monitoring code. It is the fastest way to see — or to verify — that
+the starter does what it claims:
+
+```bash
+cd clients/spring-boot-starter && mvn install -DskipTests
+cd ../../examples/spring-boot-demo
+SILENCEWATCH_API_KEY=sw_… mvn spring-boot:run
+```
+
+The jobs appear within a second of startup, tagged `auto`, with their resolved
+schedules. Stop the application and watch them go `LATE`, then `DOWN`.
 
 ## Migrations
 

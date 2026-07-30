@@ -49,7 +49,9 @@ appears in SilenceWatch, with its real schedule, and sends a heartbeat around ea
 run — including its duration and whether it threw. No check to create by hand, no
 ping URL to copy, nothing to keep in sync when the code changes.
 
-See [`clients/spring-boot-starter`](clients/spring-boot-starter/README.md).
+See [`clients/spring-boot-starter`](clients/spring-boot-starter/README.md), and
+[`examples/spring-boot-demo`](examples/spring-boot-demo/README.md) for a runnable
+application that declares its jobs this way.
 
 ## Self-hosting
 

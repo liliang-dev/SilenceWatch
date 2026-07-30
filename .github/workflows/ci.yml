@@ -51,6 +51,8 @@ jobs:
       - name: Type-check
         run: npm run lint
 
+      # Shared, server and web. The web suite runs on Vitest through the Angular
+      # builder, so no browser is needed in CI.
       - name: Unit tests
         run: npm test
 
@@ -75,9 +77,17 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build and test
+      # `install` rather than `verify`: the example below resolves the starter
+      # from the local repository.
+      - name: Build and test the starter
         working-directory: clients/spring-boot-starter
-        run: mvn -B verify
+        run: mvn -B install
+
+      # The example application is the starter's real contract: if it stops
+      # compiling against the published artifact, the integration is broken.
+      - name: Compile the example application
+        working-directory: examples/spring-boot-demo
+        run: mvn -B -q compile
 
   docker:
     name: Container image
