@@ -7,6 +7,13 @@
 # --------------------------------------------------------------------- build ---
 FROM node:22-bookworm-slim AS builder
 
+# openssl so Prisma resolves the same engine target here as in the runtime
+# image; the explicit binaryTargets in schema.prisma is the real guarantee, this
+# just stops `native` from meaning two different things.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=development
 
