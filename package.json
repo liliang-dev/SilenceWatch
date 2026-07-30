@@ -1,0 +1,34 @@
+{
+  "name": "silencewatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source heartbeat monitoring for cron jobs, workers and scheduled tasks.",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/web"
+  ],
+  "scripts": {
+    "build": "npm run build -w @silencewatch/shared && npm run build -w @silencewatch/server && npm run build -w @silencewatch/web",
+    "build:shared": "npm run build -w @silencewatch/shared",
+    "build:server": "npm run build -w @silencewatch/server",
+    "build:web": "npm run build -w @silencewatch/web",
+    "dev": "npm run dev -w @silencewatch/server",
+    "dev:web": "npm run start -w @silencewatch/web",
+    "test": "npm run test -w @silencewatch/shared && npm run test -w @silencewatch/server",
+    "test:e2e": "npm run test:e2e -w @silencewatch/server",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"packages/*/src/**/*.{ts,html,scss}\"",
+    "prisma:generate": "npm run prisma:generate -w @silencewatch/server",
+    "prisma:migrate": "npm run prisma:migrate -w @silencewatch/server",
+    "loadtest": "npm run loadtest -w @silencewatch/server"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.9.3"
+  }
+}

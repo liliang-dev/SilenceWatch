@@ -1,0 +1,5 @@
+{
+  "/api": { "target": "http://localhost:8080", "secure": false },
+  "/p": { "target": "http://localhost:8080", "secure": false },
+  "/health": { "target": "http://localhost:8080", "secure": false }
+}

@@ -1,0 +1,113 @@
+# Development
+
+## Layout
+
+```
+packages/shared    validation schemas and DTO types, shared by server, UI and clients (Apache-2.0)
+packages/server    NestJS + Fastify API, ingestion, detection, alerting (AGPL-3.0)
+packages/web       Angular UI, built into packages/server/public (AGPL-3.0)
+clients/spring-boot-starter   the Spring Boot starter (Apache-2.0)
+```
+
+## Running it locally
+
+```bash
+npm install
+docker run -d --name sw-postgres -p 5432:5432 \
+  -e POSTGRES_PASSWORD=silencewatch -e POSTGRES_USER=silencewatch -e POSTGRES_DB=silencewatch \
+  postgres:16-alpine
+
+cat > packages/server/.env <<'EOF'
+DATABASE_URL=postgresql://silencewatch:silencewatch@localhost:5432/silencewatch
+SECRET_KEY=development-secret-key-at-least-32-chars
+BASE_URL=http://localhost:8080
+EMAIL_PROVIDER=console
+LOG_LEVEL=debug
+EOF
+
+npm run build:shared
+npm run prisma:migrate -w @silencewatch/server
+npm run dev            # API on :8080
+npm run dev:web        # UI on :4200, proxying /api and /p to :8080
+```
+
+`EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
+with it when `NODE_ENV=production`.
+
+## Proving it works with curl
+
+`scripts/smoke.sh` walks the whole product from the outside: register, create a
+check, ping it, watch it go down, bring it back.
+
+```bash
+cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
+```
+
+## Tests
+
+```bash
+npm test                       # shared + server unit tests, no database
+npm run test:e2e -w @silencewatch/server   # needs TEST_DATABASE_URL
+cd clients/spring-boot-starter && mvn test
+```
+
+The end-to-end suite migrates and truncates the database it is pointed at, so give
+it its own:
+
+```bash
+createdb silencewatch_test
+TEST_DATABASE_URL=postgresql://…/silencewatch_test npm run test:e2e -w @silencewatch/server
+```
+
+It runs against a real PostgreSQL on purpose: the interesting logic (the detection
+state machine, `FOR UPDATE SKIP LOCKED`, the sync upsert, partial indexes) lives in
+SQL, and a mocked database would test none of it.
+
+## Load testing the ingestion path
+
+```bash
+cd packages/server
+BASE=http://localhost:8080 CHECKS=50 DURATION=20 CONNECTIONS=100 npm run loadtest
+```
+
+It creates checks, hammers their ping URLs, and **fails if a single heartbeat was
+not accepted** — a dropped heartbeat is a false alert. Raise
+`PING_RATE_LIMIT_PER_MINUTE` for the run, since the limiter is per ping key.
+
+For reference, a shared 2-core sandbox with PostgreSQL on the same host sustains
+~1,600 heartbeats/second with no drops (p50 30 ms at 64 connections). Real
+hardware with a dedicated database does considerably better; the point of the
+number is the shape, not the record.
+
+## Migrations
+
+Migrations are **hand-written SQL**. Several objects the product depends on have
+no Prisma equivalent: the partial index driving detection, the unique partial index
+guaranteeing one open incident per check, the CHECK constraints, and the
+`NOTIFY` trigger used to invalidate the ingestion cache.
+
+To change the schema:
+
+1. edit `packages/server/prisma/schema.prisma`;
+2. generate the SQL and review it:
+   ```bash
+   npx prisma migrate diff --from-url "$DATABASE_URL" \
+     --to-schema-datamodel prisma/schema.prisma --script
+   ```
+3. save it as `prisma/migrations/<timestamp>_<name>/migration.sql`, adding by hand
+   anything Prisma cannot express;
+4. apply with `npx prisma migrate deploy` and run the end-to-end suite.
+
+Do not use `prisma migrate dev`: it would offer to drop the objects it does not
+know about.
+
+## Conventions
+
+- The ingestion path stays bare. No ORM, no pipes, no guards, no interceptors, no
+  outbound call. If something has to happen on a heartbeat, it happens in the
+  detection loop instead.
+- Comments explain *why*. What the code does is visible in the code.
+- Shared validation rules live in `packages/shared` so the server, the UI and the
+  client libraries cannot disagree.
+- New alert channels are one class implementing `ChannelSender`, registered in
+  `SenderRegistry`.
