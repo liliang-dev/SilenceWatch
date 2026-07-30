@@ -125,9 +125,23 @@ rotations, SMS and phone calls, fine-grained performance metrics.
 
 ## Licensing
 
-The whole application is licenced under **Apache-2.0**.
+| Component                                                          | Licence        |
+| ------------------------------------------------------------------ | -------------- |
+| Server (backend + frontend)                                         | **AGPL-3.0**   |
+| Client libraries, Spring Boot starter, integrations, CLI, examples   | **Apache-2.0** |
 
-The name "SilenceWatch" and the logo are not covered by this licence — see
+> The server is licensed under AGPL-3.0. Client libraries and integrations are
+> licensed under Apache-2.0.
+
+This split is deliberate and non-negotiable: an AGPL client library would
+contaminate the applications that embed it, no company would ship it, and the
+project's whole differentiator would die with it.
+
+Which licence applies is readable from the tree: the root `LICENSE` is AGPL-3.0
+and governs by default, and every Apache-2.0 subtree carries its own `LICENSE`
+file — `packages/shared`, `clients/**` and `examples/**`.
+
+The name "SilenceWatch" and the logo are not covered by these licences — see
 [TRADEMARK.md](TRADEMARK.md).
 
 ## Contributing
