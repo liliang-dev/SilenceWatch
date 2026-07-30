@@ -1,51 +1,30 @@
-# SilenceWatch, self-hosted.
-#
-#   cp .env.example .env
-#   # edit .env — SECRET_KEY and POSTGRES_PASSWORD at minimum
-#   docker compose up -d
-#
-# That is the whole installation. Open http://localhost:8080 and create the first
-# account: on an empty instance it is always allowed, and it becomes the owner.
-
 services:
   silencewatch:
-    image: ghcr.io/silencewatch/silencewatch:latest
-    # Comment the image and uncomment this to build from a checkout.
-    # build:
-    #   context: .
-    #   args:
-    #     SILENCEWATCH_VERSION: dev
+    # Built from this checkout. No image is published yet, so pointing at a
+    # registry here would make `docker compose up` fail on a fresh clone with
+    # nothing running at all — which looks a lot like a missing application.
+    # Once a release is published, swap this for the image line below.
+    build:
+      context: .
+      args:
+        SILENCEWATCH_VERSION: dev
+    # image: ghcr.io/liliang-dev/silencewatch:latest
     restart: unless-stopped
     ports:
       - '${PORT:-8080}:8080'
     environment:
       DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/silencewatch
-      # Root secret for session and signing keys. Rotating it signs everyone out.
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — openssl rand -hex 32}
       # Public URL: it is what ping URLs and alert links are built from, so it
       # has to be what your users actually type.
       BASE_URL: ${BASE_URL:-http://localhost:8080}
-
-      # --- alerting ---------------------------------------------------------
-      # Never self-host SMTP for alerts: mail that lands in spam is worse than no
-      # mail. Relay through a provider, or through a relay you already trust.
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
       SMTP_URL: ${SMTP_URL:-}
       POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-alerts@example.com}
-
-      # --- who watches the watchman ----------------------------------------
-      # SilenceWatch cannot monitor itself. Point this at a third-party dead
-      # man's switch; the heartbeat is withheld whenever the detection loop
-      # stalls, so the external watchdog fires. See docs/deployment.md.
       OUTBOUND_HEARTBEAT_URL: ${OUTBOUND_HEARTBEAT_URL:-}
-
-      # --- behind a reverse proxy ------------------------------------------
-      # Only enable when a proxy really is in front: it makes the server trust
-      # X-Forwarded-For, which is spoofable when it is not.
       TRUST_PROXY: ${TRUST_PROXY:-false}
-
       PING_RETENTION_DAYS: ${PING_RETENTION_DAYS:-90}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:

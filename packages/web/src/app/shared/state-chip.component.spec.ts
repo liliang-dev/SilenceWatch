@@ -32,8 +32,8 @@ describe('StateChipComponent', () => {
   it('carries a per-state class, so colour is never the only signal', () => {
     // The label and the dot carry the meaning too: the list stays readable in
     // greyscale and for colour-blind users.
-    expect(render('DOWN').querySelector('.chip')?.classList.contains('state-down')).toBe(true);
-    expect(render('UP').querySelector('.chip')?.classList.contains('state-up')).toBe(true);
+    expect(render('DOWN').querySelector('.chip')?.classList.contains('is-down')).toBe(true);
+    expect(render('UP').querySelector('.chip')?.classList.contains('is-up')).toBe(true);
     expect(render('DOWN').querySelector('.dot')).not.toBeNull();
   });
 });

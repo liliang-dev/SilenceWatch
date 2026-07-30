@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -24,7 +23,6 @@ import { IconComponent } from '../../shared/icon.component';
     IconComponent,
     ReactiveFormsModule,
     MatButtonModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     RelativeTimePipe,
@@ -32,26 +30,31 @@ import { IconComponent } from '../../shared/icon.component';
   template: `
     <div class="sw-page">
       <header class="sw-page-header">
-        <h1>Settings</h1>
+        <div>
+          <h1>Settings</h1>
+          <p class="sw-muted">Keys for the client starters, and your account.</p>
+        </div>
       </header>
 
       @if (error()) {
         <p class="sw-error" role="alert">{{ error() }}</p>
       }
 
-      <mat-card appearance="outlined" class="section">
-        <mat-card-header>
-          <mat-card-title>API keys</mat-card-title>
-          <mat-card-subtitle>
-            Used by the REST API and by the client starters. A key is scoped to this project and
-            cannot create other keys.
-          </mat-card-subtitle>
-        </mat-card-header>
+      <section class="sw-card section">
+        <div class="section-head">
+          <h2>API keys</h2>
+          <p class="sw-muted">
+            Used by the REST API and by the client starters. A key is scoped to this project and cannot
+            create other keys.
+          </p>
+        </div>
 
-        <mat-card-content>
+        <div class="section-body">
           @if (createdKey(); as created) {
+            <!-- Shown once, and said so plainly: the secret is not stored in a
+                 recoverable form and there is no second chance to copy it. -->
             <div class="new-key">
-              <p><strong>Copy this key now — it is never shown again.</strong></p>
+              <p class="new-key-title">Copy this key now — it is never shown again.</p>
               <div class="key-row">
                 <code class="sw-mono">{{ created.token }}</code>
                 <button mat-icon-button (click)="copy(created.token)" aria-label="Copy API key">
@@ -66,52 +69,52 @@ import { IconComponent } from '../../shared/icon.component';
               <mat-label>Key name</mat-label>
               <input matInput formControlName="name" placeholder="spring-boot-starter" required />
             </mat-form-field>
-            <button mat-flat-button type="submit" [disabled]="busy()">Create key</button>
+            <button mat-flat-button type="submit" [disabled]="busy()" class="tall">Create key</button>
           </form>
+        </div>
 
-          @if (apiKeys().length === 0) {
-            <p class="sw-muted">No API key yet.</p>
-          } @else {
-            <div class="sw-scroll-x">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Prefix</th>
-                    <th scope="col">Last used</th>
-                    <th scope="col">Created</th>
-                    <th scope="col"></th>
+        @if (apiKeys().length === 0) {
+          <p class="section-note sw-muted">No API key yet.</p>
+        } @else {
+          <div class="sw-scroll-x bordered">
+            <table class="sw-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Prefix</th>
+                  <th scope="col">Last used</th>
+                  <th scope="col">Created</th>
+                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (key of apiKeys(); track key.id) {
+                  <tr [class.revoked]="key.revokedAt">
+                    <td>{{ key.name }}</td>
+                    <td class="sw-mono sw-muted">{{ key.prefix }}…</td>
+                    <td>{{ key.lastUsedAt | swRelativeTime }}</td>
+                    <td class="sw-muted">{{ key.createdAt | swRelativeTime }}</td>
+                    <td class="right">
+                      @if (key.revokedAt) {
+                        <span class="sw-tag">revoked</span>
+                      } @else {
+                        <button mat-button class="danger" (click)="revoke(key)">Revoke</button>
+                      }
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (key of apiKeys(); track key.id) {
-                    <tr [class.revoked]="key.revokedAt">
-                      <td>{{ key.name }}</td>
-                      <td class="sw-mono">{{ key.prefix }}…</td>
-                      <td>{{ key.lastUsedAt | swRelativeTime }}</td>
-                      <td>{{ key.createdAt | swRelativeTime }}</td>
-                      <td class="right">
-                        @if (key.revokedAt) {
-                          <span class="sw-muted">revoked</span>
-                        } @else {
-                          <button mat-button (click)="revoke(key)">Revoke</button>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
 
-      <mat-card appearance="outlined" class="section">
-        <mat-card-header>
-          <mat-card-title>Password</mat-card-title>
-          <mat-card-subtitle>Changing it signs you out everywhere, including here.</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
+      <section class="sw-card section">
+        <div class="section-head">
+          <h2>Password</h2>
+          <p class="sw-muted">Changing it signs you out everywhere, including here.</p>
+        </div>
+        <div class="section-body">
           <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
             <mat-form-field appearance="outline">
               <mat-label>Current password</mat-label>
@@ -122,42 +125,62 @@ import { IconComponent } from '../../shared/icon.component';
               <input matInput type="password" formControlName="newPassword" autocomplete="new-password" />
               <mat-hint>{{ minLength }} characters minimum</mat-hint>
             </mat-form-field>
-            <button mat-flat-button type="submit" [disabled]="busy()">Change password</button>
+            <button mat-flat-button type="submit" [disabled]="busy()" class="tall">Change password</button>
           </form>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </section>
 
-      <mat-card appearance="outlined" class="section">
-        <mat-card-header>
-          <mat-card-title>Account</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p class="sw-muted">Signed in as {{ auth.user()?.email }}</p>
-          <p class="sw-muted">
-            Project: {{ projects.selected()?.name ?? '—' }} · Checks:
-            {{ projects.selected()?.checkCount ?? 0 }}
-          </p>
-        </mat-card-content>
-      </mat-card>
+      <section class="sw-card section">
+        <div class="section-head">
+          <h2>Account</h2>
+        </div>
+        <dl class="section-body facts">
+          <div>
+            <dt class="sw-label">Signed in as</dt>
+            <dd>{{ auth.user()?.email }}</dd>
+          </div>
+          <div>
+            <dt class="sw-label">Project</dt>
+            <dd>{{ projects.selected()?.name ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt class="sw-label">Checks</dt>
+            <dd class="sw-num">{{ projects.selected()?.checkCount ?? 0 }}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   `,
   styles: `
     .section {
       margin-bottom: 20px;
+      overflow: hidden;
     }
 
-    .inline-form {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      margin: 8px 0 16px;
+    .section-head {
+      padding: 18px 20px 0;
     }
 
-    .inline-form button,
-    .password-form button {
-      height: 56px;
+    .section-head p {
+      max-width: 64ch;
+      margin: 6px 0 0;
+      font-size: 0.875rem;
     }
 
+    .section-body {
+      padding: 16px 20px 20px;
+    }
+
+    .section-note {
+      padding: 0 20px 20px;
+      font-size: 0.875rem;
+    }
+
+    .bordered {
+      border-top: 1px solid var(--sw-border);
+    }
+
+    .inline-form,
     .password-form {
       display: flex;
       flex-wrap: wrap;
@@ -165,12 +188,32 @@ import { IconComponent } from '../../shared/icon.component';
       align-items: flex-start;
     }
 
+    .inline-form mat-form-field {
+      flex: 1 1 260px;
+      max-width: 360px;
+    }
+
+    .password-form mat-form-field {
+      flex: 1 1 240px;
+    }
+
+    .tall {
+      height: 52px;
+    }
+
     .new-key {
-      margin-bottom: 16px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      background: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid color-mix(in srgb, var(--sw-accent) 32%, transparent);
+      border-radius: var(--sw-radius);
+      background: var(--sw-accent-soft);
+    }
+
+    .new-key-title {
+      margin: 0 0 8px;
+      color: var(--sw-accent);
+      font-size: 0.8125rem;
+      font-weight: 600;
     }
 
     .key-row {
@@ -180,32 +223,48 @@ import { IconComponent } from '../../shared/icon.component';
     }
 
     .key-row code {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: var(--sw-radius-sm);
+      background: var(--sw-surface);
       overflow-x: auto;
       white-space: nowrap;
-    }
-
-    th {
-      text-align: left;
-      padding: 8px 12px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--mat-sys-on-surface-variant);
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-      font-size: 0.875rem;
     }
 
     td.right {
       text-align: right;
     }
 
+    /* Material sets the label colour from its own token, so a plain "color"
+       declaration here would lose to it. */
+    .danger {
+      --mat-text-button-label-text-color: var(--sw-down);
+    }
+
     tr.revoked {
-      opacity: 0.55;
+      opacity: 0.5;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 0;
+    }
+
+    .facts dd {
+      margin: 4px 0 0;
+      font-weight: 500;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
   `,
 })

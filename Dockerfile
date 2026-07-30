@@ -67,7 +67,13 @@ COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Strip carriage returns before making it executable. A checkout on Windows can
+# turn this script into CRLF, and the container then fails to start with
+# "no such file or directory" naming a file that is right there — the kernel is
+# looking for an interpreter called "/bin/sh\r". .gitattributes prevents the bad
+# checkout; this makes the image correct even when someone builds from one.
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Migrations run at container start, so the migration engine has to be in *this*
 # image — not merely in the stage that built it. Resolving it here, as root and
@@ -112,7 +118,7 @@ ENV SILENCEWATCH_VERSION=${SILENCEWATCH_VERSION} \
 
 LABEL org.opencontainers.image.title="SilenceWatch" \
       org.opencontainers.image.description="Heartbeat monitoring for cron jobs, workers and scheduled tasks" \
-      org.opencontainers.image.source="https://github.com/silencewatch/silencewatch" \
+      org.opencontainers.image.source="https://github.com/liliang-dev/SilenceWatch" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 
 ENTRYPOINT ["docker-entrypoint.sh"]

@@ -50,7 +50,7 @@ export interface CheckFormData {
     MatButtonModule,
   ],
   template: `
-    <h2 mat-dialog-title>{{ data.check ? 'Edit check' : 'New check' }}</h2>
+    <h2 mat-dialog-title class="title">{{ data.check ? 'Edit check' : 'New check' }}</h2>
 
     <mat-dialog-content>
       <form [formGroup]="form" class="form">
@@ -59,37 +59,41 @@ export interface CheckFormData {
           <input matInput formControlName="name" required placeholder="Nightly backup" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Schedule</mat-label>
-          <mat-select formControlName="scheduleType">
-            <mat-option value="interval">Every N seconds</mat-option>
-            <mat-option value="cron">Cron expression</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        @if (form.controls.scheduleType.value === 'interval') {
-          <mat-form-field appearance="outline">
-            <mat-label>Period (seconds)</mat-label>
-            <input matInput type="number" formControlName="periodSeconds" required />
-            <mat-hint>Minimum {{ minPeriod }}s</mat-hint>
-          </mat-form-field>
-        } @else {
-          <mat-form-field appearance="outline">
-            <mat-label>Cron expression</mat-label>
-            <input matInput formControlName="cronExpression" required placeholder="0 2 * * *" />
-            @if (form.controls.cronExpression.touched && form.controls.cronExpression.invalid) {
-              <mat-error>5 or 6 fields, e.g. "0 2 * * *"</mat-error>
-            }
-          </mat-form-field>
+        <fieldset class="group">
+          <legend class="sw-label">Schedule</legend>
 
           <mat-form-field appearance="outline">
-            <mat-label>Time zone</mat-label>
-            <input matInput formControlName="timezone" placeholder="Europe/Paris" />
-            @if (form.controls.timezone.touched && form.controls.timezone.invalid) {
-              <mat-error>Unknown IANA time zone</mat-error>
-            }
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="scheduleType">
+              <mat-option value="interval">Every N seconds</mat-option>
+              <mat-option value="cron">Cron expression</mat-option>
+            </mat-select>
           </mat-form-field>
-        }
+
+          @if (form.controls.scheduleType.value === 'interval') {
+            <mat-form-field appearance="outline">
+              <mat-label>Period (seconds)</mat-label>
+              <input matInput type="number" formControlName="periodSeconds" required />
+              <mat-hint>Minimum {{ minPeriod }}s</mat-hint>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline">
+              <mat-label>Cron expression</mat-label>
+              <input matInput formControlName="cronExpression" required placeholder="0 2 * * *" class="sw-mono" />
+              @if (form.controls.cronExpression.touched && form.controls.cronExpression.invalid) {
+                <mat-error>5 or 6 fields, e.g. "0 2 * * *"</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Time zone</mat-label>
+              <input matInput formControlName="timezone" placeholder="Europe/Paris" />
+              @if (form.controls.timezone.touched && form.controls.timezone.invalid) {
+                <mat-error>Unknown IANA time zone</mat-error>
+              }
+            </mat-form-field>
+          }
+        </fieldset>
 
         <mat-form-field appearance="outline">
           <mat-label>Grace period (seconds)</mat-label>
@@ -100,6 +104,7 @@ export interface CheckFormData {
         <mat-form-field appearance="outline">
           <mat-label>Environment</mat-label>
           <input matInput formControlName="environment" placeholder="production" />
+          <mat-hint>Optional — keeps staging and production apart</mat-hint>
         </mat-form-field>
 
         @if (error()) {
@@ -108,7 +113,7 @@ export interface CheckFormData {
       </form>
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
+    <mat-dialog-actions align="end" class="actions">
       <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
       <button mat-flat-button type="button" [disabled]="busy()" (click)="save()">
         {{ data.check ? 'Save' : 'Create check' }}
@@ -116,11 +121,41 @@ export interface CheckFormData {
     </mat-dialog-actions>
   `,
   styles: `
+    .title {
+      padding-bottom: 4px !important;
+      font-size: 1.0625rem !important;
+      font-weight: 600 !important;
+    }
+
     .form {
       display: flex;
       flex-direction: column;
-      min-width: min(420px, 78vw);
+      min-width: min(440px, 78vw);
       padding-top: 8px;
+    }
+
+    /* The schedule fields belong together — boxing them keeps the dialog from
+       reading as one undifferentiated stack of inputs. */
+    .group {
+      display: flex;
+      flex-direction: column;
+      margin: 0 0 18px;
+      padding: 8px 14px 0;
+      border: 1px solid var(--sw-border);
+      border-radius: var(--sw-radius);
+      background: var(--sw-surface-2);
+    }
+
+    .group legend {
+      padding: 0 6px;
+    }
+
+    /* A rule under the scroll area: without it, a hint clipped at the fold reads
+       as a rendering bug rather than as "there is more below". */
+    .actions {
+      padding: 14px 24px 18px !important;
+      border-top: 1px solid var(--sw-border);
+      gap: 8px;
     }
   `,
 })
