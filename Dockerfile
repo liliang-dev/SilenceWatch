@@ -36,15 +36,6 @@ RUN npm run build:shared \
 # at startup.
 RUN npm prune --omit=dev --no-audit --no-fund
 
-# Pruning re-extracts @prisma/engines from the npm cache, and the published
-# tarball does not contain the engine binaries — those are fetched by a
-# postinstall hook that prune does not re-run. Warming them here means the image
-# is self-sufficient: no download attempt at container start, which would need
-# both network access and a writable node_modules.
-RUN npx --no-install prisma version \
- && test -n "$(find node_modules/@prisma/engines -name 'schema-engine-*' -print -quit)" \
-    || (echo 'Prisma schema engine missing from the image' >&2; exit 1)
-
 # ------------------------------------------------------------------- runtime ---
 FROM node:22-bookworm-slim AS runtime
 
@@ -69,11 +60,32 @@ COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-# The migration CLI checks it can write to its engines directory before doing
-# anything, so that one directory belongs to the runtime user. Everything else
-# stays root-owned and read-only to the application.
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
- && chown -R node:node /app/node_modules/@prisma /app/node_modules/.prisma
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Migrations run at container start, so the migration engine has to be in *this*
+# image — not merely in the stage that built it. Resolving it here, as root and
+# with the network available, means container start needs neither.
+#
+# The listing is deliberate: when this breaks, the build log shows what is
+# actually on disk instead of leaving it to be guessed from a runtime error.
+RUN set -eu; \
+    npx --no-install prisma version; \
+    echo '--- node_modules/@prisma/engines ---'; \
+    ls -la node_modules/@prisma/engines || true; \
+    engine="$(find node_modules/@prisma/engines /root/.cache/prisma -type f -name 'schema-engine-*' -print -quit 2>/dev/null || true)"; \
+    if [ -z "$engine" ]; then \
+        echo 'No schema engine found: migrations would fail at container start.' >&2; \
+        exit 1; \
+    fi; \
+    echo "Using schema engine: $engine"; \
+    mkdir -p /app/engines; \
+    cp "$engine" /app/engines/schema-engine; \
+    chmod 0755 /app/engines/schema-engine
+
+# Pointing the CLI straight at the binary removes its discovery and download
+# logic from the startup path entirely — which is what makes a read-only
+# filesystem and an air-gapped host viable.
+ENV PRISMA_SCHEMA_ENGINE_BINARY=/app/engines/schema-engine
 
 # Runs as the unprivileged `node` user that the base image already provides.
 USER node
