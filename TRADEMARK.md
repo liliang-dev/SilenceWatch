@@ -29,8 +29,3 @@ SilenceWatch on it.
 If you fork and modify the software, please give the fork its own name. You keep
 every right the licence grants you over the code; you simply do not carry the name
 with it.
-
-## Asking
-
-Write to **trademark@silencewatch.com** describing what you would like to do.
-Reasonable requests get a yes.
