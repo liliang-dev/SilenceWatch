@@ -16,6 +16,8 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/server/package.json packages/server/
 COPY packages/web/package.json packages/web/
+# The server's postinstall generates the Prisma client, which needs the schema.
+COPY packages/server/prisma packages/server/prisma
 
 RUN npm ci --no-audit --no-fund
 

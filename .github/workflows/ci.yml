@@ -27,7 +27,7 @@ jobs:
           POSTGRES_DB: silencewatch_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U silencewatch"
+          --health-cmd "pg_isready -U silencewatch -d silencewatch_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -44,6 +44,12 @@ jobs:
           cache: npm
 
       - run: npm ci --no-audit --no-fund
+
+      # The server's types come from the generated Prisma client, so nothing
+      # type-checks before this runs. The server's postinstall does it too; this
+      # step makes the build independent of npm lifecycle-script behaviour.
+      - name: Generate the Prisma client
+        run: npm run prisma:generate
 
       - name: Build shared types
         run: npm run build:shared
@@ -122,11 +128,20 @@ jobs:
             sleep 2
           done
 
+          # The image runs with NODE_ENV=production, where the server refuses to
+          # start with the `console` email provider — it drops alerts. A relay
+          # that is never contacted is enough to satisfy that check.
           docker run -d --name sw-app --network sw-ci -p 8080:8080 \
             -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
             -e SECRET_KEY=ci-secret-key-that-is-long-enough-for-the-check \
             -e BASE_URL=http://localhost:8080 \
+            -e EMAIL_PROVIDER=smtp \
+            -e SMTP_URL=smtp://relay.invalid:587 \
             silencewatch:ci
+
+          # Always show the container's logs, whatever happens next: a silent
+          # failure here is the hardest kind to diagnose after the fact.
+          trap 'docker logs sw-app' EXIT
 
           for _ in $(seq 1 30); do
             curl -fsS http://localhost:8080/health && break
@@ -134,6 +149,7 @@ jobs:
           done
 
           curl -fsS http://localhost:8080/health | tee /dev/stderr | grep -q '"status":"ok"'
-          # A mistyped ping URL must be a 404, never the SPA shell.
+          # A mistyped ping URL must stay an error, never the SPA shell.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
-          docker logs sw-app
+          # And the UI is actually in the image.
+          curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
