@@ -1,0 +1,33 @@
+# Line endings.
+#
+# A shell script checked out with CRLF is copied into the image as-is, and the
+# kernel then looks for an interpreter literally called "/bin/sh\r". The failure
+# is reported as:
+#
+#     exec /usr/local/bin/docker-entrypoint.sh: no such file or directory
+#
+# which points at a file that is plainly there. Forcing LF on everything the
+# container executes removes that whole class of Windows-only breakage.
+
+* text=auto
+
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.dockerfile    text eol=lf
+docker-compose*.yml text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.json          text eol=lf
+*.sql           text eol=lf
+*.prisma        text eol=lf
+mvnw            text eol=lf
+
+# Left alone: git must not rewrite bytes inside these.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.woff   binary
+*.woff2  binary
+*.jar    binary
+*.gz     binary
