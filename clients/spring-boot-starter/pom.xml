@@ -32,8 +32,8 @@
   </licenses>
 
   <scm>
-    <url>https://github.com/silencewatch/silencewatch</url>
-    <connection>scm:git:https://github.com/silencewatch/silencewatch.git</connection>
+    <url>https://github.com/liliang-dev/SilenceWatch</url>
+    <connection>scm:git:https://github.com/liliang-dev/SilenceWatch.git</connection>
   </scm>
 
   <properties>

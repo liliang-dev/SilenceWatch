@@ -58,8 +58,8 @@ application that declares its jobs this way.
 One command, one container, one database:
 
 ```bash
-git clone https://github.com/silencewatch/silencewatch.git
-cd silencewatch
+git clone https://github.com/liliang-dev/SilenceWatch.git
+cd SilenceWatch
 cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```

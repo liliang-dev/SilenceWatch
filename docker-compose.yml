@@ -9,12 +9,15 @@
 
 services:
   silencewatch:
-    image: ghcr.io/silencewatch/silencewatch:latest
-    # Comment the image and uncomment this to build from a checkout.
-    # build:
-    #   context: .
-    #   args:
-    #     SILENCEWATCH_VERSION: dev
+    # Built from this checkout. No image is published yet, so pointing at a
+    # registry here would make `docker compose up` fail on a fresh clone with
+    # nothing running at all — which looks a lot like a missing application.
+    # Once a release is published, swap this for the image line below.
+    build:
+      context: .
+      args:
+        SILENCEWATCH_VERSION: dev
+    # image: ghcr.io/liliang-dev/silencewatch:latest
     restart: unless-stopped
     ports:
       - '${PORT:-8080}:8080'

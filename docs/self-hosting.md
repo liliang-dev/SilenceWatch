@@ -12,8 +12,8 @@ PostgreSQL database; there is nothing else to install, scale or watch.
 ## Install
 
 ```bash
-git clone https://github.com/silencewatch/silencewatch.git
-cd silencewatch
+git clone https://github.com/liliang-dev/SilenceWatch.git
+cd SilenceWatch
 cp .env.example .env
 ```
 
@@ -139,9 +139,13 @@ And — this being what the product is for — monitor the backup job with a che
 ## Upgrading
 
 ```bash
-docker compose pull
+git pull
+docker compose build --pull
 docker compose up -d
 ```
+
+(Once a release image is published, this becomes `docker compose pull` with the
+image line in the Compose file.)
 
 Migrations are applied at startup. They are additive by design; when a release
 needs a destructive change, the notes say so and give the steps.
