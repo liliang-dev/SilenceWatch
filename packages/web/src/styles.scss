@@ -1,31 +1,144 @@
 @use '@angular/material' as mat;
 
-/* Angular Material 3, in light and dark, driven by the operating system. */
-html {
+/* =============================================================================
+   SilenceWatch design tokens
+   =============================================================================
+
+   The product is read at a glance, often by someone who has just been woken up.
+   Two rules follow from that and drive everything below:
+
+   1. The chrome is quiet. Surfaces, borders and text are near-neutral, so the
+      only saturated colour on screen belongs to a check's state. A blue button
+      competing with a red status is a design that hides the answer.
+   2. Colour is never the only signal. Every state also has a label and a shape,
+      so the screen survives greyscale and colour blindness.
+
+   No web font is loaded: the served Content-Security-Policy is `default-src
+   'self'`, and a monitoring tool should not go and fetch a stylesheet from a
+   third party before it can tell you what is broken.
+   ========================================================================== */
+
+:root {
   color-scheme: light dark;
+
+  /* Neutrals — light */
+  --sw-bg: #fafbfc;
+  --sw-bg-accent: #f2f4f7;
+  --sw-surface: #ffffff;
+  --sw-surface-2: #f7f8fa;
+  --sw-surface-3: #eef0f4;
+  --sw-border: #e4e7ec;
+  --sw-border-strong: #d0d5dd;
+  --sw-text: #101828;
+  --sw-text-muted: #667085;
+  --sw-text-subtle: #98a2b3;
+
+  --sw-accent: #3538cd;
+  --sw-accent-hover: #2d30a6;
+  --sw-accent-soft: #eef0ff;
+  --sw-accent-contrast: #ffffff;
+
+  /* Status — the only colours allowed to shout */
+  --sw-up: #067647;
+  --sw-up-soft: #ecfdf3;
+  --sw-late: #b54708;
+  --sw-late-soft: #fffaeb;
+  --sw-down: #d92d20;
+  --sw-down-soft: #fef3f2;
+  --sw-paused: #667085;
+  --sw-paused-soft: #f2f4f7;
+  --sw-new: #175cd3;
+  --sw-new-soft: #eff8ff;
+
+  --sw-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
+  --sw-shadow: 0 1px 3px rgb(16 24 40 / 8%), 0 1px 2px rgb(16 24 40 / 4%);
+  --sw-shadow-lg: 0 12px 32px -8px rgb(16 24 40 / 14%);
+
+  --sw-radius-sm: 6px;
+  --sw-radius: 10px;
+  --sw-radius-lg: 14px;
+
+  --sw-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sw-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sw-bg: #0b0d11;
+    --sw-bg-accent: #10131a;
+    --sw-surface: #14171e;
+    --sw-surface-2: #191d26;
+    --sw-surface-3: #212734;
+    --sw-border: #252b36;
+    --sw-border-strong: #333b49;
+    --sw-text: #e8eaf0;
+    --sw-text-muted: #98a2b3;
+    --sw-text-subtle: #6c7689;
+
+    --sw-accent: #8098f9;
+    --sw-accent-hover: #a4bcfd;
+    --sw-accent-soft: #1a2036;
+    --sw-accent-contrast: #0b0d11;
+
+    /* Lightened so they keep contrast on a dark surface: the light-mode greens
+       and reds are unreadable here, which is how status colour quietly stops
+       working in dark mode. */
+    --sw-up: #47cd89;
+    --sw-up-soft: #0c1f18;
+    --sw-late: #fdb022;
+    --sw-late-soft: #241a09;
+    --sw-down: #f97066;
+    --sw-down-soft: #2a1211;
+    --sw-paused: #98a2b3;
+    --sw-paused-soft: #1b2029;
+    --sw-new: #84adff;
+    --sw-new-soft: #101c33;
+
+    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+    --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+    --sw-shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 70%);
+  }
+}
+
+/* Angular Material provides the dialogs, menus, inputs and snackbars. Its own
+   palette is bound to the tokens above so its components sit inside this design
+   rather than beside it. */
+html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
+        primary: mat.$violet-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
-      density: 0,
+      typography: (
+        plain-family: system-ui,
+        brand-family: system-ui,
+      ),
+      density: -1,
     )
   );
+
+  --mat-sys-surface: var(--sw-surface);
+  --mat-sys-surface-container: var(--sw-surface);
+  --mat-sys-surface-container-low: var(--sw-surface-2);
+  --mat-sys-surface-container-high: var(--sw-surface-2);
+  --mat-sys-surface-container-highest: var(--sw-surface-3);
+  --mat-sys-on-surface: var(--sw-text);
+  --mat-sys-on-surface-variant: var(--sw-text-muted);
+  --mat-sys-outline: var(--sw-border-strong);
+  --mat-sys-outline-variant: var(--sw-border);
+  --mat-sys-primary: var(--sw-accent);
+  --mat-sys-on-primary: var(--sw-accent-contrast);
+  --mat-sys-error: var(--sw-down);
+  --mat-sys-corner-medium: var(--sw-radius);
+  --mat-sys-corner-large: var(--sw-radius-lg);
 }
 
-:root {
-  /* Check states have one definition, used by chips, dots and borders alike. */
-  --sw-state-up: #146c2e;
-  --sw-state-late: #a15c00;
-  --sw-state-down: #b3261e;
-  --sw-state-paused: #5f6368;
-  --sw-state-new: #1a73e8;
-  --sw-gap: 16px;
-}
+/* ------------------------------------------------------------------ base --- */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -33,70 +146,252 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+}
+
+body {
+  font-family: var(--sw-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sw-text);
+  background: var(--sw-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--sw-text);
+}
+
+h1 {
+  font-size: 1.375rem;
+}
+
+h2 {
+  font-size: 1.0625rem;
 }
 
 a {
-  color: var(--mat-sys-primary);
+  color: var(--sw-accent);
+  text-decoration: none;
 }
 
+a:hover {
+  text-decoration: underline;
+}
+
+/* One visible focus treatment everywhere, including for Material's controls. */
+:focus-visible {
+  outline: 2px solid var(--sw-accent);
+  outline-offset: 2px;
+  border-radius: var(--sw-radius-sm);
+}
+
+::selection {
+  background: var(--sw-accent-soft);
+  color: var(--sw-text);
+}
+
+/* Times, durations and counts line up in columns when they are tabular. */
+time,
+.sw-num,
+.sw-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-mono {
+  font-family: var(--sw-font-mono);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------- layout --- */
+
 .sw-page {
-  max-width: 1180px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 28px 20px 80px;
 }
 
 .sw-page-header {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sw-gap);
-  align-items: center;
+  gap: 16px;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+}
 
-  h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 500;
-  }
+.sw-page-header p {
+  margin: 5px 0 0;
+  color: var(--sw-text-muted);
+}
+
+/* ---------------------------------------------------------- primitives --- */
+
+.sw-card {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+}
+
+.sw-card-pad {
+  padding: 20px;
+}
+
+/* Column headings and field labels: quiet, small, and never shouting in caps. */
+.sw-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
 }
 
 .sw-muted {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sw-text-muted);
 }
 
-.sw-mono {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.85em;
+.sw-subtle {
+  color: var(--sw-text-subtle);
 }
 
-.sw-empty {
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--mat-sys-on-surface-variant);
+.sw-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--sw-text-muted);
+  white-space: nowrap;
 }
 
 .sw-error {
-  margin: 12px 0;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--sw-down) 30%, transparent);
+  border-radius: var(--sw-radius);
+  background: var(--sw-down-soft);
+  color: var(--sw-down);
+  font-size: 0.875rem;
+}
+
+.sw-empty {
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.sw-empty h2 {
+  margin-bottom: 8px;
+}
+
+.sw-empty p {
+  max-width: 46ch;
+  margin: 0 auto;
+  color: var(--sw-text-muted);
 }
 
 .sw-scroll-x {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
-table {
+/* ------------------------------------------------------------- tables --- */
+
+.sw-table {
   width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.sw-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 16px;
+  text-align: left;
+  white-space: nowrap;
+  background: var(--sw-surface-2);
+  border-bottom: 1px solid var(--sw-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
+}
+
+.sw-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  vertical-align: middle;
+}
+
+.sw-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.sw-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.sw-table tbody tr:hover {
+  background: var(--sw-surface-2);
+}
+
+/* ------------------------------------------------------- material trims --- */
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--sw-text);
+  --mdc-snackbar-supporting-text-color: var(--sw-bg);
+}
+
+.mat-mdc-dialog-surface {
+  border: 1px solid var(--sw-border);
+  box-shadow: var(--sw-shadow-lg) !important;
+}
+
+.mat-mdc-tab-header {
+  border-bottom: 1px solid var(--sw-border);
+}
+
+/* --------------------------------------------------------- scrollbars --- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sw-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--sw-border-strong);
+  border: 3px solid transparent;
+  border-radius: 99px;
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

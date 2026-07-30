@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -27,7 +26,6 @@ import { IconComponent } from '../../shared/icon.component';
     IconComponent,
     ReactiveFormsModule,
     MatButtonModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -46,86 +44,86 @@ import { IconComponent } from '../../shared/icon.component';
         <p class="sw-error" role="alert">{{ error() }}</p>
       }
 
-      <mat-card appearance="outlined" class="add">
-        <mat-card-content>
-          <form [formGroup]="form" (ngSubmit)="add()" class="form">
-            <mat-form-field appearance="outline" class="type">
-              <mat-label>Type</mat-label>
-              <mat-select formControlName="type">
-                @for (type of channelTypes; track type) {
-                  <mat-option [value]="type">{{ label(type) }}</mat-option>
-                }
-              </mat-select>
+      <section class="sw-card add">
+        <h2 class="add-title">Add a channel</h2>
+        <form [formGroup]="form" (ngSubmit)="add()" class="form">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type">
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="type">
+              @for (type of channelTypes; track type) {
+                <mat-option [value]="type">{{ label(type) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="name">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" placeholder="On-call" required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
+            <mat-label>{{ form.controls.type.value === 'email' ? 'Email address' : 'Webhook URL' }}</mat-label>
+            <input
+              matInput
+              formControlName="target"
+              required
+              [placeholder]="
+                form.controls.type.value === 'email' ? 'oncall@example.com' : 'https://hooks.example.com/services/…'
+              "
+            />
+          </mat-form-field>
+
+          @if (form.controls.type.value === 'webhook') {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
+              <mat-label>Signing secret (optional)</mat-label>
+              <input matInput formControlName="secret" />
+              <mat-hint>Signs each payload with HMAC-SHA256 so you can verify it came from us</mat-hint>
             </mat-form-field>
+          }
 
-            <mat-form-field appearance="outline" class="name">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="name" placeholder="On-call" required />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="target">
-              <mat-label>{{ form.controls.type.value === 'email' ? 'Email address' : 'Webhook URL' }}</mat-label>
-              <input
-                matInput
-                formControlName="target"
-                required
-                [placeholder]="
-                  form.controls.type.value === 'email'
-                    ? 'oncall@example.com'
-                    : 'https://hooks.example.com/services/…'
-                "
-              />
-            </mat-form-field>
-
-            @if (form.controls.type.value === 'webhook') {
-              <mat-form-field appearance="outline" class="target">
-                <mat-label>Signing secret (optional)</mat-label>
-                <input matInput formControlName="secret" />
-                <mat-hint>Signs each payload with HMAC-SHA256 so you can verify it came from us</mat-hint>
-              </mat-form-field>
-            }
-
-            <button mat-flat-button type="submit" [disabled]="busy()">
-              <sw-icon name="add" />
-              Add channel
-            </button>
-          </form>
-        </mat-card-content>
-      </mat-card>
+          <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
+            <sw-icon name="add" />
+            Add channel
+          </button>
+        </form>
+      </section>
 
       @if (channels().length === 0) {
-        <div class="sw-empty">
+        <div class="sw-card sw-empty">
           <h2>No channel configured</h2>
           <p>Until one exists, SilenceWatch detects outages but has nobody to tell.</p>
         </div>
       } @else {
-        <div class="list">
+        <div class="sw-card list">
           @for (channel of channels(); track channel.id) {
-            <mat-card appearance="outlined" class="channel">
-              <mat-card-content class="channel-body">
-                <div class="channel-info">
-                  <div class="channel-title">
-                    <strong>{{ channel.name }}</strong>
-                    <span class="type-tag">{{ label(channel.type) }}</span>
-                  </div>
-                  <div class="sw-muted sw-mono target-text">{{ channel.target }}</div>
-                </div>
+            <article class="channel" [class.off]="!channel.enabled">
+              <span class="glyph" [class]="'glyph-' + channel.type" aria-hidden="true">{{ initial(channel.type) }}</span>
 
-                <div class="channel-actions">
-                  <mat-slide-toggle
-                    [checked]="channel.enabled"
-                    (change)="toggle(channel, $event.checked)"
-                    [attr.aria-label]="'Enable ' + channel.name"
-                  />
-                  <button mat-stroked-button (click)="test(channel)" [disabled]="testing() === channel.id">
-                    {{ testing() === channel.id ? 'Sending…' : 'Send test' }}
-                  </button>
-                  <button mat-icon-button (click)="remove(channel)" aria-label="Delete channel">
-                    <sw-icon name="delete" />
-                  </button>
+              <div class="channel-info">
+                <div class="channel-title">
+                  <strong>{{ channel.name }}</strong>
+                  <span class="sw-tag">{{ label(channel.type) }}</span>
+                  @if (!channel.enabled) {
+                    <span class="sw-tag muted-tag">disabled</span>
+                  }
                 </div>
-              </mat-card-content>
-            </mat-card>
+                <div class="target-text sw-mono sw-muted">{{ channel.target }}</div>
+              </div>
+
+              <div class="channel-actions">
+                <mat-slide-toggle
+                  [checked]="channel.enabled"
+                  (change)="toggle(channel, $event.checked)"
+                  [attr.aria-label]="'Enable ' + channel.name"
+                />
+                <button mat-stroked-button (click)="test(channel)" [disabled]="testing() === channel.id">
+                  {{ testing() === channel.id ? 'Sending…' : 'Send test' }}
+                </button>
+                <button mat-icon-button (click)="remove(channel)" aria-label="Delete channel">
+                  <sw-icon name="delete" />
+                </button>
+              </div>
+            </article>
           }
         </div>
       }
@@ -133,7 +131,13 @@ import { IconComponent } from '../../shared/icon.component';
   `,
   styles: `
     .add {
+      padding: 20px;
       margin-bottom: 24px;
+    }
+
+    .add-title {
+      margin-bottom: 16px;
+      font-size: 0.9375rem;
     }
 
     .form {
@@ -147,43 +151,77 @@ import { IconComponent } from '../../shared/icon.component';
     .name { flex: 1 1 180px; }
     .target { flex: 2 1 280px; }
 
-    .form button {
-      height: 56px;
+    .submit {
+      height: 52px;
+      gap: 6px;
     }
+
+    /* -------------------------------------------------------------- list --- */
 
     .list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      overflow: hidden;
     }
 
-    .channel-body {
+    .channel {
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
       align-items: center;
-      justify-content: space-between;
-      padding-top: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--sw-border);
+      transition: background-color 120ms ease;
+    }
+
+    .channel:last-child {
+      border-bottom: 0;
+    }
+
+    .channel:hover {
+      background: var(--sw-surface-2);
+    }
+
+    /* A disabled channel is a channel that will not fire; it should look like it. */
+    .channel.off .glyph,
+    .channel.off .channel-info {
+      opacity: 0.55;
+    }
+
+    .glyph {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: none;
+      border-radius: 9px;
+      background: var(--sw-surface-3);
+      color: var(--sw-text-muted);
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+
+    .glyph-email {
+      background: var(--sw-accent-soft);
+      color: var(--sw-accent);
+    }
+
+    .channel-info {
+      flex: 1 1 220px;
+      min-width: 0;
     }
 
     .channel-title {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
     }
 
-    .type-tag {
-      padding: 1px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: var(--mat-sys-surface-container-highest);
+    .muted-tag {
+      color: var(--sw-text-subtle);
     }
 
     .target-text {
       margin-top: 4px;
-      font-size: 0.85rem;
       word-break: break-all;
     }
 
@@ -191,6 +229,7 @@ import { IconComponent } from '../../shared/icon.component';
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-left: auto;
     }
   `,
 })
@@ -223,6 +262,11 @@ export class ChannelsComponent {
 
   protected label(type: ChannelType): string {
     return type === 'teams' ? 'Microsoft Teams' : type[0]?.toUpperCase() + type.slice(1);
+  }
+
+  /** Stands in for a logo: enough to tell the rows apart at a glance. */
+  protected initial(type: ChannelType): string {
+    return (type[0] ?? '?').toUpperCase();
   }
 
   private load(projectId: string): void {

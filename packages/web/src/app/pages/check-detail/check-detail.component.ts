@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, effect, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -16,6 +15,7 @@ import { DurationPipe, RelativeTimePipe } from '../../shared/relative-time.pipe'
 import { StateChipComponent } from '../../shared/state-chip.component';
 import { CheckFormDialog } from '../checks/check-form.dialog';
 import { IconComponent } from '../../shared/icon.component';
+import { describeSchedule } from '../../shared/schedule';
 
 const REFRESH_INTERVAL_MS = 15_000;
 
@@ -32,7 +32,6 @@ const REFRESH_INTERVAL_MS = 15_000;
     IconComponent,
     RouterLink,
     MatButtonModule,
-    MatCardModule,
     MatMenuModule,
     MatProgressBarModule,
     MatTabsModule,
@@ -55,8 +54,8 @@ const REFRESH_INTERVAL_MS = 15_000;
       @if (check(); as current) {
         <header class="sw-page-header">
           <div class="title">
+            <sw-state-chip [state]="current.state" size="lg" />
             <h1>{{ current.name }}</h1>
-            <sw-state-chip [state]="current.state" />
           </div>
 
           <div class="actions">
@@ -80,65 +79,76 @@ const REFRESH_INTERVAL_MS = 15_000;
           </div>
         </header>
 
-        <mat-card appearance="outlined" class="ping">
-          <mat-card-content>
-            <div class="ping-label sw-muted">Ping URL — call it when the job runs</div>
-            <div class="ping-row">
-              <code class="sw-mono url">{{ current.pingUrl }}</code>
-              <button mat-icon-button (click)="copy(current.pingUrl)" matTooltip="Copy" aria-label="Copy ping URL">
-                <sw-icon name="copy" />
-              </button>
-            </div>
-            <div class="hint sw-muted sw-mono">
-              curl -fsS -m 10 --retry 3 {{ current.pingUrl }}
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <!-- First on the page because it is the first thing anyone needs: pasting
+             this into a crontab is the entire setup. -->
+        <section class="sw-card ping">
+          <div class="ping-head">
+            <span class="sw-label">Ping URL</span>
+            <span class="sw-muted ping-hint">call it when the job finishes</span>
+          </div>
+          <div class="ping-row">
+            <code class="sw-mono url">{{ current.pingUrl }}</code>
+            <button
+              mat-flat-button
+              class="copy"
+              (click)="copy(current.pingUrl)"
+              matTooltip="Copy to clipboard"
+              aria-label="Copy ping URL"
+            >
+              <sw-icon name="copy" [size]="18" />
+              Copy
+            </button>
+          </div>
+          <pre class="sw-mono snippet"><span class="prompt">$</span> curl -fsS -m 10 --retry 3 {{ current.pingUrl }}</pre>
+        </section>
 
         <div class="facts">
           <div class="fact">
-            <span class="sw-muted">Schedule</span>
+            <span class="sw-label">Schedule</span>
             <strong class="sw-mono">{{ schedule(current) }}</strong>
           </div>
           <div class="fact">
-            <span class="sw-muted">Grace period</span>
+            <span class="sw-label">Grace period</span>
             <strong>{{ current.graceSeconds }}s</strong>
           </div>
           <div class="fact">
-            <span class="sw-muted">Last ping</span>
+            <span class="sw-label">Last ping</span>
             <strong [matTooltip]="current.lastPingAt ?? ''">{{ current.lastPingAt | swRelativeTime }}</strong>
           </div>
           <div class="fact">
-            <span class="sw-muted">Expected by</span>
+            <span class="sw-label">Expected by</span>
             <strong [matTooltip]="current.nextDueAt ?? ''">{{ current.nextDueAt | swRelativeTime }}</strong>
           </div>
           <div class="fact">
-            <span class="sw-muted">Last duration</span>
+            <span class="sw-label">Last duration</span>
             <strong>{{ current.lastDurationMs | swDuration }}</strong>
           </div>
           <div class="fact">
-            <span class="sw-muted">Environment</span>
+            <span class="sw-label">Environment</span>
             <strong>{{ current.environment ?? '—' }}</strong>
           </div>
         </div>
 
         @if (current.key) {
-          <p class="sw-muted key">
+          <p class="key sw-muted">
             Declared automatically as <code class="sw-mono">{{ current.key }}</code>
             @if (current.orphanedAt) {
-              — the client stopped reporting it {{ current.orphanedAt | swRelativeTime }}. History is
-              kept until you delete it.
+              — the client stopped reporting it {{ current.orphanedAt | swRelativeTime }}. History is kept
+              until you delete it.
             }
           </p>
         }
 
-        <mat-tab-group class="tabs">
+        <mat-tab-group class="tabs" animationDuration="120ms" [mat-stretch-tabs]="false">
           <mat-tab label="Recent pings">
             @if (pings().length === 0) {
-              <p class="sw-empty">No ping received yet.</p>
+              <div class="sw-empty">
+                <h2>No ping received yet</h2>
+                <p>The first call to the ping URL above will appear here within seconds.</p>
+              </div>
             } @else {
-              <div class="sw-scroll-x">
-                <table>
+              <div class="sw-scroll-x panel">
+                <table class="sw-table">
                   <thead>
                     <tr>
                       <th scope="col">When</th>
@@ -156,10 +166,10 @@ const REFRESH_INTERVAL_MS = 15_000;
                         <td>
                           <span class="kind" [class]="'kind-' + ping.kind">{{ ping.kind }}</span>
                         </td>
-                        <td>{{ ping.durationMs | swDuration }}</td>
-                        <td>{{ ping.exitCode ?? '—' }}</td>
-                        <td class="sw-mono">{{ ping.sourceIp ?? '—' }}</td>
-                        <td class="body sw-mono">{{ ping.body ?? '' }}</td>
+                        <td class="sw-num">{{ ping.durationMs | swDuration }}</td>
+                        <td class="sw-num">{{ ping.exitCode ?? '—' }}</td>
+                        <td class="sw-mono sw-muted">{{ ping.sourceIp ?? '—' }}</td>
+                        <td class="body sw-mono sw-muted">{{ ping.body ?? '' }}</td>
                       </tr>
                     }
                   </tbody>
@@ -170,10 +180,13 @@ const REFRESH_INTERVAL_MS = 15_000;
 
           <mat-tab label="Incidents">
             @if (incidents().length === 0) {
-              <p class="sw-empty">No incident. This job has never gone quiet.</p>
+              <div class="sw-empty">
+                <h2>No incident</h2>
+                <p>This job has never gone quiet.</p>
+              </div>
             } @else {
-              <div class="sw-scroll-x">
-                <table>
+              <div class="sw-scroll-x panel">
+                <table class="sw-table">
                   <thead>
                     <tr>
                       <th scope="col">Started</th>
@@ -184,13 +197,17 @@ const REFRESH_INTERVAL_MS = 15_000;
                   </thead>
                   <tbody>
                     @for (incident of incidents(); track incident.id) {
-                      <tr>
+                      <tr [class.ongoing]="incident.resolvedAt === null">
                         <td [matTooltip]="incident.startedAt">{{ incident.startedAt | swRelativeTime }}</td>
                         <td>
-                          {{ incident.resolvedAt ? (incident.resolvedAt | swRelativeTime) : 'ongoing' }}
+                          @if (incident.resolvedAt) {
+                            {{ incident.resolvedAt | swRelativeTime }}
+                          } @else {
+                            <span class="ongoing-tag">ongoing</span>
+                          }
                         </td>
-                        <td>{{ outage(incident) | swDuration }}</td>
-                        <td>{{ incident.notificationsSent }}</td>
+                        <td class="sw-num">{{ outage(incident) | swDuration }}</td>
+                        <td class="sw-num">{{ incident.notificationsSent }}</td>
                       </tr>
                     }
                   </tbody>
@@ -208,9 +225,21 @@ const REFRESH_INTERVAL_MS = 15_000;
     .back {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 16px;
-      font-size: 0.85rem;
+      gap: 4px;
+      margin-bottom: 18px;
+      padding: 4px 10px 4px 6px;
+      border-radius: var(--sw-radius-sm);
+      color: var(--sw-text-muted);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition:
+        background-color 120ms ease,
+        color 120ms ease;
+    }
+
+    .back:hover {
+      background: var(--sw-surface-3);
+      color: var(--sw-text);
       text-decoration: none;
     }
 
@@ -227,90 +256,136 @@ const REFRESH_INTERVAL_MS = 15_000;
       align-items: center;
     }
 
+    /* ------------------------------------------------------------ ping URL --- */
+
     .ping {
-      margin-bottom: 20px;
+      padding: 18px 20px;
+      margin-bottom: 22px;
     }
 
-    .ping-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .ping-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .ping-hint {
+      font-size: 0.75rem;
     }
 
     .ping-row {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 6px;
+      align-items: stretch;
+      gap: 10px;
+      margin-top: 10px;
     }
 
     .url {
+      display: flex;
+      align-items: center;
       flex: 1 1 auto;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--sw-border);
+      border-radius: var(--sw-radius);
+      background: var(--sw-surface-2);
       overflow-x: auto;
       white-space: nowrap;
-      padding: 8px 10px;
-      border-radius: 6px;
-      background: var(--mat-sys-surface-container-highest);
+      color: var(--sw-text);
     }
 
-    .hint {
-      margin-top: 8px;
-      font-size: 0.78rem;
+    .copy {
+      flex: none;
+      gap: 6px;
     }
+
+    .snippet {
+      display: block;
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: var(--sw-radius);
+      background: var(--sw-surface-3);
+      color: var(--sw-text-muted);
+      font-size: 0.75rem;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .prompt {
+      color: var(--sw-text-subtle);
+      user-select: none;
+    }
+
+    /* --------------------------------------------------------------- facts --- */
 
     .facts {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
+      gap: 1px;
+      margin-bottom: 20px;
+      border: 1px solid var(--sw-border);
+      border-radius: var(--sw-radius-lg);
+      background: var(--sw-border);
+      overflow: hidden;
     }
 
     .fact {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      font-size: 0.9rem;
+      gap: 4px;
+      padding: 14px 16px;
+      background: var(--sw-surface);
     }
 
-    .fact span {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .fact strong {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
 
     .key {
-      font-size: 0.85rem;
+      margin: 0 0 20px;
+      font-size: 0.8125rem;
     }
+
+    .key code {
+      padding: 1px 6px;
+      border-radius: var(--sw-radius-sm);
+      background: var(--sw-surface-3);
+    }
+
+    /* --------------------------------------------------------------- tabs --- */
 
     .tabs {
-      margin-top: 8px;
+      margin-top: 4px;
     }
 
-    th {
-      text-align: left;
-      padding: 8px 12px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--mat-sys-on-surface-variant);
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-      font-size: 0.875rem;
+    .panel {
+      margin-top: 16px;
+      border: 1px solid var(--sw-border);
+      border-radius: var(--sw-radius-lg);
+      background: var(--sw-surface);
     }
 
     .kind {
-      font-size: 0.72rem;
-      font-weight: 600;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
     }
 
-    .kind-success { color: var(--sw-state-up); }
-    .kind-fail { color: var(--sw-state-down); }
-    .kind-start { color: var(--sw-state-new); }
+    .kind-success { color: var(--sw-up); }
+    .kind-fail { color: var(--sw-down); }
+    .kind-start { color: var(--sw-new); }
+
+    .ongoing-tag {
+      color: var(--sw-down);
+      font-weight: 600;
+    }
+
+    tr.ongoing td:first-child {
+      box-shadow: inset 3px 0 0 var(--sw-down);
+    }
 
     .body {
       max-width: 320px;
@@ -414,11 +489,7 @@ export class CheckDetailComponent implements OnDestroy {
       .catch(() => this.snackBar.open('Could not copy — select the URL manually', 'OK', { duration: 4000 }));
   }
 
-  protected schedule(check: CheckDto): string {
-    return check.scheduleType === 'cron'
-      ? `${check.cronExpression} (${check.timezone})`
-      : `every ${check.periodSeconds}s`;
-  }
+  protected readonly schedule = describeSchedule;
 
   protected outage(incident: IncidentDto): number {
     const end = incident.resolvedAt === null ? Date.now() : Date.parse(incident.resolvedAt);

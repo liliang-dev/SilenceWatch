@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -16,7 +15,6 @@ import { errorMessage } from '../../core/error-message';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -24,69 +22,87 @@ import { errorMessage } from '../../core/error-message';
   ],
   template: `
     <div class="wrap">
-      <mat-card appearance="outlined" class="card">
-        @if (busy()) {
-          <mat-progress-bar mode="indeterminate" />
-        }
+      <div class="panel">
+        <div class="card sw-card">
+          @if (busy()) {
+            <mat-progress-bar mode="indeterminate" class="progress" />
+          }
 
-        <mat-card-content>
-          <div class="brand">
-            <span class="pulse" aria-hidden="true"></span>
-            <h1>SilenceWatch</h1>
-          </div>
-          <p class="sw-muted tagline">
-            {{
-              mode() === 'login'
-                ? 'Sign in to see which of your jobs are still checking in.'
-                : 'Create an account. The first one on a fresh instance is always allowed.'
-            }}
-          </p>
+          <div class="card-body">
+            <div class="brand">
+              <span class="mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M2 12h4l2.5-6.5L13 18l2.5-6H22"
+                    stroke="currentColor"
+                    stroke-width="2.1"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <h1>Silence<span class="wordmark-accent">Watch</span></h1>
+            </div>
 
-          <form [formGroup]="form" (ngSubmit)="submit()">
-            @if (mode() === 'register') {
+            <p class="tagline sw-muted">
+              {{
+                mode() === 'login'
+                  ? 'Sign in to see which of your jobs are still checking in.'
+                  : 'Create an account. The first one on a fresh instance is always allowed.'
+              }}
+            </p>
+
+            <form [formGroup]="form" (ngSubmit)="submit()">
+              @if (mode() === 'register') {
+                <mat-form-field appearance="outline">
+                  <mat-label>Name</mat-label>
+                  <input matInput formControlName="name" autocomplete="name" />
+                </mat-form-field>
+              }
+
               <mat-form-field appearance="outline">
-                <mat-label>Name</mat-label>
-                <input matInput formControlName="name" autocomplete="name" />
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" autocomplete="email" required />
+                @if (form.controls.email.touched && form.controls.email.invalid) {
+                  <mat-error>Enter a valid email address</mat-error>
+                }
               </mat-form-field>
-            }
 
-            <mat-form-field appearance="outline">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" autocomplete="email" required />
-              @if (form.controls.email.touched && form.controls.email.invalid) {
-                <mat-error>Enter a valid email address</mat-error>
+              <mat-form-field appearance="outline">
+                <mat-label>Password</mat-label>
+                <input
+                  matInput
+                  type="password"
+                  formControlName="password"
+                  [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+                  required
+                />
+                <mat-hint>{{ minLength }} characters minimum</mat-hint>
+                @if (form.controls.password.touched && form.controls.password.invalid) {
+                  <mat-error>At least {{ minLength }} characters</mat-error>
+                }
+              </mat-form-field>
+
+              @if (error()) {
+                <p class="sw-error" role="alert">{{ error() }}</p>
               }
-            </mat-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Password</mat-label>
-              <input
-                matInput
-                type="password"
-                formControlName="password"
-                [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
-                required
-              />
-              <mat-hint>{{ minLength }} characters minimum</mat-hint>
-              @if (form.controls.password.touched && form.controls.password.invalid) {
-                <mat-error>At least {{ minLength }} characters</mat-error>
-              }
-            </mat-form-field>
+              <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
+                {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
+              </button>
+            </form>
+          </div>
 
-            @if (error()) {
-              <p class="sw-error" role="alert">{{ error() }}</p>
-            }
-
-            <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
-              {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
+          <div class="card-foot">
+            <span class="sw-muted">{{ mode() === 'login' ? 'No account yet?' : 'Already registered?' }}</span>
+            <button type="button" class="switch" (click)="toggleMode()">
+              {{ mode() === 'login' ? 'Create one' : 'Sign in' }}
             </button>
-          </form>
+          </div>
+        </div>
 
-          <button mat-button type="button" class="switch" (click)="toggleMode()">
-            {{ mode() === 'login' ? 'Create an account' : 'I already have an account' }}
-          </button>
-        </mat-card-content>
-      </mat-card>
+        <p class="footnote sw-subtle">Dead man's switch monitoring for the jobs nobody watches.</p>
+      </div>
     </div>
   `,
   styles: `
@@ -95,37 +111,64 @@ import { errorMessage } from '../../core/error-message';
       place-items: center;
       min-height: 100dvh;
       padding: 24px;
+      /* A single faint wash behind the card: enough to keep the page from
+         reading as an unstyled form, quiet enough not to compete with it. */
+      background:
+        radial-gradient(60rem 30rem at 50% -10%, var(--sw-accent-soft), transparent 70%),
+        var(--sw-bg);
+    }
+
+    .panel {
+      width: min(420px, 100%);
     }
 
     .card {
-      width: min(420px, 100%);
       overflow: hidden;
+      box-shadow: var(--sw-shadow-lg);
+    }
+
+    .progress {
+      position: absolute;
+      inset: 0 0 auto;
+    }
+
+    .card-body {
+      position: relative;
+      padding: 32px 28px 24px;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 8px;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: #fff;
+      background: linear-gradient(145deg, var(--sw-accent), color-mix(in srgb, var(--sw-accent) 55%, #7c3aed));
     }
 
     h1 {
       margin: 0;
-      font-size: 1.35rem;
+      font-size: 1.25rem;
       font-weight: 600;
+      letter-spacing: -0.02em;
     }
 
-    .pulse {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--sw-state-up);
+    .wordmark-accent {
+      color: var(--sw-text-muted);
+      font-weight: 500;
     }
 
     .tagline {
-      margin: 8px 0 24px;
-      font-size: 0.9rem;
-      line-height: 1.45;
+      margin: 14px 0 24px;
+      font-size: 0.9375rem;
+      line-height: 1.5;
     }
 
     form {
@@ -134,13 +177,40 @@ import { errorMessage } from '../../core/error-message';
     }
 
     .submit {
-      margin-top: 8px;
-      height: 44px;
+      height: 46px;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    .card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 16px;
+      border-top: 1px solid var(--sw-border);
+      background: var(--sw-surface-2);
+      font-size: 0.875rem;
     }
 
     .switch {
-      width: 100%;
-      margin-top: 12px;
+      padding: 2px 4px;
+      border: 0;
+      background: none;
+      color: var(--sw-accent);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .switch:hover {
+      text-decoration: underline;
+    }
+
+    .footnote {
+      margin: 20px 0 0;
+      font-size: 0.8125rem;
+      text-align: center;
     }
   `,
 })
