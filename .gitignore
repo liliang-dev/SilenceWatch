@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# build output
+dist/
+build/
+out/
+*.tsbuildinfo
+packages/web/.angular/
+packages/server/public/
+
+# java
+target/
+clients/spring-boot-starter/target/
+
+# environment / secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/*.key.example
+
+# logs & runtime
+*.log
+npm-debug.log*
+coverage/
+.nyc_output/
+pgdata/
+
+# editors / os
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Server, shared and web
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: silencewatch
+          POSTGRES_PASSWORD: silencewatch
+          POSTGRES_DB: silencewatch_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U silencewatch -d silencewatch_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_DATABASE_URL: postgresql://silencewatch:silencewatch@localhost:5432/silencewatch_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      # The server's types come from the generated Prisma client, so nothing
+      # type-checks before this runs. The server's postinstall does it too; this
+      # step makes the build independent of npm lifecycle-script behaviour.
+      - name: Generate the Prisma client
+        run: npm run prisma:generate
+
+      - name: Build shared types
+        run: npm run build:shared
+
+      - name: Type-check
+        run: npm run lint
+
+      # Shared, server and web. The web suite runs on Vitest through the Angular
+      # builder, so no browser is needed in CI.
+      - name: Unit tests
+        run: npm test
+
+      # Runs against a real PostgreSQL on purpose: the detection state machine,
+      # FOR UPDATE SKIP LOCKED and the sync upsert live in SQL, and a mocked
+      # database would test none of it.
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Build server and web
+        run: npm run build:server && npm run build:web
+
+  java:
+    name: Spring Boot starter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      # `install` rather than `verify`: the example below resolves the starter
+      # from the local repository.
+      - name: Build and test the starter
+        working-directory: clients/spring-boot-starter
+        run: mvn -B install
+
+      # The example application is the starter's real contract: if it stops
+      # compiling against the published artifact, the integration is broken.
+      - name: Compile the example application
+        working-directory: examples/spring-boot-demo
+        run: mvn -B -q compile
+
+  docker:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build only: publishing happens from the release workflow.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: silencewatch:ci
+          build-args: |
+            SILENCEWATCH_VERSION=ci
+            SILENCEWATCH_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The image is only useful if it actually starts and reports healthy.
+      - name: Smoke test the image
+        run: |
+          docker network create sw-ci
+          docker run -d --name sw-db --network sw-ci \
+            -e POSTGRES_USER=silencewatch -e POSTGRES_PASSWORD=silencewatch \
+            -e POSTGRES_DB=silencewatch postgres:16-alpine
+          for _ in $(seq 1 30); do
+            docker exec sw-db pg_isready -U silencewatch && break
+            sleep 2
+          done
+
+          # The image runs with NODE_ENV=production, where the server refuses to
+          # start with the `console` email provider — it drops alerts. A relay
+          # that is never contacted is enough to satisfy that check.
+          # --read-only and the tmpfs mirror docker-compose.yml: the hardened
+          # configuration we ship is the one that gets tested, so it cannot rot
+          # while a laxer CI stays green.
+          docker run -d --name sw-app --network sw-ci -p 8080:8080 \
+            --read-only --tmpfs /tmp \
+            -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
+            -e SECRET_KEY=ci-secret-key-that-is-long-enough-for-the-check \
+            -e BASE_URL=http://localhost:8080 \
+            -e EMAIL_PROVIDER=smtp \
+            -e SMTP_URL=smtp://relay.invalid:587 \
+            silencewatch:ci
+
+          # Always show the container's logs, whatever happens next: a silent
+          # failure here is the hardest kind to diagnose after the fact.
+          trap 'docker logs sw-app' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health && break
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8080/health | tee /dev/stderr | grep -q '"status":"ok"'
+          # A mistyped ping URL must stay an error, never the SPA shell.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
+          # And the UI is actually in the image.
+          curl -fsS http://localhost:8080/ | grep -q '<sw-root>'

@@ -1,0 +1,302 @@
+// SilenceWatch data model.
+//
+// Prisma owns CRUD and migrations. It is deliberately absent from the ingestion
+// path (see src/ingest) which talks to PostgreSQL through a prepared statement.
+//
+// Migrations are hand-written SQL (prisma/migrations/**) because several
+// performance-critical objects have no Prisma equivalent — most importantly the
+// partial index on `check(next_due_at)` that makes detection O(late checks).
+// Keep this file and the SQL in sync; `npm run prisma:diff` reports divergence.
+
+generator client {
+  provider = "prisma-client-js"
+
+  // The engine target is stated rather than detected. Prisma infers it from the
+  // OpenSSL it finds, which differs between a build stage and the image that
+  // actually runs — generating a client for debian-openssl-1.1.x that then
+  // cannot start on a debian-openssl-3.0.x host. Naming the deployment target
+  // makes generation independent of where it happens; `native` keeps developer
+  // machines working.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CheckState {
+  NEW
+  UP
+  LATE
+  DOWN
+  PAUSED
+
+  @@map("check_state")
+}
+
+enum ScheduleType {
+  interval
+  cron
+
+  @@map("schedule_type")
+}
+
+enum PingKind {
+  start
+  success
+  fail
+
+  @@map("ping_kind")
+}
+
+enum CheckSource {
+  manual
+  api
+  auto
+
+  @@map("check_source")
+}
+
+enum ChannelType {
+  email
+  webhook
+  slack
+  teams
+  discord
+
+  @@map("channel_type")
+}
+
+enum ProjectRole {
+  owner
+  admin
+  member
+
+  @@map("project_role")
+}
+
+enum DeliveryStatus {
+  pending
+  sent
+  failed
+
+  @@map("delivery_status")
+}
+
+enum AlertKind {
+  down
+  up
+
+  @@map("alert_kind")
+}
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(3)
+
+  // Online-guessing throttle, enforced in addition to per-IP rate limiting.
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
+
+  memberships ProjectMember[]
+  sessions    Session[]
+
+  @@map("user")
+}
+
+model Project {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  slug              String   @unique
+  /// Days of ping history to keep; null falls back to PING_RETENTION_DAYS.
+  pingRetentionDays Int?     @map("ping_retention_days")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  members  ProjectMember[]
+  checks   Check[]
+  apiKeys  ApiKey[]
+  channels NotificationChannel[]
+
+  @@map("project")
+}
+
+model ProjectMember {
+  projectId String      @map("project_id") @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  role      ProjectRole @default(member)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([userId])
+  @@map("project_member")
+}
+
+/// Refresh-token sessions. Only the SHA-256 of the token is stored; rotation on
+/// every refresh makes a stolen token single-use.
+model Session {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  userAgent String?   @map("user_agent")
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("session")
+}
+
+/// Project-scoped API key. `lookupId` is the public half used to find the row;
+/// `secretHash` is SHA-256 of the high-entropy secret half.
+model ApiKey {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId  String    @map("project_id") @db.Uuid
+  name       String
+  lookupId   String    @unique @map("lookup_id")
+  secretHash String    @map("secret_hash")
+  prefix     String
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("api_key")
+}
+
+model Check {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String  @map("project_id") @db.Uuid
+  name      String
+  slug      String
+  /// Stable identity supplied by a client library (`com.acme.BackupJob#run`).
+  key       String?
+
+  /// Public, unguessable ping URL component.
+  pingKey String @unique @default(dbgenerated("gen_random_uuid()")) @map("ping_key") @db.Uuid
+
+  scheduleType   ScheduleType @map("schedule_type")
+  periodSeconds  Int?         @map("period_seconds")
+  cronExpression String?      @map("cron_expression")
+  timezone       String       @default("UTC")
+  graceSeconds   Int          @map("grace_seconds")
+
+  state          CheckState @default(NEW)
+  lastPingAt     DateTime?  @map("last_ping_at") @db.Timestamptz(3)
+  lastStartedAt  DateTime?  @map("last_started_at") @db.Timestamptz(3)
+  lastDurationMs Int?       @map("last_duration_ms")
+  nextDueAt      DateTime?  @map("next_due_at") @db.Timestamptz(3)
+
+  source      CheckSource @default(manual)
+  environment String?
+  tags        String[]    @default([])
+  description String?
+  /// Set when a starter sync stopped reporting this check. Never auto-deleted.
+  orphanedAt  DateTime?   @map("orphaned_at") @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pings     Ping[]
+  incidents Incident[]
+
+  @@unique([projectId, slug])
+  // Client-declared identity is unique per (project, key, environment); because
+  // that needs COALESCE on a nullable column, the unique index lives in SQL (see
+  // the init migration) and only the lookup index is declared here.
+  @@index([projectId, key])
+  @@index([projectId, state])
+  @@map("check")
+}
+
+model Ping {
+  id         BigInt   @id @default(autoincrement())
+  checkId    String   @map("check_id") @db.Uuid
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+  kind       PingKind
+  exitCode   Int?     @map("exit_code")
+  durationMs Int?     @map("duration_ms")
+  /// Truncated at ingestion to PING_BODY_MAX_BYTES.
+  body       String?
+  sourceIp   String?  @map("source_ip") @db.Inet
+  userAgent  String?  @map("user_agent")
+
+  check Check @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  @@index([checkId, receivedAt(sort: Desc)])
+  @@index([receivedAt])
+  @@map("ping")
+}
+
+model Incident {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkId           String    @map("check_id") @db.Uuid
+  startedAt         DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  resolvedAt        DateTime? @map("resolved_at") @db.Timestamptz(3)
+  notificationsSent Int       @default(0) @map("notifications_sent")
+  /// Why the incident opened: `missed` (silence) or `reported` (explicit /fail).
+  cause             String    @default("missed")
+
+  check      Check                  @relation(fields: [checkId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([checkId, startedAt(sort: Desc)])
+  @@map("incident")
+}
+
+model NotificationChannel {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String      @map("project_id") @db.Uuid
+  type      ChannelType
+  name      String
+  /// Channel-specific settings. Secrets stay in this column and are never
+  /// returned by the API.
+  config    Json
+  enabled   Boolean     @default(true)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project    Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([projectId])
+  @@map("notification_channel")
+}
+
+/// Durable outbound alert queue. PostgreSQL is the queue: workers claim rows
+/// with FOR UPDATE SKIP LOCKED, so two server instances never double-send.
+model NotificationDelivery {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incidentId    String         @map("incident_id") @db.Uuid
+  channelId     String         @map("channel_id") @db.Uuid
+  kind          AlertKind
+  status        DeliveryStatus @default(pending)
+  attempts      Int            @default(0)
+  lastError     String?        @map("last_error")
+  nextAttemptAt DateTime       @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  incident Incident            @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  channel  NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, channelId, kind])
+  @@map("notification_delivery")
+}
