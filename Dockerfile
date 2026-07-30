@@ -36,6 +36,15 @@ RUN npm run build:shared \
 # at startup.
 RUN npm prune --omit=dev --no-audit --no-fund
 
+# Pruning re-extracts @prisma/engines from the npm cache, and the published
+# tarball does not contain the engine binaries — those are fetched by a
+# postinstall hook that prune does not re-run. Warming them here means the image
+# is self-sufficient: no download attempt at container start, which would need
+# both network access and a writable node_modules.
+RUN npx --no-install prisma version \
+ && test -n "$(find node_modules/@prisma/engines -name 'schema-engine-*' -print -quit)" \
+    || (echo 'Prisma schema engine missing from the image' >&2; exit 1)
+
 # ------------------------------------------------------------------- runtime ---
 FROM node:22-bookworm-slim AS runtime
 
@@ -60,7 +69,11 @@ COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# The migration CLI checks it can write to its engines directory before doing
+# anything, so that one directory belongs to the runtime user. Everything else
+# stays root-owned and read-only to the application.
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+ && chown -R node:node /app/node_modules/@prisma /app/node_modules/.prisma
 
 # Runs as the unprivileged `node` user that the base image already provides.
 USER node

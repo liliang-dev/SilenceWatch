@@ -131,7 +131,11 @@ jobs:
           # The image runs with NODE_ENV=production, where the server refuses to
           # start with the `console` email provider — it drops alerts. A relay
           # that is never contacted is enough to satisfy that check.
+          # --read-only and the tmpfs mirror docker-compose.yml: the hardened
+          # configuration we ship is the one that gets tested, so it cannot rot
+          # while a laxer CI stays green.
           docker run -d --name sw-app --network sw-ci -p 8080:8080 \
+            --read-only --tmpfs /tmp \
             -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
             -e SECRET_KEY=ci-secret-key-that-is-long-enough-for-the-check \
             -e BASE_URL=http://localhost:8080 \
