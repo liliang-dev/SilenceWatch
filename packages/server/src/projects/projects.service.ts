@@ -2,11 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateProjectRequest, ProjectDto, UpdateProjectRequest } from '@silencewatch/shared';
 import { uniqueSlug } from '../common/slug.util';
 import { PrismaService } from '../database/prisma.service';
+import { QuotaService } from '../quotas/quota.service';
 import type { Principal } from '../auth/principal';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly quotas: QuotaService,
+  ) {}
 
   async listForPrincipal(principal: Principal): Promise<ProjectDto[]> {
     if (principal.kind === 'apiKey') {
@@ -36,6 +40,8 @@ export class ProjectsService {
   }
 
   async create(userId: string, input: CreateProjectRequest): Promise<ProjectDto> {
+    await this.quotas.assertCanAddProject(userId);
+
     const slug = await uniqueSlug(input.slug ?? input.name, async (candidate) =>
       (await this.prisma.project.count({ where: { slug: candidate } })) > 0,
     );

@@ -105,13 +105,18 @@ model User {
   /// backfilled as verified so enabling it cannot lock out a running team.
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
 
+  /// Plan name. Null means unlimited, which is every self-hosted account.
+  /// The limits behind the name come from PLAN_LIMITS, never from this repo.
+  plan String?
+
   // Online-guessing throttle, enforced in addition to per-IP rate limiting.
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
 
-  memberships   ProjectMember[]
-  sessions      Session[]
-  verifications EmailVerification[]
+  memberships    ProjectMember[]
+  sessions       Session[]
+  verifications  EmailVerification[]
+  passwordResets PasswordReset[]
 
   @@map("user")
 }
@@ -132,6 +137,52 @@ model EmailVerification {
   @@index([userId])
   @@index([expiresAt])
   @@map("email_verification")
+}
+
+/// Single-use password reset token. Separate from EmailVerification so a token
+/// issued for one purpose can never be spent for the other.
+model PasswordReset {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt  DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  requestedIp String?   @map("requested_ip")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset")
+}
+
+/// Security-relevant events, append-only.
+///
+/// Actor and project are plain columns rather than relations on purpose: an
+/// audit trail has to outlive what it describes, and a cascade from `user`
+/// would delete the record of what that user did on the way out.
+model AuditEvent {
+  id            BigInt   @id @default(autoincrement())
+  occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  action        String
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  /// Denormalised so the trail still reads correctly once the account is gone.
+  actorEmail    String?  @map("actor_email")
+  actorApiKeyId String?  @map("actor_api_key_id") @db.Uuid
+  projectId     String?  @map("project_id") @db.Uuid
+  targetType    String?  @map("target_type")
+  targetId      String?  @map("target_id")
+  targetLabel   String?  @map("target_label")
+  ip            String?
+  userAgent     String?  @map("user_agent")
+  /// Extra context. Never secrets.
+  detail        Json?
+
+  @@index([projectId, occurredAt(sort: Desc)])
+  @@index([actorUserId, occurredAt(sort: Desc)])
+  @@index([occurredAt])
+  @@map("audit_event")
 }
 
 /// Sign-up attempts keyed by coarse network prefix (IPv4 /24, IPv6 /48).
@@ -228,8 +279,11 @@ model Check {
   /// Stable identity supplied by a client library (`com.acme.BackupJob#run`).
   key       String?
 
-  /// Public, unguessable ping URL component.
-  pingKey String @unique @default(dbgenerated("gen_random_uuid()")) @map("ping_key") @db.Uuid
+  /// Public, unguessable ping URL component. Rotatable: a ping URL is a bearer
+  /// secret that ends up in crontabs, and leaking one must not mean losing the
+  /// check's history to recreate it.
+  pingKey          String    @unique @default(dbgenerated("gen_random_uuid()")) @map("ping_key") @db.Uuid
+  pingKeyRotatedAt DateTime? @map("ping_key_rotated_at") @db.Timestamptz(3)
 
   scheduleType   ScheduleType @map("schedule_type")
   periodSeconds  Int?         @map("period_seconds")
@@ -238,6 +292,9 @@ model Check {
   graceSeconds   Int          @map("grace_seconds")
 
   state          CheckState @default(NEW)
+  /// Why it is paused: null when a person did it, "quota" when the plan did.
+  /// Only the second is ever undone automatically.
+  pausedReason   String?    @map("paused_reason")
   lastPingAt     DateTime?  @map("last_ping_at") @db.Timestamptz(3)
   lastStartedAt  DateTime?  @map("last_started_at") @db.Timestamptz(3)
   lastDurationMs Int?       @map("last_duration_ms")

@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   createCheckRequestSchema,
@@ -24,6 +25,9 @@ import {
 } from '@silencewatch/shared';
 import { z } from 'zod';
 import { ProjectAccessService } from '../auth/project-access.service';
+import type { FastifyRequest } from 'fastify';
+import { auditActor } from '../audit/audit-actor';
+import { AuditService } from '../audit/audit.service';
 import { CurrentPrincipal, type Principal } from '../auth/principal';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { CheckSyncService } from './check-sync.service';
@@ -40,6 +44,7 @@ export class ChecksController {
     private readonly checks: ChecksService,
     private readonly sync: CheckSyncService,
     private readonly access: ProjectAccessService,
+    private readonly audit: AuditService,
   ) {}
 
   @Get('checks')
@@ -113,14 +118,53 @@ export class ChecksController {
     return this.checks.update(checkId, body);
   }
 
+  /**
+   * Issues a new ping URL. Admin, not member: it silences every job still
+   * calling the old one, which is a bigger act than editing a schedule.
+   */
+  @Post('checks/:checkId/rotate-ping-key')
+  @HttpCode(200)
+  async rotatePingKey(
+    @CurrentPrincipal() principal: Principal,
+    @Param('checkId', ParseUUIDPipe) checkId: string,
+    @Req() request: FastifyRequest,
+  ): Promise<CheckDto> {
+    const { projectId } = await this.access.assertCheckAccess(principal, checkId, 'admin');
+    const check = await this.checks.rotatePingKey(checkId);
+
+    // The URL itself is a credential and stays out of the record.
+    this.audit.record({
+      action: 'check.ping_key_rotated',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'check',
+      targetId: checkId,
+      targetLabel: check.name,
+    });
+    return check;
+  }
+
   @Delete('checks/:checkId')
   @HttpCode(204)
   async remove(
     @CurrentPrincipal() principal: Principal,
     @Param('checkId', ParseUUIDPipe) checkId: string,
+    @Req() request: FastifyRequest,
   ): Promise<void> {
-    await this.access.assertCheckAccess(principal, checkId, 'admin');
+    const { projectId } = await this.access.assertCheckAccess(principal, checkId, 'admin');
+    // Read first: deleting a check destroys its history, so the name is the
+    // only thing left to say what was lost.
+    const doomed = await this.checks.get(checkId);
     await this.checks.remove(checkId);
+
+    this.audit.record({
+      action: 'check.deleted',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'check',
+      targetId: checkId,
+      targetLabel: doomed.name,
+    });
   }
 
   @Get('checks/:checkId/pings')

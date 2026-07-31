@@ -24,6 +24,8 @@ import { EmailVerificationService } from './email-verification.service';
 import { SignupChallengeService } from './signup-challenge.service';
 import { SignupGuardService } from './signup-guard.service';
 import { TokenService } from './token.service';
+import { QuotaService } from '../quotas/quota.service';
+import { AuditService } from '../audit/audit.service';
 
 /**
  * An Argon2 hash of a value nobody knows, used to spend the same CPU time on a
@@ -52,6 +54,8 @@ export class AuthService {
     private readonly verification: EmailVerificationService,
     private readonly challenge: SignupChallengeService,
     private readonly signupGuard: SignupGuardService,
+    private readonly quotas: QuotaService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -85,6 +89,15 @@ export class AuthService {
       const user = await this.createUser(input);
       await this.signupGuard.record(networkOf(context), true);
       this.logger.log(`Account created for ${maskEmail(user.email)}`);
+      this.audit.record({
+        action: 'account.registered',
+        actor: {
+          userId: user.id,
+          email: user.email,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+      });
       return { status: 'active', ...(await this.startSession(user, context)) };
     }
 
@@ -126,6 +139,11 @@ export class AuthService {
     await this.verification.sendVerification(user);
     await this.signupGuard.record(networkOf(context), true);
     this.logger.log(`Account created for ${maskEmail(user.email)}, pending verification`);
+    this.audit.record({
+      action: 'account.registered',
+      actor: { userId: user.id, email: user.email, ip: context.ip, userAgent: context.userAgent },
+      detail: { pendingVerification: true },
+    });
     return answer;
   }
 
@@ -189,6 +207,9 @@ export class AuthService {
           email: input.email,
           passwordHash,
           name: input.name ?? null,
+          // Null when quotas are off, which is every self-hosted install and
+          // therefore the unlimited plan.
+          plan: this.quotas.defaultPlan,
           memberships: {
             create: { role: 'owner', project: { create: { name: projectName, slug } } },
           },
@@ -208,6 +229,14 @@ export class AuthService {
     if (user === null) {
       // Same work, same shape of answer as a wrong password.
       await verifyPassword(DECOY_HASH, input.password);
+      // Recorded without an actor id, because there is no account: this is the
+      // shape of a password-spraying run, which is invisible if only failures
+      // against real accounts are kept.
+      this.audit.record({
+        action: 'auth.login_failed',
+        actor: { email: input.email, ip: context.ip, userAgent: context.userAgent },
+        detail: { reason: 'unknown_account' },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -220,6 +249,16 @@ export class AuthService {
     const valid = await verifyPassword(user.passwordHash, input.password);
     if (!valid) {
       await this.recordFailedLogin(user.id, user.failedLoginCount + 1);
+      this.audit.record({
+        action: 'auth.login_failed',
+        actor: {
+          userId: user.id,
+          email: user.email,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+        detail: { reason: 'bad_password', consecutiveFailures: user.failedLoginCount + 1 },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -250,6 +289,10 @@ export class AuthService {
       },
     });
 
+    this.audit.record({
+      action: 'auth.login',
+      actor: { userId: user.id, email: user.email, ip: context.ip, userAgent: context.userAgent },
+    });
     return this.startSession(user, context);
   }
 
@@ -329,6 +372,10 @@ export class AuthService {
       }),
     ]);
     this.logger.log(`Password changed for ${maskEmail(user.email)}`);
+    this.audit.record({
+      action: 'auth.password_changed',
+      actor: { userId, email: user.email },
+    });
   }
 
   async getUser(userId: string): Promise<UserDto> {

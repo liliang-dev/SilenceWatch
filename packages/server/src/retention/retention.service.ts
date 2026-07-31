@@ -3,7 +3,9 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { AuthService } from '../auth/auth.service';
 import { EmailVerificationService } from '../auth/email-verification.service';
+import { PasswordResetService } from '../auth/password-reset.service';
 import { SignupGuardService } from '../auth/signup-guard.service';
+import { AuditService } from '../audit/audit.service';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
 
@@ -17,12 +19,31 @@ import { PgService } from '../database/pg.service';
  * ingestion is trying to write to it.
  */
 const PURGE_PINGS_SQL = `
-WITH doomed AS (
+WITH plan_caps AS (
+    -- {"free": 7, "pro": 90} from configuration. Empty on a self-hosted
+    -- instance, which caps nothing.
+    SELECT key AS plan, value::int AS days FROM jsonb_each_text($3::jsonb)
+),
+project_retention AS (
+    -- What a project asked for, capped by what its owner's plan allows. The
+    -- project keeps its own larger setting in the column: an upgrade should
+    -- restore the intended window without anyone having to re-enter it.
+    SELECT pr.id,
+           LEAST(
+               COALESCE(pr.ping_retention_days, $1::int),
+               COALESCE(pc.days, 2147483647)
+           ) AS days
+      FROM project pr
+      LEFT JOIN project_member pm ON pm.project_id = pr.id AND pm.role = 'owner'
+      LEFT JOIN "user" u ON u.id = pm.user_id
+      LEFT JOIN plan_caps pc ON pc.plan = u.plan
+),
+doomed AS (
     SELECT p.id
       FROM ping p
       JOIN "check" c ON c.id = p.check_id
-      JOIN project pr ON pr.id = c.project_id
-     WHERE p.received_at < now() - make_interval(days => COALESCE(pr.ping_retention_days, $1::int))
+      JOIN project_retention pr ON pr.id = c.project_id
+     WHERE p.received_at < now() - make_interval(days => pr.days)
      LIMIT $2
 )
 DELETE FROM ping WHERE id IN (SELECT id FROM doomed)`;
@@ -47,6 +68,8 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     private readonly auth: AuthService,
     private readonly verification: EmailVerificationService,
     private readonly signupGuard: SignupGuardService,
+    private readonly passwordResets: PasswordResetService,
+    private readonly audit: AuditService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -67,6 +90,20 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     }
   }
 
+  /**
+   * Plan name to retention ceiling, for the purge query. Only plans that
+   * actually cap retention appear; everything else is unlimited by omission.
+   */
+  private retentionCapsJson(): string {
+    if (!this.config.QUOTAS_ENABLED) return '{}';
+
+    const caps: Record<string, number> = {};
+    for (const [plan, limits] of Object.entries(this.config.planLimits)) {
+      if (limits.retentionDays !== undefined) caps[plan] = limits.retentionDays;
+    }
+    return JSON.stringify(caps);
+  }
+
   /** One full purge pass. Safe to call concurrently with ingestion. */
   async purge(): Promise<{
     pings: number;
@@ -74,6 +111,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     sessions: number;
     verifications: number;
     abandonedAccounts: number;
+    auditEvents: number;
   }> {
     const startedAt = Date.now();
     let pings = 0;
@@ -83,7 +121,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         const result = await this.pg.query({
           name: 'retention_purge_pings',
           text: PURGE_PINGS_SQL,
-          values: [this.config.PING_RETENTION_DAYS, BATCH_SIZE],
+          values: [this.config.PING_RETENTION_DAYS, BATCH_SIZE, this.retentionCapsJson()],
         });
         pings += result.rowCount ?? 0;
         if ((result.rowCount ?? 0) < BATCH_SIZE) break;
@@ -100,7 +138,11 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
       // index — a flood that was blocked would still deny those users an
       // account later.
       const verifications = await this.verification.purge();
+      await this.passwordResets.purge();
       await this.signupGuard.purgeOldAttempts();
+      // The audit trail keeps its own, much longer window: it exists to answer
+      // questions asked months after the fact.
+      const auditEvents = await this.audit.purge(this.config.AUDIT_RETENTION_DAYS);
 
       const summary = {
         pings,
@@ -108,18 +150,27 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         sessions,
         verifications: verifications.tokens,
         abandonedAccounts: verifications.accounts,
+        auditEvents,
       };
       this.logger.log(
         `Purge done in ${Date.now() - startedAt}ms: ${summary.pings} pings, ` +
           `${summary.deliveries} deliveries, ${summary.sessions} sessions, ` +
           `${summary.verifications} verification tokens, ` +
-          `${summary.abandonedAccounts} unverified accounts`,
+          `${summary.abandonedAccounts} unverified accounts, ` +
+          `${summary.auditEvents} audit events`,
       );
       return summary;
     } catch (error) {
       // Retention failing is not worth taking alerting down for.
       this.logger.error(`Purge failed: ${(error as Error).message}`);
-      return { pings, deliveries: 0, sessions: 0, verifications: 0, abandonedAccounts: 0 };
+      return {
+        pings,
+        deliveries: 0,
+        sessions: 0,
+        verifications: 0,
+        abandonedAccounts: 0,
+        auditEvents: 0,
+      };
     }
   }
 }

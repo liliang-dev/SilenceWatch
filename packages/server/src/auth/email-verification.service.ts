@@ -8,8 +8,23 @@ import {
 import { randomToken, sha256Hex } from '../common/crypto.util';
 import { AppConfig, CONFIG } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../notifications/email.service';
 import { escapeHtml } from '../notifications/templates';
+
+/**
+ * The mail did not go out.
+ *
+ * Its own type so both registration branches can fail identically, and so the
+ * visitor gets something they can act on instead of "internal server error" in
+ * front of an account they now cannot use. Retrying the same registration
+ * re-sends, because the address is then a known unverified one.
+ */
+export class UndeliverableError extends ServiceUnavailableException {
+  constructor() {
+    super('Could not send the confirmation email right now. Please try again in a few minutes.');
+  }
+}
 
 /**
  * Proving that the address on an account belongs to whoever created it.
@@ -26,20 +41,6 @@ import { escapeHtml } from '../notifications/templates';
  *  - **Issuing a new token invalidates the old ones.** "Resend" would otherwise
  *    leave a widening set of live credentials in a widening set of inboxes.
  */
-/**
- * The mail did not go out.
- *
- * Its own type so both registration branches can fail identically, and so the
- * visitor gets something they can act on instead of "internal server error" in
- * front of an account they now cannot use. Retrying the same registration
- * re-sends, because the address is then a known unverified one.
- */
-export class UndeliverableError extends ServiceUnavailableException {
-  constructor() {
-    super('Could not send the confirmation email right now. Please try again in a few minutes.');
-  }
-}
-
 @Injectable()
 export class EmailVerificationService {
   private readonly logger = new Logger(EmailVerificationService.name);
@@ -48,6 +49,7 @@ export class EmailVerificationService {
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly prisma: PrismaService,
     private readonly email: EmailService,
+    private readonly audit: AuditService,
   ) {}
 
   get required(): boolean {
@@ -125,6 +127,10 @@ export class EmailVerificationService {
     ]);
 
     this.logger.log(`Email verified for user ${record.userId}`);
+    this.audit.record({
+      action: 'auth.email_verified',
+      actor: { userId: record.userId, email: record.user.email },
+    });
   }
 
   /**

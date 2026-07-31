@@ -2,6 +2,8 @@ import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import type { SyncRequest, SyncResultDto } from '@silencewatch/shared';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
+import { PrismaService } from '../database/prisma.service';
+import { QuotaService } from '../quotas/quota.service';
 import { computeNextDueAt, InvalidScheduleError, type Schedule } from '../schedule/next-due';
 import { ChecksService } from './checks.service';
 
@@ -100,6 +102,8 @@ export class CheckSyncService {
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
+    private readonly prisma: PrismaService,
+    private readonly quotas: QuotaService,
   ) {}
 
   async sync(projectId: string, request: SyncRequest): Promise<SyncResultDto> {
@@ -151,17 +155,25 @@ export class CheckSyncService {
       };
     });
 
+    // Plan ceiling. Applied to the rows that would be *created*: an account at
+    // its limit must still be able to update the checks it already has, or a
+    // schedule change would start failing for reasons nobody could guess.
+    const skipped = await this.applyCheckQuota(projectId, rows, environment);
+    const accepted = skipped.length === 0 ? rows : rows.filter((row) => !skipped.includes(row.key));
+
     const { upserted, orphaned } = await this.pg.transaction(async (client) => {
       const upsertResult = await client.query<UpsertRow>({
         name: 'checks_sync_upsert',
         text: UPSERT_SQL,
-        values: [projectId, JSON.stringify(rows), environment],
+        values: [projectId, JSON.stringify(accepted), environment],
       } as never);
 
       const orphanResult = request.prune
         ? await client.query<{ key: string }>({
             name: 'checks_sync_orphan',
             text: ORPHAN_SQL,
+            // Keys held back by quota are *not* orphans: pruning them would
+            // delete history the account is still paying to keep.
             values: [projectId, rows.map((row) => row.key), environment],
           } as never)
         : { rows: [] as Array<{ key: string }> };
@@ -173,7 +185,8 @@ export class CheckSyncService {
     this.logger.log(
       `Sync for project ${projectId} (${request.source ?? 'unknown client'}, ` +
         `env=${environment ?? 'none'}): ${created} created, ${upserted.length - created} updated, ` +
-        `${orphaned.length} orphaned`,
+        `${orphaned.length} orphaned` +
+        (skipped.length > 0 ? `, ${skipped.length} refused by plan limit` : ''),
     );
 
     return {
@@ -185,6 +198,44 @@ export class CheckSyncService {
         created: row.created,
       })),
       orphaned,
+      ...(skipped.length === 0 ? {} : { skipped }),
     };
+  }
+
+  /**
+   * Returns the keys that must not be created because the owner's plan has no
+   * room left.
+   *
+   * Deliberately not an exception. This endpoint is called by an application
+   * starting up, and the contract with the starter is that SilenceWatch never
+   * fails somebody else's deployment. Refusing part of the payload and saying
+   * which part is the honest version of that promise; a 402 that aborts the
+   * whole sync would take the other thirty-nine jobs down with it.
+   */
+  private async applyCheckQuota(
+    projectId: string,
+    rows: Array<{ key: string }>,
+    environment: string | null,
+  ): Promise<string[]> {
+    const remaining = await this.quotas.remainingChecks(projectId);
+    if (remaining === null) return [];
+
+    const existing = await this.prisma.check.findMany({
+      where: {
+        projectId,
+        key: { in: rows.map((row) => row.key) },
+        environment,
+      },
+      select: { key: true },
+    });
+    const known = new Set(existing.map((check) => check.key));
+
+    const wouldCreate = rows.filter((row) => !known.has(row.key));
+    if (wouldCreate.length <= remaining) return [];
+
+    // Keep the first `remaining` in payload order: the starter reports its jobs
+    // in a stable order, so the same ones survive across restarts rather than
+    // a different arbitrary subset each time.
+    return wouldCreate.slice(remaining).map((row) => row.key);
   }
 }

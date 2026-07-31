@@ -11,6 +11,8 @@ export function toCheckDto(check: Check, baseUrl: string): CheckDto {
     key: check.key,
     pingKey: check.pingKey,
     pingUrl: `${baseUrl}/p/${check.pingKey}`,
+    pingKeyRotatedAt: check.pingKeyRotatedAt?.toISOString() ?? null,
+    pausedReason: check.pausedReason,
     scheduleType: check.scheduleType,
     periodSeconds: check.periodSeconds,
     cronExpression: check.cronExpression,

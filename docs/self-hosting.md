@@ -99,6 +99,62 @@ account. The server refuses to boot with it enabled and `EMAIL_PROVIDER=console`
 — nobody could ever confirm an address, so every new account would be locked out
 of an instance that otherwise looks healthy.
 
+### Plans and quotas
+
+**A self-hosted SilenceWatch has no limits, and nothing here needs setting.**
+`QUOTAS_ENABLED` is off, `user.plan` stays null, and null means unlimited on
+every axis. This section exists because the hosted deployment runs the same
+code; it is documented so you can see that it does, and so you can use it if you
+run SilenceWatch for other people.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `QUOTAS_ENABLED` | `false` | Master switch. Off means unlimited, always |
+| `DEFAULT_PLAN` | `free` | Plan given to a new account when quotas are on |
+| `PLAN_LIMITS` | `{}` | JSON: what each plan name is allowed |
+| `QUOTA_RECONCILE_INTERVAL_MS` | `300000` | How often accounts are matched against their plan |
+
+```bash
+QUOTAS_ENABLED=true
+PLAN_LIMITS='{
+  "free":      {"checks": 10,   "projects": 3,  "channelsPerProject": 3, "retentionDays": 7},
+  "supporter": {"checks": 10,   "projects": 3,  "channelsPerProject": 3, "retentionDays": 30},
+  "pro":       {"checks": 100,  "projects": 20, "retentionDays": 90},
+  "max":       {"checks": 1000}
+}'
+```
+
+An omitted key is unlimited: `max` above has no project ceiling and no retention
+cap. An **unknown** plan name is also unlimited — a typo in this JSON, or a plan
+renamed on the billing side, should briefly give someone too much rather than
+lock a paying customer out of their own monitoring.
+
+Which plan an account is on is the `plan` column on `user`. This repository never
+writes it and knows nothing about prices, payment or subscriptions; whatever does
+your billing sets the column, and the reconciler picks the change up within
+`QUOTA_RECONCILE_INTERVAL_MS`.
+
+Checks are counted across **every project the account owns**, so a second project
+does not reset the allowance. On a downgrade the excess checks are paused —
+newest first, deliberately paused checks untouched, and the account emailed the
+list — and they resume on their own when the account moves back under its limit.
+
+### Security and recovery
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
+| `AUDIT_RETENTION_DAYS` | `365` | How long the audit trail is kept |
+
+The audit trail records sign-ins and failed sign-ins, password changes and
+resets, API key and alert channel changes, check deletions, ping-key rotations
+and quota pauses. It is readable in **Settings → Security activity** by project
+admins, and never contains a token, a key or a channel's configuration.
+
+A leaked ping URL no longer means recreating the check: **Check → ⋯ → Rotate ping
+URL** issues a new one and keeps the history. Every job still calling the old URL
+will be reported as down, which is the point — update them first.
+
 ### Detection and retention
 
 | Variable | Default | Meaning |
@@ -112,9 +168,23 @@ of an instance that otherwise looks healthy.
 
 ### Behind a reverse proxy
 
-Set `TRUST_PROXY=true` **only** when a proxy really is in front. It makes the
-server read client IPs from `X-Forwarded-For`, which anyone can forge when there
-is no proxy stripping it — and per-IP rate limiting is only as good as that value.
+Set `TRUST_PROXY` **only** when a proxy really is in front, and set it to the
+proxy's address or CIDR rather than `true`:
+
+```bash
+TRUST_PROXY=10.0.0.0/8
+```
+
+A bare `true` trusts the hop count from anything that can reach the server, so
+anyone bypassing the proxy can claim any client address they like — and every
+per-address control (rate limits, sign-up velocity, the audit trail) is only as
+good as that value. **Production refuses to boot on `TRUST_PROXY=true`** for
+exactly this reason.
+
+Getting it wrong in either direction is otherwise silent, so the server samples
+its first requests and says so in the log: trusting a proxy whose header never
+arrives, or refusing to trust one whose header always does. The second is the
+quieter failure — it throttles the entire internet as if it were one visitor.
 
 A minimal nginx front:
 

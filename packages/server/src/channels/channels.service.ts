@@ -9,6 +9,7 @@ import type {
 import { randomUUID } from 'node:crypto';
 import { AppConfig, CONFIG } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
+import { QuotaService } from '../quotas/quota.service';
 import type { Alert } from '../notifications/alert';
 import { SafeHttpService } from '../notifications/safe-http.service';
 import { SenderRegistry } from '../notifications/sender.registry';
@@ -20,6 +21,7 @@ export class ChannelsService {
     private readonly prisma: PrismaService,
     private readonly senders: SenderRegistry,
     private readonly http: SafeHttpService,
+    private readonly quotas: QuotaService,
   ) {}
 
   async list(projectId: string): Promise<NotificationChannelDto[]> {
@@ -31,6 +33,8 @@ export class ChannelsService {
   }
 
   async create(projectId: string, input: CreateChannelRequest): Promise<NotificationChannelDto> {
+    await this.quotas.assertCanAddChannel(projectId);
+
     // Reject a target that could never work — or that points inside our own
     // network — now rather than at 3am.
     if (input.type !== 'email') {
@@ -67,6 +71,15 @@ export class ChannelsService {
     const channel = await this.prisma.notificationChannel.findUniqueOrThrow({
       where: { id: channelId },
     });
+    return toDto(channel);
+  }
+
+  /** One channel, or 404. Used by callers that need its name before deleting it. */
+  async get(projectId: string, channelId: string): Promise<NotificationChannelDto> {
+    const channel = await this.prisma.notificationChannel.findFirst({
+      where: { id: channelId, projectId },
+    });
+    if (channel === null) throw new NotFoundException('Channel not found');
     return toDto(channel);
   }
 

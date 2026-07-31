@@ -145,8 +145,8 @@ export async function createTestApp(
     await notifications.settle();
     await prisma.$executeRawUnsafe(
       'TRUNCATE "user", project, project_member, session, api_key, "check", ping, incident, ' +
-        'notification_channel, notification_delivery, email_verification, signup_attempt ' +
-        'RESTART IDENTITY CASCADE',
+        'notification_channel, notification_delivery, email_verification, signup_attempt, ' +
+        'password_reset, audit_event RESTART IDENTITY CASCADE',
     );
     senders.clear();
     emails.clear();

@@ -71,6 +71,10 @@ const REFRESH_INTERVAL_MS = 15_000;
               <sw-icon name="more" />
             </button>
             <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="rotate(current)">
+                <sw-icon name="copy" />
+                Rotate ping URL
+              </button>
               <button mat-menu-item (click)="remove(current)">
                 <sw-icon name="delete" />
                 Delete check
@@ -85,6 +89,9 @@ const REFRESH_INTERVAL_MS = 15_000;
           <div class="ping-head">
             <span class="sw-label">Ping URL</span>
             <span class="sw-muted ping-hint">call it when the job finishes</span>
+            @if (current.pingKeyRotatedAt) {
+              <span class="sw-tag rotated">rotated {{ current.pingKeyRotatedAt | swRelativeTime }}</span>
+            }
           </div>
           <div class="ping-row">
             <code class="sw-mono url">{{ current.pingUrl }}</code>
@@ -266,7 +273,12 @@ const REFRESH_INTERVAL_MS = 15_000;
     .ping-head {
       display: flex;
       align-items: baseline;
+      flex-wrap: wrap;
       gap: 8px;
+    }
+
+    .rotated {
+      align-self: center;
     }
 
     .ping-hint {
@@ -463,6 +475,31 @@ export class CheckDetailComponent implements OnDestroy {
         this.snackBar.open(paused ? 'Check paused' : 'Check resumed', 'OK', { duration: 3000 });
       },
       error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not update the check.')),
+    });
+  }
+
+  /**
+   * Issues a new ping URL.
+   *
+   * Confirmed in words rather than behind an "are you sure", because the
+   * consequence is specific and easy to miss: every job still calling the old
+   * URL goes quiet, and this product turns quiet into an alert.
+   */
+  protected rotate(check: CheckDto): void {
+    const confirmed = window.confirm(
+      `Issue a new ping URL for "${check.name}"?\n\n` +
+        'The current URL stops working immediately. Any job still calling it will be reported ' +
+        'as down until you update it. History and incidents are kept.',
+    );
+    if (!confirmed) return;
+
+    this.api.rotatePingKey(check.id).subscribe({
+      next: (updated) => {
+        this.check.set(updated);
+        this.snackBar.open('New ping URL issued — update your jobs', 'OK', { duration: 6000 });
+      },
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, 'Could not rotate the ping URL.')),
     });
   }
 

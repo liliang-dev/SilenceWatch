@@ -14,12 +14,15 @@ import { Observable, tap } from 'rxjs';
 /**
  * Session handling.
  *
- * The access token is kept in memory only: a token in localStorage is a token an
- * XSS can read. The refresh token — single-use, rotated on every refresh, and
- * revocable server-side — is what survives a page reload, which is the trade
- * this design accepts deliberately.
+ * Neither token is reachable from script. The access token lives in memory for
+ * the life of the page; the refresh token is an HttpOnly cookie the browser
+ * attaches to `/api/auth` and this code never sees. That is the change from the
+ * earlier design, which kept the refresh token in `localStorage` where an
+ * injected script could take a thirty-day credential and walk away with it.
+ *
+ * The consequence is that "am I signed in?" can no longer be answered by
+ * looking: the application asks the server on boot, and a 401 means no.
  */
-const REFRESH_TOKEN_KEY = 'silencewatch.refresh';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -36,8 +39,30 @@ export class AuthService {
     return this.accessToken();
   }
 
-  get storedRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  /**
+   * Whether a session was restored on boot. Null while that is still in flight,
+   * so guards can wait instead of bouncing a signed-in user to the login page.
+   */
+  private readonly restored = signal<boolean | null>(null);
+  readonly isRestoring = computed(() => this.restored() === null);
+
+  /**
+   * Attempts to adopt the session behind the refresh cookie. Called once at
+   * startup; resolves to false when there is nothing to restore.
+   */
+  restore(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.refresh().subscribe({
+        next: () => {
+          this.restored.set(true);
+          resolve(true);
+        },
+        error: () => {
+          this.restored.set(false);
+          resolve(false);
+        },
+      });
+    });
   }
 
   /**
@@ -66,11 +91,19 @@ export class AuthService {
       .pipe(tap((session) => this.adopt(session)));
   }
 
+  /** The cookie is the credential; the body is empty on purpose. */
   refresh(): Observable<SessionDto> {
-    const refreshToken = this.storedRefreshToken ?? '';
     return this.http
-      .post<SessionDto>('/api/auth/refresh', { refreshToken })
+      .post<SessionDto>('/api/auth/refresh', {})
       .pipe(tap((session) => this.adopt(session)));
+  }
+
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/forgot-password', { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/auth/reset-password', { token, newPassword });
   }
 
   changePassword(request: ChangePasswordRequest): Observable<void> {
@@ -79,12 +112,10 @@ export class AuthService {
   }
 
   logout(): void {
-    const refreshToken = this.storedRefreshToken;
     this.forget();
-    if (refreshToken !== null) {
-      // Fire and forget: the local session is already gone either way.
-      this.http.post('/api/auth/logout', { refreshToken }).subscribe({ error: () => undefined });
-    }
+    // Fire and forget: the local session is already gone, and the response is
+    // what clears the cookie.
+    this.http.post('/api/auth/logout', {}).subscribe({ error: () => undefined });
     void this.router.navigate(['/login']);
   }
 
@@ -92,12 +123,12 @@ export class AuthService {
   forget(): void {
     this.accessToken.set(null);
     this.currentUser.set(null);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    this.restored.set(false);
   }
 
   private adopt(session: SessionDto): void {
     this.accessToken.set(session.accessToken);
     this.currentUser.set(session.user);
-    localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
+    this.restored.set(true);
   }
 }

@@ -143,10 +143,26 @@ export const loginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
+/**
+ * The browser sends the refresh token as an HttpOnly cookie and this body is
+ * empty. It stays optional for clients that have nowhere to put a cookie and
+ * hold the token themselves.
+ */
 export const refreshRequestSchema = z.object({
-  refreshToken: z.string().min(1).max(500),
+  refreshToken: z.string().min(1).max(500).optional(),
 });
 export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
+
+export const forgotPasswordRequestSchema = z.object({
+  email: emailSchema,
+});
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+export const resetPasswordRequestSchema = z.object({
+  token: z.string().trim().min(1).max(200),
+  newPassword: passwordSchema,
+});
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 
 export const changePasswordRequestSchema = z.object({
   currentPassword: z.string().min(1).max(LIMITS.passwordMax),
@@ -317,6 +333,13 @@ export interface CheckDto {
   orphanedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** When the ping URL was last reissued, if ever. */
+  pingKeyRotatedAt?: string | null;
+  /**
+   * Why the check is paused: absent when a person paused it, "quota" when the
+   * account's plan did. Only the second resumes on its own.
+   */
+  pausedReason?: string | null;
 }
 
 export interface PingDto {
@@ -479,6 +502,58 @@ export interface SyncResultCheckDto {
 export interface SyncResultDto {
   checks: SyncResultCheckDto[];
   orphaned: string[];
+  /**
+   * Keys the server refused to create because the account is at its plan's
+   * check limit. Empty on a self-hosted instance, which has no limit.
+   *
+   * Reported rather than thrown: a deployment must not fail because the
+   * fortieth scheduled job would have been the eleventh check.
+   */
+  skipped?: string[];
+}
+
+/* ------------------------------------------------------------------ audit --- */
+
+/**
+ * Security-relevant actions. A closed set so the UI can label them and an
+ * operator can grep for them; anything not here is not recorded.
+ */
+export const AUDIT_ACTIONS = [
+  'auth.login',
+  'auth.login_failed',
+  'auth.logout',
+  'auth.password_changed',
+  'auth.password_reset_requested',
+  'auth.password_reset_completed',
+  'auth.email_verified',
+  'account.registered',
+  'api_key.created',
+  'api_key.revoked',
+  'channel.created',
+  'channel.updated',
+  'channel.deleted',
+  'channel.tested',
+  'check.created',
+  'check.deleted',
+  'check.ping_key_rotated',
+  'project.created',
+  'project.updated',
+  'quota.checks_paused',
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export interface AuditEventDto {
+  id: string;
+  occurredAt: string;
+  action: AuditAction;
+  /** Who, denormalised so the entry survives the account's deletion. */
+  actorEmail: string | null;
+  actorIsApiKey: boolean;
+  targetType: string | null;
+  targetId: string | null;
+  targetLabel: string | null;
+  ip: string | null;
+  detail: Record<string, unknown> | null;
 }
 
 /* ---------------------------------------------------------------- errors --- */

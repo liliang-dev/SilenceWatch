@@ -14,6 +14,8 @@ import { HealthModule } from './health/health.module';
 import { IngestModule } from './ingest/ingest.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ProjectsModule } from './projects/projects.module';
+import { AuditModule } from './audit/audit.module';
+import { QuotasModule } from './quotas/quotas.module';
 import { RetentionModule } from './retention/retention.module';
 
 @Module({
@@ -21,6 +23,7 @@ import { RetentionModule } from './retention/retention.module';
     ConfigModule,
     DatabaseModule,
     ScheduleModule.forRoot(),
+    AuditModule,
     AuthModule,
     IngestModule,
     NotificationsModule,
@@ -28,6 +31,7 @@ import { RetentionModule } from './retention/retention.module';
     ChecksModule,
     ProjectsModule,
     ChannelsModule,
+    QuotasModule,
     RetentionModule,
     HealthModule,
   ],

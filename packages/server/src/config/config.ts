@@ -72,6 +72,12 @@ const envSchema = z
      */
     EMAIL_VERIFICATION_REQUIRED: booleanish.default('false'),
     EMAIL_VERIFICATION_TTL_HOURS: positiveInt(1, 168).default(24),
+    /**
+     * Lifetime of a password reset link. Shorter than a verification link on
+     * purpose: it is a credential that replaces a password, and a stale one
+     * sitting in an inbox is a longer window than a stale confirmation.
+     */
+    PASSWORD_RESET_TTL_MINUTES: positiveInt(5, 1_440).default(60),
     /** Unverified accounts older than this are deleted. 0 disables the reaper. */
     UNVERIFIED_ACCOUNT_TTL_DAYS: positiveInt(0, 365).default(7),
 
@@ -94,6 +100,34 @@ const envSchema = z
      * counted in PostgreSQL so the rule survives a restart. 0 disables it.
      */
     SIGNUP_MAX_PER_NETWORK_PER_HOUR: positiveInt(0, 10_000).default(0),
+
+    /* --- plans and quotas --------------------------------------------------
+     * Off by default, and that is the whole point: a self-hosted SilenceWatch
+     * is never the crippled edition. With QUOTAS_ENABLED unset, `user.plan`
+     * stays null, every limit is unlimited, and none of this code does
+     * anything.
+     *
+     * Note what is *not* here: no prices, no payment state, no subscription
+     * lifecycle. The hosted deployment's billing system decides which plan an
+     * account is on and writes the name; this side only knows what a name is
+     * allowed to do. That is what keeps the commercial model out of a repo
+     * licensed to be run by anyone.
+     */
+    QUOTAS_ENABLED: booleanish.default('false'),
+    /** Plan assigned to a new account when quotas are on. */
+    DEFAULT_PLAN: z.string().min(1).max(40).default('free'),
+    /**
+     * Limits per plan, as JSON. Omitted keys mean unlimited. Example:
+     *
+     *   {"free":{"checks":10,"projects":3,"channelsPerProject":3,"retentionDays":7},
+     *    "pro":{"checks":100,"projects":20,"retentionDays":90}}
+     */
+    PLAN_LIMITS: z.string().default('{}'),
+    /**
+     * How often accounts are reconciled with their plan. A downgrade written by
+     * the billing system takes effect within one of these.
+     */
+    QUOTA_RECONCILE_INTERVAL_MS: positiveInt(30_000, 86_400_000).default(300_000),
 
     PING_RATE_LIMIT_PER_MINUTE: positiveInt(1, 100_000).default(120),
     PING_BODY_MAX_BYTES: positiveInt(0, 100_000).default(10_000),
@@ -125,6 +159,12 @@ const envSchema = z
     /** Default ping retention; per-project overrides win. */
     PING_RETENTION_DAYS: positiveInt(1, 3_650).default(90),
     PURGE_CRON: z.string().min(1).default('17 3 * * *'),
+    /**
+     * How long the audit trail is kept. Far longer than ping history on
+     * purpose: "who revoked that key in March" is a question asked in
+     * September, and a trail that has already been purged answers nothing.
+     */
+    AUDIT_RETENTION_DAYS: positiveInt(1, 3_650).default(365),
 
     /**
      * SilenceWatch cannot watch itself: point this at a third-party dead man's
@@ -153,7 +193,44 @@ const envSchema = z
           'needs a real email transport: with EMAIL_PROVIDER=console nobody could ever verify an address',
       });
     }
+    // A quota system nobody configured would silently give every account the
+    // unlimited plan, which is the failure that only shows up on the invoice.
+    const plans = parsePlanLimits(env.PLAN_LIMITS);
+    if (plans === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['PLAN_LIMITS'],
+        message: 'must be a JSON object of {plan: {checks?, projects?, channelsPerProject?, retentionDays?}}',
+      });
+    } else if (env.QUOTAS_ENABLED) {
+      if (Object.keys(plans).length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['PLAN_LIMITS'],
+          message: 'QUOTAS_ENABLED is on but no plan is defined, so every account would be unlimited',
+        });
+      } else if (plans[env.DEFAULT_PLAN] === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DEFAULT_PLAN'],
+          message: `"${env.DEFAULT_PLAN}" is not one of the plans in PLAN_LIMITS (${Object.keys(plans).join(', ')})`,
+        });
+      }
+    }
+
     if (env.NODE_ENV === 'production') {
+      // `true` trusts the hop count blindly, so anything that can reach the
+      // server directly can claim any client address it likes. Naming the
+      // proxy's address is the difference between a control and a decoration.
+      if (env.TRUST_PROXY === true) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['TRUST_PROXY'],
+          message:
+            'in production, set this to your proxy address or CIDR (e.g. 10.0.0.0/8) rather than "true" — ' +
+            'a bare true lets anything that can reach the server forge its own client address',
+        });
+      }
       if (env.EMAIL_PROVIDER === 'console') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -171,9 +248,49 @@ const envSchema = z
     }
   });
 
+/**
+ * What one plan is allowed. Every field is optional; absent means unlimited,
+ * which is what a self-hosted install gets for everything.
+ */
+export interface PlanLimits {
+  /** Checks across every project the account owns. */
+  readonly checks?: number;
+  /** Projects the account owns. */
+  readonly projects?: number;
+  readonly channelsPerProject?: number;
+  /** Ceiling on ping history. A project asking for more is capped, not refused. */
+  readonly retentionDays?: number;
+}
+
+const planLimitsSchema = z.record(
+  z.string().min(1).max(40),
+  z
+    .object({
+      checks: z.number().int().min(0).max(1_000_000).optional(),
+      projects: z.number().int().min(0).max(100_000).optional(),
+      channelsPerProject: z.number().int().min(0).max(10_000).optional(),
+      retentionDays: z.number().int().min(1).max(3_650).optional(),
+    })
+    .strict(),
+);
+
+/** Returns the parsed plans, or null when the value is not usable at all. */
+function parsePlanLimits(raw: string): Record<string, PlanLimits> | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const parsed = planLimitsSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 export type AppConfig = Readonly<z.infer<typeof envSchema>> & {
   readonly isProduction: boolean;
   readonly baseUrl: string;
+  /** PLAN_LIMITS, parsed once at boot. */
+  readonly planLimits: Readonly<Record<string, PlanLimits>>;
 };
 
 export const CONFIG = Symbol('SILENCEWATCH_CONFIG');
@@ -193,5 +310,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     isProduction: parsed.data.NODE_ENV === 'production',
     // Normalised once so callers can concatenate paths without double slashes.
     baseUrl: parsed.data.BASE_URL.replace(/\/+$/, ''),
+    // Validated above, so this cannot be null by the time we get here.
+    planLimits: Object.freeze(parsePlanLimits(parsed.data.PLAN_LIMITS) ?? {}),
   });
 }

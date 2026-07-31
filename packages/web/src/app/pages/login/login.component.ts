@@ -46,7 +46,20 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
               <h1>Silence<span class="wordmark-accent">Watch</span></h1>
             </div>
 
-            @if (sentTo(); as address) {
+            @if (resetSentTo(); as address) {
+              <!-- Deliberately the same words whether or not the address has an
+                   account: the page must not become a membership oracle. -->
+              <p class="tagline sw-muted">
+                If <strong class="address">{{ address }}</strong> has an account, a reset link is on
+                its way. It expires in an hour.
+              </p>
+              <div class="after-send">
+                <p class="sw-subtle small">Check the spam folder before asking for another.</p>
+                <button mat-button type="button" class="switch-back" (click)="backToSignIn()">
+                  Back to sign in
+                </button>
+              </div>
+            } @else if (sentTo(); as address) {
               <!-- The account exists but is unusable until the address answers.
                    Saying so plainly beats a spinner that never resolves. -->
               <p class="tagline sw-muted">
@@ -126,10 +139,16 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
                 }
               </button>
               </form>
+
+              @if (mode() === 'login') {
+                <button type="button" class="forgot" [disabled]="busy()" (click)="forgotPassword()">
+                  Forgot your password?
+                </button>
+              }
             }
           </div>
 
-          @if (sentTo() === null) {
+          @if (sentTo() === null && resetSentTo() === null) {
             <div class="card-foot">
               <span class="sw-muted">{{
                 mode() === 'login' ? 'No account yet?' : 'Already registered?'
@@ -279,6 +298,22 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
       width: 100%;
     }
 
+    .forgot {
+      margin-top: 14px;
+      padding: 4px;
+      border: 0;
+      background: none;
+      color: var(--sw-text-muted);
+      font: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+
+    .forgot:hover:not(:disabled) {
+      color: var(--sw-accent);
+      text-decoration: underline;
+    }
+
     .inline-link {
       padding: 0 0 0 4px;
       border: 0;
@@ -306,6 +341,9 @@ export class LoginComponent {
   /** Set once a confirmation link has gone out; swaps the card for its "sent" state. */
   protected readonly sentTo = signal<string | null>(null);
 
+  /** Same, for a password reset. Kept apart because the wording must differ. */
+  protected readonly resetSentTo = signal<string | null>(null);
+
   /** True when the server refused a sign-in because the address is unconfirmed. */
   protected readonly verificationPending = signal(false);
 
@@ -330,9 +368,38 @@ export class LoginComponent {
 
   protected backToSignIn(): void {
     this.sentTo.set(null);
+    this.resetSentTo.set(null);
     this.mode.set('login');
     this.error.set(null);
     this.form.patchValue({ password: '' });
+  }
+
+  /**
+   * Asks for a reset link.
+   *
+   * Only the address is needed, so an invalid password does not block it — the
+   * person who cannot remember their password is exactly who needs this button.
+   */
+  protected forgotPassword(): void {
+    const email = this.form.getRawValue().email.trim();
+    if (email === '') {
+      this.form.controls.email.markAsTouched();
+      this.error.set('Enter your email address first.');
+      return;
+    }
+
+    this.busy.set(true);
+    this.error.set(null);
+    this.auth.forgotPassword(email).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.resetSentTo.set(email);
+      },
+      error: (failure: unknown) => {
+        this.busy.set(false);
+        this.error.set(errorMessage(failure, 'Could not send the link right now. Try again shortly.'));
+      },
+    });
   }
 
   protected submit(): void {

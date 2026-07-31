@@ -19,6 +19,12 @@ export const routes: Routes = [
       import('./pages/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
   },
   {
+    path: 'reset-password',
+    title: 'Choose a new password — SilenceWatch',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
+  },
+  {
     path: 'checks',
     title: 'Checks — SilenceWatch',
     canActivate: [authGuard],

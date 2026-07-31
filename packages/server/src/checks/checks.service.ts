@@ -14,6 +14,7 @@ import { slugify, uniqueSlug } from '../common/slug.util';
 import { AppConfig, CONFIG } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
 import { CheckMetadataCache } from '../ingest/check-metadata.cache';
+import { QuotaService } from '../quotas/quota.service';
 import { computeNextDueAt, InvalidScheduleError, type Schedule } from '../schedule/next-due';
 import { toCheckDto, toIncidentDto, toPingDto } from './check.mapper';
 
@@ -25,9 +26,14 @@ export class ChecksService {
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly prisma: PrismaService,
     private readonly cache: CheckMetadataCache,
+    private readonly quotas: QuotaService,
   ) {}
 
   async create(projectId: string, input: CreateCheckRequest): Promise<CheckDto> {
+    // Before any work: a plan ceiling refused after the slug search would still
+    // be correct, but it would burn a query to say no.
+    await this.quotas.assertCanAddCheck(projectId);
+
     const schedule = toSchedule(input);
     const nextDueAt = this.nextDueOrThrow(schedule, new Date());
 
@@ -87,6 +93,42 @@ export class ChecksService {
     const check = await this.prisma.check.update({ where: { id: checkId }, data });
     this.cache.invalidate(check.pingKey);
     return this.toDto(check);
+  }
+
+  /**
+   * Issues a new ping URL for a check, keeping everything else.
+   *
+   * A ping URL is a bearer secret that ends up pasted into crontabs, CI
+   * configuration and chat messages, so it leaks the way secrets leak. Without
+   * this, the only remedy was deleting the check — which throws away its
+   * history and its incidents to fix a problem that has nothing to do with
+   * them.
+   *
+   * The old key stops working the moment this returns. That is the point, and
+   * it is also why the UI says so before doing it: any job still calling the
+   * previous URL goes silent, and this product turns silence into an alert.
+   */
+  async rotatePingKey(checkId: string): Promise<CheckDto> {
+    const existing = await this.prisma.check.findUnique({
+      where: { id: checkId },
+      select: { pingKey: true },
+    });
+    if (existing === null) throw new NotFoundException('Check not found');
+
+    const check = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      UPDATE "check"
+         SET ping_key = gen_random_uuid(),
+             ping_key_rotated_at = now()
+       WHERE id = ${checkId}::uuid
+       RETURNING id`;
+    if (check.length === 0) throw new NotFoundException('Check not found');
+
+    // The old key must stop resolving here too, not just in the database.
+    this.cache.invalidate(existing.pingKey);
+
+    const updated = await this.prisma.check.findUniqueOrThrow({ where: { id: checkId } });
+    this.cache.invalidate(updated.pingKey);
+    return this.toDto(updated);
   }
 
   async remove(checkId: string): Promise<void> {

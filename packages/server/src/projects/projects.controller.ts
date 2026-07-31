@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   createApiKeyRequestSchema,
@@ -17,7 +18,10 @@ import {
   type CreatedApiKeyDto,
   type ProjectDto,
 } from '@silencewatch/shared';
+import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
+import { auditActor } from '../audit/audit-actor';
+import { AuditService } from '../audit/audit.service';
 import { ApiKeyService } from '../auth/api-key.service';
 import { assertUser, CurrentPrincipal, type Principal } from '../auth/principal';
 import { ProjectAccessService } from '../auth/project-access.service';
@@ -30,6 +34,7 @@ export class ProjectsController {
     private readonly projects: ProjectsService,
     private readonly apiKeys: ApiKeyService,
     private readonly access: ProjectAccessService,
+    private readonly audit: AuditService,
   ) {}
 
   @Get()
@@ -41,8 +46,18 @@ export class ProjectsController {
   async create(
     @CurrentPrincipal() principal: Principal,
     @Body(zodPipe(createProjectRequestSchema)) body: z.infer<typeof createProjectRequestSchema>,
+    @Req() request: FastifyRequest,
   ): Promise<ProjectDto> {
-    return this.projects.create(assertUser(principal).userId, body);
+    const project = await this.projects.create(assertUser(principal).userId, body);
+    this.audit.record({
+      action: 'project.created',
+      actor: auditActor(principal, request),
+      projectId: project.id,
+      targetType: 'project',
+      targetId: project.id,
+      targetLabel: project.name,
+    });
+    return project;
   }
 
   @Get(':projectId')
@@ -93,10 +108,24 @@ export class ProjectsController {
     @CurrentPrincipal() principal: Principal,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(zodPipe(createApiKeyRequestSchema)) body: z.infer<typeof createApiKeyRequestSchema>,
+    @Req() request: FastifyRequest,
   ): Promise<CreatedApiKeyDto> {
     assertUser(principal);
     await this.access.assertAccess(principal, projectId, 'admin');
-    return this.apiKeys.create(projectId, body);
+    const created = await this.apiKeys.create(projectId, body);
+
+    // The prefix, never the token. A trail that quotes the credential it is
+    // recording the creation of has handed it to every admin who can read it.
+    this.audit.record({
+      action: 'api_key.created',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'api_key',
+      targetId: created.id,
+      targetLabel: created.name,
+      detail: { prefix: created.prefix },
+    });
+    return created;
   }
 
   @Delete(':projectId/api-keys/:apiKeyId')
@@ -105,9 +134,18 @@ export class ProjectsController {
     @CurrentPrincipal() principal: Principal,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('apiKeyId', ParseUUIDPipe) apiKeyId: string,
+    @Req() request: FastifyRequest,
   ): Promise<void> {
     assertUser(principal);
     await this.access.assertAccess(principal, projectId, 'admin');
     await this.apiKeys.revoke(projectId, apiKeyId);
+
+    this.audit.record({
+      action: 'api_key.revoked',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'api_key',
+      targetId: apiKeyId,
+    });
   }
 }

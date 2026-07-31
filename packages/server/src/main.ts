@@ -6,6 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
+import { registerProxyTrustCheck } from './common/proxy-trust';
 import { loadConfig, type AppConfig } from './config/config';
 import { registerIngestRoutes } from './ingest/ingest.plugin';
 import { IngestService } from './ingest/ingest.service';
@@ -54,6 +55,11 @@ async function bootstrap(): Promise<void> {
   );
 
   await configureSecurity(app, config);
+
+  // Watches whether X-Forwarded-For actually turns up as configured. Both ways
+  // of getting TRUST_PROXY wrong are silent, and both break every control keyed
+  // on the client address.
+  registerProxyTrustCheck(app.getHttpAdapter().getInstance() as never, config);
 
   // Ingestion is mounted straight on Fastify, bypassing the Nest pipeline
   // entirely. See ingest.plugin.ts.

@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type {
   ApiKeyDto,
+  AuditEventDto,
   CheckDto,
   CreateApiKeyRequest,
   CreateCheckRequest,
@@ -63,6 +64,21 @@ export class ApiService {
 
   updateCheck(checkId: string, request: UpdateCheckRequest): Observable<CheckDto> {
     return this.http.patch<CheckDto>(`/api/v1/checks/${checkId}`, request);
+  }
+
+  /** Issues a new ping URL. The old one stops working immediately. */
+  rotatePingKey(checkId: string): Observable<CheckDto> {
+    return this.http.post<CheckDto>(`/api/v1/checks/${checkId}/rotate-ping-key`, {});
+  }
+
+  listProjectAudit(projectId: string, limit = 50): Observable<PageDto<AuditEventDto>> {
+    return this.http.get<PageDto<AuditEventDto>>(
+      `/api/v1/projects/${projectId}/audit?limit=${limit}`,
+    );
+  }
+
+  listAccountAudit(limit = 50): Observable<PageDto<AuditEventDto>> {
+    return this.http.get<PageDto<AuditEventDto>>(`/api/v1/account/audit?limit=${limit}`);
   }
 
   deleteCheck(checkId: string): Observable<void> {

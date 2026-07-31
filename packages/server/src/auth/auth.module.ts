@@ -1,10 +1,12 @@
 import { Global, Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { QuotasModule } from '../quotas/quotas.module';
 import { ApiKeyService } from './api-key.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { EmailVerificationService } from './email-verification.service';
+import { PasswordResetService } from './password-reset.service';
 import { ProjectAccessService } from './project-access.service';
 import { SignupChallengeService } from './signup-challenge.service';
 import { SignupGuardService } from './signup-guard.service';
@@ -16,7 +18,7 @@ import { TokenService } from './token.service';
  */
 @Global()
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, QuotasModule],
   controllers: [AuthController],
   providers: [
     AuthService,
@@ -25,6 +27,7 @@ import { TokenService } from './token.service';
     ProjectAccessService,
     AuthGuard,
     EmailVerificationService,
+    PasswordResetService,
     SignupChallengeService,
     SignupGuardService,
   ],
@@ -34,6 +37,7 @@ import { TokenService } from './token.service';
     ApiKeyService,
     ProjectAccessService,
     EmailVerificationService,
+    PasswordResetService,
     SignupChallengeService,
     SignupGuardService,
   ],

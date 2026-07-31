@@ -4,17 +4,43 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LIMITS, type ApiKeyDto, type CreatedApiKeyDto } from '@silencewatch/shared';
+import { LIMITS, type ApiKeyDto, type AuditEventDto, type CreatedApiKeyDto } from '@silencewatch/shared';
+import { catchError, forkJoin, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage } from '../../core/error-message';
 import { ProjectStore } from '../../core/project.store';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { IconComponent } from '../../shared/icon.component';
 
+/** Human wording for the audit actions, so the table reads as prose. */
+const AUDIT_LABELS: Record<string, string> = {
+  'auth.login': 'Signed in',
+  'auth.login_failed': 'Sign-in failed',
+  'auth.logout': 'Signed out',
+  'auth.password_changed': 'Password changed',
+  'auth.password_reset_requested': 'Password reset requested',
+  'auth.password_reset_completed': 'Password reset',
+  'auth.email_verified': 'Email confirmed',
+  'account.registered': 'Account created',
+  'api_key.created': 'API key created',
+  'api_key.revoked': 'API key revoked',
+  'channel.created': 'Alert channel added',
+  'channel.updated': 'Alert channel changed',
+  'channel.deleted': 'Alert channel removed',
+  'channel.tested': 'Alert channel tested',
+  'check.created': 'Check created',
+  'check.deleted': 'Check deleted',
+  'check.ping_key_rotated': 'Ping URL rotated',
+  'project.created': 'Project created',
+  'project.updated': 'Project changed',
+  'quota.checks_paused': 'Checks paused by plan limit',
+};
+
 /**
- * Project and account settings: API keys (used by the client starters), and the
- * password.
+ * Project and account settings: API keys (used by the client starters), the
+ * password, and the record of what has been done to both.
  */
 @Component({
   selector: 'sw-settings',
@@ -25,6 +51,7 @@ import { IconComponent } from '../../shared/icon.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatTooltipModule,
     RelativeTimePipe,
   ],
   template: `
@@ -128,6 +155,57 @@ import { IconComponent } from '../../shared/icon.component';
             <button mat-flat-button type="submit" [disabled]="busy()" class="tall">Change password</button>
           </form>
         </div>
+      </section>
+
+      <!-- Read-only, and admin-only on the server. The trail carries addresses
+           and user agents; it is for the people already trusted with the
+           project's keys, not for everyone in it. -->
+      <section class="sw-card section">
+        <div class="section-head">
+          <h2>Security activity</h2>
+          <p class="sw-muted">
+            Who did what, kept for a year. Sign-ins and password changes are yours; key and
+            channel changes belong to the project.
+          </p>
+        </div>
+
+        @if (auditEvents().length === 0) {
+          <p class="section-note sw-muted">Nothing recorded yet.</p>
+        } @else {
+          <div class="sw-scroll-x bordered">
+            <table class="sw-table">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Who</th>
+                  <th scope="col">Target</th>
+                  <th scope="col">From</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (event of auditEvents(); track event.id) {
+                  <tr>
+                    <td [matTooltip]="event.occurredAt">{{ event.occurredAt | swRelativeTime }}</td>
+                    <td>
+                      <span class="action" [class.danger-text]="isFailure(event.action)">{{
+                        label(event.action)
+                      }}</span>
+                    </td>
+                    <td class="sw-muted">
+                      {{ event.actorEmail ?? '—' }}
+                      @if (event.actorIsApiKey) {
+                        <span class="sw-tag">API key</span>
+                      }
+                    </td>
+                    <td class="sw-muted">{{ event.targetLabel ?? '—' }}</td>
+                    <td class="sw-mono sw-muted">{{ event.ip ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </section>
 
       <section class="sw-card section">
@@ -258,6 +336,15 @@ import { IconComponent } from '../../shared/icon.component';
       font-weight: 500;
     }
 
+    .action {
+      font-weight: 500;
+    }
+
+    /* Failed sign-ins are the line somebody is scanning for. */
+    .danger-text {
+      color: var(--sw-down);
+    }
+
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -277,6 +364,7 @@ export class SettingsComponent {
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly apiKeys = signal<ApiKeyDto[]>([]);
+  protected readonly auditEvents = signal<AuditEventDto[]>([]);
   protected readonly createdKey = signal<CreatedApiKeyDto | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -294,7 +382,10 @@ export class SettingsComponent {
     this.projects.load();
     effect(() => {
       const project = this.projects.selected();
-      if (project !== null) this.loadKeys(project.id);
+      if (project !== null) {
+        this.loadKeys(project.id);
+        this.loadAudit(project.id);
+      }
     });
   }
 
@@ -303,6 +394,41 @@ export class SettingsComponent {
       next: (keys) => this.apiKeys.set(keys),
       error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not load API keys.')),
     });
+  }
+
+  /**
+   * Account events and project events in one list.
+   *
+   * They live in separate endpoints because they have separate access rules —
+   * your own sign-ins are yours, the project's key changes need admin — but a
+   * reader looking for "what happened" should not have to know that.
+   */
+  private loadAudit(projectId: string): void {
+    forkJoin({
+      account: this.api.listAccountAudit(40),
+      project: this.api
+        .listProjectAudit(projectId, 40)
+        // A member without the admin role simply sees fewer rows, rather than
+        // an error on a page that is otherwise about their own account.
+        .pipe(catchError(() => of({ items: [] as AuditEventDto[], nextCursor: null }))),
+    }).subscribe({
+      next: ({ account, project }) => {
+        const merged = [...account.items, ...project.items].sort((a, b) =>
+          b.occurredAt.localeCompare(a.occurredAt),
+        );
+        this.auditEvents.set(merged.slice(0, 60));
+      },
+      error: () => this.auditEvents.set([]),
+    });
+  }
+
+  /** "auth.login_failed" reads as noise; "Sign-in failed" reads as a sentence. */
+  protected label(action: string): string {
+    return AUDIT_LABELS[action] ?? action;
+  }
+
+  protected isFailure(action: string): boolean {
+    return action === 'auth.login_failed' || action === 'quota.checks_paused';
   }
 
   protected createKey(): void {
