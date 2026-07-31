@@ -34,7 +34,7 @@ export class AuditController {
   ): Promise<PageDto<AuditEventDto>> {
     assertUser(principal);
     await this.access.assertAccess(principal, projectId, 'admin');
-    return this.audit.listForProject(projectId, parseLimit(limit), cursor);
+    return this.audit.listForProject(projectId, parseLimit(limit), parseCursor(cursor));
   }
 
   /** Sign-ins, password changes — the events that belong to no project. */
@@ -45,7 +45,7 @@ export class AuditController {
     @Query('cursor') cursor?: string,
   ): Promise<PageDto<AuditEventDto>> {
     const user = assertUser(principal);
-    return this.audit.listForUser(user.userId, parseLimit(limit), cursor);
+    return this.audit.listForUser(user.userId, parseLimit(limit), parseCursor(cursor));
   }
 }
 
@@ -53,4 +53,13 @@ function parseLimit(raw: string | undefined): number {
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed < 1) return DEFAULT_LIMIT;
   return Math.min(parsed, MAX_LIMIT);
+}
+
+/**
+ * The cursor reaches `BigInt()`, which throws on anything that is not a run of
+ * digits — an uncaught SyntaxError, and a 500 where a first page was meant.
+ * Anything unusable is treated as no cursor at all.
+ */
+function parseCursor(raw: string | undefined): string | undefined {
+  return raw !== undefined && /^\d{1,19}$/.test(raw) ? raw : undefined;
 }

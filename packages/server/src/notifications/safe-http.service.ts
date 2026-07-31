@@ -14,7 +14,11 @@ import { AppConfig, CONFIG } from '../config/config';
  *  1. Addresses are vetted *inside the DNS lookup used for the connection*, so
  *     a name that resolves to a public address on the first query and to
  *     169.254.169.254 on the second (DNS rebinding) cannot slip through.
- *  2. Redirects are never followed — a 302 to an internal host is the oldest
+ *  2. A host that is already an IP literal is vetted separately, before the
+ *     socket is opened. Node skips the `lookup` option entirely when there is
+ *     nothing to resolve, so (1) never runs for `http://169.254.169.254/` —
+ *     the single most valuable SSRF target there is.
+ *  3. Redirects are never followed — a 302 to an internal host is the oldest
  *     trick in the book.
  *
  * Self-hosters whose alert targets legitimately live on a private network set
@@ -46,6 +50,7 @@ export class SafeHttpService {
     if (url.username !== '' || url.password !== '') {
       throw new Error('URLs with embedded credentials are rejected');
     }
+    this.assertLiteralHostIsAllowed(url);
 
     const method = options.method ?? 'POST';
     const body = options.body;
@@ -112,6 +117,26 @@ export class SafeHttpService {
   }
 
   /**
+   * Vets a host that is already an address rather than a name.
+   *
+   * `guardedLookup` below is never consulted for one: Node's client resolves
+   * nothing when `isIP(host)` is true and connects straight away, so a URL
+   * naming the cloud metadata endpoint by address would bypass every check in
+   * this file. This closes that path at the only point both callers share.
+   */
+  private assertLiteralHostIsAllowed(url: URL): void {
+    // WHATWG keeps the brackets on an IPv6 host, and isIP does not accept them.
+    const host = url.hostname.replace(/^\[|\]$/g, '');
+    if (isIPv4(host) || isIPv6(host)) {
+      if (this.isAllowedAddress(host)) return;
+      throw new Error(
+        `${url.hostname} is a private or reserved address; set ` +
+          'ALLOW_PRIVATE_NOTIFICATION_TARGETS=true if this is intentional',
+      );
+    }
+  }
+
+  /**
    * DNS resolution with address vetting. Bound as a property so it can be
    * handed to Node's http client as the `lookup` option.
    */
@@ -166,6 +191,10 @@ export class SafeHttpService {
     if (url.username !== '' || url.password !== '') {
       throw new Error('URLs with embedded credentials are rejected');
     }
+    // Before the resolver, not after: `[::1]` is not a name, so the lookup
+    // below would fail to resolve it and fall through to the lenient branch —
+    // which would accept the one shape of target that needs no DNS at all.
+    this.assertLiteralHostIsAllowed(url);
 
     const addresses = await lookupAll(url.hostname).catch(() => null);
     if (addresses === null) {

@@ -32,6 +32,21 @@ describe('RateLimiter', () => {
     expect(limiter.size).toBeLessThanOrEqual(100);
   });
 
+  it('reports a spent budget without spending any more of it', () => {
+    const limiter = new RateLimiter(2, 60_000);
+    expect(limiter.exceeded('a', 0)).toBe(false);
+
+    limiter.hit('a', 0);
+    // Asking is free: a key one hit below the limit must still be allowed.
+    expect(limiter.exceeded('a', 0)).toBe(false);
+    expect(limiter.exceeded('a', 0)).toBe(false);
+    expect(limiter.hit('a', 0)).toBe(0);
+
+    expect(limiter.exceeded('a', 0)).toBe(true);
+    // And it stops being true when the window turns over.
+    expect(limiter.exceeded('a', 60_000)).toBe(false);
+  });
+
   it('reclaims expired windows before evicting live ones', () => {
     const limiter = new RateLimiter(1, 1_000, 10);
     for (let index = 0; index < 10; index += 1) limiter.hit(`old-${index}`, 0);

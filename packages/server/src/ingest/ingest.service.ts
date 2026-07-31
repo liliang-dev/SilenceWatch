@@ -109,10 +109,25 @@ export class IngestService {
     const pingKey = command.pingKey.toLowerCase();
     if (this.perKeyLimiter.hit(pingKey) > 0) return 'rate_limited';
 
+    // Walking the URL space costs one database round trip per *fresh* key: the
+    // negative cache only helps against a key asked for twice, and a scanner
+    // never asks twice. Nothing else bounds it — `/p/*` bypasses the Nest
+    // pipeline, so the per-IP API limiter never sees these requests, and the
+    // per-key limiter above is useless against a caller that never repeats a
+    // key. So the budget is charged once a lookup has proved wasted, and a
+    // source that has spent it stops being given lookups.
+    //
+    // The refusal is 429 and never 404. Answering "no such check" to a key we
+    // did not look up would be a lie about the one thing this path exists to
+    // report: a valid heartbeat told it is calling the wrong URL is a job that
+    // looks silent, and silence is what this product turns into an alarm. A
+    // throttled client is told to come back, and does.
+    const source = command.ip ?? 'unknown';
+    if (this.unknownKeyLimiter.exceeded(source)) return 'rate_limited';
+
     const metadata = await this.cache.get(pingKey);
     if (metadata === null) {
-      // Cheap for us, uninformative for a scanner: same answer either way.
-      this.unknownKeyLimiter.hit(command.ip ?? 'unknown');
+      this.unknownKeyLimiter.hit(source);
       return 'unknown';
     }
 

@@ -41,9 +41,26 @@ export class UndeliverableError extends ServiceUnavailableException {
  *  - **Issuing a new token invalidates the old ones.** "Resend" would otherwise
  *    leave a widening set of live credentials in a widening set of inboxes.
  */
+/**
+ * Minimum gap between two messages to the same address.
+ *
+ * The per-IP limiter cannot see that a thousand registrations from a thousand
+ * addresses all name one victim's mailbox. Without this, "forgot my password"
+ * and "resend the link" are a mail cannon pointed at anyone whose address is
+ * known — and the instance pays for it twice, because a sender that emits
+ * unsolicited volume loses the deliverability its alerts depend on.
+ */
+export const EMAIL_COOLDOWN_MS = 60_000;
+
 @Injectable()
 export class EmailVerificationService {
   private readonly logger = new Logger(EmailVerificationService.name);
+  /**
+   * Addresses recently told that they already have an account, and when they
+   * may be told again. In memory rather than in a table because there is no row
+   * to hang it on — the notice is sent precisely when nothing is created.
+   */
+  private readonly noticeSentAt = new Map<string, number>();
 
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
@@ -64,15 +81,33 @@ export class EmailVerificationService {
    * will never arrive, in front of an account they cannot use.
    */
   async sendVerification(user: { id: string; email: string; name: string | null }): Promise<void> {
+    // A live token issued moments ago is still in the recipient's inbox, so a
+    // second message adds nothing but volume. Returning quietly keeps the
+    // caller's answer identical to a successful send, which is what stops this
+    // from becoming the oracle the whole flow is shaped to avoid.
+    const recent = await this.prisma.emailVerification.findFirst({
+      where: {
+        userId: user.id,
+        consumedAt: null,
+        createdAt: { gt: new Date(Date.now() - EMAIL_COOLDOWN_MS) },
+      },
+      select: { id: true },
+    });
+    if (recent !== null) {
+      this.logger.debug(`Verification email for ${user.id} suppressed: one went out moments ago`);
+      return;
+    }
+
     const token = randomToken(32);
     const expiresAt = new Date(Date.now() + this.config.EMAIL_VERIFICATION_TTL_HOURS * 3_600_000);
 
-    await this.prisma.$transaction([
+    const [, issued] = await this.prisma.$transaction([
       this.prisma.emailVerification.deleteMany({
         where: { userId: user.id, consumedAt: null },
       }),
       this.prisma.emailVerification.create({
         data: { userId: user.id, tokenHash: sha256Hex(token), email: user.email, expiresAt },
+        select: { id: true },
       }),
     ]);
 
@@ -84,7 +119,15 @@ export class EmailVerificationService {
         text: verificationText(link, this.config.EMAIL_VERIFICATION_TTL_HOURS),
         html: verificationHtml(link, this.config.EMAIL_VERIFICATION_TTL_HOURS),
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
+        // The row is what the cooldown above reads, so a token left behind by a
+        // send that never happened would hold the retry off for a minute and
+        // put the visitor back in front of the inbox that gets nothing — the
+        // exact failure UndeliverableError exists to prevent. Drop it, so the
+        // cooldown only ever means "a message really went out".
+        await this.prisma.emailVerification
+          .deleteMany({ where: { id: issued.id } })
+          .catch(() => undefined);
         // The transport's own message would name the mail host and the reason
         // it refused, which is the operator's business and not the visitor's.
         this.logger.error(`Verification email to ${user.id} failed: ${String(error)}`);
@@ -161,6 +204,15 @@ export class EmailVerificationService {
    * a stranger's typo, or a targeted probe, into something the owner can see.
    */
   async sendAlreadyRegisteredNotice(email: string): Promise<void> {
+    // Same cooldown as the verification mail, for the same reason: repeating a
+    // registration with a stranger's address must not let anyone fill their
+    // inbox. Suppressed the same way too — quietly, so both branches of
+    // registration still answer identically.
+    if (this.noticeCooldownActive(email)) {
+      this.logger.debug('Already-registered notice suppressed: one went out moments ago');
+      return;
+    }
+
     const signInUrl = `${this.config.baseUrl}/login`;
     await this.email
       .send({
@@ -178,6 +230,7 @@ export class EmailVerificationService {
         ].join('\n'),
         html: alreadyRegisteredHtml(signInUrl),
       })
+      .then(() => this.markNoticeSent(email))
       .catch((error: unknown) => {
         // Fails exactly like the new-account branch, and that is the point: if
         // one path answered 201 while the other reported a mail outage, the
@@ -186,6 +239,29 @@ export class EmailVerificationService {
         this.logger.error(`Already-registered notice failed: ${String(error)}`);
         throw new UndeliverableError();
       });
+  }
+
+  /** Whether this address was told recently enough that telling it again is noise. */
+  private noticeCooldownActive(email: string, now = Date.now()): boolean {
+    const until = this.noticeSentAt.get(email);
+    return until !== undefined && until > now;
+  }
+
+  /**
+   * Starts the cooldown. Called only once a message has actually gone out —
+   * marking it before the send would let a broken transport lock an address out
+   * of a notice it never received.
+   */
+  private markNoticeSent(email: string, now = Date.now()): void {
+    // Entries expire on their own; sweep when the map grows, so a flood of
+    // registrations against distinct addresses cannot leak memory.
+    if (this.noticeSentAt.size >= 20_000) {
+      for (const [key, expiry] of this.noticeSentAt) {
+        if (expiry <= now) this.noticeSentAt.delete(key);
+      }
+      if (this.noticeSentAt.size >= 20_000) this.noticeSentAt.clear();
+    }
+    this.noticeSentAt.set(email, now + EMAIL_COOLDOWN_MS);
   }
 
   /**

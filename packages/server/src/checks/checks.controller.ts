@@ -71,9 +71,22 @@ export class ChecksController {
     @CurrentPrincipal() principal: Principal,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(zodPipe(createCheckRequestSchema)) body: z.infer<typeof createCheckRequestSchema>,
+    @Req() request: FastifyRequest,
   ): Promise<CheckDto> {
     await this.access.assertAccess(principal, projectId);
-    return this.checks.create(projectId, body);
+    const check = await this.checks.create(projectId, body);
+
+    // The ping URL is a credential and stays out of the record, like everywhere
+    // else it appears.
+    this.audit.record({
+      action: 'check.created',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'check',
+      targetId: check.id,
+      targetLabel: check.name,
+    });
+    return check;
   }
 
   /**

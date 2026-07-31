@@ -347,13 +347,35 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken: string): Promise<void> {
+  async logout(refreshToken: string, context: SessionContext): Promise<void> {
+    const tokenHash = this.tokens.hashRefreshToken(refreshToken);
+    // Read before the write, only to name the actor: a trail that records every
+    // sign-in and no sign-out cannot answer "was that session still open?".
+    const session = await this.prisma.session.findUnique({
+      where: { tokenHash },
+      select: { userId: true, user: { select: { email: true } } },
+    });
+
     // updateMany: an unknown or already-revoked token is a silent no-op, so this
     // endpoint reveals nothing.
-    await this.prisma.session.updateMany({
-      where: { tokenHash: this.tokens.hashRefreshToken(refreshToken), revokedAt: null },
+    const { count } = await this.prisma.session.updateMany({
+      where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+
+    // Only a session that was actually open is worth an entry; replaying a dead
+    // token would otherwise let anyone write to the trail.
+    if (count > 0 && session !== null) {
+      this.audit.record({
+        action: 'auth.logout',
+        actor: {
+          userId: session.userId,
+          email: session.user.email,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+      });
+    }
   }
 
   async changePassword(userId: string, input: ChangePasswordRequest): Promise<void> {
@@ -364,7 +386,18 @@ export class AuthService {
 
     const passwordHash = await hashPassword(input.newPassword);
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          passwordHash,
+          // The lockout goes with the old password, exactly as it does on a
+          // reset. Someone who has just proved the current password and chosen
+          // a new one should not be kept out for fifteen minutes by failures
+          // that were somebody else guessing at the password they just retired.
+          failedLoginCount: 0,
+          lockedUntil: null,
+        },
+      }),
       // A password change ends every session: that is the point of changing it.
       this.prisma.session.updateMany({
         where: { userId, revokedAt: null },

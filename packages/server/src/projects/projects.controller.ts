@@ -74,9 +74,22 @@ export class ProjectsController {
     @CurrentPrincipal() principal: Principal,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(zodPipe(updateProjectRequestSchema)) body: z.infer<typeof updateProjectRequestSchema>,
+    @Req() request: FastifyRequest,
   ): Promise<ProjectDto> {
     await this.access.assertAccess(principal, projectId, 'admin');
-    return this.projects.update(projectId, body);
+    const project = await this.projects.update(projectId, body);
+
+    this.audit.record({
+      action: 'project.updated',
+      actor: auditActor(principal, request),
+      projectId,
+      targetType: 'project',
+      targetId: projectId,
+      targetLabel: project.name,
+      // Shortening retention destroys history; it is the change worth finding.
+      detail: { name: project.name, pingRetentionDays: project.pingRetentionDays },
+    });
+    return project;
   }
 
   @Delete(':projectId')
@@ -84,10 +97,26 @@ export class ProjectsController {
   async remove(
     @CurrentPrincipal() principal: Principal,
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Req() request: FastifyRequest,
   ): Promise<void> {
     // Destroys every check and all history: owner only.
     await this.access.assertAccess(principal, projectId, 'owner');
+    // Read first: afterwards there is no name left to say what was destroyed.
+    const doomed = await this.projects.get(projectId);
     await this.projects.remove(projectId);
+
+    this.audit.record({
+      action: 'project.deleted',
+      actor: auditActor(principal, request),
+      // Deliberately not filed under the project: that trail is only readable
+      // through the project, and the project is what just ceased to exist. It
+      // belongs to the account, which is where its owner can still find it.
+      projectId: null,
+      targetType: 'project',
+      targetId: projectId,
+      targetLabel: doomed.name,
+      detail: { slug: doomed.slug, checkCount: doomed.checkCount ?? 0 },
+    });
   }
 
   /* ------------------------------------------------------------ api keys --- */

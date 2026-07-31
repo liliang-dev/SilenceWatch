@@ -122,7 +122,11 @@ export async function createTestApp(
     .compile();
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
-    new FastifyAdapter({ logger: false }),
+    // trustProxy has to be threaded through exactly as main.ts does it: it
+    // decides where `request.ip` comes from, and every per-source control —
+    // rate limits, the sign-up velocity rule, the addresses in the audit trail
+    // — reads that. A harness that always says 127.0.0.1 cannot test any of them.
+    new FastifyAdapter({ logger: false, trustProxy: config.TRUST_PROXY as boolean | string }),
   );
 
   await registerIngestRoutes(

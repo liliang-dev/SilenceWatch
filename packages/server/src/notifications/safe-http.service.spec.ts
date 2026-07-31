@@ -80,6 +80,37 @@ describe('SafeHttpService address vetting', () => {
     ).rejects.toThrow(/embedded credentials/);
   });
 
+  /**
+   * The regression that motivated `assertLiteralHostIsAllowed`: Node's http
+   * client resolves nothing when the host is already an address, so the
+   * `lookup` guard — the whole SSRF defence — is simply never called for a URL
+   * that names its target numerically. These must be refused before a socket
+   * is opened, on both entry points.
+   */
+  it('refuses an IP literal without ever consulting the resolver', async () => {
+    for (const url of [
+      'http://169.254.169.254/latest/meta-data/',
+      'http://127.0.0.1:8080/hook',
+      'https://10.0.0.5/hook',
+      'http://[::1]:8080/hook',
+      'http://[fd00::1]/hook',
+      // IPv4-mapped, the usual way around a naive IPv4-only check.
+      'http://[::ffff:169.254.169.254]/latest/meta-data/',
+    ]) {
+      await expect(guarded.send({ url })).rejects.toThrow(/private or reserved address/);
+      await expect(guarded.assertTargetIsAllowed(url)).rejects.toThrow(
+        /private or reserved address/,
+      );
+    }
+  });
+
+  it('still allows a public address given numerically', async () => {
+    // Reaching the network is the pass condition, so failing to connect is
+    // fine — being refused by our own check is not.
+    await expect(guarded.assertTargetIsAllowed('https://1.1.1.1/hook')).resolves.toBeUndefined();
+    await expect(service(true).assertTargetIsAllowed('http://127.0.0.1/hook')).resolves.toBeUndefined();
+  });
+
   it('accepts a target whose name does not resolve yet', async () => {
     // A hostname that does not resolve is not proof of a mistake: split-horizon
     // DNS and not-yet-provisioned hosts are normal. The send will report it.

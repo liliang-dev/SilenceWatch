@@ -139,10 +139,50 @@ describe('sign-up with email verification', () => {
     expect(second.statusCode).toBe(400);
   });
 
+  /**
+   * Resending is how a mail bomb is aimed: the per-IP limiter counts senders,
+   * and it is the recipient who is under attack. Within the cooldown the answer
+   * has to stay 204 — anything else would report the account's existence — while
+   * no second message leaves the building and the link already in the inbox
+   * keeps working.
+   */
+  it('declines to send a second link inside the cooldown, without saying so', async () => {
+    await seedBootstrapAccount();
+    await register('flood@example.test');
+    const token = linkFrom(context.emails.lastTo('flood@example.test')?.text as string);
+    const before = context.emails.sent.filter((email) => email.to === 'flood@example.test').length;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const resend = await context.app.inject({
+        method: 'POST',
+        url: '/api/auth/resend-verification',
+        payload: { email: 'flood@example.test' },
+      });
+      expect(resend.statusCode).toBe(204);
+    }
+
+    const after = context.emails.sent.filter((email) => email.to === 'flood@example.test').length;
+    expect(after).toBe(before);
+
+    // Suppressed, not revoked: the link they already have must still work.
+    const verify = await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token },
+    });
+    expect(verify.statusCode).toBe(204);
+  });
+
   it('invalidates the previous link when a new one is requested', async () => {
     await seedBootstrapAccount();
     await register('resend@example.test');
     const firstToken = linkFrom(context.emails.lastTo('resend@example.test')?.text as string);
+
+    // Past the cooldown, which is the case this test is about.
+    await context.prisma.emailVerification.updateMany({
+      where: { email: 'resend@example.test' },
+      data: { createdAt: new Date(Date.now() - 3_600_000) },
+    });
 
     const resend = await context.app.inject({
       method: 'POST',

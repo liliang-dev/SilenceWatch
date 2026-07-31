@@ -538,6 +538,12 @@ export const AUDIT_ACTIONS = [
   'check.ping_key_rotated',
   'project.created',
   'project.updated',
+  /**
+   * The most destructive action in the product: it takes every check, every
+   * ping and every incident with it. Recorded outside the project — by the time
+   * anyone reads it, the project it names no longer exists.
+   */
+  'project.deleted',
   'quota.checks_paused',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

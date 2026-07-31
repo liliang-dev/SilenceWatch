@@ -589,6 +589,77 @@ describe('audit trail', () => {
     expect(events[0]?.targetId).toBe(checkId);
   });
 
+  /**
+   * Deleting a project takes every check, ping and incident with it — the most
+   * destructive thing the API can do, and for a while the only one that left no
+   * trace at all.
+   */
+  it('records a project deletion where its owner can still read it', async () => {
+    const user = await registerUser(context);
+    const created = await context.app.inject({
+      method: 'POST',
+      url: '/api/v1/projects',
+      headers: auth(user.token),
+      payload: { name: 'Doomed project' },
+    });
+    const projectId = created.json<{ id: string }>().id;
+
+    const removed = await context.app.inject({
+      method: 'DELETE',
+      url: `/api/v1/projects/${projectId}`,
+      headers: auth(user.token),
+    });
+    expect(removed.statusCode).toBe(204);
+    await settled();
+
+    // Filed against the account, not the project: a trail readable only through
+    // the project would have died with it.
+    const response = await context.app.inject({
+      method: 'GET',
+      url: '/api/v1/account/audit',
+      headers: auth(user.token),
+    });
+    const event = response
+      .json<{ items: Array<{ action: string; targetId: string; targetLabel: string }> }>()
+      .items.find((item) => item.action === 'project.deleted');
+
+    expect(event?.targetId).toBe(projectId);
+    expect(event?.targetLabel).toBe('Doomed project');
+  });
+
+  it('records a sign-out, so an open session can be told from a closed one', async () => {
+    const user = await registerUser(context);
+    const session = await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: user.email, password: PASSWORD },
+    });
+    const cookie = (session.headers['set-cookie'] as string).split(';')[0] as string;
+
+    await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: { cookie },
+      payload: {},
+    });
+    await settled();
+
+    const events = await context.prisma.auditEvent.findMany({ where: { action: 'auth.logout' } });
+    expect(events).toHaveLength(1);
+    expect(events[0]?.actorEmail).toBe(user.email);
+
+    // Replaying the dead token must not write a second entry: anyone holding a
+    // revoked token could otherwise append to the trail at will.
+    await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: { cookie },
+      payload: {},
+    });
+    await settled();
+    expect(await context.prisma.auditEvent.count({ where: { action: 'auth.logout' } })).toBe(1);
+  });
+
   it('refuses an API key read access to the trail', async () => {
     // A leaked key must not become a way to learn who signs in, and from where.
     const user = await registerUser(context);

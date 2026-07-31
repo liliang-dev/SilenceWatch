@@ -53,6 +53,15 @@ Responses are plain text and minimal: `OK`, `PAUSED`, `NOT FOUND` (404),
 `RATE LIMITED` (429), `BAD REQUEST` (400), `UNAVAILABLE` (503). A mistyped key
 stays a 404 on purpose: it must never look like success to the script calling it.
 
+Two rate limits apply, both answering 429 with `Retry-After`. One is per key
+(`PING_RATE_LIMIT_PER_MINUTE`), which bounds a runaway job. The other is per
+source address, and is charged only by keys that turn out not to exist — so it
+is spent by something walking the URL space and never by a working client.
+Once it is spent, that address is refused until the window turns over, whatever
+key it presents. Note the asymmetry: a refusal is a 429 and never a 404,
+because telling a job with a valid URL that its check does not exist would send
+it looking for a problem that is not there.
+
 ## Checks
 
 | Endpoint | Notes |

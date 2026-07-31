@@ -40,6 +40,16 @@ export class RateLimiter {
     return 0;
   }
 
+  /**
+   * Whether a key has already spent its budget, without spending any more of
+   * it. For callers that must decide *before* doing the expensive thing, and
+   * that only charge the budget once they know the work was wasted.
+   */
+  exceeded(key: string, now = Date.now()): boolean {
+    const window = this.windows.get(key);
+    return window !== undefined && window.resetAt > now && window.count >= this.limit;
+  }
+
   /** Number of tracked keys — exposed for diagnostics. */
   get size(): number {
     return this.windows.size;

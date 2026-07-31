@@ -5,6 +5,7 @@ import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../notifications/email.service';
 import { escapeHtml } from '../notifications/templates';
+import { EMAIL_COOLDOWN_MS } from './email-verification.service';
 
 /**
  * "I forgot my password."
@@ -53,15 +54,33 @@ export class PasswordResetService {
       return;
     }
 
+    // A link issued moments ago is still in the inbox and still works, so a
+    // second one adds nothing but volume. Without this the endpoint is a mail
+    // cannon aimed at any address someone knows: the per-IP limiter counts
+    // senders, and it is the recipient who is being attacked.
+    const recent = await this.prisma.passwordReset.findFirst({
+      where: {
+        userId: user.id,
+        consumedAt: null,
+        createdAt: { gt: new Date(Date.now() - EMAIL_COOLDOWN_MS) },
+      },
+      select: { id: true },
+    });
+    if (recent !== null) {
+      this.logger.debug(`Password reset email for ${user.id} suppressed: one went out moments ago`);
+      return;
+    }
+
     const token = randomToken(32);
     const expiresAt = new Date(Date.now() + this.config.PASSWORD_RESET_TTL_MINUTES * 60_000);
 
-    await this.prisma.$transaction([
+    const [, issued] = await this.prisma.$transaction([
       // One live link at a time: a resend must not leave the older one usable
       // in an older inbox.
       this.prisma.passwordReset.deleteMany({ where: { userId: user.id, consumedAt: null } }),
       this.prisma.passwordReset.create({
         data: { userId: user.id, tokenHash: sha256Hex(token), expiresAt, requestedIp: ip },
+        select: { id: true },
       }),
     ]);
 
@@ -78,9 +97,15 @@ export class PasswordResetService {
         text: resetText(link, this.config.PASSWORD_RESET_TTL_MINUTES),
         html: resetHtml(link, this.config.PASSWORD_RESET_TTL_MINUTES),
       })
-      .catch((error: unknown) =>
-        this.logger.error(`Password reset email to ${user.id} failed: ${String(error)}`),
-      );
+      .catch(async (error: unknown) => {
+        // A token whose link never left the building is not a live reset, and
+        // leaving it behind would make the cooldown above refuse the retry for
+        // a minute over a message nobody received.
+        await this.prisma.passwordReset
+          .deleteMany({ where: { id: issued.id } })
+          .catch(() => undefined);
+        this.logger.error(`Password reset email to ${user.id} failed: ${String(error)}`);
+      });
   }
 
   /**

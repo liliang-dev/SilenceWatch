@@ -164,7 +164,7 @@ export class AuthController {
     // The cookie goes whatever happens: a logout that leaves the credential in
     // the browser is not a logout.
     clearRefreshCookie(reply, this.config);
-    if (presented !== null) await this.auth.logout(presented);
+    if (presented !== null) await this.auth.logout(presented, sessionContext(request));
   }
 
   /**

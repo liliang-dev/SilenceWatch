@@ -1,4 +1,5 @@
 import type { CheckDto, CreatedApiKeyDto, NotificationChannelDto } from '@silencewatch/shared';
+import { randomUUID } from 'node:crypto';
 import { auth, createTestApp, registerUser, type TestApp } from './utils/test-app';
 
 /**
@@ -452,5 +453,85 @@ describe('access control', () => {
       // The table is still there.
       expect(await context.prisma.check.count()).toBe(1);
     });
+  });
+
+});
+
+/**
+ * `/p/*` bypasses the Nest pipeline, so the per-IP API limiter never sees a
+ * heartbeat and the per-key limiter is useless against a caller that never
+ * repeats a key. Walking the URL space therefore used to buy an unbounded
+ * supply of unauthenticated database lookups on the one pool that real
+ * heartbeats depend on.
+ *
+ * Runs with TRUST_PROXY on so the source address can be varied — which is the
+ * whole point: throttling a scanner must not throttle anybody else.
+ */
+describe('heartbeat ingestion under a ping-URL scan', () => {
+  let context: TestApp;
+
+  beforeAll(async () => {
+    context = await createTestApp({ TRUST_PROXY: 'true' });
+  });
+
+  afterAll(async () => {
+    await context.close();
+  });
+
+  beforeEach(async () => {
+    await context.reset();
+  });
+
+  it('stops paying for the scan, without ever calling a real key unknown', async () => {
+    const user = await registerUser(context);
+    const check = await context.app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${user.projectId}/checks`,
+      headers: auth(user.token),
+      payload: { name: 'Job', scheduleType: 'interval', periodSeconds: 3_600, graceSeconds: 60 },
+    });
+    const pingKey = check.json<CheckDto>().pingKey;
+
+    const misses = async (): Promise<number> => {
+      const status = await context.app.inject({
+        method: 'GET',
+        url: '/api/v1/status',
+        headers: auth(user.token),
+      });
+      return status.json<{ ingestCache: { misses: number } }>().ingestCache.misses;
+    };
+
+    const before = await misses();
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const response = await context.app.inject({
+        method: 'GET',
+        url: `/p/${randomUUID()}`,
+        headers: { 'x-forwarded-for': '203.0.113.9' },
+      });
+      expect([404, 429]).toContain(response.statusCode);
+    }
+
+    // 60 unknown keys per minute is the budget; the rest never reach the pool.
+    expect((await misses()) - before).toBeLessThanOrEqual(61);
+
+    // Refused, not disowned. A 404 here would tell a job with a perfectly good
+    // URL that it is calling the wrong one, and a heartbeat that stops is
+    // exactly what this product raises an alarm about.
+    const throttled = await context.app.inject({
+      method: 'GET',
+      url: `/p/${pingKey}`,
+      headers: { 'x-forwarded-for': '203.0.113.9' },
+    });
+    expect(throttled.statusCode).toBe(429);
+    expect(throttled.headers['retry-after']).toBe('60');
+
+    // And the scan costs no one else anything: another source is unaffected.
+    const elsewhere = await context.app.inject({
+      method: 'GET',
+      url: `/p/${pingKey}`,
+      headers: { 'x-forwarded-for': '198.51.100.7' },
+    });
+    expect(elsewhere.statusCode).toBe(200);
+    expect(elsewhere.body).toBe('OK');
   });
 });
