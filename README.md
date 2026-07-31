@@ -155,4 +155,6 @@ Pull requests need a `Signed-off-by` line (DCO). See
   monitor the monitor
 - [REST API](docs/api.md) — endpoints, authentication, the `/checks/sync` contract
 - [Security](docs/security.md) — the threat model and what is done about it
+- [Abuse prevention](docs/abuse-prevention.md) — what actually stops bot sign-ups,
+  measured rather than assumed
 - [Development](docs/development.md) — running it locally, tests, load tests

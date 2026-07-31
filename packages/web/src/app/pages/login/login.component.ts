@@ -1,14 +1,16 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router } from '@angular/router';
-import { LIMITS } from '@silencewatch/shared';
+import { LIMITS, type RegisterResponse, type SessionDto } from '@silencewatch/shared';
+import type { Observable } from 'rxjs';
 import { ProjectStore } from '../../core/project.store';
 import { AuthService } from '../../core/auth.service';
-import { errorMessage } from '../../core/error-message';
+import { errorMessage, isVerificationPending } from '../../core/error-message';
+import { SignupChallengeService } from '../../core/signup-challenge.service';
 
 @Component({
   selector: 'sw-login',
@@ -44,15 +46,35 @@ import { errorMessage } from '../../core/error-message';
               <h1>Silence<span class="wordmark-accent">Watch</span></h1>
             </div>
 
-            <p class="tagline sw-muted">
-              {{
-                mode() === 'login'
-                  ? 'Sign in to see which of your jobs are still checking in.'
-                  : 'Create an account. The first one on a fresh instance is always allowed.'
-              }}
-            </p>
+            @if (sentTo(); as address) {
+              <!-- The account exists but is unusable until the address answers.
+                   Saying so plainly beats a spinner that never resolves. -->
+              <p class="tagline sw-muted">
+                We sent a confirmation link to <strong class="address">{{ address }}</strong
+                >. Open it and you are in.
+              </p>
+              <div class="after-send">
+                <p class="sw-subtle small">
+                  Nothing arrived? Check the spam folder, then ask for another link — the previous
+                  one stops working when a new one is sent.
+                </p>
+                <button mat-stroked-button type="button" [disabled]="busy()" (click)="resend()">
+                  Send another link
+                </button>
+                <button mat-button type="button" class="switch-back" (click)="backToSignIn()">
+                  Back to sign in
+                </button>
+              </div>
+            } @else {
+              <p class="tagline sw-muted">
+                {{
+                  mode() === 'login'
+                    ? 'Sign in to see which of your jobs are still checking in.'
+                    : 'Create an account. The first one on a fresh instance is always allowed.'
+                }}
+              </p>
 
-            <form [formGroup]="form" (ngSubmit)="submit()">
+              <form [formGroup]="form" (ngSubmit)="submit()">
               @if (mode() === 'register') {
                 <mat-form-field appearance="outline">
                   <mat-label>Name</mat-label>
@@ -84,21 +106,39 @@ import { errorMessage } from '../../core/error-message';
               </mat-form-field>
 
               @if (error()) {
-                <p class="sw-error" role="alert">{{ error() }}</p>
+                <p class="sw-error" role="alert">
+                  <span>
+                    {{ error() }}
+                    @if (verificationPending()) {
+                      <button type="button" class="inline-link" (click)="resend()">
+                        Send the link again
+                      </button>
+                    }
+                  </span>
+                </p>
               }
 
               <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
-                {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
+                @if (working()) {
+                  {{ workingLabel() }}
+                } @else {
+                  {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
+                }
               </button>
-            </form>
+              </form>
+            }
           </div>
 
-          <div class="card-foot">
-            <span class="sw-muted">{{ mode() === 'login' ? 'No account yet?' : 'Already registered?' }}</span>
-            <button type="button" class="switch" (click)="toggleMode()">
-              {{ mode() === 'login' ? 'Create one' : 'Sign in' }}
-            </button>
-          </div>
+          @if (sentTo() === null) {
+            <div class="card-foot">
+              <span class="sw-muted">{{
+                mode() === 'login' ? 'No account yet?' : 'Already registered?'
+              }}</span>
+              <button type="button" class="switch" (click)="toggleMode()">
+                {{ mode() === 'login' ? 'Create one' : 'Sign in' }}
+              </button>
+            </div>
+          }
         </div>
 
         <p class="footnote sw-subtle">Dead man's switch monitoring for the jobs nobody watches.</p>
@@ -212,6 +252,43 @@ import { errorMessage } from '../../core/error-message';
       font-size: 0.8125rem;
       text-align: center;
     }
+
+    /* ------------------------------------------------ verification sent --- */
+
+    .address {
+      color: var(--sw-text);
+      /* break-all would split "new-user@exa / mple.test" mid-word; anywhere only
+         breaks when there is no other option, so the address stays readable. */
+      overflow-wrap: anywhere;
+    }
+
+    .after-send {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .small {
+      margin: 0 0 6px;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .switch-back {
+      width: 100%;
+    }
+
+    .inline-link {
+      padding: 0 0 0 4px;
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
+    }
   `,
 })
 export class LoginComponent {
@@ -219,11 +296,25 @@ export class LoginComponent {
   private readonly projects = inject(ProjectStore);
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly challenge = inject(SignupChallengeService);
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly mode = signal<'login' | 'register'>('login');
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** Set once a confirmation link has gone out; swaps the card for its "sent" state. */
+  protected readonly sentTo = signal<string | null>(null);
+
+  /** True when the server refused a sign-in because the address is unconfirmed. */
+  protected readonly verificationPending = signal(false);
+
+  /** What the submit button is doing, when it is doing something slow. */
+  protected readonly working = signal<'challenge' | 'request' | null>(null);
+
+  protected readonly workingLabel = computed(() =>
+    this.working() === 'challenge' ? 'Checking your browser…' : 'Working…',
+  );
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [''],
@@ -234,6 +325,14 @@ export class LoginComponent {
   protected toggleMode(): void {
     this.mode.update((mode) => (mode === 'login' ? 'register' : 'login'));
     this.error.set(null);
+    this.verificationPending.set(false);
+  }
+
+  protected backToSignIn(): void {
+    this.sentTo.set(null);
+    this.mode.set('login');
+    this.error.set(null);
+    this.form.patchValue({ password: '' });
   }
 
   protected submit(): void {
@@ -244,16 +343,50 @@ export class LoginComponent {
 
     this.busy.set(true);
     this.error.set(null);
+    this.verificationPending.set(false);
+
+    if (this.mode() === 'login') {
+      this.run(this.auth.login(this.form.getRawValue()));
+      return;
+    }
+
+    void this.submitRegistration();
+  }
+
+  /**
+   * Registration first asks the instance what work it wants. On a self-hosted
+   * instance the answer is "none" and this costs one request; on the hosted one
+   * it costs a fraction of a second of CPU, which is the point.
+   */
+  private async submitRegistration(): Promise<void> {
+    this.working.set('challenge');
+    const powSolution = await this.challenge.solve();
+    this.working.set('request');
 
     const { name, email, password } = this.form.getRawValue();
-    const request =
-      this.mode() === 'login'
-        ? this.auth.login({ email, password })
-        : this.auth.register({ email, password, ...(name.trim() === '' ? {} : { name }) });
+    this.run(
+      this.auth.register({
+        email,
+        password,
+        ...(name.trim() === '' ? {} : { name }),
+        ...(powSolution === undefined ? {} : { powSolution }),
+      }),
+    );
+  }
 
+  private run(request: Observable<SessionDto | RegisterResponse>): void {
     request.subscribe({
-      next: () => {
+      next: (result) => {
         this.busy.set(false);
+        this.working.set(null);
+
+        // Registration with verification on returns no session: the account
+        // exists, but nothing is signed in and there is nowhere to navigate to.
+        if ('status' in result && result.status === 'verification_sent') {
+          this.sentTo.set(result.email);
+          return;
+        }
+
         // A fresh session means a fresh project list.
         this.projects.clear();
         this.projects.load(true);
@@ -261,7 +394,35 @@ export class LoginComponent {
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Sign-in failed. Check your credentials and try again.'));
+        this.working.set(null);
+        this.verificationPending.set(isVerificationPending(failure));
+        this.error.set(
+          errorMessage(failure, 'Sign-in failed. Check your credentials and try again.'),
+        );
+      },
+    });
+  }
+
+  /**
+   * Asks for another link. Deliberately optimistic: the endpoint answers the
+   * same way whether or not the address exists, so there is no outcome to
+   * report beyond "we did what you asked".
+   */
+  protected resend(): void {
+    const email = this.sentTo() ?? this.form.getRawValue().email;
+    if (email === '') return;
+
+    this.busy.set(true);
+    this.auth.resendVerification(email).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.error.set(null);
+        this.verificationPending.set(false);
+        this.sentTo.set(email);
+      },
+      error: () => {
+        this.busy.set(false);
+        this.error.set('Could not send the link right now. Try again in a minute.');
       },
     });
   }

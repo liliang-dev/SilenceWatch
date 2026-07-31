@@ -98,10 +98,44 @@ export const registerRequestSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: trimmedString(LIMITS.nameMax).optional(),
-  /** Optional invitation token; required when open sign-up is disabled. */
-  inviteToken: z.string().trim().max(200).optional(),
+  /**
+   * Solved sign-up challenge, `<challenge>.<nonce>`. Required only when the
+   * instance issues one (SIGNUP_POW_DIFFICULTY > 0); the client learns whether
+   * it needs one from GET /api/auth/signup-challenge.
+   */
+  powSolution: z.string().trim().max(400).optional(),
 });
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+
+/**
+ * A sign-up may or may not open a session: with email verification on, the
+ * account exists but cannot be used until the address is proven.
+ */
+export type RegisterResponse =
+  | ({ status: 'active' } & SessionDto)
+  | { status: 'verification_sent'; email: string };
+
+export const verifyEmailRequestSchema = z.object({
+  token: z.string().trim().min(1).max(200),
+});
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
+
+export const resendVerificationRequestSchema = z.object({
+  email: emailSchema,
+});
+export type ResendVerificationRequest = z.infer<typeof resendVerificationRequestSchema>;
+
+/**
+ * The work a client must do before registering. `difficulty: 0` means the
+ * instance asks for none, and the client submits without a solution.
+ */
+export interface SignupChallengeDto {
+  /** Opaque, signed, single-use. Echoed back inside `powSolution`. */
+  challenge: string;
+  /** Leading zero bits required in SHA-256(`<challenge>.<nonce>`). */
+  difficulty: number;
+  expiresIn: number;
+}
 
 export const loginRequestSchema = z.object({
   email: emailSchema,

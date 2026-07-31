@@ -36,3 +36,21 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong.')
   if (error.status >= 500) return 'The server is having trouble. Try again shortly.';
   return fallback;
 }
+
+/**
+ * Whether a refused sign-in was refused for a reason the user can fix from the
+ * page they are on — an unconfirmed address, which needs a link, not a
+ * different password.
+ *
+ * Read from a flag the server sets rather than matched against the message, so
+ * rewording the message cannot silently remove the button.
+ */
+export function isVerificationPending(error: unknown): boolean {
+  if (!(error instanceof HttpErrorResponse)) return false;
+  const details = (error.error as Partial<ApiErrorBody> | null)?.details;
+  return (
+    details !== null &&
+    typeof details === 'object' &&
+    (details as { emailVerificationPending?: unknown }).emailVerificationPending === true
+  );
+}

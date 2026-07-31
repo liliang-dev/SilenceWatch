@@ -13,6 +13,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'verify-email',
+    title: 'Confirm your email — SilenceWatch',
+    loadComponent: () =>
+      import('./pages/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
     path: 'checks',
     title: 'Checks — SilenceWatch',
     canActivate: [authGuard],

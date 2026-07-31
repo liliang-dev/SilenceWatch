@@ -1,5 +1,8 @@
 import {
+  BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   Logger,
@@ -9,6 +12,7 @@ import type {
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  RegisterResponse,
   SessionDto,
   UserDto,
 } from '@silencewatch/shared';
@@ -16,6 +20,9 @@ import { hashPassword, needsRehash, verifyPassword } from '../common/crypto.util
 import { uniqueSlug } from '../common/slug.util';
 import { AppConfig, CONFIG } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
+import { EmailVerificationService } from './email-verification.service';
+import { SignupChallengeService } from './signup-challenge.service';
+import { SignupGuardService } from './signup-guard.service';
 import { TokenService } from './token.service';
 
 /**
@@ -42,28 +49,141 @@ export class AuthService {
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
+    private readonly verification: EmailVerificationService,
+    private readonly challenge: SignupChallengeService,
+    private readonly signupGuard: SignupGuardService,
   ) {}
 
   /**
    * Creates an account plus a first project, so a fresh self-hosted instance is
    * usable immediately. The very first account is always allowed — otherwise a
    * server started with SIGNUP_ENABLED=false could never be bootstrapped.
+   *
+   * Two shapes of answer, decided by EMAIL_VERIFICATION_REQUIRED:
+   *
+   *  - **off** (the self-hosted default): the account is created and signed in
+   *    at once, and a duplicate address is reported as such. There is no way to
+   *    hide it — a response that opens a session cannot also be ambiguous about
+   *    whether it created one.
+   *  - **on**: the answer is always "we sent you an email", whether the address
+   *    was new, already registered, or already registered and verified. The
+   *    truth is delivered to the inbox, which is the only party entitled to it.
    */
-  async register(input: RegisterRequest, context: SessionContext): Promise<SessionDto> {
-    if (!this.config.SIGNUP_ENABLED) {
-      const existing = await this.prisma.user.count({ take: 1 });
-      if (existing > 0) {
-        throw new ForbiddenException('Sign-up is disabled on this instance');
-      }
+  async register(input: RegisterRequest, context: SessionContext): Promise<RegisterResponse> {
+    const bootstrapping = (await this.prisma.user.count({ take: 1 })) === 0;
+
+    if (!this.config.SIGNUP_ENABLED && !bootstrapping) {
+      throw new ForbiddenException('Sign-up is disabled on this instance');
     }
 
+    // The very first account is created before anyone could have configured a
+    // mail transport or read the difficulty setting; gating it would make a
+    // fresh instance impossible to bootstrap.
+    if (!bootstrapping) await this.assertSignupAllowed(input, context);
+
+    if (!this.verification.required || bootstrapping) {
+      const user = await this.createUser(input);
+      await this.signupGuard.record(networkOf(context), true);
+      this.logger.log(`Account created for ${maskEmail(user.email)}`);
+      return { status: 'active', ...(await this.startSession(user, context)) };
+    }
+
+    return this.registerWithVerification(input, context);
+  }
+
+  /**
+   * The enumeration-safe path. Every branch ends in the same response, and the
+   * branches differ only in which message lands in the mailbox.
+   */
+  private async registerWithVerification(
+    input: RegisterRequest,
+    context: SessionContext,
+  ): Promise<RegisterResponse> {
+    const answer: RegisterResponse = { status: 'verification_sent', email: input.email };
+    const existing = await this.prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true, email: true, name: true, emailVerifiedAt: true },
+    });
+
+    if (existing !== null) {
+      // Deliberately not re-checked against the submitted password: confirming
+      // a guess would turn this into the credential oracle the whole branch
+      // exists to avoid.
+      if (existing.emailVerifiedAt === null) await this.verification.sendVerification(existing);
+      else await this.verification.sendAlreadyRegisteredNotice(existing.email);
+      return answer;
+    }
+
+    const user = await this.createUser(input).catch((error: unknown) => {
+      // Lost a race with a concurrent registration for the same address. The
+      // observable outcome is the one above, so answer as if we had seen it.
+      if ((error as { code?: string }).code === 'P2002') return null;
+      throw error;
+    });
+
+    if (user === null) return answer;
+
+    await this.verification.sendVerification(user);
+    await this.signupGuard.record(networkOf(context), true);
+    this.logger.log(`Account created for ${maskEmail(user.email)}, pending verification`);
+    return answer;
+  }
+
+  /**
+   * The gate in front of registration: proof of work, address policy, then
+   * per-network volume. Ordered cheapest-first, and every rejection is recorded
+   * so a flood is visible in the data rather than only in the logs.
+   */
+  private async assertSignupAllowed(
+    input: RegisterRequest,
+    context: SessionContext,
+  ): Promise<void> {
+    const network = networkOf(context);
+
+    const solved = this.challenge.verify(input.powSolution, network);
+    if (!solved.ok) {
+      await this.signupGuard.record(network, false);
+      throw new HttpException(
+        {
+          message:
+            solved.reason === 'expired'
+              ? 'The sign-up challenge expired. Please try again.'
+              : 'This sign-up could not be verified. Please reload the page and try again.',
+          details: { challengeRequired: true },
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!this.signupGuard.isEmailAllowed(input.email)) {
+      await this.signupGuard.record(network, false);
+      throw new BadRequestException(
+        'This email provider is not accepted. Use an address you can receive mail at.',
+      );
+    }
+
+    if (!(await this.signupGuard.isNetworkWithinQuota(network))) {
+      await this.signupGuard.record(network, false);
+      throw new HttpException(
+        { message: 'Too many accounts created from this network. Try again later.' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
+  private async createUser(input: RegisterRequest): Promise<{
+    id: string;
+    email: string;
+    name: string | null;
+    createdAt: Date;
+  }> {
     const passwordHash = await hashPassword(input.password);
     const projectName = input.name === undefined ? 'My project' : `${input.name}'s project`;
     const slug = await uniqueSlug(projectName, async (candidate) =>
       (await this.prisma.project.count({ where: { slug: candidate } })) > 0,
     );
 
-    const user = await this.prisma.user
+    return this.prisma.user
       .create({
         data: {
           email: input.email,
@@ -75,15 +195,11 @@ export class AuthService {
         },
       })
       .catch((error: { code?: string }) => {
-        // Unique violation on email. The message is identical to a successful
-        // path from the attacker's point of view — the UI only ever shows this
-        // to someone who submitted a form.
+        // Unique violation on email. Only reachable when verification is off;
+        // the verified path catches this itself and answers ambiguously.
         if (error.code === 'P2002') throw new ForbiddenException('Email already registered');
         throw error;
       });
-
-    this.logger.log(`Account created for ${maskEmail(user.email)}`);
-    return this.startSession(user, context);
   }
 
   async login(input: LoginRequest, context: SessionContext): Promise<SessionDto> {
@@ -105,6 +221,18 @@ export class AuthService {
     if (!valid) {
       await this.recordFailedLogin(user.id, user.failedLoginCount + 1);
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // Checked only after the password: an unverified-account message handed out
+    // before authentication would tell anyone which addresses are registered.
+    if (this.verification.required && user.emailVerifiedAt === null) {
+      throw new HttpException(
+        {
+          message: 'Confirm your email address before signing in. Check your inbox for the link.',
+          details: { emailVerificationPending: true },
+        },
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     // Keep hashes current when the cost parameters are raised.
@@ -282,6 +410,11 @@ function toUserDto(user: {
     name: user.name,
     createdAt: user.createdAt.toISOString(),
   };
+}
+
+/** The network prefix a request came from, for the volume rules. */
+function networkOf(context: SessionContext): string {
+  return SignupChallengeService.networkOf(context.ip);
 }
 
 /** Logs must be shareable for support without handing over the user list. */

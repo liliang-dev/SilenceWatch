@@ -69,6 +69,36 @@ when `NODE_ENV=production`.
 no reason to play; the day an alert matters is the day you do not want it in a
 spam folder. Relay through a provider or through a relay you already trust.
 
+### Sign-up
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `SIGNUP_ENABLED` | `true` | When false, only the first account can be created |
+| `EMAIL_VERIFICATION_REQUIRED` | `false` | Require a proven address before sign-in |
+| `EMAIL_VERIFICATION_TTL_HOURS` | `24` | How long a confirmation link stays valid |
+| `UNVERIFIED_ACCOUNT_TTL_DAYS` | `7` | Unconfirmed accounts are deleted after this; 0 keeps them |
+| `SIGNUP_POW_DIFFICULTY` | `0` | Proof-of-work bits required to register; 0 disables it |
+| `SIGNUP_POW_TTL_SECONDS` | `600` | Lifetime of an issued challenge |
+| `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
+| `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |
+| `SIGNUP_MAX_PER_NETWORK_PER_HOUR` | `0` | Accounts per hour per network prefix; 0 disables it |
+
+Everything below the first line is **off by default and stays that way for most
+self-hosters**. If your instance is on a private network, or you set
+`SIGNUP_ENABLED=false` once the team is in, you have already solved the problem
+these settings address — none of them is worth turning on.
+
+They exist for instances whose sign-up form is reachable by strangers.
+[`abuse-prevention.md`](abuse-prevention.md) explains what each one actually
+buys, with measurements, including the ones that are not worth what people
+expect.
+
+Turning `EMAIL_VERIFICATION_REQUIRED` on also makes registration
+enumeration-safe: the API stops revealing whether an address already has an
+account. The server refuses to boot with it enabled and `EMAIL_PROVIDER=console`
+— nobody could ever confirm an address, so every new account would be locked out
+of an instance that otherwise looks healthy.
+
 ### Detection and retention
 
 | Variable | Default | Meaning |

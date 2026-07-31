@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } f
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { AuthService } from '../auth/auth.service';
+import { EmailVerificationService } from '../auth/email-verification.service';
+import { SignupGuardService } from '../auth/signup-guard.service';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
 
@@ -43,6 +45,8 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
     private readonly auth: AuthService,
+    private readonly verification: EmailVerificationService,
+    private readonly signupGuard: SignupGuardService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -64,7 +68,13 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
   }
 
   /** One full purge pass. Safe to call concurrently with ingestion. */
-  async purge(): Promise<{ pings: number; deliveries: number; sessions: number }> {
+  async purge(): Promise<{
+    pings: number;
+    deliveries: number;
+    sessions: number;
+    verifications: number;
+    abandonedAccounts: number;
+  }> {
     const startedAt = Date.now();
     let pings = 0;
 
@@ -84,21 +94,32 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         text: PURGE_DELIVERIES_SQL,
       });
       const sessions = await this.auth.purgeStaleSessions();
+      // Spent verification tokens, accounts that never proved their address,
+      // and the sign-up attempt log past the window it informs. Left alone,
+      // abandoned rows keep holding real addresses hostage against the unique
+      // index — a flood that was blocked would still deny those users an
+      // account later.
+      const verifications = await this.verification.purge();
+      await this.signupGuard.purgeOldAttempts();
 
       const summary = {
         pings,
         deliveries: deliveries.rowCount ?? 0,
         sessions,
+        verifications: verifications.tokens,
+        abandonedAccounts: verifications.accounts,
       };
       this.logger.log(
         `Purge done in ${Date.now() - startedAt}ms: ${summary.pings} pings, ` +
-          `${summary.deliveries} deliveries, ${summary.sessions} sessions`,
+          `${summary.deliveries} deliveries, ${summary.sessions} sessions, ` +
+          `${summary.verifications} verification tokens, ` +
+          `${summary.abandonedAccounts} unverified accounts`,
       );
       return summary;
     } catch (error) {
       // Retention failing is not worth taking alerting down for.
       this.logger.error(`Purge failed: ${(error as Error).message}`);
-      return { pings, deliveries: 0, sessions: 0 };
+      return { pings, deliveries: 0, sessions: 0, verifications: 0, abandonedAccounts: 0 };
     }
   }
 }

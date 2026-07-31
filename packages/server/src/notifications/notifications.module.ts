@@ -19,6 +19,8 @@ import { WebhookSender } from './senders/webhook.sender';
     SenderRegistry,
     NotificationQueueService,
   ],
-  exports: [NotificationQueueService, SenderRegistry, SafeHttpService],
+  // EmailService is exported for account mail (address verification), which is
+  // not an alert but goes out the same, deliberately non-self-hosted, pipe.
+  exports: [NotificationQueueService, SenderRegistry, SafeHttpService, EmailService],
 })
 export class NotificationsModule {}

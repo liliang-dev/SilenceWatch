@@ -58,6 +58,43 @@ const envSchema = z
     /** When false only the very first account can be created (bootstrap). */
     SIGNUP_ENABLED: booleanish.default('true'),
 
+    /* --- sign-up integrity -------------------------------------------------
+     * All of it is off by default. A self-hosted instance behind a VPN has no
+     * bot problem, and making its operator solve one would be the kind of
+     * crippling this project promised not to do. The hosted deployment turns
+     * these on; the code is identical.
+     */
+
+    /**
+     * Require a proven email address before an account can sign in. Turning it
+     * on also makes registration enumeration-safe: the response stops depending
+     * on whether the address already exists.
+     */
+    EMAIL_VERIFICATION_REQUIRED: booleanish.default('false'),
+    EMAIL_VERIFICATION_TTL_HOURS: positiveInt(1, 168).default(24),
+    /** Unverified accounts older than this are deleted. 0 disables the reaper. */
+    UNVERIFIED_ACCOUNT_TTL_DAYS: positiveInt(0, 365).default(7),
+
+    /**
+     * Leading zero bits a client must find before its sign-up is accepted.
+     * 0 disables the challenge. ~18 costs a browser well under a second and a
+     * mass-registration script its entire margin; see docs/abuse-prevention.md.
+     */
+    SIGNUP_POW_DIFFICULTY: positiveInt(0, 26).default(0),
+    /** How long an issued challenge stays valid. Short: it is single-use. */
+    SIGNUP_POW_TTL_SECONDS: positiveInt(30, 3_600).default(600),
+
+    /** Reject addresses at known disposable-mailbox domains. */
+    SIGNUP_BLOCK_DISPOSABLE_EMAIL: booleanish.default('false'),
+    /** Extra domains to reject, comma-separated. */
+    SIGNUP_BLOCKED_EMAIL_DOMAINS: csv.default(''),
+
+    /**
+     * Accounts creatable per hour from one network prefix (IPv4 /24, IPv6 /48),
+     * counted in PostgreSQL so the rule survives a restart. 0 disables it.
+     */
+    SIGNUP_MAX_PER_NETWORK_PER_HOUR: positiveInt(0, 10_000).default(0),
+
     PING_RATE_LIMIT_PER_MINUTE: positiveInt(1, 100_000).default(120),
     PING_BODY_MAX_BYTES: positiveInt(0, 100_000).default(10_000),
     AUTH_RATE_LIMIT_PER_MINUTE: positiveInt(1, 10_000).default(10),
@@ -105,6 +142,16 @@ const envSchema = z
     }
     if (env.EMAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['BREVO_API_KEY'], message: 'required when EMAIL_PROVIDER=brevo' });
+    }
+    // Requiring a verification email while alerts only go to the log would lock
+    // every new account out of an instance that looks perfectly healthy.
+    if (env.EMAIL_VERIFICATION_REQUIRED && env.EMAIL_PROVIDER === 'console') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['EMAIL_VERIFICATION_REQUIRED'],
+        message:
+          'needs a real email transport: with EMAIL_PROVIDER=console nobody could ever verify an address',
+      });
     }
     if (env.NODE_ENV === 'production') {
       if (env.EMAIL_PROVIDER === 'console') {

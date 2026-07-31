@@ -97,6 +97,10 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
         imgSrc: ["'self'", 'data:'],
         fontSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
+        // The sign-up proof of work runs in a same-origin module worker. Named
+        // explicitly because workerSrc does not inherit from scriptSrc in every
+        // browser, and a silently blocked worker would look like a hung form.
+        workerSrc: ["'self'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

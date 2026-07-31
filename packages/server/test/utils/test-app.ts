@@ -10,6 +10,7 @@ import { PrismaService } from '../../src/database/prisma.service';
 import { registerIngestRoutes } from '../../src/ingest/ingest.plugin';
 import { IngestService } from '../../src/ingest/ingest.service';
 import type { Alert } from '../../src/notifications/alert';
+import { EmailService, type OutboundEmail } from '../../src/notifications/email.service';
 import { NotificationQueueService } from '../../src/notifications/notification-queue.service';
 import { SenderRegistry } from '../../src/notifications/sender.registry';
 import type { ChannelSender } from '../../src/notifications/senders/channel-sender';
@@ -48,18 +49,43 @@ export class RecordingSenderRegistry {
   }
 }
 
+/**
+ * Captures account email (address verification) instead of sending it. Separate
+ * from the sender registry, which only covers alerts.
+ */
+export class RecordingEmailService {
+  readonly sent: OutboundEmail[] = [];
+
+  async send(email: OutboundEmail): Promise<void> {
+    this.sent.push(email);
+  }
+
+  /** The most recent message to an address, which is the live one. */
+  lastTo(address: string): OutboundEmail | undefined {
+    return [...this.sent].reverse().find((email) => email.to === address);
+  }
+
+  clear(): void {
+    this.sent.length = 0;
+  }
+}
+
 export interface TestApp {
   app: NestFastifyApplication;
   prisma: PrismaService;
   detection: DetectionService;
   notifications: NotificationQueueService;
   senders: RecordingSenderRegistry;
+  emails: RecordingEmailService;
   config: AppConfig;
   reset(): Promise<void>;
   close(): Promise<void>;
 }
 
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(
+  /** Environment overrides, for the flags that are off by default. */
+  overrides: Record<string, string> = {},
+): Promise<TestApp> {
   const databaseUrl = process.env.TEST_DATABASE_URL ?? (process.env.DATABASE_URL as string);
 
   // The loops are driven explicitly by the tests: a background tick would make
@@ -80,15 +106,19 @@ export async function createTestApp(): Promise<TestApp> {
     API_RATE_LIMIT_PER_MINUTE: '100000',
     AUTH_RATE_LIMIT_PER_MINUTE: '10000',
     PING_RATE_LIMIT_PER_MINUTE: '100000',
+    ...overrides,
   } as NodeJS.ProcessEnv);
 
   const senders = new RecordingSenderRegistry();
+  const emails = new RecordingEmailService();
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CONFIG)
     .useValue(config)
     .overrideProvider(SenderRegistry)
     .useValue(senders)
+    .overrideProvider(EmailService)
+    .useValue(emails)
     .compile();
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
@@ -115,9 +145,11 @@ export async function createTestApp(): Promise<TestApp> {
     await notifications.settle();
     await prisma.$executeRawUnsafe(
       'TRUNCATE "user", project, project_member, session, api_key, "check", ping, incident, ' +
-        'notification_channel, notification_delivery RESTART IDENTITY CASCADE',
+        'notification_channel, notification_delivery, email_verification, signup_attempt ' +
+        'RESTART IDENTITY CASCADE',
     );
     senders.clear();
+    emails.clear();
   };
 
   await reset();
@@ -128,6 +160,7 @@ export async function createTestApp(): Promise<TestApp> {
     detection: app.get(DetectionService),
     notifications,
     senders,
+    emails,
     config,
     reset,
     close: async (): Promise<void> => {

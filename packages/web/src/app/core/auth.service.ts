@@ -5,6 +5,7 @@ import type {
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  RegisterResponse,
   SessionDto,
   UserDto,
 } from '@silencewatch/shared';
@@ -39,10 +40,24 @@ export class AuthService {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
 
-  register(request: RegisterRequest): Observable<SessionDto> {
+  /**
+   * Registers. On an instance that requires email verification the response
+   * carries no session — the account exists but cannot be used yet — so the
+   * caller has to look at `status` rather than assume it is signed in.
+   */
+  register(request: RegisterRequest): Observable<RegisterResponse> {
     return this.http
-      .post<SessionDto>('/api/auth/register', request)
-      .pipe(tap((session) => this.adopt(session)));
+      .post<RegisterResponse>('/api/auth/register', request)
+      .pipe(tap((result) => (result.status === 'active' ? this.adopt(result) : undefined)));
+  }
+
+  verifyEmail(token: string): Observable<void> {
+    return this.http.post<void>('/api/auth/verify-email', { token });
+  }
+
+  /** Always succeeds, whatever the address: the server says nothing about it. */
+  resendVerification(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/resend-verification', { email });
   }
 
   login(request: LoginRequest): Observable<SessionDto> {
