@@ -1,0 +1,74 @@
+name: Bug report
+description: Something does not behave the way it is documented to
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **If this is a security issue, stop here** and follow
+        [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md)
+        instead. A vulnerability filed in public is disclosed to everyone
+        running SilenceWatch before there is a fix for them to install.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >
+        The smallest sequence that shows it. A check definition, a curl command
+        and the response is usually enough.
+      placeholder: |
+        1. Create a check with …
+        2. Send a heartbeat to …
+        3. The check goes … instead of …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >
+        The image tag, or the commit. `GET /health` reports the running version.
+      placeholder: 'v0.1.0 / 352cff6'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is it running
+      options:
+        - Self-hosted (docker compose)
+        - Self-hosted (own container setup)
+        - Built from source
+        - Hosted service (silencewatch.com)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >
+        Relevant server output. **Redact before pasting**: ping URLs are
+        credentials, and so is anything in a notification channel's config.
+      render: text
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: >
+        The environment variables that matter here — *names and values you are
+        happy to publish*. Never paste SECRET_KEY, DATABASE_URL, SMTP_URL or an
+        API token: treat anything you post here as public forever.
+      render: shell

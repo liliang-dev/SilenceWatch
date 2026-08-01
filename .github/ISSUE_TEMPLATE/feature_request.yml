@@ -1,0 +1,35 @@
+name: Feature request
+description: Something SilenceWatch should do and does not
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The README has a **Deliberately out of scope** section. If what you want
+        is listed there, an issue will not change it — but a comment explaining
+        why the reasoning is wrong for your case might.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What you are trying to do, and where SilenceWatch gets in the way.
+        Describe the situation rather than the feature: the best solution is
+        often not the one the reporter had in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: Optional. If you already have a shape for it, describe it.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today
+      description: >
+        How you work around it now. This is the single most useful field: it
+        says how much the gap actually costs.

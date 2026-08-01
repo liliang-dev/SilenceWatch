@@ -1,0 +1,21 @@
+SilenceWatch
+Copyright 2026 the SilenceWatch authors
+
+This product is distributed under two licences, and which one applies depends on
+where a file sits in the tree:
+
+  - The server — everything under packages/server and packages/web — is licensed
+    under the GNU Affero General Public License v3.0. See LICENSE.
+
+  - The client libraries, the Spring Boot starter, the shared types package, the
+    CLI, the integrations and the examples are licensed under the Apache License
+    2.0. See LICENSE.Apache-2.0. Each of those subtrees carries its own LICENSE
+    file, which is what governs it:
+
+        packages/shared/
+        clients/**
+        examples/**
+
+This file exists to satisfy section 4(d) of the Apache License for the subtrees
+above. It is not a grant of rights beyond those licences, and it does not cover
+the name "SilenceWatch" or the logo — see TRADEMARK.md.

@@ -1,0 +1,12 @@
+# Blank issues are almost always a question, and a question filed as an issue
+# gets answered once instead of being findable.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or idea
+    url: https://github.com/liliang-dev/SilenceWatch/discussions
+    about: How do I…, is this supposed to…, would you accept a PR that…
+
+  - name: Security vulnerability
+    url: https://github.com/liliang-dev/SilenceWatch/security/policy
+    about: Report privately. Never in a public issue.

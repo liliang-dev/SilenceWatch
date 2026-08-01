@@ -1,0 +1,61 @@
+version: 2
+
+updates:
+  # First, because it is the supply chain everything else is built by: a
+  # compromised action runs with whatever the workflow is allowed to do. Every
+  # action in this repository is pinned to a commit SHA, which means Dependabot
+  # is the only thing that will ever move them.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'ci'
+    labels: [dependencies, ci]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies]
+    groups:
+      # One pull request per family. Angular and Nest ship their packages in
+      # lockstep, and splitting them produces PRs that cannot pass CI alone.
+      angular:
+        patterns: ['@angular*', 'zone.js']
+      nest:
+        patterns: ['@nestjs*']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      dev-tooling:
+        dependency-type: development
+        patterns: ['*']
+
+  # The starter is a published artifact: its dependencies end up on other
+  # people's classpaths, so they are updated on their own schedule.
+  - package-ecosystem: maven
+    directory: /clients/spring-boot-starter
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies, java]
+
+  - package-ecosystem: maven
+    directory: /examples/spring-boot-demo
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies, java]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies, docker]

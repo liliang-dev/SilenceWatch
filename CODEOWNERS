@@ -1,0 +1,32 @@
+# Review routing. Paired with a branch protection rule that requires review
+# from code owners, this is what stops the files below from being changed by a
+# pull request nobody looked at closely.
+
+* @liliang-dev
+
+# Anything that decides what people are allowed to do with this code. A licence
+# changed in a drive-by pull request is the kind of thing that is noticed years
+# later.
+/LICENSE                @liliang-dev
+/LICENSE.Apache-2.0     @liliang-dev
+/NOTICE                 @liliang-dev
+/TRADEMARK.md           @liliang-dev
+/packages/shared/LICENSE      @liliang-dev
+/clients/**/LICENSE           @liliang-dev
+/examples/**/LICENSE          @liliang-dev
+
+# Workflows run with the repository's credentials. Treat a change here as a
+# change to the build's trust boundary, because that is what it is.
+/.github/               @liliang-dev
+
+# The security policy, the threat model, and the code that enforces it.
+/SECURITY.md                          @liliang-dev
+/docs/security.md                     @liliang-dev
+/docs/abuse-prevention.md             @liliang-dev
+/packages/server/src/auth/            @liliang-dev
+/packages/server/src/quotas/          @liliang-dev
+/packages/server/src/audit/           @liliang-dev
+/packages/server/src/notifications/safe-http.service.ts @liliang-dev
+
+# The schema is the one thing a mistake cannot be rolled back from.
+/packages/server/prisma/  @liliang-dev
