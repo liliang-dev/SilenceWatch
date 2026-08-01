@@ -23,8 +23,24 @@ jobs:
           head="${{ github.event.pull_request.head.sha }}"
           failed=0
 
-          for commit in $(git rev-list "$base".."$head"); do
+          # --no-merges: a merge commit introduces no authored work of its own, and
+          # the ones GitHub's "Update branch" button creates can never carry a
+          # sign-off, so requiring one there only blocks branches that are trying
+          # to catch up with main.
+          for commit in $(git rev-list --no-merges "$base".."$head"); do
             author="$(git show -s --format='%an <%ae>' "$commit")"
+
+            # A bot cannot certify the origin of anything: the DCO is a statement
+            # about who wrote the code and under what right, and Dependabot has no
+            # standing to make it. Provenance for these commits comes from the
+            # maintainer who reviews and merges the PR. Matching requires both a
+            # `[bot]` name and a github.com noreply address, which is the shape
+            # GitHub itself mints for app identities:
+            #   dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+            case "$author" in
+              *'[bot] <'*'@users.noreply.github.com>') continue ;;
+            esac
+
             if git show -s --format='%B' "$commit" | grep -qiE "^Signed-off-by: .+ <.+@.+>$"; then
               continue
             fi
@@ -40,6 +56,10 @@ jobs:
 
               git commit --amend -s --no-edit          # last commit
               git rebase --signoff origin/main         # a whole branch
+
+          Committing from the GitHub web editor instead? Turn on Settings ->
+          General -> "Require contributors to sign off on web-based commits",
+          and GitHub adds the line for you on every web commit from then on.
 
           HELP
             exit 1

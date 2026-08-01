@@ -25,6 +25,22 @@ The DCO is in place from day one so the project keeps the ability to relicense
 later if it ever needs to — a decision that becomes impossible once contributions
 arrive without a clear provenance trail.
 
+Two kinds of commit are exempt, because in neither case is there a person able to
+make the certification:
+
+- **Merge commits.** They introduce no authored work of their own.
+- **Commits authored by bots** such as Dependabot. A bot cannot certify that it
+  wrote the code or had the right to submit it. Provenance for a dependency bump
+  comes from the maintainer who reviews and merges it.
+
+### Committing from the web editor
+
+Edits made in GitHub's web interface do not go through `git commit -s`, so they
+arrive without a sign-off and fail the check. Turning on **Settings → General →
+"Require contributors to sign off on web-based commits"** makes GitHub append the
+line itself on every web commit, for you and for anyone using the *Edit* button.
+It applies to new commits only — anything already pushed still needs amending.
+
 ## Which licence applies
 
 | What you are changing | Licence |
