@@ -117,7 +117,7 @@ HMAC. Rotating it invalidates sessions.
 
 ## Reporting a vulnerability
 
-Please do not open a public issue. Email **security@silencewatch.com** with a
+Please do not open a public issue. Email **contact@silencewatch.com** with a
 description, reproduction steps and the version affected. You will get an
 acknowledgement within 72 hours and an assessment within a week. We will credit
 you in the release notes unless you would rather we did not.

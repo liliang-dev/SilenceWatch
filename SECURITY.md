@@ -4,7 +4,7 @@
 
 Please **do not open a public issue**.
 
-Email **security@silencewatch.com** with:
+Email **contact@silencewatch.com** with:
 
 - a description of the issue and its impact,
 - steps to reproduce (a proof of concept helps),
