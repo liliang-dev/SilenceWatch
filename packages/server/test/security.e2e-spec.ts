@@ -135,8 +135,15 @@ describe('access control', () => {
 
       expect(created.token).toMatch(/^sw_[0-9a-f]{16}_[\w-]{43}$/);
 
+      // The secret half is base64url, and that alphabet includes `_`, so
+      // splitting the token on underscores cuts the secret short whenever it
+      // happens to contain one — leaving a fragment short enough to occur in
+      // any hex digest by chance, which failed this test about 2% of the time.
+      // Everything past the prefix is the secret, however many `_` it holds.
+      const secret = created.token.slice(`${created.prefix}_`.length);
+
       const stored = await context.prisma.apiKey.findUniqueOrThrow({ where: { id: created.id } });
-      expect(stored.secretHash).not.toContain(created.token.split('_')[2] as string);
+      expect(stored.secretHash).not.toContain(secret);
       expect(JSON.stringify(stored)).not.toContain(created.token);
 
       // Listing keys never exposes the secret again.
