@@ -40,7 +40,11 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          # Matches the runtime the image ships, so CI exercises the version
+          # users actually run. Angular's CLI also refuses anything below
+          # 22.22.3, and node 25 outright: its supported range is
+          # ^22.22.3 || ^24.15.0 || >=26.0.0.
+          node-version: 24
           cache: npm
 
       - run: npm ci --no-audit --no-fund
