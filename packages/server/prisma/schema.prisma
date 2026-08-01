@@ -22,7 +22,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // No `url` here: Prisma 7 rejects it. The CLI reads the URL from
+  // ../prisma.config.ts, and the client receives a pg pool as a driver adapter.
 }
 
 enum CheckState {

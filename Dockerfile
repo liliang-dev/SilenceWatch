@@ -64,6 +64,9 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/server/package.json ./packages/server/package.json
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
+# Prisma 7 keeps the connection URL here rather than in the schema, so the
+# entrypoint's `migrate deploy` cannot start without it.
+COPY --from=builder /app/packages/server/prisma.config.ts ./packages/server/prisma.config.ts
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
