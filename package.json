@@ -5,7 +5,7 @@
   "description": "Open-source heartbeat monitoring for cron jobs, workers and scheduled tasks.",
   "license": "AGPL-3.0-only",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "workspaces": [
     "packages/shared",
@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "prettier": "^3.4.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }

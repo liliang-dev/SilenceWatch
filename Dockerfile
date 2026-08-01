@@ -5,7 +5,7 @@
 # only thing it needs is a PostgreSQL it can reach.
 
 # --------------------------------------------------------------------- build ---
-FROM node:22-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 # openssl so Prisma resolves the same engine target here as in the runtime
 # image; the explicit binaryTargets in schema.prisma is the real guarantee, this
@@ -41,10 +41,17 @@ RUN npm run build:shared \
 
 # Drop everything only needed to build. Prisma's CLI stays: it applies migrations
 # at startup.
-RUN npm prune --omit=dev --no-audit --no-fund
+#
+# The mkdir is not redundant. npm hoists what it can to the root node_modules,
+# but nests anything whose version cannot be shared under the workspace that
+# asked for it — and which packages end up where changes with every upgrade.
+# The runtime stage copies these directories by name, and a COPY of a path that
+# does not exist fails the build, so they are made to exist unconditionally.
+RUN npm prune --omit=dev --no-audit --no-fund \
+ && mkdir -p packages/server/node_modules packages/shared/node_modules
 
 # ------------------------------------------------------------------- runtime ---
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 # openssl is required by Prisma's query engine; curl gives the image a working
 # HEALTHCHECK without adding a shell script.
@@ -61,9 +68,20 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+# Copying only the root node_modules was enough for as long as npm happened to
+# hoist everything the server needs. @fastify/static 10 broke that assumption:
+# its tree conflicts with the root's, so npm nested it — and the image started,
+# migrated, then died on "Cannot find package '@fastify/static'". These
+# per-workspace directories are part of the dependency tree, not an artefact of
+# the build, and the image is incomplete without them.
+COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=builder /app/packages/server/node_modules ./packages/server/node_modules
 COPY --from=builder /app/packages/server/package.json ./packages/server/package.json
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
+# Prisma 7 keeps the connection URL here rather than in the schema, so the
+# entrypoint's `migrate deploy` cannot start without it.
+COPY --from=builder /app/packages/server/prisma.config.ts ./packages/server/prisma.config.ts
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

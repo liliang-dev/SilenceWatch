@@ -5,6 +5,7 @@ import {
   type SignupChallengeDto,
 } from '@silencewatch/shared';
 import { createHash } from 'node:crypto';
+import { EmailVerificationService } from '../src/auth/email-verification.service';
 import { createTestApp, type TestApp } from './utils/test-app';
 
 /**
@@ -317,7 +318,6 @@ describe('sign-up with email verification', () => {
       data: { createdAt: new Date(Date.now() - 30 * 86_400_000) },
     });
 
-    const { EmailVerificationService } = await import('../src/auth/email-verification.service');
     const purged = await context.app.get(EmailVerificationService).purge();
 
     expect(purged.accounts).toBe(1);

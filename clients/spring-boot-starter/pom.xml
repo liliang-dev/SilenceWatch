@@ -42,7 +42,7 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.4.1</spring-boot.version>
-    <quartz.version>2.3.2</quartz.version>
+    <quartz.version>2.5.2</quartz.version>
 
     <!--
       Plugin versions are pinned rather than inherited from whatever Maven
@@ -51,10 +51,10 @@
       default is incompatible, which is exactly the kind of difference that is
       only noticed when a release artifact comes out wrong.
     -->
-    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-    <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+    <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
     <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-    <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
   </properties>
 
   <dependencyManagement>
