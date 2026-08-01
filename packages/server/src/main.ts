@@ -11,6 +11,7 @@ import { loadConfig, type AppConfig } from './config/config';
 import { registerIngestRoutes } from './ingest/ingest.plugin';
 import { IngestService } from './ingest/ingest.service';
 import { SILENCEWATCH_COMMIT, SILENCEWATCH_VERSION } from './version';
+import { serveWebUi } from './web-ui';
 
 const LOG_LEVELS: Record<AppConfig['LOG_LEVEL'], LogLevel[]> = {
   silent: [],
@@ -130,27 +131,6 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['authorization', 'content-type'],
     maxAge: 600,
-  });
-}
-
-/**
- * Serves the compiled Angular application from the same process and the same
- * image: self-hosting must stay a single container.
- */
-async function serveWebUi(app: NestFastifyApplication, root: string): Promise<void> {
-  const fastifyStatic = (await import('@fastify/static')).default;
-
-  await app.register(fastifyStatic as never, {
-    root,
-    // Hashed asset filenames may be cached forever; index.html never.
-    setHeaders: (response: { setHeader: (name: string, value: string) => void }, path: string) => {
-      response.setHeader(
-        'cache-control',
-        /\.[0-9a-f]{8,}\.(js|css|woff2?|svg|png|jpg|webp)$/i.test(path)
-          ? 'public, max-age=31536000, immutable'
-          : 'no-cache',
-      );
-    },
   });
 }
 
