@@ -22,7 +22,7 @@
   "dependencies": {
     "@fastify/cors": "^10.0.2",
     "@fastify/helmet": "^13.0.1",
-    "@fastify/static": "^8.0.4",
+    "@fastify/static": "^10.1.2",
     "@nestjs/common": "^11.0.6",
     "@nestjs/core": "^11.0.6",
     "@nestjs/platform-fastify": "^11.0.6",
@@ -32,7 +32,7 @@
     "@silencewatch/shared": "^0.1.0",
     "cron-parser": "^4.9.0",
     "jose": "^5.9.6",
-    "nodemailer": "^6.10.0",
+    "nodemailer": "^9.0.3",
     "pg": "^8.13.1",
     "prisma": "^6.3.0",
     "reflect-metadata": "^0.2.2",
