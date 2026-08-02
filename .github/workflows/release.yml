@@ -71,6 +71,15 @@ jobs:
           # not whatever main has become since.
           ref: ${{ steps.version.outputs.version }}
 
+      # The commit that was checked out, which is not github.sha: on a manual
+      # run that is the head of the branch the workflow was dispatched from,
+      # while the build uses the tag. Labelling the image with github.sha made
+      # it name a commit it was not built from — provenance that is worse than
+      # none, because it looks authoritative.
+      - name: Resolve the tagged commit
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       # Built and tested before it is pushed. An image that cannot start is
@@ -84,7 +93,7 @@ jobs:
           tags: silencewatch:release-candidate
           build-args: |
             SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
-            SILENCEWATCH_COMMIT=${{ github.sha }}
+            SILENCEWATCH_COMMIT=${{ steps.commit.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -121,10 +130,14 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
 
-          # The published image must be able to say which version it is, or a
-          # bug report cannot name one.
+          # The published image must be able to say which version and which
+          # commit it is, or a bug report cannot name either. The commit check
+          # is what catches the image being labelled from the wrong ref: the
+          # version was right while the commit named a different tree.
           docker exec sw-app printenv SILENCEWATCH_VERSION \
             | grep -qx '${{ steps.version.outputs.version }}'
+          docker exec sw-app printenv SILENCEWATCH_COMMIT \
+            | grep -qx '${{ steps.commit.outputs.sha }}'
 
       # No docker/login-action: `docker login` needs no third-party action, and
       # every action here is one this repository already pins elsewhere.
@@ -152,7 +165,7 @@ jobs:
             ${{ steps.version.outputs.latest == 'true' && format('{0}:latest', steps.version.outputs.image) || '' }}
           build-args: |
             SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
-            SILENCEWATCH_COMMIT=${{ github.sha }}
+            SILENCEWATCH_COMMIT=${{ steps.commit.outputs.sha }}
           cache-from: type=gha
 
       - name: Create the GitHub release
@@ -176,13 +189,24 @@ jobs:
           ' CHANGELOG.md)"
 
           if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
-            echo "No '## [$VERSION]' section in CHANGELOG.md — refusing to publish empty notes." >&2
+            cat >&2 <<MESSAGE
+          No '## [$VERSION]' section in CHANGELOG.md at tag $VERSION.
+
+          The changelog is read from the tag, not from the default branch, so
+          that the notes describe what was actually released. That means the
+          entry has to exist in the commit being tagged: write the section,
+          merge it, then tag. A tag created before its own changelog entry
+          cannot describe itself, and moving the tag forward is the fix.
+          MESSAGE
             exit 1
           fi
 
           {
             printf '%s\n' "$notes"
-            printf '## Container image\n\n'
+            # Leading blank line: command substitution strips the section's
+            # trailing newlines, which would otherwise glue this heading to the
+            # last paragraph of the changelog.
+            printf '\n## Container image\n\n'
             printf '```\n%s:%s\n```\n' "$IMAGE" "$VERSION"
           } > release-notes.md
 
