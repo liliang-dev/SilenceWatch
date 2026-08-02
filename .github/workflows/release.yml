@@ -1,0 +1,192 @@
+name: Release
+
+# Publishes the container image and the GitHub release for a tag.
+#
+# Tags carry no `v` prefix, matching 0.1.0 as tagged. The pattern is strict
+# rather than `*`, so an unrelated tag — a checkpoint, a mistake — cannot
+# publish an image to a registry other people pull from.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+*']
+  # Releases a tag that already exists. Adding this workflow does not fire it
+  # retroactively, and re-pushing a tag to trigger a build is a bad habit: it
+  # changes what a published version means.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, for example 0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # create the GitHub release
+      packages: write # push to GHCR
+
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          # Through the environment rather than inlined: a tag name is
+          # attacker-influenced on a fork, and interpolating it into a shell
+          # would run it.
+          RAW_VERSION: ${{ inputs.tag || github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -eu
+          case "$RAW_VERSION" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing to release '$RAW_VERSION': expected N.N.N" >&2
+              exit 1
+              ;;
+          esac
+
+          # GHCR rejects uppercase, and the repository name has some.
+          image="ghcr.io/$(printf '%s' "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+
+          {
+            echo "version=$RAW_VERSION"
+            echo "image=$image"
+          } >> "$GITHUB_OUTPUT"
+
+          # `latest` follows stable releases only. Moving it to a pre-release
+          # would upgrade every instance that tracks it to a version not meant
+          # for them.
+          case "$RAW_VERSION" in
+            *-*) echo "latest=false" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "latest=true"  >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tag, not the branch: a manual run must build what was tagged,
+          # not whatever main has become since.
+          ref: ${{ steps.version.outputs.version }}
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      # Built and tested before it is pushed. An image that cannot start is
+      # worse in a registry than absent: `docker compose up` would pull it.
+      - name: Build the image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: silencewatch:release-candidate
+          build-args: |
+            SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
+            SILENCEWATCH_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          docker network create sw-release
+          docker run -d --name sw-db --network sw-release \
+            -e POSTGRES_USER=silencewatch -e POSTGRES_PASSWORD=silencewatch \
+            -e POSTGRES_DB=silencewatch postgres:16-alpine
+          for _ in $(seq 1 30); do
+            docker exec sw-db pg_isready -U silencewatch && break
+            sleep 2
+          done
+
+          # Same hardened shape as docker-compose.yml and the CI job: what ships
+          # is what is tested.
+          docker run -d --name sw-app --network sw-release -p 8080:8080 \
+            --read-only --tmpfs /tmp \
+            -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
+            -e SECRET_KEY=release-secret-key-that-is-long-enough-for-the-check \
+            -e BASE_URL=http://localhost:8080 \
+            -e EMAIL_PROVIDER=smtp \
+            -e SMTP_URL=smtp://relay.invalid:587 \
+            silencewatch:release-candidate
+
+          trap 'docker logs sw-app' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health && break
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8080/health | tee /dev/stderr | grep -q '"status":"ok"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
+          curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+
+          # The published image must be able to say which version it is, or a
+          # bug report cannot name one.
+          docker exec sw-app printenv SILENCEWATCH_VERSION \
+            | grep -qx '${{ steps.version.outputs.version }}'
+
+      # No docker/login-action: `docker login` needs no third-party action, and
+      # every action here is one this repository already pins elsewhere.
+      - name: Log in to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      # linux/amd64 only. Prisma's engines are per-architecture and the schema
+      # is pinned to debian-openssl-3.0.x, which the Dockerfile then copies by
+      # name for the migrations that run at container start. An arm64 image
+      # built from this schema would carry the wrong engine and fail to
+      # migrate — publishing one would be worse than not publishing it.
+      # Supporting arm64 means adding its target to schema.prisma first.
+      - name: Push the image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: true
+          sbom: true
+          tags: |
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.latest == 'true' && format('{0}:latest', steps.version.outputs.image) || '' }}
+          build-args: |
+            SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
+            SILENCEWATCH_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          IMAGE: ${{ steps.version.outputs.image }}
+        run: |
+          set -eu
+
+          # The section for this version, verbatim from the changelog. Written
+          # by hand there once, rather than twice in two places that drift.
+          # Stops at the next version heading, and also at the link definitions
+          # at the foot of the file — the newest section has no heading after it,
+          # so without that second guard the notes end with a block of URLs.
+          notes="$(awk -v v="## [$VERSION]" '
+            index($0, v) == 1 { collecting = 1; next }
+            collecting && /^## \[/ { exit }
+            collecting && /^\[[^]]+\]: / { exit }
+            collecting { print }
+          ' CHANGELOG.md)"
+
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            echo "No '## [$VERSION]' section in CHANGELOG.md — refusing to publish empty notes." >&2
+            exit 1
+          fi
+
+          {
+            printf '%s\n' "$notes"
+            printf '## Container image\n\n'
+            printf '```\n%s:%s\n```\n' "$IMAGE" "$VERSION"
+          } > release-notes.md
+
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag

@@ -20,9 +20,10 @@ credits the reporter unless anonymity is preferred.
 The project is pre-1.0: only the latest release receives security fixes. Self-hosted
 instances should track the latest image.
 
-Until the first tagged release exists, `main` **is** the supported version — fixes
-land there and nowhere else, so an instance built from an older commit is on its
-own. [CHANGELOG.md](CHANGELOG.md) records what has changed since.
+The current release is **0.1.0**. Fixes land on `main` and reach instances in the
+release that follows, so an instance running an older tag — or built from an
+arbitrary commit — is on its own. [CHANGELOG.md](CHANGELOG.md) records what has
+changed between releases.
 
 ## Scope
 

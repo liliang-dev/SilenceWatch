@@ -1,14 +1,16 @@
 services:
   silencewatch:
-    # Built from this checkout. No image is published yet, so pointing at a
-    # registry here would make `docker compose up` fail on a fresh clone with
-    # nothing running at all — which looks a lot like a missing application.
-    # Once a release is published, swap this for the image line below.
-    build:
-      context: .
-      args:
-        SILENCEWATCH_VERSION: dev
-    # image: ghcr.io/liliang-dev/silencewatch:latest
+    # Pinned rather than `latest`: an instance should not change version because
+    # it happened to restart, and "which version is this?" must have an answer
+    # when something is wrong. Upgrading is editing this line, then
+    # `docker compose pull && docker compose up -d`.
+    image: ghcr.io/liliang-dev/silencewatch:0.1.0
+    # Working from a checkout instead? Comment the line above and uncomment
+    # these; nothing else in this file changes.
+    # build:
+    #   context: .
+    #   args:
+    #     SILENCEWATCH_VERSION: dev
     restart: unless-stopped
     ports:
       - '${PORT:-8080}:8080'
