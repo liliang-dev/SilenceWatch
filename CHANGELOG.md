@@ -10,6 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-08-02
+
+First tagged release. Everything below was developed before the project had
+versions, so it is recorded as one entry rather than invented history.
+
 ### Security
 
 - Outbound HTTP now vets a host given as an IP address before opening the
@@ -54,4 +59,5 @@ called out under **Changed** with what to do about it.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/commits/main
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.0

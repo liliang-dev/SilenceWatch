@@ -64,9 +64,12 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
+This pulls `ghcr.io/liliang-dev/silencewatch:0.1.0`; nothing is built locally.
+
 Open <http://localhost:8080> and create the first account — on an empty instance
 it is always allowed, and it becomes the owner. Schema migrations run
-automatically at startup, so upgrading is "pull the new image and restart".
+automatically at startup, so upgrading is: bump the tag in `docker-compose.yml`,
+`docker compose pull`, `docker compose up -d`.
 
 Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 

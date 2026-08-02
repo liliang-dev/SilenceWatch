@@ -238,14 +238,25 @@ And — this being what the product is for — monitor the backup job with a che
 
 ## Upgrading
 
+Edit the image tag in `docker-compose.yml` to the release you want, then:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The tag is pinned rather than `latest` on purpose: a restart should not change
+which version is running, and a bug report needs a version to name. Published
+images are listed under
+[Releases](https://github.com/liliang-dev/SilenceWatch/releases).
+
+Working from a checkout instead, with the `build` stanza uncommented:
+
 ```bash
 git pull
 docker compose build --pull
 docker compose up -d
 ```
-
-(Once a release image is published, this becomes `docker compose pull` with the
-image line in the Compose file.)
 
 Migrations are applied at startup. They are additive by design; when a release
 needs a destructive change, the notes say so and give the steps.
