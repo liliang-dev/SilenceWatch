@@ -4,6 +4,24 @@
 Your jobs check in when they run; when one goes quiet, you hear about it.
 Self-host it, or use the hosted service.**
 
+[![CI](https://github.com/liliang-dev/SilenceWatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/liliang-dev/SilenceWatch/actions/workflows/ci.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/liliang-dev/SilenceWatch/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/liliang-dev/SilenceWatch/actions/workflows/codeql.yml?query=branch%3Amain)
+[![Release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/release.yml/badge.svg)](https://github.com/liliang-dev/SilenceWatch/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/liliang-dev/SilenceWatch?include_prereleases&sort=semver&label=release)](https://github.com/liliang-dev/SilenceWatch/releases)
+
+<!--
+  The first three badges are served by GitHub itself and report the workflows in
+  this repository. `?branch=main` matters: without it a badge shows the most
+  recent run on any branch, so a failing pull request would make a healthy main
+  look broken.
+
+  The release badge counts prereleases on purpose — 0.1.0 is published as one,
+  and a badge that reads "no releases" while a release exists is worse than
+  absent. It is the one badge served by a third party (shields.io), which sees
+  the IP of everyone who loads this page; drop it if that matters more than
+  showing the version.
+-->
+
 ---
 
 ## The problem
