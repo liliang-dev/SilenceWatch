@@ -198,6 +198,63 @@ location / {
 }
 ```
 
+## HTTPS
+
+`docker compose up -d` serves plain HTTP on `PORT` and nothing else. That is
+deliberate: plenty of instances sit behind an nginx, a Traefik or a company load
+balancer that already terminates TLS, and a certificate this side of it would be
+one more thing to renew for no gain.
+
+If nothing is in front, Compose can bring its own:
+
+```bash
+docker compose --profile tls up -d
+```
+
+That adds Caddy, which obtains a certificate and renews it without being asked.
+The profile is why the plain path is unaffected — without `--profile tls` the
+service does not exist, and `docker compose up -d` starts exactly what it always
+did.
+
+It needs two things that are not Docker's to give: `SILENCEWATCH_DOMAIN` must
+resolve to this machine, and ports 80 and 443 must be reachable from the
+internet. Both are how Caddy proves the name is yours; a firewall or a DNS
+record still pointing at a parking page fails certificate issuance, not the
+container.
+
+Four settings move together, and three of the four are easy to forget:
+
+```bash
+SILENCEWATCH_DOMAIN=status.example.com   # the name on the certificate
+BASE_URL=https://status.example.com      # or every ping URL you hand out is wrong
+BIND_ADDRESS=127.0.0.1                   # stop publishing 8080 to the world
+TRUST_PROXY=172.28.0.0/16                # the Compose network Caddy speaks from
+```
+
+`BIND_ADDRESS` matters more than it looks. Left at the default the application's
+own port stays open beside the certificate — a plain-HTTP way around it, on
+which requests arrive with no `X-Forwarded-For` at all.
+
+`TRUST_PROXY` takes the network rather than `true`, for the reason above: in
+production a bare `true` is refused. The Compose network is given a fixed subnet
+precisely so it can be named here; change it with `DOCKER_SUBNET` if
+`172.28.0.0/16` collides with something on your host.
+
+Under Swarm there is no profile — Caddy is part of `docker-stack.yml` and always
+deployed, since a swarm reached over the internet wants TLS anyway. The subnet
+variable is `SWARM_SUBNET`, defaulting to `10.20.0.0/16`.
+
+`BIND_ADDRESS` has no Swarm equivalent: the routing mesh publishes a port on
+every node and cannot be told to bind one address. The application's port is
+still published there, because the deployment check reads `/health` through it,
+so **close it at the firewall** — otherwise it is the same plain-HTTP bypass
+`BIND_ADDRESS` closes under Compose:
+
+```bash
+sudo ufw allow 80,443/tcp
+sudo ufw deny 8080/tcp
+```
+
 ## Who watches the watchman
 
 **SilenceWatch cannot monitor itself.** A monitoring server that dies quietly is

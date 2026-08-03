@@ -128,13 +128,72 @@ services:
     networks:
       - silencewatch
 
+  # HTTPS. Unlike the Compose file there is no profile to hide it behind —
+  # Swarm has none — and a deployment reached over the internet wants TLS
+  # anyway. It needs SILENCEWATCH_DOMAIN pointing at this swarm, with 80 and
+  # 443 reachable, which is how Caddy proves control of the name.
+  caddy:
+    image: caddy:2-alpine
+    # One line instead of a Caddyfile, which would otherwise have to be
+    # distributed to every node as a swarm config object. Automatic HTTPS comes
+    # from `--from` being a hostname rather than a port.
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?set SILENCEWATCH_DOMAIN, e.g. status.example.com} --to silencewatch:8080
+
+    deploy:
+      replicas: 1
+      # Pinned like the database, and for the same reason: the certificates are
+      # in a local volume. A task rescheduled elsewhere would find it empty and
+      # ask Let's Encrypt for a fresh certificate, which is rate-limited.
+      placement:
+        constraints:
+          - node.labels.silencewatch.db == true
+      update_config:
+        # Not start-first. Two tasks cannot both hold ports 80 and 443, and two
+        # Caddy processes sharing one certificate store is asking for trouble.
+        # The gap is a second or two, and only when Caddy itself changes — the
+        # application behind it updates without ever going through this.
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+
+    ports:
+      - target: 80
+        published: 80
+        mode: ingress
+      - target: 443
+        published: 443
+        mode: ingress
+      - target: 443
+        published: 443
+        protocol: udp
+        mode: ingress
+
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+    networks:
+      - silencewatch
+
 networks:
   silencewatch:
     driver: overlay
     attachable: false
+    # Fixed so TRUST_PROXY can name it. The server rejects `TRUST_PROXY=true` in
+    # production — a bare true lets anything able to reach the port forge its
+    # own client address — so it needs the CIDR the proxy speaks from, and an
+    # automatically assigned one differs between swarms.
+    ipam:
+      config:
+        - subnet: ${SWARM_SUBNET:-10.20.0.0/16}
 
 volumes:
   pgdata:
     # Local to the node the constraint above pins the database to. Moving the
     # database to another node means moving this volume with it, deliberately.
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
