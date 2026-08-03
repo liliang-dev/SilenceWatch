@@ -261,6 +261,84 @@ docker compose up -d
 Migrations are applied at startup. They are additive by design; when a release
 needs a destructive change, the notes say so and give the steps.
 
+## Docker Swarm, and upgrading without downtime
+
+Compose restarts the container, so an upgrade is a short outage. Swarm can start
+the new version, wait for it to report healthy, and only then stop the old one.
+`docker-stack.yml` in the repository root is that deployment.
+
+It is not `docker-compose.yml` with a `deploy:` block added. `docker stack
+deploy` silently ignores `depends_on`, `restart`, and the short form of `tmpfs`,
+so the two files differ where it matters — a read-only container whose `/tmp`
+mount was dropped does not start at all.
+
+### What makes it seamless
+
+Two replicas, `order: start-first`, and the image's own `HEALTHCHECK`. Swarm
+brings a new task up, waits for `/health`, shifts traffic, and stops the old
+one; with a single replica there is still a moment when the only healthy task is
+the one being replaced.
+
+Running two instances is safe here by design rather than by luck: the detection
+loop and the alert queue claim rows with `FOR UPDATE SKIP LOCKED`, so they share
+work instead of alerting twice, and the ingest cache is invalidated across
+instances with `LISTEN`/`NOTIFY`.
+
+**The precondition is that migrations stay additive.** During the changeover the
+old and new versions run against the same schema for a few seconds. That holds
+for every release whose notes do not say otherwise — when one does, deploy it as
+a brief planned outage instead.
+
+If the new version never reports healthy, Swarm puts the old one back on its own
+(`failure_action: rollback`), and the deploy job fails on the version check
+rather than reporting a success that did not happen.
+
+### One-time setup
+
+```bash
+docker swarm init                                    # if it is not already one
+docker node update --label-add silencewatch.db=true "$(docker node ls -q)"
+sudo install -d -m 750 /opt/silencewatch
+sudo cp .env /opt/silencewatch/.env                  # SECRET_KEY, POSTGRES_PASSWORD, BASE_URL…
+sudo chmod 600 /opt/silencewatch/.env
+```
+
+The node label is not optional. Without it a reschedule would start PostgreSQL
+on another machine against an empty local volume — an instance that looks
+healthy and has lost every check, ping and account. For the same reason the
+database updates `stop-first`: two PostgreSQL processes on one data directory
+corrupt it, so it takes a brief pause where the application does not.
+
+Deploy by hand with:
+
+```bash
+set -a; . /opt/silencewatch/.env; set +a
+SILENCEWATCH_VERSION=0.1.0 docker stack deploy -c docker-stack.yml silencewatch
+```
+
+### Deploying on release
+
+`.github/workflows/release.yml` does the same over SSH once a tag's image is
+published and verified. It needs four repository secrets:
+
+| Secret | What it holds |
+| --- | --- |
+| `SWARM_SSH_HOST` | the manager node's hostname |
+| `SWARM_SSH_USER` | a user in the `docker` group |
+| `SWARM_SSH_KEY` | that user's private deploy key |
+| `SWARM_SSH_KNOWN_HOSTS` | output of `ssh-keyscan -H <host>` |
+
+The last one is what makes the connection safe. Without a known host key the
+alternative is `StrictHostKeyChecking=no`, which hands the deploy key to
+whatever answers on that address.
+
+The env file path defaults to `/opt/silencewatch/.env` and can be moved with a
+repository variable, `SWARM_ENV_FILE`. Its values stay on the server: CI reads
+their names from the stack file and never sees them.
+
+The job runs in a GitHub environment called `production`, which is where a
+required reviewer goes if releases should stop shipping unattended.
+
 ## Diagnostics
 
 For a support thread, produce a bundle:
