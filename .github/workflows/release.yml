@@ -210,7 +210,19 @@ jobs:
             printf '```\n%s:%s\n```\n' "$IMAGE" "$VERSION"
           } > release-notes.md
 
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            --notes-file release-notes.md \
-            --verify-tag
+          # A release may already exist — drafted by hand before the workflow
+          # existed, or left behind by an earlier run that got this far. Creating
+          # is not the only correct outcome, so re-running is not an error.
+          #
+          # `edit` deliberately touches only the notes: the title and the
+          # prerelease flag are the maintainer's call, made in the UI, and a
+          # workflow that reset them on every run would fight whoever set them.
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION exists — updating its notes."
+            gh release edit "$VERSION" --notes-file release-notes.md
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
