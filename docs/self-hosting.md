@@ -316,28 +316,94 @@ set -a; . /opt/silencewatch/.env; set +a
 SILENCEWATCH_VERSION=0.1.0 docker stack deploy -c docker-stack.yml silencewatch
 ```
 
-### Deploying on release
+### Deploying every release automatically
 
-`.github/workflows/release.yml` does the same over SSH once a tag's image is
-published and verified. It needs four repository secrets:
+`.github/workflows/release.yml` runs the same deployment over SSH once a tag's
+image has been published and smoke tested. Tag a release, and the swarm is on it
+a couple of minutes later without anyone logging in.
 
-| Secret | What it holds |
-| --- | --- |
-| `SWARM_SSH_HOST` | the manager node's hostname |
-| `SWARM_SSH_USER` | a user in the `docker` group |
-| `SWARM_SSH_KEY` | that user's private deploy key |
-| `SWARM_SSH_KNOWN_HOSTS` | output of `ssh-keyscan -H <host>` |
+This is for a fork you operate. It is not needed to self-host: the manual
+`docker stack deploy` above is the same operation, run when you choose.
 
-The last one is what makes the connection safe. Without a known host key the
-alternative is `StrictHostKeyChecking=no`, which hands the deploy key to
-whatever answers on that address.
+#### 1. A key that exists only for this
 
-The env file path defaults to `/opt/silencewatch/.env` and can be moved with a
-repository variable, `SWARM_ENV_FILE`. Its values stay on the server: CI reads
-their names from the stack file and never sees them.
+```bash
+ssh-keygen -t ed25519 -C "github-actions@silencewatch" \
+           -f ~/.ssh/silencewatch_deploy -N ""
+```
 
-The job runs in a GitHub environment called `production`, which is where a
-required reviewer goes if releases should stop shipping unattended.
+`-N ""` means no passphrase, because CI cannot type one. That is exactly why
+this is a dedicated key rather than yours: it can be revoked on its own, and it
+never protected anything else.
+
+#### 2. A user for it on the manager node
+
+```bash
+sudo adduser --disabled-password --gecos "" deploy
+sudo usermod -aG docker deploy
+sudo install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+
+sudo tee /home/deploy/.ssh/authorized_keys <<EOF
+restrict,pty $(cat ~/.ssh/silencewatch_deploy.pub)
+EOF
+sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+```
+
+`restrict` disables port forwarding, agent forwarding and X11, none of which a
+deployment needs.
+
+> **Membership of the `docker` group is equivalent to root on that machine.**
+> The daemon runs as root and will mount any path on the host for you. This is
+> inherent to deploying over SSH rather than a weakness of this setup, but it
+> sets the value of the key: treat it as a root credential, keep it out of any
+> other system, and revoke it by deleting the line from `authorized_keys`.
+
+#### 3. The four values
+
+| Secret | What to paste | Where it comes from |
+| --- | --- | --- |
+| `SWARM_SSH_HOST` | the host alone, e.g. `silencewatch.com` | no `user@`, no port |
+| `SWARM_SSH_USER` | `deploy` | the user created above |
+| `SWARM_SSH_KEY` | the **private** key, in full | `cat ~/.ssh/silencewatch_deploy` |
+| `SWARM_SSH_KNOWN_HOSTS` | the host's fingerprints | `ssh-keyscan -H <host>` |
+
+Two things that trip people up. `SWARM_SSH_KEY` is the file **without** the
+`.pub` suffix — the `.pub` one belongs on the server — and it must include the
+`-----BEGIN`/`-----END` lines. `ssh-keyscan` prints one line per key type: paste
+all of them.
+
+The last secret is what makes the connection safe. Without a pinned host key the
+alternative is `StrictHostKeyChecking=no`, which hands the deploy key, and every
+command that follows it, to whatever answers on that address. The job refuses to
+run if the value is empty rather than falling back to trusting anything.
+
+#### 4. Where they go
+
+Settings → Environments → **`production`** → *Add environment secret*.
+
+Repository secrets work too, but scoping them to the environment means only the
+job that targets it can read them — not the build job, and not a workflow added
+later. `production` is also where a required reviewer goes if releases should
+stop shipping unattended.
+
+If the env file is not at `/opt/silencewatch/.env`, set a repository **variable**
+(not a secret) named `SWARM_ENV_FILE` to its path. The values inside it stay on
+the server: CI reads their names from the stack file and never sees them.
+
+#### 5. Check it before relying on it
+
+```bash
+ssh -i ~/.ssh/silencewatch_deploy deploy@<host> \
+    'docker version --format "{{.Server.Version}}" && docker node ls'
+```
+
+A version and a node list means the four secrets will work. A password prompt
+means `authorized_keys` is not being read — usually its permissions, or those of
+`/home/deploy/.ssh`.
+
+The workflow connects on port 22. A different port needs `-p` adding to the two
+`ssh` invocations in `release.yml`.
 
 ## Diagnostics
 
