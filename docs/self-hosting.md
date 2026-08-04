@@ -198,6 +198,63 @@ location / {
 }
 ```
 
+## HTTPS
+
+`docker compose up -d` serves plain HTTP on `PORT` and nothing else. That is
+deliberate: plenty of instances sit behind an nginx, a Traefik or a company load
+balancer that already terminates TLS, and a certificate this side of it would be
+one more thing to renew for no gain.
+
+If nothing is in front, Compose can bring its own:
+
+```bash
+docker compose --profile tls up -d
+```
+
+That adds Caddy, which obtains a certificate and renews it without being asked.
+The profile is why the plain path is unaffected — without `--profile tls` the
+service does not exist, and `docker compose up -d` starts exactly what it always
+did.
+
+It needs two things that are not Docker's to give: `SILENCEWATCH_DOMAIN` must
+resolve to this machine, and ports 80 and 443 must be reachable from the
+internet. Both are how Caddy proves the name is yours; a firewall or a DNS
+record still pointing at a parking page fails certificate issuance, not the
+container.
+
+Four settings move together, and three of the four are easy to forget:
+
+```bash
+SILENCEWATCH_DOMAIN=status.example.com   # the name on the certificate
+BASE_URL=https://status.example.com      # or every ping URL you hand out is wrong
+BIND_ADDRESS=127.0.0.1                   # stop publishing 8080 to the world
+TRUST_PROXY=172.28.0.0/16                # the Compose network Caddy speaks from
+```
+
+`BIND_ADDRESS` matters more than it looks. Left at the default the application's
+own port stays open beside the certificate — a plain-HTTP way around it, on
+which requests arrive with no `X-Forwarded-For` at all.
+
+`TRUST_PROXY` takes the network rather than `true`, for the reason above: in
+production a bare `true` is refused. The Compose network is given a fixed subnet
+precisely so it can be named here; change it with `DOCKER_SUBNET` if
+`172.28.0.0/16` collides with something on your host.
+
+Under Swarm there is no profile — Caddy is part of `docker-stack.yml` and always
+deployed, since a swarm reached over the internet wants TLS anyway. The subnet
+variable is `SWARM_SUBNET`, defaulting to `10.20.0.0/16`.
+
+`BIND_ADDRESS` has no Swarm equivalent: the routing mesh publishes a port on
+every node and cannot be told to bind one address. The application's port is
+still published there, because the deployment check reads `/health` through it,
+so **close it at the firewall** — otherwise it is the same plain-HTTP bypass
+`BIND_ADDRESS` closes under Compose:
+
+```bash
+sudo ufw allow 80,443/tcp
+sudo ufw deny 8080/tcp
+```
+
 ## Who watches the watchman
 
 **SilenceWatch cannot monitor itself.** A monitoring server that dies quietly is
@@ -260,6 +317,150 @@ docker compose up -d
 
 Migrations are applied at startup. They are additive by design; when a release
 needs a destructive change, the notes say so and give the steps.
+
+## Docker Swarm, and upgrading without downtime
+
+Compose restarts the container, so an upgrade is a short outage. Swarm can start
+the new version, wait for it to report healthy, and only then stop the old one.
+`docker-stack.yml` in the repository root is that deployment.
+
+It is not `docker-compose.yml` with a `deploy:` block added. `docker stack
+deploy` silently ignores `depends_on`, `restart`, and the short form of `tmpfs`,
+so the two files differ where it matters — a read-only container whose `/tmp`
+mount was dropped does not start at all.
+
+### What makes it seamless
+
+Two replicas, `order: start-first`, and the image's own `HEALTHCHECK`. Swarm
+brings a new task up, waits for `/health`, shifts traffic, and stops the old
+one; with a single replica there is still a moment when the only healthy task is
+the one being replaced.
+
+Running two instances is safe here by design rather than by luck: the detection
+loop and the alert queue claim rows with `FOR UPDATE SKIP LOCKED`, so they share
+work instead of alerting twice, and the ingest cache is invalidated across
+instances with `LISTEN`/`NOTIFY`.
+
+**The precondition is that migrations stay additive.** During the changeover the
+old and new versions run against the same schema for a few seconds. That holds
+for every release whose notes do not say otherwise — when one does, deploy it as
+a brief planned outage instead.
+
+If the new version never reports healthy, Swarm puts the old one back on its own
+(`failure_action: rollback`), and the deploy job fails on the version check
+rather than reporting a success that did not happen.
+
+### One-time setup
+
+```bash
+docker swarm init                                    # if it is not already one
+docker node update --label-add silencewatch.db=true "$(docker node ls -q)"
+sudo install -d -m 750 /opt/silencewatch
+sudo cp .env /opt/silencewatch/.env                  # SECRET_KEY, POSTGRES_PASSWORD, BASE_URL…
+sudo chmod 600 /opt/silencewatch/.env
+```
+
+The node label is not optional. Without it a reschedule would start PostgreSQL
+on another machine against an empty local volume — an instance that looks
+healthy and has lost every check, ping and account. For the same reason the
+database updates `stop-first`: two PostgreSQL processes on one data directory
+corrupt it, so it takes a brief pause where the application does not.
+
+Deploy by hand with:
+
+```bash
+set -a; . /opt/silencewatch/.env; set +a
+SILENCEWATCH_VERSION=0.1.0 docker stack deploy -c docker-stack.yml silencewatch
+```
+
+### Deploying every release automatically
+
+`.github/workflows/release.yml` runs the same deployment over SSH once a tag's
+image has been published and smoke tested. Tag a release, and the swarm is on it
+a couple of minutes later without anyone logging in.
+
+This is for a fork you operate. It is not needed to self-host: the manual
+`docker stack deploy` above is the same operation, run when you choose.
+
+#### 1. A key that exists only for this
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions@silencewatch" \
+           -f ~/.ssh/silencewatch_deploy -N ""
+```
+
+`-N ""` means no passphrase, because CI cannot type one. That is exactly why
+this is a dedicated key rather than yours: it can be revoked on its own, and it
+never protected anything else.
+
+#### 2. A user for it on the manager node
+
+```bash
+sudo adduser --disabled-password --gecos "" deploy
+sudo usermod -aG docker deploy
+sudo install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+
+sudo tee /home/deploy/.ssh/authorized_keys <<EOF
+restrict,pty $(cat ~/.ssh/silencewatch_deploy.pub)
+EOF
+sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+```
+
+`restrict` disables port forwarding, agent forwarding and X11, none of which a
+deployment needs.
+
+> **Membership of the `docker` group is equivalent to root on that machine.**
+> The daemon runs as root and will mount any path on the host for you. This is
+> inherent to deploying over SSH rather than a weakness of this setup, but it
+> sets the value of the key: treat it as a root credential, keep it out of any
+> other system, and revoke it by deleting the line from `authorized_keys`.
+
+#### 3. The four values
+
+| Secret | What to paste | Where it comes from |
+| --- | --- | --- |
+| `SWARM_SSH_HOST` | the host alone, e.g. `silencewatch.com` | no `user@`, no port |
+| `SWARM_SSH_USER` | `deploy` | the user created above |
+| `SWARM_SSH_KEY` | the **private** key, in full | `cat ~/.ssh/silencewatch_deploy` |
+| `SWARM_SSH_KNOWN_HOSTS` | the host's fingerprints | `ssh-keyscan -H <host>` |
+
+Two things that trip people up. `SWARM_SSH_KEY` is the file **without** the
+`.pub` suffix — the `.pub` one belongs on the server — and it must include the
+`-----BEGIN`/`-----END` lines. `ssh-keyscan` prints one line per key type: paste
+all of them.
+
+The last secret is what makes the connection safe. Without a pinned host key the
+alternative is `StrictHostKeyChecking=no`, which hands the deploy key, and every
+command that follows it, to whatever answers on that address. The job refuses to
+run if the value is empty rather than falling back to trusting anything.
+
+#### 4. Where they go
+
+Settings → Environments → **`production`** → *Add environment secret*.
+
+Repository secrets work too, but scoping them to the environment means only the
+job that targets it can read them — not the build job, and not a workflow added
+later. `production` is also where a required reviewer goes if releases should
+stop shipping unattended.
+
+If the env file is not at `/opt/silencewatch/.env`, set a repository **variable**
+(not a secret) named `SWARM_ENV_FILE` to its path. The values inside it stay on
+the server: CI reads their names from the stack file and never sees them.
+
+#### 5. Check it before relying on it
+
+```bash
+ssh -i ~/.ssh/silencewatch_deploy deploy@<host> \
+    'docker version --format "{{.Server.Version}}" && docker node ls'
+```
+
+A version and a node list means the four secrets will work. A password prompt
+means `authorized_keys` is not being read — usually its permissions, or those of
+`/home/deploy/.ssh`.
+
+The workflow connects on port 22. A different port needs `-p` adding to the two
+`ssh` invocations in `release.yml`.
 
 ## Diagnostics
 

@@ -30,6 +30,10 @@ jobs:
       contents: write # create the GitHub release
       packages: write # push to GHCR
 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image: ${{ steps.version.outputs.image }}
+
     steps:
       - name: Resolve the version
         id: version
@@ -226,3 +230,171 @@ jobs:
               --notes-file release-notes.md \
               --verify-tag
           fi
+
+
+  deploy:
+    name: Deploy to the swarm
+    needs: release
+    runs-on: ubuntu-latest
+
+    # A GitHub environment, so this is where a required reviewer or a deployment
+    # branch rule goes if releases should ever stop shipping unattended. With no
+    # rules it changes nothing, which is why it is here from the start: adding
+    # the gate later becomes a checkbox rather than a workflow change.
+    environment: production
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The stack file as it was at the tag, so the deployed topology
+          # matches the deployed image.
+          ref: ${{ needs.release.outputs.version }}
+
+      - name: Prepare the SSH client
+        env:
+          SSH_KEY: ${{ secrets.SWARM_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SWARM_SSH_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # The host key comes from a secret rather than
+          # StrictHostKeyChecking=no. Accepting whatever key answers would hand
+          # the deploy key, and the commands that follow it, to anyone able to
+          # intercept the connection. Produce the value once with:
+          #   ssh-keyscan -H your-host
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "SWARM_SSH_KNOWN_HOSTS is empty — refusing to connect blind." >&2
+            exit 1
+          fi
+
+      - name: Deploy the stack
+        env:
+          SSH_HOST: ${{ secrets.SWARM_SSH_HOST }}
+          SSH_USER: ${{ secrets.SWARM_SSH_USER }}
+          ENV_FILE: ${{ vars.SWARM_ENV_FILE || '/opt/silencewatch/.env' }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -eu
+
+          # The stack travels base64-encoded in the remote environment, not on
+          # stdin: stdin already carries the script itself, and a command cannot
+          # read two things from it. Encoding also means no quoting of YAML
+          # through a remote shell, and nothing is written to the server — there
+          # is no stale copy for anyone to edit and no file left behind.
+          stack_b64=$(base64 -w0 docker-stack.yml)
+
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              "$SSH_USER@$SSH_HOST" \
+              "STACK_B64='$stack_b64' VERSION='$VERSION' ENV_FILE='$ENV_FILE' bash -s" <<'REMOTE'
+          set -eu
+
+          if [ ! -r "$ENV_FILE" ]; then
+            echo "No readable env file at $ENV_FILE — the stack needs SECRET_KEY and POSTGRES_PASSWORD." >&2
+            exit 1
+          fi
+
+          # Values live on the server and never travel through CI. Only their
+          # names are in the repository.
+          set -a
+          . "$ENV_FILE"
+          set +a
+          export SILENCEWATCH_VERSION="$VERSION"
+
+          # --with-registry-auth forwards the manager's credentials to every
+          # node, which matters the day the package stops being public.
+          printf '%s' "$STACK_B64" | base64 -d | docker stack deploy \
+            --with-registry-auth \
+            --resolve-image always \
+            -c - silencewatch
+          REMOTE
+
+      - name: Wait for the swarm to converge
+        env:
+          SSH_HOST: ${{ secrets.SWARM_SSH_HOST }}
+          SSH_USER: ${{ secrets.SWARM_SSH_USER }}
+          ENV_FILE: ${{ vars.SWARM_ENV_FILE || '/opt/silencewatch/.env' }}
+          VERSION: ${{ needs.release.outputs.version }}
+          IMAGE: ${{ needs.release.outputs.image }}
+        run: |
+          set -eu
+
+          # `docker stack deploy` returns once the orchestrator has accepted the
+          # change, not once it has taken effect. Without this the job would go
+          # green on a deployment still starting, or one Swarm is in the middle
+          # of rolling back.
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              "$SSH_USER@$SSH_HOST" \
+              "VERSION='$VERSION' IMAGE='$IMAGE' ENV_FILE='$ENV_FILE' bash -s" <<'REMOTE'
+          set -eu
+          service=silencewatch_silencewatch
+          deadline=$(( $(date +%s) + 420 ))
+
+          while :; do
+            state=$(docker service inspect "$service" \
+                      --format '{{ if .UpdateStatus }}{{ .UpdateStatus.State }}{{ else }}none{{ end }}')
+
+            case "$state" in
+              completed|none)
+                break
+                ;;
+              rollback_started|rollback_completed|rollback_paused)
+                echo "Swarm rolled the update back: the new tasks never became healthy." >&2
+                docker service ps "$service" --no-trunc >&2 || true
+                exit 1
+                ;;
+              paused)
+                echo "The update is paused, which means it failed and did not roll back." >&2
+                docker service ps "$service" --no-trunc >&2 || true
+                exit 1
+                ;;
+            esac
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "Still '$state' after 7 minutes — giving up rather than reporting success." >&2
+              docker service ps "$service" --no-trunc >&2 || true
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Converged is not the same as converged on the right thing: a
+          # rollback that finished before the first poll would leave the state
+          # 'completed' with the old image still running.
+          running=$(docker service inspect "$service" \
+                      --format '{{ .Spec.TaskTemplate.ContainerSpec.Image }}')
+          case "$running" in
+            "$IMAGE:$VERSION"|"$IMAGE:$VERSION@"*) ;;
+            *)
+              echo "Converged on '$running', expected '$IMAGE:$VERSION'." >&2
+              exit 1
+              ;;
+          esac
+
+          # The only check here that exercises the application rather than the
+          # orchestrator. Through the published port, which the routing mesh
+          # exposes on every node, so this works wherever the tasks landed and
+          # needs no attachable network.
+          set -a
+          . "$ENV_FILE"
+          set +a
+          port="${PORT:-8080}"
+
+          reported=$(curl -fsS --max-time 10 "http://127.0.0.1:${port}/health" \
+                     | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+
+          if [ "$reported" != "$VERSION" ]; then
+            echo "/health reports version '$reported', expected '$VERSION'." >&2
+            exit 1
+          fi
+
+          echo "Deployed $VERSION; /health agrees."
+          REMOTE

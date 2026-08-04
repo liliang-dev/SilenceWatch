@@ -13,7 +13,11 @@ services:
     #     SILENCEWATCH_VERSION: dev
     restart: unless-stopped
     ports:
-      - '${PORT:-8080}:8080'
+      # Published on every interface by default, which is what makes
+      # `docker compose up -d` reachable with nothing else configured. Behind
+      # the TLS profile below, set BIND_ADDRESS=127.0.0.1 so only Caddy can
+      # reach it and the plain-HTTP port stops being a way around it.
+      - '${BIND_ADDRESS:-0.0.0.0}:${PORT:-8080}:8080'
     environment:
       DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/silencewatch
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — openssl rand -hex 32}
@@ -65,5 +69,50 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # HTTPS, and nothing else. Behind a Compose profile, so it does not exist
+  # unless asked for: `docker compose up -d` starts exactly what it started
+  # before this service was added, and the simple path stays one command and a
+  # .env file.
+  #
+  #   docker compose --profile tls up -d
+  #
+  # Requires SILENCEWATCH_DOMAIN to be a real hostname pointing at this machine,
+  # with ports 80 and 443 reachable — Caddy proves control of the name over both
+  # to obtain the certificate, then renews it on its own.
+  caddy:
+    profiles: ['tls']
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # No Caddyfile: this one line is the whole configuration, and a file would
+    # be one more thing to mount here and distribute to every node in Swarm.
+    # Automatic HTTPS comes from `--from` being a hostname rather than a port.
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?set SILENCEWATCH_DOMAIN in .env, e.g. status.example.com} --to silencewatch:8080
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      # Certificates and account keys. Losing this volume means re-issuing on
+      # next start, which Let's Encrypt rate-limits — keep it.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      silencewatch:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  # Declared with a fixed subnet so TRUST_PROXY can name it. The server refuses
+  # `TRUST_PROXY=true` in production on purpose — a bare true lets anything able
+  # to reach the port forge its own client address — so it needs the CIDR the
+  # proxy actually speaks from, and a Docker-assigned one changes between hosts.
+  default:
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET:-172.28.0.0/16}
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
