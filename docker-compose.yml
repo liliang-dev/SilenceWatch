@@ -4,7 +4,7 @@ services:
     # it happened to restart, and "which version is this?" must have an answer
     # when something is wrong. Upgrading is editing this line, then
     # `docker compose pull && docker compose up -d`.
-    image: ghcr.io/liliang-dev/silencewatch:0.1.0
+    image: ghcr.io/liliang-dev/silencewatch:0.1.1
     # Working from a checkout instead? Comment the line above and uncomment
     # these; nothing else in this file changes.
     # build:
