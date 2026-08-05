@@ -15,6 +15,31 @@ describe('loadConfig', () => {
     expect(config.isProduction).toBe(false);
   });
 
+  // Compose and Swarm turn `KEY: ${KEY:-}` into `KEY=""`, and so does a shell
+  // exporting an .env line with nothing after the `=`. Every optional setting
+  // therefore arrives empty rather than absent whenever it is left blank, which
+  // used to stop the server on a configuration that was deliberately not set.
+  it('treats a blank optional setting as unset rather than invalid', () => {
+    const config = loadConfig({
+      ...minimal,
+      SMTP_URL: '',
+      POSTMARK_TOKEN: '',
+      BREVO_API_KEY: '',
+      OUTBOUND_HEARTBEAT_URL: '',
+    } as NodeJS.ProcessEnv);
+
+    expect(config.SMTP_URL).toBeUndefined();
+    expect(config.POSTMARK_TOKEN).toBeUndefined();
+    expect(config.BREVO_API_KEY).toBeUndefined();
+    expect(config.OUTBOUND_HEARTBEAT_URL).toBeUndefined();
+  });
+
+  it('still rejects a value that is present and wrong', () => {
+    expect(() =>
+      loadConfig({ ...minimal, OUTBOUND_HEARTBEAT_URL: 'not-a-url' } as NodeJS.ProcessEnv),
+    ).toThrow(/OUTBOUND_HEARTBEAT_URL/);
+  });
+
   it('refuses a secret short enough to brute force', () => {
     expect(() => loadConfig({ ...minimal, SECRET_KEY: 'too-short' })).toThrow(/at least 32/);
   });
