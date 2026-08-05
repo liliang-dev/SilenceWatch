@@ -22,6 +22,19 @@ const csv = z
       .filter((entry) => entry.length > 0),
   );
 
+/**
+ * Optional, and empty means absent.
+ *
+ * `.optional()` alone distinguishes unset from empty, but nothing that starts
+ * this server does. Compose and Swarm both turn `KEY: ${KEY:-}` into `KEY=""`,
+ * and a shell exporting a `.env` does the same for a variable listed with no
+ * value — so a setting left blank on purpose arrived as a present, invalid one
+ * and stopped the process. `SMTP_URL=` in an .env file means "I am not using
+ * SMTP", not "SMTP is the empty string".
+ */
+const optional = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -151,10 +164,10 @@ const envSchema = z
     EMAIL_PROVIDER: z.enum(['console', 'smtp', 'postmark', 'brevo']).default('console'),
     EMAIL_FROM: z.string().email().default('alerts@silencewatch.local'),
     EMAIL_FROM_NAME: z.string().min(1).max(80).default('SilenceWatch'),
-    SMTP_URL: z.string().min(1).optional(),
-    POSTMARK_TOKEN: z.string().min(1).optional(),
+    SMTP_URL: optional(z.string().min(1)),
+    POSTMARK_TOKEN: optional(z.string().min(1)),
     POSTMARK_MESSAGE_STREAM: z.string().min(1).default('outbound'),
-    BREVO_API_KEY: z.string().min(1).optional(),
+    BREVO_API_KEY: optional(z.string().min(1)),
 
     /** Default ping retention; per-project overrides win. */
     PING_RETENTION_DAYS: positiveInt(1, 3_650).default(90),
@@ -170,7 +183,7 @@ const envSchema = z
      * SilenceWatch cannot watch itself: point this at a third-party dead man's
      * switch that the detection loop pings after every successful tick.
      */
-    OUTBOUND_HEARTBEAT_URL: z.string().url().optional(),
+    OUTBOUND_HEARTBEAT_URL: optional(z.string().url()),
     OUTBOUND_HEARTBEAT_INTERVAL_MS: positiveInt(10_000, 3_600_000).default(60_000),
   })
   .superRefine((env, ctx) => {
