@@ -82,7 +82,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.1.0`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.1.1`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account — on an empty instance
 it is always allowed, and it becomes the owner. Schema migrations run

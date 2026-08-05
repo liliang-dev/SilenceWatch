@@ -10,6 +10,46 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-08-03
+
+### Fixed
+
+- A setting left blank no longer stops the server. `SMTP_URL`, `POSTMARK_TOKEN`,
+  `BREVO_API_KEY` and `OUTBOUND_HEARTBEAT_URL` are optional, but Compose and
+  Swarm turn `KEY: ${KEY:-}` into `KEY=""` — present and invalid rather than
+  absent — so a deployment that deliberately set none of them refused to start
+  on `OUTBOUND_HEARTBEAT_URL: Invalid url`. Blank now means unset; a value that
+  is present and wrong is still rejected.
+
+### Added
+
+- `docker-stack.yml`, a Docker Swarm deployment that upgrades without dropping
+  requests: two replicas, `start-first`, and the image's health check decide
+  when the old version stops. PostgreSQL is pinned to a node and updates
+  `stop-first`, because two of it on one data directory corrupt it.
+- HTTPS, behind a Compose profile so the one-command path is unchanged.
+  `docker compose --profile tls up -d` adds Caddy, which obtains and renews a
+  certificate on its own. `docker compose up -d` still needs the same two
+  values it always did.
+- The release workflow deploys to a swarm over SSH once a tag's image is
+  published and verified, and fails on a rollback rather than reporting a
+  success that did not happen.
+- Status badges in the README: CI, CodeQL, the release workflow and the
+  published version.
+
+### Changed
+
+- The release workflow updates an existing GitHub release instead of failing
+  when one is already there, and labels the image with the commit it was
+  actually built from rather than the branch it was dispatched from.
+- `.env.example` no longer suggests `TRUST_PROXY=true`, which production
+  refuses: it now says to name the proxy's network, and both Docker networks
+  declare a fixed subnet so there is one to name.
+
+### Security
+
+- `fast-uri` updated (#33).
+
 ## [0.1.0] — 2026-08-02
 
 First tagged release. Everything below was developed before the project had
@@ -59,5 +99,6 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.1
 [0.1.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.0
