@@ -161,3 +161,60 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
           # And the UI is actually in the image.
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+
+  deployment-files:
+    name: Deployment files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A required variable reaches the container through Docker's interpolation,
+      # and that step can quietly produce something other than the value it was
+      # given: an error message containing punctuation was parsed as part of the
+      # expression, and `SECRET_KEY` arrived as six characters of the message
+      # itself. Nothing failed — the server started, rejected the key as too
+      # short, and the file looked correct all along.
+      #
+      # So the files are asked what they resolve to, and the answer is compared
+      # with what went in.
+      - name: Interpolation delivers the value it was given
+        env:
+          SILENCEWATCH_VERSION: 0.0.0-test
+          BASE_URL: https://example.test
+          SILENCEWATCH_DOMAIN: example.test
+        run: |
+          set -eu
+          # Distinct, and shaped like the real thing: 64 hex characters.
+          SECRET_KEY=$(printf '0123456789abcdef%.0s' 1 2 3 4)
+          POSTGRES_PASSWORD=$(printf 'fedcba9876543210%.0s' 1 2 3)
+          export SECRET_KEY POSTGRES_PASSWORD
+
+          status=0
+          for file in docker-compose.yml docker-stack.yml; do
+            resolved="$(docker compose -f "$file" config 2>/dev/null)"
+
+            for pair in "SECRET_KEY:$SECRET_KEY" "POSTGRES_PASSWORD:$POSTGRES_PASSWORD"; do
+              name="${pair%%:*}"
+              want="${pair#*:}"
+              got="$(printf '%s' "$resolved" \
+                     | sed -n "s/^ *$name: //p" | head -1 | tr -d '"'"'"'')"
+
+              if [ "$got" = "$want" ]; then
+                echo "ok   $file $name (${#got} chars)"
+              else
+                echo "FAIL $file $name: resolved to ${#got} characters, expected ${#want}" >&2
+                status=1
+              fi
+            done
+
+            # The password is also embedded in a URL, where a mangled value is
+            # even easier to miss.
+            case "$resolved" in
+              *"postgres://silencewatch:$POSTGRES_PASSWORD@db:5432/"*)
+                echo "ok   $file DATABASE_URL" ;;
+              *)
+                echo "FAIL $file DATABASE_URL does not carry the password it was given" >&2
+                status=1 ;;
+            esac
+          done
+          exit "$status"

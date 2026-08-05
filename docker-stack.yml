@@ -12,7 +12,7 @@ version: '3.8'
 
 services:
   silencewatch:
-    image: ghcr.io/liliang-dev/silencewatch:${SILENCEWATCH_VERSION:?set SILENCEWATCH_VERSION to the tag being deployed}
+    image: ghcr.io/liliang-dev/silencewatch:${SILENCEWATCH_VERSION:?SILENCEWATCH_VERSION is required}
 
     # Two replicas is what makes a zero-downtime update possible at all: with
     # one, `start-first` still leaves a window where the only healthy task is
@@ -56,9 +56,9 @@ services:
         mode: ingress
 
     environment:
-      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/silencewatch
-      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY — openssl rand -hex 32}
-      BASE_URL: ${BASE_URL:?set BASE_URL to the URL your users type}
+      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/silencewatch
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      BASE_URL: ${BASE_URL:?BASE_URL is required}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
       SMTP_URL: ${SMTP_URL:-}
       POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
@@ -113,7 +113,7 @@ services:
 
     environment:
       POSTGRES_USER: silencewatch
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: silencewatch
 
     volumes:
@@ -137,7 +137,7 @@ services:
     # One line instead of a Caddyfile, which would otherwise have to be
     # distributed to every node as a swarm config object. Automatic HTTPS comes
     # from `--from` being a hostname rather than a port.
-    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?set SILENCEWATCH_DOMAIN, e.g. status.example.com} --to silencewatch:8080
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required} --to silencewatch:8080
 
     deploy:
       replicas: 1
