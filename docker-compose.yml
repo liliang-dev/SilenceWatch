@@ -19,8 +19,8 @@ services:
       # reach it and the plain-HTTP port stops being a way around it.
       - '${BIND_ADDRESS:-0.0.0.0}:${PORT:-8080}:8080'
     environment:
-      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/silencewatch
-      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — openssl rand -hex 32}
+      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/silencewatch
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       # Public URL: it is what ping URLs and alert links are built from, so it
       # has to be what your users actually type.
       BASE_URL: ${BASE_URL:-http://localhost:8080}
@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: silencewatch
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: silencewatch
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -86,7 +86,7 @@ services:
     # No Caddyfile: this one line is the whole configuration, and a file would
     # be one more thing to mount here and distribute to every node in Swarm.
     # Automatic HTTPS comes from `--from` being a hostname rather than a port.
-    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?set SILENCEWATCH_DOMAIN in .env, e.g. status.example.com} --to silencewatch:8080
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required} --to silencewatch:8080
     ports:
       - '80:80'
       - '443:443'
