@@ -13,6 +13,11 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # corepack asks before downloading the pinned package manager, and a prompt
+  # nobody can answer is a job that hangs until it times out.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
 jobs:
   node:
     name: Server, shared and web
@@ -36,46 +41,59 @@ jobs:
       TEST_DATABASE_URL: postgresql://silencewatch:silencewatch@localhost:5432/silencewatch_test
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # pnpm comes from the `packageManager` field, which pins a version and its
+      # hash — corepack verifies the download against it. No action to trust
+      # with the job's token, and no second place recording which pnpm this
+      # project uses.
+      - name: Enable corepack
+        run: corepack enable
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
-          cache: npm
+          # Matches the runtime the image ships, so CI exercises the version
+          # users actually run. Angular's CLI also refuses anything below
+          # 22.22.3, and node 25 outright: its supported range is
+          # ^22.22.3 || ^24.15.0 || >=26.0.0.
+          node-version: 24
+          cache: pnpm
 
-      - run: npm ci --no-audit --no-fund
+      # --frozen-lockfile is pnpm's default in CI; stated anyway, because a
+      # silently updated lockfile is the failure this is meant to make loud.
+      - run: pnpm install --frozen-lockfile
 
       # The server's types come from the generated Prisma client, so nothing
       # type-checks before this runs. The server's postinstall does it too; this
-      # step makes the build independent of npm lifecycle-script behaviour.
+      # step makes the build independent of lifecycle-script behaviour.
       - name: Generate the Prisma client
-        run: npm run prisma:generate
+        run: pnpm run prisma:generate
 
       - name: Build shared types
-        run: npm run build:shared
+        run: pnpm run build:shared
 
       - name: Type-check
-        run: npm run lint
+        run: pnpm run lint
 
       # Shared, server and web. The web suite runs on Vitest through the Angular
       # builder, so no browser is needed in CI.
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
       # Runs against a real PostgreSQL on purpose: the detection state machine,
       # FOR UPDATE SKIP LOCKED and the sync upsert live in SQL, and a mocked
       # database would test none of it.
       - name: End-to-end tests
-        run: npm run test:e2e
+        run: pnpm run test:e2e
 
       - name: Build server and web
-        run: npm run build:server && npm run build:web
+        run: pnpm run build:server && pnpm run build:web
 
   java:
     name: Spring Boot starter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v4.9.0
         with:
@@ -99,12 +117,12 @@ jobs:
     name: Container image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       # Build only: publishing happens from the release workflow.
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           push: false
@@ -157,3 +175,137 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
           # And the UI is actually in the image.
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - run: corepack enable
+
+      # Deliberately without `cache: pnpm`, unlike the build job. Nothing here
+      # installs anything, so the store directory is never created — and the
+      # action's post-job step then fails the whole job trying to save a path
+      # that does not exist. A cache of nothing is not worth a red build.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      # No install: this reads the lockfile. It is a separate job from the build
+      # so that a newly disclosed advisory is reported even when the build is
+      # broken for some unrelated reason.
+      - name: Known vulnerabilities
+        run: pnpm audit --audit-level=high
+
+      # pnpm-workspace.yaml decides which dependencies may run code at install
+      # time. That list is only a control while it is short and deliberate, and
+      # the way it stops being either is one entry added to unblock a build.
+      - name: The install-script allowlist is still small
+        run: |
+          set -eu
+          allowed=$(grep -cE "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml)
+          echo "$allowed dependencies may run install scripts:"
+          grep -E "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml
+
+          # Not a magic number: it is the current list plus room for one, so
+          # adding the next one is a deliberate edit to this file with a reason
+          # in the commit message.
+          if [ "$allowed" -gt 5 ]; then
+            echo "FAIL: $allowed is more than this project should need." >&2
+            exit 1
+          fi
+
+  deployment-files:
+    name: Deployment files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A required variable reaches the container through Docker's interpolation,
+      # and that step can quietly produce something other than the value it was
+      # given: an error message containing punctuation was parsed as part of the
+      # expression, and `SECRET_KEY` arrived as six characters of the message
+      # itself. Nothing failed — the server started, rejected the key as too
+      # short, and the file looked correct all along.
+      #
+      # So the files are asked what they resolve to, and the answer is compared
+      # with what went in.
+      - name: Interpolation delivers the value it was given
+        env:
+          SILENCEWATCH_VERSION: 0.0.0-test
+          BASE_URL: https://example.test
+          SILENCEWATCH_DOMAIN: example.test
+        run: |
+          set -eu
+          # Distinct, and shaped like the real thing: 64 hex characters.
+          SECRET_KEY=$(printf '0123456789abcdef%.0s' 1 2 3 4)
+          POSTGRES_PASSWORD=$(printf 'fedcba9876543210%.0s' 1 2 3)
+          export SECRET_KEY POSTGRES_PASSWORD
+
+          status=0
+          for file in docker-compose.yml docker-stack.yml; do
+            resolved="$(docker compose -f "$file" config 2>/dev/null)"
+
+            for pair in "SECRET_KEY:$SECRET_KEY" "POSTGRES_PASSWORD:$POSTGRES_PASSWORD"; do
+              name="${pair%%:*}"
+              want="${pair#*:}"
+              got="$(printf '%s' "$resolved" \
+                     | sed -n "s/^ *$name: //p" | head -1 | tr -d '"'"'"'')"
+
+              if [ "$got" = "$want" ]; then
+                echo "ok   $file $name (${#got} chars)"
+              else
+                echo "FAIL $file $name: resolved to ${#got} characters, expected ${#want}" >&2
+                status=1
+              fi
+            done
+
+            # The password is also embedded in a URL, where a mangled value is
+            # even easier to miss.
+            case "$resolved" in
+              *"postgres://silencewatch:$POSTGRES_PASSWORD@db:5432/"*)
+                echo "ok   $file DATABASE_URL" ;;
+              *)
+                echo "FAIL $file DATABASE_URL does not carry the password it was given" >&2
+                status=1 ;;
+            esac
+          done
+          exit "$status"
+
+      # A documented setting that no deployment file forwards is worse than an
+      # undocumented one: it is followed, it appears to work, and the server
+      # quietly keeps its default. `SIGNUP_ENABLED=false` was set in a real
+      # .env, reached nothing, and accounts went on being created.
+      #
+      # So every name .env.example teaches has to appear in the files that
+      # actually run the thing.
+      - name: Every documented setting reaches the container
+        run: |
+          set -eu
+
+          # Published as a port rather than passed to the process, and Swarm's
+          # routing mesh has no per-interface bind — so this one is Compose-only
+          # by design. Anything else missing is a bug.
+          stack_exempt='BIND_ADDRESS'
+
+          # Both the live lines and the commented examples: a setting shown as
+          # `# QUOTAS_ENABLED=false` is still documented.
+          names="$(sed -n 's/^#\{0,1\} *\([A-Z][A-Z0-9_]*\)=.*/\1/p' .env.example | sort -u)"
+
+          status=0
+          for file in docker-compose.yml docker-stack.yml; do
+            for name in $names; do
+              case "$file:$name" in
+                docker-stack.yml:$stack_exempt) continue ;;
+              esac
+
+              if grep -q "\${$name[:?-]" "$file"; then
+                echo "ok   $file $name"
+              else
+                echo "FAIL $name is documented in .env.example but $file never forwards it" >&2
+                status=1
+              fi
+            done
+          done
+          exit "$status"

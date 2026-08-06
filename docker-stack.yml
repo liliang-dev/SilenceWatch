@@ -1,0 +1,214 @@
+# Docker Swarm stack. Deployed by .github/workflows/release.yml on a tag, and by
+# hand with:
+#
+#   set -a; . /opt/silencewatch/.env; set +a
+#   SILENCEWATCH_VERSION=0.1.0 docker stack deploy -c docker-stack.yml silencewatch
+#
+# This is not docker-compose.yml with a `deploy:` block bolted on. `docker stack
+# deploy` silently ignores several keys that file relies on — `depends_on`,
+# `restart`, and the short form of `tmpfs` among them — so the differences below
+# are deliberate, and each one is a bug avoided rather than a preference.
+version: '3.8'
+
+services:
+  silencewatch:
+    image: ghcr.io/liliang-dev/silencewatch:${SILENCEWATCH_VERSION:?SILENCEWATCH_VERSION is required}
+
+    # Two replicas is what makes a zero-downtime update possible at all: with
+    # one, `start-first` still leaves a window where the only healthy task is
+    # the one being replaced. Running two is safe here by design rather than by
+    # luck — the detection loop and the alert queue claim rows with
+    # `FOR UPDATE SKIP LOCKED`, so instances share work instead of duplicating
+    # alerts, and the ingest cache is invalidated across them by LISTEN/NOTIFY.
+    deploy:
+      replicas: 2
+      update_config:
+        # The whole point. `start-first` brings the new task up and waits for it
+        # to pass the image's HEALTHCHECK before the old one is stopped, so
+        # there is never a moment with no healthy task behind the routing mesh.
+        order: start-first
+        parallelism: 1
+        # Long enough for the health check to have a real opinion: the image
+        # allows a 20s start period and 3 retries at 30s.
+        monitor: 120s
+        delay: 15s
+        # If the new version cannot become healthy, Swarm puts the old one back
+        # on its own. The deploy job then fails on the version check, so a
+        # rolled-back deploy is a red build rather than a silent no-op.
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+        parallelism: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      # Keep the application off the database node, so a burst of CRUD cannot
+      # starve PostgreSQL of CPU on the one machine that cannot be moved.
+      # Delete this if the swarm is a single node.
+      placement:
+        preferences:
+          - spread: node.id
+
+    ports:
+      - target: 8080
+        published: ${PORT:-8080}
+        protocol: tcp
+        mode: ingress
+
+    environment:
+      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/silencewatch
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      BASE_URL: ${BASE_URL:?BASE_URL is required}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      SMTP_URL: ${SMTP_URL:-}
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-alerts@example.com}
+      OUTBOUND_HEARTBEAT_URL: ${OUTBOUND_HEARTBEAT_URL:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      PING_RETENTION_DAYS: ${PING_RETENTION_DAYS:-90}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
+      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      UNVERIFIED_ACCOUNT_TTL_DAYS: ${UNVERIFIED_ACCOUNT_TTL_DAYS:-7}
+      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-60}
+      SIGNUP_POW_DIFFICULTY: ${SIGNUP_POW_DIFFICULTY:-0}
+      SIGNUP_BLOCK_DISPOSABLE_EMAIL: ${SIGNUP_BLOCK_DISPOSABLE_EMAIL:-false}
+      SIGNUP_BLOCKED_EMAIL_DOMAINS: ${SIGNUP_BLOCKED_EMAIL_DOMAINS:-}
+      SIGNUP_MAX_PER_NETWORK_PER_HOUR: ${SIGNUP_MAX_PER_NETWORK_PER_HOUR:-0}
+      QUOTAS_ENABLED: ${QUOTAS_ENABLED:-false}
+      DEFAULT_PLAN: ${DEFAULT_PLAN:-free}
+      PLAN_LIMITS: ${PLAN_LIMITS:-}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-SilenceWatch}
+      ALLOW_PRIVATE_NOTIFICATION_TARGETS: ${ALLOW_PRIVATE_NOTIFICATION_TARGETS:-false}
+
+    # `depends_on` is ignored by `docker stack deploy`, so the application will
+    # sometimes start before PostgreSQL accepts connections. That is already
+    # handled: the entrypoint retries migrations with backoff, and says which
+    # attempt failed rather than calling everything "database not ready".
+    read_only: true
+    # The long form on purpose. `tmpfs: [/tmp]` is one of the keys stack deploy
+    # drops, and a read-only container with no writable /tmp does not start —
+    # a failure that would look like the release being broken.
+    volumes:
+      - type: tmpfs
+        target: /tmp
+
+    # Time for in-flight requests to finish before SIGKILL. Ingestion writes are
+    # short; this is generous on purpose, since it costs nothing when unused.
+    stop_grace_period: 30s
+
+    networks:
+      - silencewatch
+
+  db:
+    image: postgres:16-alpine
+
+    deploy:
+      replicas: 1
+      # Pinned to one node by label. Without this a reschedule would start
+      # PostgreSQL on another machine, against an empty local volume — an
+      # instance that looks healthy and has lost every check, ping and account.
+      # Label the node once:
+      #   docker node update --label-add silencewatch.db=true <node>
+      placement:
+        constraints:
+          - node.labels.silencewatch.db == true
+      update_config:
+        # Never start-first for the database. Two PostgreSQL processes on one
+        # data directory corrupt it; the brief pause here is the correct trade,
+        # and the application rides it out because its own tasks stay up and
+        # retry.
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+
+    environment:
+      POSTGRES_USER: silencewatch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: silencewatch
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U silencewatch -d silencewatch']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - silencewatch
+
+  # HTTPS. Unlike the Compose file there is no profile to hide it behind —
+  # Swarm has none — and a deployment reached over the internet wants TLS
+  # anyway. It needs SILENCEWATCH_DOMAIN pointing at this swarm, with 80 and
+  # 443 reachable, which is how Caddy proves control of the name.
+  caddy:
+    image: caddy:2-alpine
+    # One line instead of a Caddyfile, which would otherwise have to be
+    # distributed to every node as a swarm config object. Automatic HTTPS comes
+    # from `--from` being a hostname rather than a port.
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required} --to silencewatch:8080
+
+    deploy:
+      replicas: 1
+      # Pinned like the database, and for the same reason: the certificates are
+      # in a local volume. A task rescheduled elsewhere would find it empty and
+      # ask Let's Encrypt for a fresh certificate, which is rate-limited.
+      placement:
+        constraints:
+          - node.labels.silencewatch.db == true
+      update_config:
+        # Not start-first. Two tasks cannot both hold ports 80 and 443, and two
+        # Caddy processes sharing one certificate store is asking for trouble.
+        # The gap is a second or two, and only when Caddy itself changes — the
+        # application behind it updates without ever going through this.
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+
+    ports:
+      - target: 80
+        published: 80
+        mode: ingress
+      - target: 443
+        published: 443
+        mode: ingress
+      - target: 443
+        published: 443
+        protocol: udp
+        mode: ingress
+
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+    networks:
+      - silencewatch
+
+networks:
+  silencewatch:
+    driver: overlay
+    attachable: false
+    # Fixed so TRUST_PROXY can name it. The server rejects `TRUST_PROXY=true` in
+    # production — a bare true lets anything able to reach the port forge its
+    # own client address — so it needs the CIDR the proxy speaks from, and an
+    # automatically assigned one differs between swarms.
+    ipam:
+      config:
+        - subnet: ${SWARM_SUBNET:-10.20.0.0/16}
+
+volumes:
+  pgdata:
+    # Local to the node the constraint above pins the database to. Moving the
+    # database to another node means moving this volume with it, deliberately.
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

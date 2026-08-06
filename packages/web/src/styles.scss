@@ -33,9 +33,21 @@
   --sw-text-muted: #667085;
   --sw-text-subtle: #98a2b3;
 
-  --sw-accent: #3538cd;
-  --sw-accent-hover: #2d30a6;
-  --sw-accent-soft: #eef0ff;
+  /* One purple, hsl(263 86% 62%).
+
+     The brand started lighter, at hsl(263 94% 79%), and that shade cannot be
+     an interface: white on it is 2.4:1, so the glyph washed out and a filled
+     button was unreadable. Darkened to 62% lightness it clears 4.5:1 in both
+     directions at once — white on the mark, and the mark's colour as text or a
+     button on white — which is what lets the logo and the accent be the same
+     value instead of two purples that merely resemble each other.
+
+     The original lightness is not thrown away: it is what the dark theme uses
+     below, where a pale lavender is exactly right. */
+  --sw-brand: #8b4bf1;
+  --sw-accent: #8b4bf1;
+  --sw-accent-hover: #6c1bee;
+  --sw-accent-soft: #faf7ff;
   --sw-accent-contrast: #ffffff;
 
   /* Status — the only colours allowed to shout */
@@ -75,9 +87,13 @@
     --sw-text-muted: #98a2b3;
     --sw-text-subtle: #6c7689;
 
-    --sw-accent: #8098f9;
-    --sw-accent-hover: #a4bcfd;
-    --sw-accent-soft: #1a2036;
+    /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
+       surface it sits on. The mark stays #8b4bf1 in both themes — a logo is
+       one object, not a themed one — and only the interface lightens. */
+    --sw-brand: #8b4bf1;
+    --sw-accent: #bc95fc;
+    --sw-accent-hover: #d3bafe;
+    --sw-accent-soft: #221a36;
     --sw-accent-contrast: #0b0d11;
 
     /* Lightened so they keep contrast on a dark surface: the light-mode greens

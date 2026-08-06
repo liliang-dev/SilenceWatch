@@ -56,7 +56,15 @@ describe('API keys', () => {
     expect(parsed?.secretHash).toBe(generated.secretHash);
     // The prefix is safe to display: it must not contain the secret half.
     expect(generated.token.startsWith(generated.prefix)).toBe(true);
-    expect(generated.prefix).not.toContain(generated.token.split('_')[2]);
+
+    // Not `token.split('_')[2]`: the secret is base64url, an alphabet that
+    // includes `_`, so splitting returns whatever precedes the secret's own
+    // first underscore. When the secret opens with one that is the empty
+    // string, and every string contains the empty string, so the assertion
+    // failed on a key that was in fact well formed.
+    const secret = generated.token.slice(`${generated.prefix}_`.length);
+    expect(secret).toHaveLength(43);
+    expect(generated.prefix).not.toContain(secret);
   });
 
   it('rejects malformed tokens without touching the database', () => {

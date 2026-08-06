@@ -1,20 +1,26 @@
 services:
   silencewatch:
-    # Built from this checkout. No image is published yet, so pointing at a
-    # registry here would make `docker compose up` fail on a fresh clone with
-    # nothing running at all — which looks a lot like a missing application.
-    # Once a release is published, swap this for the image line below.
-    build:
-      context: .
-      args:
-        SILENCEWATCH_VERSION: dev
-    # image: ghcr.io/liliang-dev/silencewatch:latest
+    # Pinned rather than `latest`: an instance should not change version because
+    # it happened to restart, and "which version is this?" must have an answer
+    # when something is wrong. Upgrading is editing this line, then
+    # `docker compose pull && docker compose up -d`.
+    image: ghcr.io/liliang-dev/silencewatch:0.1.1
+    # Working from a checkout instead? Comment the line above and uncomment
+    # these; nothing else in this file changes.
+    # build:
+    #   context: .
+    #   args:
+    #     SILENCEWATCH_VERSION: dev
     restart: unless-stopped
     ports:
-      - '${PORT:-8080}:8080'
+      # Published on every interface by default, which is what makes
+      # `docker compose up -d` reachable with nothing else configured. Behind
+      # the TLS profile below, set BIND_ADDRESS=127.0.0.1 so only Caddy can
+      # reach it and the plain-HTTP port stops being a way around it.
+      - '${BIND_ADDRESS:-0.0.0.0}:${PORT:-8080}:8080'
     environment:
-      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/silencewatch
-      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — openssl rand -hex 32}
+      DATABASE_URL: postgres://silencewatch:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/silencewatch
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       # Public URL: it is what ping URLs and alert links are built from, so it
       # has to be what your users actually type.
       BASE_URL: ${BASE_URL:-http://localhost:8080}
@@ -27,6 +33,21 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-false}
       PING_RETENTION_DAYS: ${PING_RETENTION_DAYS:-90}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
+      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      UNVERIFIED_ACCOUNT_TTL_DAYS: ${UNVERIFIED_ACCOUNT_TTL_DAYS:-7}
+      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-60}
+      SIGNUP_POW_DIFFICULTY: ${SIGNUP_POW_DIFFICULTY:-0}
+      SIGNUP_BLOCK_DISPOSABLE_EMAIL: ${SIGNUP_BLOCK_DISPOSABLE_EMAIL:-false}
+      SIGNUP_BLOCKED_EMAIL_DOMAINS: ${SIGNUP_BLOCKED_EMAIL_DOMAINS:-}
+      SIGNUP_MAX_PER_NETWORK_PER_HOUR: ${SIGNUP_MAX_PER_NETWORK_PER_HOUR:-0}
+      QUOTAS_ENABLED: ${QUOTAS_ENABLED:-false}
+      DEFAULT_PLAN: ${DEFAULT_PLAN:-free}
+      PLAN_LIMITS: ${PLAN_LIMITS:-}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-SilenceWatch}
+      ALLOW_PRIVATE_NOTIFICATION_TARGETS: ${ALLOW_PRIVATE_NOTIFICATION_TARGETS:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -47,7 +68,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: silencewatch
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: silencewatch
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -63,5 +84,50 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # HTTPS, and nothing else. Behind a Compose profile, so it does not exist
+  # unless asked for: `docker compose up -d` starts exactly what it started
+  # before this service was added, and the simple path stays one command and a
+  # .env file.
+  #
+  #   docker compose --profile tls up -d
+  #
+  # Requires SILENCEWATCH_DOMAIN to be a real hostname pointing at this machine,
+  # with ports 80 and 443 reachable — Caddy proves control of the name over both
+  # to obtain the certificate, then renews it on its own.
+  caddy:
+    profiles: ['tls']
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # No Caddyfile: this one line is the whole configuration, and a file would
+    # be one more thing to mount here and distribute to every node in Swarm.
+    # Automatic HTTPS comes from `--from` being a hostname rather than a port.
+    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required} --to silencewatch:8080
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      # Certificates and account keys. Losing this volume means re-issuing on
+      # next start, which Let's Encrypt rate-limits — keep it.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      silencewatch:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  # Declared with a fixed subnet so TRUST_PROXY can name it. The server refuses
+  # `TRUST_PROXY=true` in production on purpose — a bare true lets anything able
+  # to reach the port forge its own client address — so it needs the CIDR the
+  # proxy actually speaks from, and a Docker-assigned one changes between hosts.
+  default:
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET:-172.28.0.0/16}
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

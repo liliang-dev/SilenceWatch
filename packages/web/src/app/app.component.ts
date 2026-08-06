@@ -26,9 +26,9 @@ import { IconComponent } from './shared/icon.component';
             <span class="mark" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
                 <path
-                  d="M2 12h4l2.5-6.5L13 18l2.5-6H22"
+                  d="M2 12H5.5L7.1 10.3L8.3 13.4L11 4.2L13.6 17.2L16.5 9.1L17.6 12H22"
                   stroke="currentColor"
-                  stroke-width="2.1"
+                  stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 />
@@ -118,7 +118,10 @@ import { IconComponent } from './shared/icon.component';
       text-decoration: none;
     }
 
-    /* The trace of a heartbeat, which is the entire product in one glyph. */
+    /* The trace of a heartbeat, which is the entire product in one glyph.
+       Flat brand purple with a white stroke, in both themes: this is the logo,
+       not a themed element, and it should be the same object everywhere it
+       appears. */
     .mark {
       display: grid;
       place-items: center;
@@ -127,7 +130,7 @@ import { IconComponent } from './shared/icon.component';
       flex: none;
       border-radius: 8px;
       color: #fff;
-      background: linear-gradient(145deg, var(--sw-accent), color-mix(in srgb, var(--sw-accent) 55%, #7c3aed));
+      background: var(--sw-brand);
       box-shadow: var(--sw-shadow-sm);
     }
 

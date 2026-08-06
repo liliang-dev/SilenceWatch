@@ -92,7 +92,7 @@ function renderHtml(
       <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${accent};color:#fff;font-size:11px;font-weight:700;letter-spacing:.6px">${badge}</span>
       <h1 style="margin:16px 0 4px;font-size:18px;line-height:1.35;color:#202124">${escapeHtml(headline)}</h1>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;width:100%">${rows}</table>
-      <a href="${escapeAttribute(alert.url)}" style="display:inline-block;margin-top:20px;padding:10px 18px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">Open check</a>
+      <a href="${escapeAttribute(alert.url)}" style="display:inline-block;margin-top:20px;padding:10px 18px;background:#8b4bf1;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">Open check</a>
       <p style="margin:20px 0 0;color:#80868b;font-size:12px;line-height:1.5">
         You are receiving this because a SilenceWatch notification channel for
         ${escapeHtml(alert.project.name)} points at this address.

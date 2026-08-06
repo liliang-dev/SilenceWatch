@@ -10,6 +10,100 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- New logo, and one purple across the whole product. The mark is the brand
+  waveform, traced from the artwork rather than redrawn — the vertices, the
+  baseline and the stroke width are measured from it — on `#8b4bf1`, which is
+  the same value the light theme uses for every button and link. That is the
+  lightness at which white on the mark and the mark's colour on white both
+  clear 4.5:1, so the logo and the interface no longer need two purples that
+  merely resemble each other. The dark theme lightens the accent to `#bc95fc`
+  and leaves the mark alone. Alert and account emails moved with it — three of
+  them were still on a blue that matched nothing.
+
+- **The project builds with pnpm.** `npm install` no longer produces a tree that
+  matches a lockfile; `corepack enable` then `pnpm install` does. The version of
+  pnpm is pinned with its hash in `package.json`, so CI, the image and a
+  contributor's laptop all run the same one. Nothing about running SilenceWatch
+  changes — the image is built the same way and contains no package manager.
+- The container image installs its production dependencies from the lockfile
+  rather than pruning the build tree. Copying selected directories out of a
+  pnpm `node_modules` copies links whose targets are left behind, and the
+  version of that trick for npm had already produced one release that started,
+  migrated, and died on a missing package.
+
+### Security
+
+- Nothing a dependency ships runs at install time unless it is named in
+  `allowBuilds`, and that list is four packages. A postinstall script from a
+  compromised package is how the npm ecosystem's actual compromises have
+  worked, and it runs with whatever the developer or the build has.
+- Nothing published in the last three days is installed. Dependabot is set to
+  the same three days, so the two agree instead of fighting.
+- `find-my-way` is forced to 9.7.0. `@nestjs/platform-fastify` still asks for
+  9.6.0, which GHSA-c96f-x56v-gq3h covers.
+- CI fails on a high-severity advisory, and on the install-script allowlist
+  growing past five entries.
+
+### Fixed
+
+- Fifteen documented settings now actually reach the server. `SIGNUP_ENABLED`,
+  the whole sign-up integrity block, quotas, `AUDIT_RETENTION_DAYS`,
+  `EMAIL_FROM_NAME` and `ALLOW_PRIVATE_NOTIFICATION_TARGETS` were described in
+  `.env.example` but forwarded by neither `docker-compose.yml` nor
+  `docker-stack.yml`, so setting them changed nothing and the server kept its
+  default — `SIGNUP_ENABLED=false` left registration open. CI now fails if a
+  name `.env.example` documents is missing from either file.
+- `PLAN_LIMITS` accepts a blank value, like the other optional settings. It
+  could not be given a Compose default at all: `${PLAN_LIMITS:-{}}` ends the
+  interpolation at the first brace.
+
+## [0.1.1] — 2026-08-03
+
+### Fixed
+
+- A setting left blank no longer stops the server. `SMTP_URL`, `POSTMARK_TOKEN`,
+  `BREVO_API_KEY` and `OUTBOUND_HEARTBEAT_URL` are optional, but Compose and
+  Swarm turn `KEY: ${KEY:-}` into `KEY=""` — present and invalid rather than
+  absent — so a deployment that deliberately set none of them refused to start
+  on `OUTBOUND_HEARTBEAT_URL: Invalid url`. Blank now means unset; a value that
+  is present and wrong is still rejected.
+
+### Added
+
+- `docker-stack.yml`, a Docker Swarm deployment that upgrades without dropping
+  requests: two replicas, `start-first`, and the image's health check decide
+  when the old version stops. PostgreSQL is pinned to a node and updates
+  `stop-first`, because two of it on one data directory corrupt it.
+- HTTPS, behind a Compose profile so the one-command path is unchanged.
+  `docker compose --profile tls up -d` adds Caddy, which obtains and renews a
+  certificate on its own. `docker compose up -d` still needs the same two
+  values it always did.
+- The release workflow deploys to a swarm over SSH once a tag's image is
+  published and verified, and fails on a rollback rather than reporting a
+  success that did not happen.
+- Status badges in the README: CI, CodeQL, the release workflow and the
+  published version.
+
+### Changed
+
+- The release workflow updates an existing GitHub release instead of failing
+  when one is already there, and labels the image with the commit it was
+  actually built from rather than the branch it was dispatched from.
+- `.env.example` no longer suggests `TRUST_PROXY=true`, which production
+  refuses: it now says to name the proxy's network, and both Docker networks
+  declare a fixed subnet so there is one to name.
+
+### Security
+
+- `fast-uri` updated (#33).
+
+## [0.1.0] — 2026-08-02
+
+First tagged release. Everything below was developed before the project had
+versions, so it is recorded as one entry rather than invented history.
+
 ### Security
 
 - Outbound HTTP now vets a host given as an IP address before opening the
@@ -54,4 +148,6 @@ called out under **Changed** with what to do about it.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/commits/main
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.1
+[0.1.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.0

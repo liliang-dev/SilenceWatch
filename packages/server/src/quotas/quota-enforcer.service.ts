@@ -265,7 +265,7 @@ function pausedHtml(
       larger plan, and they come back on their own.
     </p>
     <p style="margin:0">
-      <a href="${escapeHtml(baseUrl)}/checks" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#3538cd;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Review my checks</a>
+      <a href="${escapeHtml(baseUrl)}/checks" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#8b4bf1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Review my checks</a>
     </p>
   </div>
 </body></html>`;

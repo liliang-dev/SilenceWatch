@@ -9,10 +9,39 @@ packages/web       Angular UI, built into packages/server/public (AGPL-3.0)
 clients/spring-boot-starter   the Spring Boot starter (Apache-2.0)
 ```
 
+## The package manager
+
+pnpm, and specifically the version `package.json` pins in `packageManager` —
+including its hash, which corepack checks the download against. You do not
+install it:
+
+```bash
+corepack enable
+```
+
+Node ships corepack, and the first `pnpm` command fetches exactly that version.
+`npm install` in this repository produces a tree that matches no lockfile.
+
+Two settings in `pnpm-workspace.yaml` will interrupt you eventually, so they are
+worth knowing before they do:
+
+- **Nothing a dependency ships runs at install time** unless it is named in
+  `allowBuilds`. Adding a dependency that needs to compile or download something
+  fails the install with its name; add it there, in the same commit, with a
+  sentence saying why.
+- **Nothing published in the last three days is installed.** `pnpm add
+  something@latest` can fail with a version that plainly exists. That is the
+  setting working — `--minimum-release-age=0` overrides it when the reason is
+  good.
+
+Both exist because an install script from a compromised package runs with your
+credentials and your network, and the compromises that have actually happened
+were caught within a day.
+
 ## Running it locally
 
 ```bash
-npm install
+pnpm install
 docker run -d --name sw-postgres -p 5432:5432 \
   -e POSTGRES_PASSWORD=silencewatch -e POSTGRES_USER=silencewatch -e POSTGRES_DB=silencewatch \
   postgres:16-alpine
@@ -25,10 +54,10 @@ EMAIL_PROVIDER=console
 LOG_LEVEL=debug
 EOF
 
-npm run build:shared
-npm run prisma:migrate -w @silencewatch/server
-npm run dev            # API on :8080
-npm run dev:web        # UI on :4200, proxying /api and /p to :8080
+pnpm run build:shared
+pnpm run prisma:migrate
+pnpm run dev            # API on :8080
+pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 ```
 
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
@@ -46,8 +75,8 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 ## Tests
 
 ```bash
-npm test                       # shared, server and web unit tests, no database
-npm run test:e2e -w @silencewatch/server   # needs TEST_DATABASE_URL
+pnpm test              # shared, server and web unit tests, no database
+pnpm run test:e2e      # needs TEST_DATABASE_URL
 cd clients/spring-boot-starter && mvn test
 ```
 
@@ -58,7 +87,7 @@ it its own:
 
 ```bash
 createdb silencewatch_test
-TEST_DATABASE_URL=postgresql://…/silencewatch_test npm run test:e2e -w @silencewatch/server
+TEST_DATABASE_URL=postgresql://…/silencewatch_test pnpm run test:e2e
 ```
 
 It runs against a real PostgreSQL on purpose: the interesting logic (the detection
@@ -69,7 +98,7 @@ SQL, and a mocked database would test none of it.
 
 ```bash
 cd packages/server
-BASE=http://localhost:8080 CHECKS=50 DURATION=20 CONNECTIONS=100 npm run loadtest
+BASE=http://localhost:8080 CHECKS=50 DURATION=20 CONNECTIONS=100 pnpm run loadtest
 ```
 
 It creates checks, hammers their ping URLs, and **fails if a single heartbeat was
@@ -108,12 +137,12 @@ To change the schema:
 1. edit `packages/server/prisma/schema.prisma`;
 2. generate the SQL and review it:
    ```bash
-   npx prisma migrate diff --from-url "$DATABASE_URL" \
+   pnpm exec prisma migrate diff --from-url "$DATABASE_URL" \
      --to-schema-datamodel prisma/schema.prisma --script
    ```
 3. save it as `prisma/migrations/<timestamp>_<name>/migration.sql`, adding by hand
    anything Prisma cannot express;
-4. apply with `npx prisma migrate deploy` and run the end-to-end suite.
+4. apply with `pnpm exec prisma migrate deploy` and run the end-to-end suite.
 
 Do not use `prisma migrate dev`: it would offer to drop the objects it does not
 know about.

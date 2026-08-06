@@ -194,11 +194,11 @@ function resetHtml(link: string, ttlMinutes: number): string {
       Somebody asked to reset the password on your SilenceWatch account.
     </p>
     <p style="margin:0 0 20px">
-      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#3538cd;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Choose a new password</a>
+      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#8b4bf1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Choose a new password</a>
     </p>
     <p style="margin:0 0 8px;font-size:13px;color:#667085">
       Or paste this into your browser:<br>
-      <span style="word-break:break-all;color:#3538cd">${href}</span>
+      <span style="word-break:break-all;color:#8b4bf1">${href}</span>
     </p>
     <p style="margin:16px 0 0;font-size:12px;color:#98a2b3">
       Valid for ${ttlMinutes} minutes, usable once. If it was not you, ignore this message — your

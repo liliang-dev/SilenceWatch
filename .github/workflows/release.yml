@@ -1,0 +1,400 @@
+name: Release
+
+# Publishes the container image and the GitHub release for a tag.
+#
+# Tags carry no `v` prefix, matching 0.1.0 as tagged. The pattern is strict
+# rather than `*`, so an unrelated tag — a checkpoint, a mistake — cannot
+# publish an image to a registry other people pull from.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+*']
+  # Releases a tag that already exists. Adding this workflow does not fire it
+  # retroactively, and re-pushing a tag to trigger a build is a bad habit: it
+  # changes what a published version means.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, for example 0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # create the GitHub release
+      packages: write # push to GHCR
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image: ${{ steps.version.outputs.image }}
+
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          # Through the environment rather than inlined: a tag name is
+          # attacker-influenced on a fork, and interpolating it into a shell
+          # would run it.
+          RAW_VERSION: ${{ inputs.tag || github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -eu
+          case "$RAW_VERSION" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing to release '$RAW_VERSION': expected N.N.N" >&2
+              exit 1
+              ;;
+          esac
+
+          # GHCR rejects uppercase, and the repository name has some.
+          image="ghcr.io/$(printf '%s' "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+
+          {
+            echo "version=$RAW_VERSION"
+            echo "image=$image"
+          } >> "$GITHUB_OUTPUT"
+
+          # `latest` follows stable releases only. Moving it to a pre-release
+          # would upgrade every instance that tracks it to a version not meant
+          # for them.
+          case "$RAW_VERSION" in
+            *-*) echo "latest=false" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "latest=true"  >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tag, not the branch: a manual run must build what was tagged,
+          # not whatever main has become since.
+          ref: ${{ steps.version.outputs.version }}
+
+      # The commit that was checked out, which is not github.sha: on a manual
+      # run that is the head of the branch the workflow was dispatched from,
+      # while the build uses the tag. Labelling the image with github.sha made
+      # it name a commit it was not built from — provenance that is worse than
+      # none, because it looks authoritative.
+      - name: Resolve the tagged commit
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      # Built and tested before it is pushed. An image that cannot start is
+      # worse in a registry than absent: `docker compose up` would pull it.
+      - name: Build the image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: silencewatch:release-candidate
+          build-args: |
+            SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
+            SILENCEWATCH_COMMIT=${{ steps.commit.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          docker network create sw-release
+          docker run -d --name sw-db --network sw-release \
+            -e POSTGRES_USER=silencewatch -e POSTGRES_PASSWORD=silencewatch \
+            -e POSTGRES_DB=silencewatch postgres:16-alpine
+          for _ in $(seq 1 30); do
+            docker exec sw-db pg_isready -U silencewatch && break
+            sleep 2
+          done
+
+          # Same hardened shape as docker-compose.yml and the CI job: what ships
+          # is what is tested.
+          docker run -d --name sw-app --network sw-release -p 8080:8080 \
+            --read-only --tmpfs /tmp \
+            -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
+            -e SECRET_KEY=release-secret-key-that-is-long-enough-for-the-check \
+            -e BASE_URL=http://localhost:8080 \
+            -e EMAIL_PROVIDER=smtp \
+            -e SMTP_URL=smtp://relay.invalid:587 \
+            silencewatch:release-candidate
+
+          trap 'docker logs sw-app' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health && break
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8080/health | tee /dev/stderr | grep -q '"status":"ok"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
+          curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+
+          # The published image must be able to say which version and which
+          # commit it is, or a bug report cannot name either. The commit check
+          # is what catches the image being labelled from the wrong ref: the
+          # version was right while the commit named a different tree.
+          docker exec sw-app printenv SILENCEWATCH_VERSION \
+            | grep -qx '${{ steps.version.outputs.version }}'
+          docker exec sw-app printenv SILENCEWATCH_COMMIT \
+            | grep -qx '${{ steps.commit.outputs.sha }}'
+
+      # No docker/login-action: `docker login` needs no third-party action, and
+      # every action here is one this repository already pins elsewhere.
+      - name: Log in to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      # linux/amd64 only. Prisma's engines are per-architecture and the schema
+      # is pinned to debian-openssl-3.0.x, which the Dockerfile then copies by
+      # name for the migrations that run at container start. An arm64 image
+      # built from this schema would carry the wrong engine and fail to
+      # migrate — publishing one would be worse than not publishing it.
+      # Supporting arm64 means adding its target to schema.prisma first.
+      - name: Push the image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: true
+          sbom: true
+          tags: |
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.latest == 'true' && format('{0}:latest', steps.version.outputs.image) || '' }}
+          build-args: |
+            SILENCEWATCH_VERSION=${{ steps.version.outputs.version }}
+            SILENCEWATCH_COMMIT=${{ steps.commit.outputs.sha }}
+          cache-from: type=gha
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          IMAGE: ${{ steps.version.outputs.image }}
+        run: |
+          set -eu
+
+          # The section for this version, verbatim from the changelog. Written
+          # by hand there once, rather than twice in two places that drift.
+          # Stops at the next version heading, and also at the link definitions
+          # at the foot of the file — the newest section has no heading after it,
+          # so without that second guard the notes end with a block of URLs.
+          notes="$(awk -v v="## [$VERSION]" '
+            index($0, v) == 1 { collecting = 1; next }
+            collecting && /^## \[/ { exit }
+            collecting && /^\[[^]]+\]: / { exit }
+            collecting { print }
+          ' CHANGELOG.md)"
+
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            cat >&2 <<MESSAGE
+          No '## [$VERSION]' section in CHANGELOG.md at tag $VERSION.
+
+          The changelog is read from the tag, not from the default branch, so
+          that the notes describe what was actually released. That means the
+          entry has to exist in the commit being tagged: write the section,
+          merge it, then tag. A tag created before its own changelog entry
+          cannot describe itself, and moving the tag forward is the fix.
+          MESSAGE
+            exit 1
+          fi
+
+          {
+            printf '%s\n' "$notes"
+            # Leading blank line: command substitution strips the section's
+            # trailing newlines, which would otherwise glue this heading to the
+            # last paragraph of the changelog.
+            printf '\n## Container image\n\n'
+            printf '```\n%s:%s\n```\n' "$IMAGE" "$VERSION"
+          } > release-notes.md
+
+          # A release may already exist — drafted by hand before the workflow
+          # existed, or left behind by an earlier run that got this far. Creating
+          # is not the only correct outcome, so re-running is not an error.
+          #
+          # `edit` deliberately touches only the notes: the title and the
+          # prerelease flag are the maintainer's call, made in the UI, and a
+          # workflow that reset them on every run would fight whoever set them.
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION exists — updating its notes."
+            gh release edit "$VERSION" --notes-file release-notes.md
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
+
+
+  deploy:
+    name: Deploy to the swarm
+    needs: release
+    runs-on: ubuntu-latest
+
+    # A GitHub environment, so this is where a required reviewer or a deployment
+    # branch rule goes if releases should ever stop shipping unattended. With no
+    # rules it changes nothing, which is why it is here from the start: adding
+    # the gate later becomes a checkbox rather than a workflow change.
+    environment: production
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The stack file as it was at the tag, so the deployed topology
+          # matches the deployed image.
+          ref: ${{ needs.release.outputs.version }}
+
+      - name: Prepare the SSH client
+        env:
+          SSH_KEY: ${{ secrets.SWARM_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SWARM_SSH_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # The host key comes from a secret rather than
+          # StrictHostKeyChecking=no. Accepting whatever key answers would hand
+          # the deploy key, and the commands that follow it, to anyone able to
+          # intercept the connection. Produce the value once with:
+          #   ssh-keyscan -H your-host
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "SWARM_SSH_KNOWN_HOSTS is empty — refusing to connect blind." >&2
+            exit 1
+          fi
+
+      - name: Deploy the stack
+        env:
+          SSH_HOST: ${{ secrets.SWARM_SSH_HOST }}
+          SSH_USER: ${{ secrets.SWARM_SSH_USER }}
+          ENV_FILE: ${{ vars.SWARM_ENV_FILE || '/opt/silencewatch/.env' }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -eu
+
+          # The stack travels base64-encoded in the remote environment, not on
+          # stdin: stdin already carries the script itself, and a command cannot
+          # read two things from it. Encoding also means no quoting of YAML
+          # through a remote shell, and nothing is written to the server — there
+          # is no stale copy for anyone to edit and no file left behind.
+          stack_b64=$(base64 -w0 docker-stack.yml)
+
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              "$SSH_USER@$SSH_HOST" \
+              "STACK_B64='$stack_b64' VERSION='$VERSION' ENV_FILE='$ENV_FILE' bash -s" <<'REMOTE'
+          set -eu
+
+          if [ ! -r "$ENV_FILE" ]; then
+            echo "No readable env file at $ENV_FILE — the stack needs SECRET_KEY and POSTGRES_PASSWORD." >&2
+            exit 1
+          fi
+
+          # Values live on the server and never travel through CI. Only their
+          # names are in the repository.
+          set -a
+          . "$ENV_FILE"
+          set +a
+          export SILENCEWATCH_VERSION="$VERSION"
+
+          # --with-registry-auth forwards the manager's credentials to every
+          # node, which matters the day the package stops being public.
+          printf '%s' "$STACK_B64" | base64 -d | docker stack deploy \
+            --with-registry-auth \
+            --resolve-image always \
+            -c - silencewatch
+          REMOTE
+
+      - name: Wait for the swarm to converge
+        env:
+          SSH_HOST: ${{ secrets.SWARM_SSH_HOST }}
+          SSH_USER: ${{ secrets.SWARM_SSH_USER }}
+          ENV_FILE: ${{ vars.SWARM_ENV_FILE || '/opt/silencewatch/.env' }}
+          VERSION: ${{ needs.release.outputs.version }}
+          IMAGE: ${{ needs.release.outputs.image }}
+        run: |
+          set -eu
+
+          # `docker stack deploy` returns once the orchestrator has accepted the
+          # change, not once it has taken effect. Without this the job would go
+          # green on a deployment still starting, or one Swarm is in the middle
+          # of rolling back.
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              "$SSH_USER@$SSH_HOST" \
+              "VERSION='$VERSION' IMAGE='$IMAGE' ENV_FILE='$ENV_FILE' bash -s" <<'REMOTE'
+          set -eu
+          service=silencewatch_silencewatch
+          deadline=$(( $(date +%s) + 420 ))
+
+          while :; do
+            state=$(docker service inspect "$service" \
+                      --format '{{ if .UpdateStatus }}{{ .UpdateStatus.State }}{{ else }}none{{ end }}')
+
+            case "$state" in
+              completed|none)
+                break
+                ;;
+              rollback_started|rollback_completed|rollback_paused)
+                echo "Swarm rolled the update back: the new tasks never became healthy." >&2
+                docker service ps "$service" --no-trunc >&2 || true
+                exit 1
+                ;;
+              paused)
+                echo "The update is paused, which means it failed and did not roll back." >&2
+                docker service ps "$service" --no-trunc >&2 || true
+                exit 1
+                ;;
+            esac
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "Still '$state' after 7 minutes — giving up rather than reporting success." >&2
+              docker service ps "$service" --no-trunc >&2 || true
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Converged is not the same as converged on the right thing: a
+          # rollback that finished before the first poll would leave the state
+          # 'completed' with the old image still running.
+          running=$(docker service inspect "$service" \
+                      --format '{{ .Spec.TaskTemplate.ContainerSpec.Image }}')
+          case "$running" in
+            "$IMAGE:$VERSION"|"$IMAGE:$VERSION@"*) ;;
+            *)
+              echo "Converged on '$running', expected '$IMAGE:$VERSION'." >&2
+              exit 1
+              ;;
+          esac
+
+          # The only check here that exercises the application rather than the
+          # orchestrator. Through the published port, which the routing mesh
+          # exposes on every node, so this works wherever the tasks landed and
+          # needs no attachable network.
+          set -a
+          . "$ENV_FILE"
+          set +a
+          port="${PORT:-8080}"
+
+          reported=$(curl -fsS --max-time 10 "http://127.0.0.1:${port}/health" \
+                     | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+
+          if [ "$reported" != "$VERSION" ]; then
+            echo "/health reports version '$reported', expected '$VERSION'." >&2
+            exit 1
+          fi
+
+          echo "Deployed $VERSION; /health agrees."
+          REMOTE

@@ -1,0 +1,14 @@
+<!-- SilenceWatch. The trace of a heartbeat, which is the whole product in one
+     glyph. Traced from the brand artwork rather than redrawn: the vertices,
+     the baseline and the 33/1254 stroke are measured from it.
+
+     Brand purple #8b4bf1, hsl(263 86% 62%) — the lightness at which white on
+     it and it on white both clear 4.5:1, which is what lets the logo and the
+     interface accent be one colour. See packages/web/src/styles.scss. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="SilenceWatch">
+  <rect width="256" height="256" fill="#8b4bf1"/>
+  <path d="M52.7 132.3H79.2L90.8 119.8L100 142.9L120 73.5L139.6 171.1L161.7 110.8L170.3 132.3H203.1"
+        fill="none" stroke="#fff" stroke-width="6.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
