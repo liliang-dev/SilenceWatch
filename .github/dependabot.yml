@@ -13,6 +13,8 @@ updates:
       prefix: 'ci'
     labels: [dependencies, ci]
 
+  # Still called `npm` after the move to pnpm: the ecosystem name covers the
+  # registry, not the client, and Dependabot reads pnpm-lock.yaml natively.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -21,6 +23,12 @@ updates:
     commit-message:
       prefix: 'deps'
     labels: [dependencies]
+    # The same three days as `minimumReleaseAge` in pnpm-workspace.yaml, and it
+    # has to stay the same: without it Dependabot would propose a version
+    # published this morning and CI would refuse to install it, which reads as a
+    # broken pipeline rather than as the policy doing its job.
+    cooldown:
+      default-days: 3
     groups:
       # One pull request per family. Angular and Nest ship their packages in
       # lockstep, and splitting them produces PRs that cannot pass CI alone.

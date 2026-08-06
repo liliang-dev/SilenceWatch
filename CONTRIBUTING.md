@@ -54,10 +54,14 @@ A pull request moving client code under AGPL will not be merged.
 
 ## Before opening a pull request
 
+Node 24 LTS and pnpm via `corepack enable` — on an older Node the first command
+fails without saying that the Node version is why. See
+[docs/development.md](docs/development.md#node).
+
 ```bash
-npm test                                    # unit tests
-npm run test:e2e -w @silencewatch/server    # needs TEST_DATABASE_URL
-npm run lint
+pnpm test        # unit tests
+pnpm run test:e2e  # needs TEST_DATABASE_URL
+pnpm run lint
 cd clients/spring-boot-starter && mvn test  # if you touched the starter
 ```
 
@@ -81,6 +85,11 @@ See [docs/development.md](docs/development.md) for setting up a database.
   way.
 - Features from the "not yet" list in the README. They are excluded for reasons,
   usually about false positives.
+
+## Cutting a release
+
+Maintainers only: [docs/releasing.md](docs/releasing.md). Changelog, version
+bump, merge, tag — CI publishes the image and deploys.
 
 ## Reporting security issues
 

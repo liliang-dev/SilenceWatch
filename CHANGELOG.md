@@ -10,6 +10,55 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- New logo, and one purple across the whole product. The mark is the brand
+  waveform, traced from the artwork rather than redrawn — the vertices, the
+  baseline and the stroke width are measured from it — on `#8b4bf1`, which is
+  the same value the light theme uses for every button and link. That is the
+  lightness at which white on the mark and the mark's colour on white both
+  clear 4.5:1, so the logo and the interface no longer need two purples that
+  merely resemble each other. The dark theme lightens the accent to `#bc95fc`
+  and leaves the mark alone. Alert and account emails moved with it — three of
+  them were still on a blue that matched nothing.
+
+- **The project builds with pnpm.** `npm install` no longer produces a tree that
+  matches a lockfile; `corepack enable` then `pnpm install` does. The version of
+  pnpm is pinned with its hash in `package.json`, so CI, the image and a
+  contributor's laptop all run the same one. Nothing about running SilenceWatch
+  changes — the image is built the same way and contains no package manager.
+- The container image installs its production dependencies from the lockfile
+  rather than pruning the build tree. Copying selected directories out of a
+  pnpm `node_modules` copies links whose targets are left behind, and the
+  version of that trick for npm had already produced one release that started,
+  migrated, and died on a missing package.
+
+### Security
+
+- Nothing a dependency ships runs at install time unless it is named in
+  `allowBuilds`, and that list is four packages. A postinstall script from a
+  compromised package is how the npm ecosystem's actual compromises have
+  worked, and it runs with whatever the developer or the build has.
+- Nothing published in the last three days is installed. Dependabot is set to
+  the same three days, so the two agree instead of fighting.
+- `find-my-way` is forced to 9.7.0. `@nestjs/platform-fastify` still asks for
+  9.6.0, which GHSA-c96f-x56v-gq3h covers.
+- CI fails on a high-severity advisory, and on the install-script allowlist
+  growing past five entries.
+
+### Fixed
+
+- Fifteen documented settings now actually reach the server. `SIGNUP_ENABLED`,
+  the whole sign-up integrity block, quotas, `AUDIT_RETENTION_DAYS`,
+  `EMAIL_FROM_NAME` and `ALLOW_PRIVATE_NOTIFICATION_TARGETS` were described in
+  `.env.example` but forwarded by neither `docker-compose.yml` nor
+  `docker-stack.yml`, so setting them changed nothing and the server kept its
+  default — `SIGNUP_ENABLED=false` left registration open. CI now fails if a
+  name `.env.example` documents is missing from either file.
+- `PLAN_LIMITS` accepts a blank value, like the other optional settings. It
+  could not be given a Compose default at all: `${PLAN_LIMITS:-{}}` ends the
+  interpolation at the first brace.
+
 ## [0.1.1] — 2026-08-03
 
 ### Fixed

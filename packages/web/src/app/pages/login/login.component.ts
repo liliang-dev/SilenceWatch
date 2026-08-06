@@ -35,9 +35,9 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
               <span class="mark" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
-                    d="M2 12h4l2.5-6.5L13 18l2.5-6H22"
+                    d="M2 12H5.5L7.1 10.3L8.3 13.4L11 4.2L13.6 17.2L16.5 9.1L17.6 12H22"
                     stroke="currentColor"
-                    stroke-width="2.1"
+                    stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   />
@@ -209,7 +209,7 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
       height: 34px;
       border-radius: 10px;
       color: #fff;
-      background: linear-gradient(145deg, var(--sw-accent), color-mix(in srgb, var(--sw-accent) 55%, #7c3aed));
+      background: var(--sw-brand);
     }
 
     h1 {

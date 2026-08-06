@@ -9,10 +9,69 @@ packages/web       Angular UI, built into packages/server/public (AGPL-3.0)
 clients/spring-boot-starter   the Spring Boot starter (Apache-2.0)
 ```
 
+## Node
+
+**Node 24 LTS**, or anything else matching `engines.node` in `package.json`
+(`^22.22.3 || ^24.15.0 || >=26.0.0`). This is not a preference: Angular's CLI
+refuses to start below 22.22.3, and it is the version CI and the published image
+run, so it is the one this project is actually tested on.
+
+On an older Node the first failure is not a helpful one. Node 20 ships a
+corepack whose shim loads `pnpm.cjs` in a `vm` context without a dynamic-import
+callback, and pnpm 11 uses dynamic import, so the very first `pnpm` command dies
+with:
+
+```
+TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING]: A dynamic import callback
+was not specified.
+```
+
+That names neither Node nor the version requirement. Upgrading Node fixes it.
+Upgrading only corepack (`npm i -g corepack@latest`) also clears that message,
+and is the wrong fix — the Angular CLI then refuses the same Node one step
+later.
+
+## The package manager
+
+pnpm, and specifically the version `package.json` pins in `packageManager` —
+including its hash, which corepack checks the download against. You do not
+install it:
+
+```bash
+corepack enable
+```
+
+Node ships corepack, and the first `pnpm` command fetches exactly that version.
+`npm install` in this repository produces a tree that matches no lockfile.
+
+Coming from a checkout that predates pnpm, delete the npm tree first — an
+existing `node_modules` laid out by npm is not the layout pnpm expects:
+
+```bash
+rm -rf node_modules packages/*/node_modules
+pnpm install
+```
+
+Two settings in `pnpm-workspace.yaml` will interrupt you eventually, so they are
+worth knowing before they do:
+
+- **Nothing a dependency ships runs at install time** unless it is named in
+  `allowBuilds`. Adding a dependency that needs to compile or download something
+  fails the install with its name; add it there, in the same commit, with a
+  sentence saying why.
+- **Nothing published in the last three days is installed.** `pnpm add
+  something@latest` can fail with a version that plainly exists. That is the
+  setting working — `--minimum-release-age=0` overrides it when the reason is
+  good.
+
+Both exist because an install script from a compromised package runs with your
+credentials and your network, and the compromises that have actually happened
+were caught within a day.
+
 ## Running it locally
 
 ```bash
-npm install
+pnpm install
 docker run -d --name sw-postgres -p 5432:5432 \
   -e POSTGRES_PASSWORD=silencewatch -e POSTGRES_USER=silencewatch -e POSTGRES_DB=silencewatch \
   postgres:16-alpine
@@ -25,14 +84,58 @@ EMAIL_PROVIDER=console
 LOG_LEVEL=debug
 EOF
 
-npm run build:shared
-npm run prisma:migrate -w @silencewatch/server
-npm run dev            # API on :8080
-npm run dev:web        # UI on :4200, proxying /api and /p to :8080
+pnpm run prisma:migrate
+pnpm run dev            # API on :8080
+pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 ```
 
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
 with it when `NODE_ENV=production`.
+
+### What reads that `.env`
+
+Nothing in the application does. `loadConfig()` reads `process.env` and nothing
+else — the server is configured by environment variables, and an image whose
+behaviour depended on a file inside it would defeat the point.
+
+The file is a developer convenience, loaded by the two scripts that need it
+through Node's own `--env-file-if-exists`, with no dependency and nothing
+imported:
+
+```
+dev             node --env-file-if-exists=.env … nest start --watch
+prisma:migrate  node --env-file-if-exists=.env … prisma migrate dev
+```
+
+Both invoke the tool's JavaScript entry point rather than its `node_modules/.bin`
+shim, because that shim is a `.cmd` file on Windows and `node` cannot run it.
+
+Exported shell variables win — the file only fills in what is missing — and
+`start`, `prisma:deploy` and the container entrypoint never look at it, so
+production is configured exactly as before.
+
+### `@silencewatch/shared` has to be compiled
+
+The server and the UI resolve it through `packages/shared/dist`, which is a
+build artefact and therefore not in git. Until it exists, every file importing
+it fails with:
+
+```
+error TS2307: Cannot find module '@silencewatch/shared' or its corresponding
+type declarations.
+```
+
+`dev`, `dev:web`, `lint`, `test` and `test:e2e` build it first, so this is not
+a step to remember. `build:server` and `build:web` deliberately do not — the
+Dockerfile and CI sequence the three builds themselves, and chaining it here
+would compile it twice.
+
+**Changing shared while the dev server runs** does not propagate: the consumers
+read `dist`, and nothing rebuilt it. Leave a watcher running alongside:
+
+```bash
+pnpm --filter @silencewatch/shared run watch
+```
 
 ## Proving it works with curl
 
@@ -46,8 +149,8 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 ## Tests
 
 ```bash
-npm test                       # shared, server and web unit tests, no database
-npm run test:e2e -w @silencewatch/server   # needs TEST_DATABASE_URL
+pnpm test              # shared, server and web unit tests, no database
+pnpm run test:e2e      # needs TEST_DATABASE_URL
 cd clients/spring-boot-starter && mvn test
 ```
 
@@ -58,7 +161,7 @@ it its own:
 
 ```bash
 createdb silencewatch_test
-TEST_DATABASE_URL=postgresql://…/silencewatch_test npm run test:e2e -w @silencewatch/server
+TEST_DATABASE_URL=postgresql://…/silencewatch_test pnpm run test:e2e
 ```
 
 It runs against a real PostgreSQL on purpose: the interesting logic (the detection
@@ -69,7 +172,7 @@ SQL, and a mocked database would test none of it.
 
 ```bash
 cd packages/server
-BASE=http://localhost:8080 CHECKS=50 DURATION=20 CONNECTIONS=100 npm run loadtest
+BASE=http://localhost:8080 CHECKS=50 DURATION=20 CONNECTIONS=100 pnpm run loadtest
 ```
 
 It creates checks, hammers their ping URLs, and **fails if a single heartbeat was
@@ -108,12 +211,12 @@ To change the schema:
 1. edit `packages/server/prisma/schema.prisma`;
 2. generate the SQL and review it:
    ```bash
-   npx prisma migrate diff --from-url "$DATABASE_URL" \
+   pnpm exec prisma migrate diff --from-url "$DATABASE_URL" \
      --to-schema-datamodel prisma/schema.prisma --script
    ```
 3. save it as `prisma/migrations/<timestamp>_<name>/migration.sql`, adding by hand
    anything Prisma cannot express;
-4. apply with `npx prisma migrate deploy` and run the end-to-end suite.
+4. apply with `pnpm exec prisma migrate deploy` and run the end-to-end suite.
 
 Do not use `prisma migrate dev`: it would offer to drop the objects it does not
 know about.

@@ -6,8 +6,8 @@
 
 <!-- Tests added or run, and anything checked by hand. -->
 
-- [ ] `npm test`
-- [ ] `npm run test:e2e -w @silencewatch/server` (if the server changed)
+- [ ] `pnpm test`
+- [ ] `pnpm run test:e2e` (if the server changed)
 - [ ] `mvn test` in `clients/spring-boot-starter` (if the starter changed)
 
 ## Checklist
