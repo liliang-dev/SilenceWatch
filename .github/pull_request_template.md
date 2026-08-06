@@ -12,6 +12,7 @@
 
 ## Checklist
 
+- [ ] The base branch is `dev` (only a release PR targets `main`)
 - [ ] Commits are signed off (`git commit -s`) — see [CONTRIBUTING.md](../CONTRIBUTING.md)
 - [ ] Client code stays Apache-2.0; server and UI stay AGPL-3.0
 - [ ] No new runtime dependency, or the reason for one is explained above

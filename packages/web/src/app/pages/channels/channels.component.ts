@@ -152,7 +152,6 @@ import { IconComponent } from '../../shared/icon.component';
     .target { flex: 2 1 280px; }
 
     .submit {
-      height: 52px;
       gap: 6px;
     }
 

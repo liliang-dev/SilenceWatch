@@ -87,7 +87,7 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
                 }}
               </p>
 
-              <form [formGroup]="form" (ngSubmit)="submit()">
+              <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form">
               @if (mode() === 'register') {
                 <mat-form-field appearance="outline">
                   <mat-label>Name</mat-label>
@@ -230,13 +230,9 @@ import { SignupChallengeService } from '../../core/signup-challenge.service';
       line-height: 1.5;
     }
 
-    form {
-      display: flex;
-      flex-direction: column;
-    }
+    /* Layout comes from .sw-form. */
 
     .submit {
-      height: 46px;
       margin-top: 10px;
       font-weight: 600;
     }

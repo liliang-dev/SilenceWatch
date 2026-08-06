@@ -167,7 +167,7 @@ The name "SilenceWatch" and the logo are not covered by these licences — see
 
 ## Contributing
 
-Pull requests need a `Signed-off-by` line (DCO). See
+Pull requests go to **`dev`**, not `main`, and need a `Signed-off-by` line (DCO). See
 [CONTRIBUTING.md](CONTRIBUTING.md), and
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for how people are expected to treat
 each other here.

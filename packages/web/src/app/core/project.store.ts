@@ -45,6 +45,31 @@ export class ProjectStore {
     localStorage.setItem(SELECTED_PROJECT_KEY, projectId);
   }
 
+  /** After a create, so the new project is selectable without a reload. */
+  add(project: ProjectDto): void {
+    this.projects.update((projects) => [...projects, project]);
+  }
+
+  /** After a rename: the picker in the header shows this name. */
+  replace(project: ProjectDto): void {
+    this.projects.update((projects) =>
+      projects.map((existing) => (existing.id === project.id ? project : existing)),
+    );
+  }
+
+  /**
+   * After a delete. The selection is cleared when it pointed at the project
+   * that is gone — `selected` then falls back to the first remaining one,
+   * rather than leaving every page querying an id that no longer resolves.
+   */
+  remove(projectId: string): void {
+    this.projects.update((projects) => projects.filter((project) => project.id !== projectId));
+    if (this.selectedId() === projectId) {
+      this.selectedId.set(null);
+      localStorage.removeItem(SELECTED_PROJECT_KEY);
+    }
+  }
+
   clear(): void {
     this.projects.set([]);
     this.selectedId.set(null);

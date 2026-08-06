@@ -1,5 +1,15 @@
 version: 2
 
+# Everything targets `dev`, never `main`. `main` receives one pull request —
+# `dev`, once it is green — so a bot opening branches against it would put
+# untested changes in the branch tags and images are cut from.
+#
+# Grouping is the other half of that. Ungrouped, one weekly run produced ten
+# pull requests and ten CI runs; the groups below collapse the routine ones into
+# a handful, and leave a major on its own where it belongs — a major is a
+# migration, and reviewing it next to four unrelated patches is how it gets
+# waved through.
+
 updates:
   # First, because it is the supply chain everything else is built by: a
   # compromised action runs with whatever the workflow is allowed to do. Every
@@ -7,16 +17,22 @@ updates:
   # is the only thing that will ever move them.
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     commit-message:
       prefix: 'ci'
     labels: [dependencies, ci]
+    groups:
+      github-actions:
+        patterns: ['*']
+        update-types: [minor, patch]
 
   # Still called `npm` after the move to pnpm: the ecosystem name covers the
   # registry, not the client, and Dependabot reads pnpm-lock.yaml natively.
   - package-ecosystem: npm
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -41,27 +57,45 @@ updates:
       dev-tooling:
         dependency-type: development
         patterns: ['*']
+      # Everything else that is routine. Last, so the named groups above claim
+      # their packages first, and deliberately not covering majors: those keep
+      # their own pull request, because each one is a migration to read on its
+      # own.
+      runtime:
+        patterns: ['*']
+        update-types: [minor, patch]
 
   # The starter is a published artifact: its dependencies end up on other
   # people's classpaths, so they are updated on their own schedule.
   - package-ecosystem: maven
     directory: /clients/spring-boot-starter
+    target-branch: dev
     schedule:
       interval: weekly
     commit-message:
       prefix: 'deps'
     labels: [dependencies, java]
+    groups:
+      maven:
+        patterns: ['*']
+        update-types: [minor, patch]
 
   - package-ecosystem: maven
     directory: /examples/spring-boot-demo
+    target-branch: dev
     schedule:
       interval: monthly
     commit-message:
       prefix: 'deps'
     labels: [dependencies, java]
+    groups:
+      maven:
+        patterns: ['*']
+        update-types: [minor, patch]
 
   - package-ecosystem: docker
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     commit-message:

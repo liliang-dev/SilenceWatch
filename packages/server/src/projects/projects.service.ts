@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateProjectRequest, ProjectDto, UpdateProjectRequest } from '@silencewatch/shared';
 import { uniqueSlug } from '../common/slug.util';
 import { PrismaService } from '../database/prisma.service';
@@ -82,7 +82,25 @@ export class ProjectsService {
   }
 
   /** Removes the project and, by cascade, its checks, pings and incidents. */
-  async remove(projectId: string): Promise<void> {
+  /**
+   * Deletes a project, unless it is the caller's last one.
+   *
+   * An account with no project is not a state this application has a screen
+   * for: every list, every form and the project picker itself assume one
+   * exists, and the only way back would be through the database. The rule is
+   * enforced here rather than in the browser because a confirmation dialog is
+   * a courtesy, not a constraint — the endpoint is reachable without it.
+   *
+   * Counted over memberships rather than ownership on purpose: being left with
+   * a project someone else owns still leaves you with a project.
+   */
+  async remove(userId: string, projectId: string): Promise<void> {
+    const memberships = await this.prisma.projectMember.count({ where: { userId } });
+    if (memberships <= 1) {
+      throw new ConflictException(
+        'This is your last project, and an account needs one. Create another before deleting it.',
+      );
+    }
     await this.prisma.project.delete({ where: { id: projectId } });
   }
 

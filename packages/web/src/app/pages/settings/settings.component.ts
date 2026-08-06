@@ -1,10 +1,25 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { FormBuilder, FormGroupDirective, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LIMITS, type ApiKeyDto, type AuditEventDto, type CreatedApiKeyDto } from '@silencewatch/shared';
+import { MatTabsModule } from '@angular/material/tabs';
+import {
+  LIMITS,
+  type ApiKeyDto,
+  type AuditEventDto,
+  type CreatedApiKeyDto,
+  type ProjectDto,
+} from '@silencewatch/shared';
 import { catchError, forkJoin, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -13,6 +28,7 @@ import { ProjectStore } from '../../core/project.store';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { IconComponent } from '../../shared/icon.component';
+import { ConfirmDialog, type ConfirmData } from '../../shared/confirm.dialog';
 
 /** Human wording for the audit actions, so the table reads as prose. */
 const AUDIT_LABELS: Record<string, string> = {
@@ -51,6 +67,7 @@ const AUDIT_LABELS: Record<string, string> = {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatTabsModule,
     MatTooltipModule,
     RelativeTimePipe,
   ],
@@ -67,6 +84,70 @@ const AUDIT_LABELS: Record<string, string> = {
         <p class="sw-error" role="alert">{{ error() }}</p>
       }
 
+      <!-- Four unrelated concerns used to sit stacked on one page, so finding
+           the audit trail meant scrolling past the key you had just created.
+           Tabs are lazy: the panel is built when it is first opened. -->
+      <mat-tab-group animationDuration="0ms" class="tabs">
+        <mat-tab label="Projects">
+          <ng-template matTabContent>
+            <section class="sw-card section">
+              <div class="section-head">
+                <h2>Projects</h2>
+                <p class="sw-muted">
+                  Checks, channels and history all belong to a project. An account always has at
+                  least one.
+                </p>
+              </div>
+
+              <div class="section-body">
+                <form [formGroup]="projectForm" (ngSubmit)="createProject()" class="sw-form-row">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+                    <mat-label>New project</mat-label>
+                    <input matInput formControlName="name" placeholder="Billing jobs" required />
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" [disabled]="projectBusy()">
+                    <sw-icon name="add" /> Create
+                  </button>
+                </form>
+              </div>
+
+              <div class="rows">
+                @for (project of projects.all(); track project.id) {
+                  <div class="row">
+                    <div class="row-main">
+                      <strong>{{ project.name }}</strong>
+                      <span class="sw-mono sw-subtle">{{ project.slug }}</span>
+                    </div>
+                    <span class="sw-tag">{{ project.checkCount ?? 0 }} checks</span>
+                    <div class="row-actions">
+                      <button mat-stroked-button type="button" (click)="renameProject(project)">
+                        Rename
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Delete project"
+                        [disabled]="projects.all().length < 2"
+                        [matTooltip]="
+                          projects.all().length < 2
+                            ? 'An account needs at least one project'
+                            : 'Delete this project'
+                        "
+                        matTooltipPosition="left"
+                        (click)="deleteProject(project)"
+                      >
+                        <sw-icon name="delete" />
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          </ng-template>
+        </mat-tab>
+
+        <mat-tab label="API keys">
+          <ng-template matTabContent>
       <section class="sw-card section">
         <div class="section-head">
           <h2>API keys</h2>
@@ -135,7 +216,11 @@ const AUDIT_LABELS: Record<string, string> = {
           </div>
         }
       </section>
+          </ng-template>
+        </mat-tab>
 
+        <mat-tab label="Password">
+          <ng-template matTabContent>
       <section class="sw-card section">
         <div class="section-head">
           <h2>Password</h2>
@@ -156,10 +241,14 @@ const AUDIT_LABELS: Record<string, string> = {
           </form>
         </div>
       </section>
+          </ng-template>
+        </mat-tab>
 
-      <!-- Read-only, and admin-only on the server. The trail carries addresses
-           and user agents; it is for the people already trusted with the
-           project's keys, not for everyone in it. -->
+        <!-- Read-only, and admin-only on the server. The trail carries addresses
+             and user agents; it is for the people already trusted with the
+             project's keys, not for everyone in it. -->
+        <mat-tab label="Security activity">
+          <ng-template matTabContent>
       <section class="sw-card section">
         <div class="section-head">
           <h2>Security activity</h2>
@@ -207,7 +296,11 @@ const AUDIT_LABELS: Record<string, string> = {
           </div>
         }
       </section>
+          </ng-template>
+        </mat-tab>
 
+        <mat-tab label="Account">
+          <ng-template matTabContent>
       <section class="sw-card section">
         <div class="section-head">
           <h2>Account</h2>
@@ -227,9 +320,64 @@ const AUDIT_LABELS: Record<string, string> = {
           </div>
         </dl>
       </section>
+          </ng-template>
+        </mat-tab>
+      </mat-tab-group>
     </div>
   `,
   styles: `
+    /* The tab body supplies the page's own top spacing, so the first card is
+       not welded to the tab strip. */
+    .tabs {
+      --mat-tab-header-divider-color: var(--sw-border);
+    }
+
+    .tabs .section:first-child {
+      margin-top: 20px;
+    }
+
+    /* One project per row: name and slug on the left, what it costs to delete
+       in the middle, the actions on the right. */
+    .rows {
+      border-top: 1px solid var(--sw-border);
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--sw-border);
+    }
+
+    .row:last-child {
+      border-bottom: 0;
+    }
+
+    .row:hover {
+      background: var(--sw-surface-2);
+    }
+
+    .row-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .grow {
+      flex: 1 1 240px;
+    }
+
     .section {
       margin-bottom: 20px;
       overflow: hidden;
@@ -276,7 +424,6 @@ const AUDIT_LABELS: Record<string, string> = {
     }
 
     .tall {
-      height: 52px;
     }
 
     .new-key {
@@ -359,6 +506,7 @@ export class SettingsComponent {
   private readonly api = inject(ApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
   protected readonly auth = inject(AuthService);
   protected readonly projects = inject(ProjectStore);
 
@@ -367,7 +515,22 @@ export class SettingsComponent {
   protected readonly auditEvents = signal<AuditEventDto[]>([]);
   protected readonly createdKey = signal<CreatedApiKeyDto | null>(null);
   protected readonly busy = signal(false);
+  protected readonly projectBusy = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  protected readonly projectForm = this.formBuilder.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(LIMITS.nameMax)]],
+  });
+
+  /**
+   * The directive, not just the group.
+   *
+   * `FormGroup.reset()` clears values and touched state but leaves the
+   * directive's `submitted` flag set, and Material's default error matcher
+   * reads exactly that flag — so an emptied field stayed painted red after a
+   * successful create. `resetForm()` is what clears both.
+   */
+  private readonly projectFormDirective = viewChild.required(FormGroupDirective);
 
   protected readonly keyForm = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -387,6 +550,81 @@ export class SettingsComponent {
         this.loadAudit(project.id);
       }
     });
+  }
+
+  /* --------------------------------------------------------- projects --- */
+
+  protected createProject(): void {
+    if (this.projectForm.invalid || this.projectBusy()) {
+      this.projectForm.markAllAsTouched();
+      return;
+    }
+
+    this.projectBusy.set(true);
+    this.error.set(null);
+    this.api.createProject(this.projectForm.getRawValue().name.trim()).subscribe({
+      next: (project) => {
+        this.projects.add(project);
+        this.projectFormDirective().resetForm({ name: '' });
+        this.projectBusy.set(false);
+        this.snackBar.open(`"${project.name}" created`, 'OK', { duration: 4000 });
+      },
+      error: (failure: unknown) => {
+        this.projectBusy.set(false);
+        this.error.set(errorMessage(failure, 'Could not create the project.'));
+      },
+    });
+  }
+
+  protected renameProject(project: ProjectDto): void {
+    const name = window.prompt('New name for this project', project.name)?.trim();
+    if (name === undefined || name === '' || name === project.name) return;
+
+    this.api.updateProject(project.id, { name }).subscribe({
+      next: (updated) => {
+        this.projects.replace(updated);
+        this.snackBar.open('Project renamed', 'OK', { duration: 3000 });
+      },
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, 'Could not rename the project.')),
+    });
+  }
+
+  /**
+   * Deleting a project destroys every check, ping and incident in it, so the
+   * confirmation says how many rather than asking "are you sure?".
+   *
+   * The button is also disabled on the last project, but that is the courtesy
+   * — the server refuses it with a 409 regardless, which is what actually
+   * guarantees an account is never left without one.
+   */
+  protected deleteProject(project: ProjectDto): void {
+    const checks = project.checkCount ?? 0;
+    const data: ConfirmData = {
+      title: `Delete "${project.name}"?`,
+      message:
+        checks === 0
+          ? 'This project has no checks. Deleting it cannot be undone.'
+          : `This deletes ${checks} check${checks === 1 ? '' : 's'} with every ping and incident recorded against them. It cannot be undone.`,
+      confirmLabel: 'Delete project',
+      destructive: true,
+    };
+
+    this.dialog
+      .open(ConfirmDialog, { data, autoFocus: false })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed !== true) return;
+
+        this.api.deleteProject(project.id).subscribe({
+          next: () => {
+            this.projects.remove(project.id);
+            this.snackBar.open(`"${project.name}" deleted`, 'OK', { duration: 4000 });
+          },
+          error: (failure: unknown) =>
+            this.error.set(errorMessage(failure, 'Could not delete the project.')),
+        });
+      });
   }
 
   private loadKeys(projectId: string): void {
