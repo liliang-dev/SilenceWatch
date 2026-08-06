@@ -13,6 +13,11 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # corepack asks before downloading the pinned package manager, and a prompt
+  # nobody can answer is a job that hangs until it times out.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
 jobs:
   node:
     name: Server, shared and web
@@ -38,6 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # pnpm comes from the `packageManager` field, which pins a version and its
+      # hash — corepack verifies the download against it. No action to trust
+      # with the job's token, and no second place recording which pnpm this
+      # project uses.
+      - name: Enable corepack
+        run: corepack enable
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           # Matches the runtime the image ships, so CI exercises the version
@@ -45,35 +57,37 @@ jobs:
           # 22.22.3, and node 25 outright: its supported range is
           # ^22.22.3 || ^24.15.0 || >=26.0.0.
           node-version: 24
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci --no-audit --no-fund
+      # --frozen-lockfile is pnpm's default in CI; stated anyway, because a
+      # silently updated lockfile is the failure this is meant to make loud.
+      - run: pnpm install --frozen-lockfile
 
       # The server's types come from the generated Prisma client, so nothing
       # type-checks before this runs. The server's postinstall does it too; this
-      # step makes the build independent of npm lifecycle-script behaviour.
+      # step makes the build independent of lifecycle-script behaviour.
       - name: Generate the Prisma client
-        run: npm run prisma:generate
+        run: pnpm run prisma:generate
 
       - name: Build shared types
-        run: npm run build:shared
+        run: pnpm run build:shared
 
       - name: Type-check
-        run: npm run lint
+        run: pnpm run lint
 
       # Shared, server and web. The web suite runs on Vitest through the Angular
       # builder, so no browser is needed in CI.
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
       # Runs against a real PostgreSQL on purpose: the detection state machine,
       # FOR UPDATE SKIP LOCKED and the sync upsert live in SQL, and a mocked
       # database would test none of it.
       - name: End-to-end tests
-        run: npm run test:e2e
+        run: pnpm run test:e2e
 
       - name: Build server and web
-        run: npm run build:server && npm run build:web
+        run: pnpm run build:server && pnpm run build:web
 
   java:
     name: Spring Boot starter
@@ -161,6 +175,43 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
           # And the UI is actually in the image.
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # No install: this reads the lockfile. It is a separate job from the build
+      # so that a newly disclosed advisory is reported even when the build is
+      # broken for some unrelated reason.
+      - name: Known vulnerabilities
+        run: pnpm audit --audit-level=high
+
+      # pnpm-workspace.yaml decides which dependencies may run code at install
+      # time. That list is only a control while it is short and deliberate, and
+      # the way it stops being either is one entry added to unblock a build.
+      - name: The install-script allowlist is still small
+        run: |
+          set -eu
+          allowed=$(grep -cE "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml)
+          echo "$allowed dependencies may run install scripts:"
+          grep -E "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml
+
+          # Not a magic number: it is the current list plus room for one, so
+          # adding the next one is a deliberate edit to this file with a reason
+          # in the commit message.
+          if [ "$allowed" -gt 5 ]; then
+            echo "FAIL: $allowed is more than this project should need." >&2
+            exit 1
+          fi
 
   deployment-files:
     name: Deployment files

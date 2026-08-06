@@ -23,12 +23,16 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   max_attempts=${MIGRATION_ATTEMPTS:-10}
 
   while [ "$attempt" -le "$max_attempts" ]; do
+    # `prisma` by name, not `npx prisma`: the image puts the server workspace's
+    # .bin on PATH, and npx would go looking for a package to fetch on a
+    # container that has no business reaching the network at startup.
+    #
     # --config is not optional since Prisma 7: the connection URL left
     # schema.prisma and lives in the config file, which Prisma looks for in the
     # working directory — and this script runs from /app, not from the server
     # package. Without it every start fails with "datasource.url property is
     # required".
-    if npx --no-install prisma migrate deploy \
+    if prisma migrate deploy \
         --schema packages/server/prisma/schema.prisma \
         --config packages/server/prisma.config.ts; then
       break

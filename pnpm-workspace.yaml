@@ -1,0 +1,67 @@
+# pnpm workspace, and the supply-chain settings that go with it.
+#
+# Everything below the package list is here rather than in `.npmrc` on purpose:
+# pnpm reads its own settings from this file, it is checked in, and it applies
+# to every contributor and to CI without anyone having to remember a flag.
+
+packages:
+  - packages/shared
+  - packages/server
+  - packages/web
+
+# --- supply chain ------------------------------------------------------------
+
+# Nothing a dependency ships runs at install time unless it is named here.
+#
+# This is the attack that actually happens: a maintainer account is taken over,
+# a patch release is published with a `postinstall` that reads ~/.npmrc and the
+# environment, and every machine that installs in the next few hours ships its
+# credentials somewhere. pnpm blocks dependency lifecycle scripts by default;
+# this list is the deliberate exception, and each entry is a package that
+# genuinely cannot work without one.
+# Explicitly false rather than absent: a decision that was made, so a future
+# reader does not have to work out whether the package was considered.
+allowBuilds:
+  # Places the Prisma query and schema engines. Without these two there is no
+  # client to generate and no migrations to apply — the image would not start.
+  '@prisma/engines': true
+  prisma: true
+  # Fetch the platform-specific native binary they exist to wrap. Both are on
+  # the Angular build path, and neither has a usable JavaScript fallback.
+  esbuild: true
+  unrs-resolver: true
+  # Optional accelerators, all three of them, and all three degrade to
+  # something that works: file watching falls back to polling (which only
+  # affects `ng serve`), and Angular's build cache falls back to memory.
+  # Nothing in CI or in the image depends on them.
+  '@parcel/watcher': false
+  lmdb: false
+  msgpackr-extract: false
+
+# An ignored build script is not a warning to scroll past: it means something
+# that needed to run did not, and the failure will surface later as a missing
+# binary. Fail the install instead, so the list above stays honest.
+strictDepBuilds: true
+
+# Do not install a version of anything that was published less than three days
+# ago.
+#
+# Every large npm compromise so far — the chalk/debug takeover, Shai-Hulud —
+# was published, noticed and unpublished inside a day. This does not make a
+# malicious package safe; it moves the window in which we would install one to
+# after the point where the ecosystem has usually noticed. The cost is that a
+# genuine fix released this morning cannot be picked up until Thursday, which
+# is the right trade for a dependency and the wrong one for an emergency —
+# override it deliberately with `--minimum-release-age=0` when that day comes.
+minimumReleaseAge: 4320
+
+# --- forced resolutions -------------------------------------------------------
+# Each entry is an advisory that a direct dependency has not yet picked up.
+# Delete one as soon as its parent ships the fix: an override that outlives the
+# reason for it silently pins a version nobody is choosing any more.
+overrides:
+  # GHSA-c96f-x56v-gq3h — @nestjs/platform-fastify still asks for 9.6.0, while
+  # fastify itself has moved to 9.7.0. Not exploitable here (nothing serves
+  # HTTP/2) but it is one resolution away, and it deduplicates the router.
+  find-my-way@<9.6.1: '^9.7.0'
+

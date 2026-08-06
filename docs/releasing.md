@@ -62,7 +62,7 @@ comes from the image's build argument, but a repository that says 0.1.0 while
 shipping 0.2.0 is a bug report waiting to happen:
 
 ```bash
-npm version 0.2.0 --workspaces --include-workspace-root --no-git-tag-version
+pnpm --recursive --include-workspace-root exec npm version 0.2.0 --no-git-tag-version
 ```
 
 `docker-stack.yml` needs nothing: its version comes from

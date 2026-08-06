@@ -7,25 +7,21 @@
   "engines": {
     "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
-  "workspaces": [
-    "packages/shared",
-    "packages/server",
-    "packages/web"
-  ],
+  "packageManager": "pnpm@11.19.0+sha512.7881f3ed590d472c4a955e2b88b2121791116066dcc88cbca3849ec9b60f1bbaa6d2ccb221fa91da4e1c65bef2bcbe379365aea7ac539c7bf86dedc3a1b22dce",
   "scripts": {
-    "build": "npm run build -w @silencewatch/shared && npm run build -w @silencewatch/server && npm run build -w @silencewatch/web",
-    "build:shared": "npm run build -w @silencewatch/shared",
-    "build:server": "npm run build -w @silencewatch/server",
-    "build:web": "npm run build -w @silencewatch/web",
-    "dev": "npm run dev -w @silencewatch/server",
-    "dev:web": "npm run start -w @silencewatch/web",
-    "test": "npm run test -w @silencewatch/shared && npm run test -w @silencewatch/server && npm run test -w @silencewatch/web",
-    "test:e2e": "npm run test:e2e -w @silencewatch/server",
-    "lint": "npm run lint --workspaces --if-present",
+    "build": "pnpm run build:shared && pnpm run build:server && pnpm run build:web",
+    "build:shared": "pnpm --filter @silencewatch/shared run build",
+    "build:server": "pnpm --filter @silencewatch/server run build",
+    "build:web": "pnpm --filter @silencewatch/web run build",
+    "dev": "pnpm --filter @silencewatch/server run dev",
+    "dev:web": "pnpm --filter @silencewatch/web run start",
+    "test": "pnpm --recursive --workspace-concurrency=1 run test",
+    "test:e2e": "pnpm --filter @silencewatch/server run test:e2e",
+    "lint": "pnpm --recursive run lint",
     "format": "prettier --write \"packages/*/src/**/*.{ts,html,scss}\"",
-    "prisma:generate": "npm run prisma:generate -w @silencewatch/server",
-    "prisma:migrate": "npm run prisma:migrate -w @silencewatch/server",
-    "loadtest": "npm run loadtest -w @silencewatch/server"
+    "prisma:generate": "pnpm --filter @silencewatch/server run prisma:generate",
+    "prisma:migrate": "pnpm --filter @silencewatch/server run prisma:migrate",
+    "loadtest": "pnpm --filter @silencewatch/server run loadtest"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

@@ -55,9 +55,9 @@ A pull request moving client code under AGPL will not be merged.
 ## Before opening a pull request
 
 ```bash
-npm test                                    # unit tests
-npm run test:e2e -w @silencewatch/server    # needs TEST_DATABASE_URL
-npm run lint
+pnpm test        # unit tests
+pnpm run test:e2e  # needs TEST_DATABASE_URL
+pnpm run lint
 cd clients/spring-boot-starter && mvn test  # if you touched the starter
 ```
 
