@@ -13,6 +13,7 @@ import type {
   PageDto,
   PingDto,
   ProjectDto,
+  UpdateProjectRequest,
   UpdateCheckRequest,
 } from '@silencewatch/shared';
 import { Observable } from 'rxjs';
@@ -46,6 +47,16 @@ export class ApiService {
 
   createProject(name: string): Observable<ProjectDto> {
     return this.http.post<ProjectDto>('/api/v1/projects', { name });
+  }
+
+  updateProject(projectId: string, patch: UpdateProjectRequest): Observable<ProjectDto> {
+    return this.http.patch<ProjectDto>(`/api/v1/projects/${projectId}`, patch);
+  }
+
+  /** 409 when it is the account's last project — the server, not the browser,
+   *  is what guarantees an account always has one. */
+  deleteProject(projectId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/projects/${projectId}`);
   }
 
   /* --------------------------------------------------------------- checks --- */
