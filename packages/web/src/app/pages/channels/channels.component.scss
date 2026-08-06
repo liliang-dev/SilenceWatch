@@ -1,0 +1,100 @@
+.add {
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.add-title {
+  margin-bottom: 16px;
+  font-size: 0.9375rem;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.type { flex: 0 0 150px; }
+.name { flex: 1 1 180px; }
+.target { flex: 2 1 280px; }
+
+.submit {
+  gap: 6px;
+}
+
+/* -------------------------------------------------------------- list --- */
+
+.list {
+  overflow: hidden;
+}
+
+.channel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--sw-border);
+  transition: background-color 120ms ease;
+}
+
+.channel:last-child {
+  border-bottom: 0;
+}
+
+.channel:hover {
+  background: var(--sw-surface-2);
+}
+
+/* A disabled channel is a channel that will not fire; it should look like it. */
+.channel.off .glyph,
+.channel.off .channel-info {
+  opacity: 0.55;
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--sw-surface-3);
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.glyph-email {
+  background: var(--sw-accent-soft);
+  color: var(--sw-accent);
+}
+
+.channel-info {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.channel-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.muted-tag {
+  color: var(--sw-text-subtle);
+}
+
+.target-text {
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}

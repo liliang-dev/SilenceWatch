@@ -13,6 +13,7 @@ import type {
   PageDto,
   PingDto,
   ProjectDto,
+  UpdateProjectRequest,
   UpdateCheckRequest,
 } from '@silencewatch/shared';
 import { Observable } from 'rxjs';
@@ -48,10 +49,29 @@ export class ApiService {
     return this.http.post<ProjectDto>('/api/v1/projects', { name });
   }
 
+  updateProject(projectId: string, patch: UpdateProjectRequest): Observable<ProjectDto> {
+    return this.http.patch<ProjectDto>(`/api/v1/projects/${projectId}`, patch);
+  }
+
+  /** 409 when it is the account's last project — the server, not the browser,
+   *  is what guarantees an account always has one. */
+  deleteProject(projectId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/projects/${projectId}`);
+  }
+
   /* --------------------------------------------------------------- checks --- */
 
+  /** Every project the caller can see. Used by nothing in the UI: every screen
+   *  is scoped to the selected project, so it would show a check from a project
+   *  the header is not pointing at. Kept because it is the REST API's own list. */
   listChecks(query: ChecksQuery = {}): Observable<PageDto<CheckDto>> {
     return this.http.get<PageDto<CheckDto>>('/api/v1/checks', { params: toParams(query) });
+  }
+
+  listProjectChecks(projectId: string, query: ChecksQuery = {}): Observable<PageDto<CheckDto>> {
+    return this.http.get<PageDto<CheckDto>>(`/api/v1/projects/${projectId}/checks`, {
+      params: toParams(query),
+    });
   }
 
   getCheck(checkId: string): Observable<CheckDto> {

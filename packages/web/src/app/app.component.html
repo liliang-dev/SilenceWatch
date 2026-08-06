@@ -1,0 +1,62 @@
+@if (auth.isAuthenticated()) {
+  <header class="bar">
+    <div class="bar-inner">
+      <a routerLink="/checks" class="brand" aria-label="SilenceWatch home">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+            <path
+              d="M2 12H5.5L7.1 10.3L8.3 13.4L11 4.2L13.6 17.2L16.5 9.1L17.6 12H22"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="wordmark">Silence<span class="wordmark-accent">Watch</span></span>
+      </a>
+
+      <nav class="nav" aria-label="Main">
+        <a routerLink="/checks" routerLinkActive="active">Checks</a>
+        <a routerLink="/channels" routerLinkActive="active">Alerting</a>
+        <a routerLink="/settings" routerLinkActive="active">Settings</a>
+      </nav>
+
+      <span class="spacer"></span>
+
+      @if (projects.all().length > 0) {
+        <button type="button" class="switcher" [matMenuTriggerFor]="projectMenu">
+          <span class="switcher-label sw-label">Project</span>
+          <span class="switcher-name">{{ selectedName() }}</span>
+          @if (downCount() > 0) {
+            <span class="down-badge" [attr.aria-label]="downCount() + ' checks down'">{{ downCount() }}</span>
+          }
+          <sw-icon name="expand" [size]="18" class="switcher-caret" />
+        </button>
+        <mat-menu #projectMenu="matMenu" class="sw-menu">
+          @for (project of projects.all(); track project.id) {
+            <button mat-menu-item (click)="projects.select(project.id)">
+              <span class="menu-project">
+                <span class="menu-project-name">{{ project.name }}</span>
+                @if (project.downCount) {
+                  <span class="menu-project-down">{{ project.downCount }} down</span>
+                }
+              </span>
+            </button>
+          }
+        </mat-menu>
+      }
+
+      <button type="button" class="avatar" [matMenuTriggerFor]="userMenu" aria-label="Account">
+        {{ initials() }}
+      </button>
+      <mat-menu #userMenu="matMenu" class="sw-menu">
+        <div class="menu-email">{{ auth.user()?.email }}</div>
+        <button mat-menu-item routerLink="/settings">Settings</button>
+        <button mat-menu-item (click)="auth.logout()">Sign out</button>
+      </mat-menu>
+    </div>
+  </header>
+}
+
+<router-outlet />

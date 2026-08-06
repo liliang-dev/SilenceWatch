@@ -34,23 +34,8 @@ const ICONS: Record<string, string> = {
 @Component({
   selector: 'sw-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<svg
-    viewBox="0 0 24 24"
-    [attr.width]="size()"
-    [attr.height]="size()"
-    fill="currentColor"
-    aria-hidden="true"
-    focusable="false"
-    [innerHTML]="path()"
-  ></svg>`,
-  styles: `
-    :host {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      vertical-align: middle;
-    }
-  `,
+  templateUrl: './icon.component.html',
+  styleUrl: './icon.component.scss',
 })
 export class IconComponent {
   readonly name = input.required<keyof typeof ICONS | string>();

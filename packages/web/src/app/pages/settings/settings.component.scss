@@ -1,0 +1,174 @@
+/* The tab body supplies the page's own top spacing, so the first card is
+   not welded to the tab strip. */
+.tabs {
+  --mat-tab-header-divider-color: var(--sw-border);
+}
+
+.tabs .section:first-child {
+  margin-top: 20px;
+}
+
+/* One project per row: name and slug on the left, what it costs to delete
+   in the middle, the actions on the right. */
+.rows {
+  border-top: 1px solid var(--sw-border);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--sw-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--sw-surface-2);
+}
+
+.row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.grow {
+  flex: 1 1 240px;
+}
+
+.section {
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.section-head {
+  padding: 18px 20px 0;
+}
+
+.section-head p {
+  max-width: 64ch;
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+}
+
+.section-body {
+  padding: 16px 20px 20px;
+}
+
+.section-note {
+  padding: 0 20px 20px;
+  font-size: 0.875rem;
+}
+
+.bordered {
+  border-top: 1px solid var(--sw-border);
+}
+
+.inline-form,
+.password-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.inline-form mat-form-field {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.password-form mat-form-field {
+  flex: 1 1 240px;
+}
+
+.tall {
+}
+
+.new-key {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--sw-accent) 32%, transparent);
+  border-radius: var(--sw-radius);
+  background: var(--sw-accent-soft);
+}
+
+.new-key-title {
+  margin: 0 0 8px;
+  color: var(--sw-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key-row code {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+td.right {
+  text-align: right;
+}
+
+/* Material sets the label colour from its own token, so a plain "color"
+   declaration here would lose to it. */
+.danger {
+  --mat-text-button-label-text-color: var(--sw-down);
+}
+
+tr.revoked {
+  opacity: 0.5;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.facts dd {
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.action {
+  font-weight: 500;
+}
+
+/* Failed sign-ins are the line somebody is scanning for. */
+.danger-text {
+  color: var(--sw-down);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

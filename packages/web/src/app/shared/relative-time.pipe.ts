@@ -5,10 +5,21 @@ import { Pipe, PipeTransform } from '@angular/core';
  *
  * The absolute timestamp always stays available as a tooltip; relative time is
  * for scanning, not for forensics.
+ *
+ * The locale is pinned rather than taken from the browser. The application is
+ * written in English throughout — every label, every state, every error the
+ * server returns — so a machine set to French produced "il y a 3 minutes" in a
+ * column headed "Last ping", next to "never" and "just now" in English. It also
+ * made the test suite pass or fail depending on whose laptop it ran on, which
+ * is the more expensive half of the same bug.
+ *
+ * This is the place to change when SilenceWatch is translated: the pipe would
+ * take the active locale, and so would everything else at once.
  */
+const LOCALE = 'en';
 @Pipe({ name: 'swRelativeTime' })
 export class RelativeTimePipe implements PipeTransform {
-  private static readonly formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  private static readonly formatter = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
 
   private static readonly units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
     ['year', 31_536_000],

@@ -1,0 +1,191 @@
+<div class="sw-page">
+  <a routerLink="/checks" class="back">
+    <sw-icon name="back" />
+    All checks
+  </a>
+
+  @if (error()) {
+    <p class="sw-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (check(); as current) {
+    <header class="sw-page-header">
+      <div class="title">
+        <sw-state-chip [state]="current.state" size="lg" />
+        <h1>{{ current.name }}</h1>
+      </div>
+
+      <div class="actions">
+        <button mat-stroked-button (click)="edit(current)">
+          <sw-icon name="edit" />
+          Edit
+        </button>
+        <button mat-stroked-button (click)="togglePause(current)">
+          <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" />
+          {{ current.state === 'PAUSED' ? 'Resume' : 'Pause' }}
+        </button>
+        <button
+          mat-icon-button
+          class="sw-icon-button"
+          [matMenuTriggerFor]="menu"
+          aria-label="More actions"
+        >
+          <sw-icon name="more" />
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="rotate(current)">
+            <sw-icon name="copy" />
+            Rotate ping URL
+          </button>
+          <button mat-menu-item (click)="remove(current)">
+            <sw-icon name="delete" />
+            Delete check
+          </button>
+        </mat-menu>
+      </div>
+    </header>
+
+    <!-- First on the page because it is the first thing anyone needs: pasting
+         this into a crontab is the entire setup. -->
+    <section class="sw-card ping">
+      <div class="ping-head">
+        <span class="sw-label">Ping URL</span>
+        <span class="sw-muted ping-hint">call it when the job finishes</span>
+        @if (current.pingKeyRotatedAt) {
+          <span class="sw-tag rotated">rotated {{ current.pingKeyRotatedAt | swRelativeTime }}</span>
+        }
+      </div>
+      <div class="ping-row">
+        <code class="sw-mono url">{{ current.pingUrl }}</code>
+        <button
+          mat-flat-button
+          class="copy"
+          (click)="copy(current.pingUrl)"
+          matTooltip="Copy to clipboard"
+          aria-label="Copy ping URL"
+        >
+          <sw-icon name="copy" [size]="18" />
+          Copy
+        </button>
+      </div>
+      <pre class="sw-mono snippet"><span class="prompt">$</span> curl -fsS -m 10 --retry 3 {{ current.pingUrl }}</pre>
+    </section>
+
+    <div class="facts">
+      <div class="fact">
+        <span class="sw-label">Schedule</span>
+        <strong class="sw-mono">{{ schedule(current) }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">Grace period</span>
+        <strong>{{ current.graceSeconds }}s</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">Last ping</span>
+        <strong [matTooltip]="current.lastPingAt ?? ''">{{ current.lastPingAt | swRelativeTime }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">Expected by</span>
+        <strong [matTooltip]="current.nextDueAt ?? ''">{{ current.nextDueAt | swRelativeTime }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">Last duration</span>
+        <strong>{{ current.lastDurationMs | swDuration }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">Environment</span>
+        <strong>{{ current.environment ?? '—' }}</strong>
+      </div>
+    </div>
+
+    @if (current.key) {
+      <p class="key sw-muted">
+        Declared automatically as <code class="sw-mono">{{ current.key }}</code>
+        @if (current.orphanedAt) {
+          — the client stopped reporting it {{ current.orphanedAt | swRelativeTime }}. History is kept
+          until you delete it.
+        }
+      </p>
+    }
+
+    <mat-tab-group class="tabs" animationDuration="120ms" [mat-stretch-tabs]="false">
+      <mat-tab label="Recent pings">
+        @if (pings().length === 0) {
+          <div class="sw-empty">
+            <h2>No ping received yet</h2>
+            <p>The first call to the ping URL above will appear here within seconds.</p>
+          </div>
+        } @else {
+          <div class="sw-scroll-x panel">
+            <table class="sw-table">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Duration</th>
+                  <th scope="col">Exit</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Body</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ping of pings(); track ping.id) {
+                  <tr>
+                    <td [matTooltip]="ping.receivedAt">{{ ping.receivedAt | swRelativeTime }}</td>
+                    <td>
+                      <span class="kind" [class]="'kind-' + ping.kind">{{ ping.kind }}</span>
+                    </td>
+                    <td class="sw-num">{{ ping.durationMs | swDuration }}</td>
+                    <td class="sw-num">{{ ping.exitCode ?? '—' }}</td>
+                    <td class="sw-mono sw-muted">{{ ping.sourceIp ?? '—' }}</td>
+                    <td class="body sw-mono sw-muted">{{ ping.body ?? '' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </mat-tab>
+
+      <mat-tab label="Incidents">
+        @if (incidents().length === 0) {
+          <div class="sw-empty">
+            <h2>No incident</h2>
+            <p>This job has never gone quiet.</p>
+          </div>
+        } @else {
+          <div class="sw-scroll-x panel">
+            <table class="sw-table">
+              <thead>
+                <tr>
+                  <th scope="col">Started</th>
+                  <th scope="col">Resolved</th>
+                  <th scope="col">Duration</th>
+                  <th scope="col">Alerts sent</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (incident of incidents(); track incident.id) {
+                  <tr [class.ongoing]="incident.resolvedAt === null">
+                    <td [matTooltip]="incident.startedAt">{{ incident.startedAt | swRelativeTime }}</td>
+                    <td>
+                      @if (incident.resolvedAt) {
+                        {{ incident.resolvedAt | swRelativeTime }}
+                      } @else {
+                        <span class="ongoing-tag">ongoing</span>
+                      }
+                    </td>
+                    <td class="sw-num">{{ outage(incident) | swDuration }}</td>
+                    <td class="sw-num">{{ incident.notificationsSent }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </mat-tab>
+    </mat-tab-group>
+  } @else if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</div>

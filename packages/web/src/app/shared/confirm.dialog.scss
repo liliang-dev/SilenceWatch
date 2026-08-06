@@ -1,0 +1,24 @@
+.title {
+  padding-bottom: 4px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+}
+
+.message {
+  margin: 0;
+  max-width: 42ch;
+  line-height: 1.55;
+  color: var(--sw-text-muted);
+}
+
+.actions {
+  padding: 14px 24px 18px !important;
+  gap: 8px;
+}
+
+/* Material 3 paints a filled button from the theme's primary, not from a
+   button-specific token — so the colour is swapped at the source. */
+.destructive {
+  --mat-sys-primary: var(--sw-down);
+  --mat-sys-on-primary: #fff;
+}

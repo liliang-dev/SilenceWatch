@@ -1,0 +1,192 @@
+<div class="sw-page">
+  <header class="sw-page-header">
+    <div>
+      <h1>Checks</h1>
+      <p class="sw-muted">{{ subtitle() }}</p>
+    </div>
+    <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
+      <sw-icon name="add" />
+      New check
+    </button>
+  </header>
+
+  <!-- The count of what is broken, before anything else on the page. -->
+  <div class="counters">
+    @for (counter of counters(); track counter.label) {
+      <button
+        type="button"
+        class="counter"
+        [class]="'is-' + counter.tone"
+        [class.selected]="stateFilter() === counter.filter"
+        [attr.aria-pressed]="stateFilter() === counter.filter"
+        (click)="filterBy(counter.filter)"
+      >
+        <span class="counter-value">{{ counter.value }}</span>
+        <span class="counter-label">{{ counter.label }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="toolbar">
+    <mat-button-toggle-group
+      [ngModel]="stateFilter()"
+      (ngModelChange)="filterBy($event)"
+      hideSingleSelectionIndicator
+      class="states"
+    >
+      <mat-button-toggle value="">All</mat-button-toggle>
+      <mat-button-toggle value="DOWN">Down</mat-button-toggle>
+      <mat-button-toggle value="LATE">Late</mat-button-toggle>
+      <mat-button-toggle value="UP">Up</mat-button-toggle>
+      <mat-button-toggle value="PAUSED">Paused</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+      <sw-icon name="search" matPrefix class="search-icon" />
+      <input
+        matInput
+        type="search"
+        placeholder="Search"
+        [ngModel]="search()"
+        (ngModelChange)="onSearch($event)"
+      />
+    </mat-form-field>
+  </div>
+
+  @if (loading() && population().length === 0) {
+    <mat-progress-bar mode="indeterminate" class="loading" />
+  }
+
+  @if (error()) {
+    <p class="sw-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (truncated()) {
+    <!-- A monitoring screen that quietly omits checks is the failure this
+         product exists to prevent, so it says so instead. -->
+    <p class="sw-error" role="status">
+      This project has more checks than this table loads. Narrow the list with the
+      search box, or the REST API returns them all.
+    </p>
+  }
+
+  @if (!loading() && population().length === 0) {
+    <div class="sw-card sw-empty">
+      <h2>Nothing is being watched yet</h2>
+      <p>
+        Create a check, then have your job call its ping URL when it runs — or add the Spring Boot
+        starter and every scheduled task will declare itself.
+      </p>
+      <button
+        mat-flat-button
+        class="empty-action"
+        (click)="create()"
+        [disabled]="projects.selected() === null"
+      >
+        <sw-icon name="add" />
+        New check
+      </button>
+    </div>
+  } @else if (matching().length === 0) {
+    <div class="sw-card sw-empty">
+      <h2>No check matches</h2>
+      <p>Nothing here is called that, or is in that state. Clear the search to see them all.</p>
+    </div>
+  } @else {
+    <div class="sw-card">
+      <div class="sw-scroll-x">
+        <table
+          mat-table
+          [dataSource]="visible()"
+          matSort
+          [matSortActive]="sort().active"
+          [matSortDirection]="sort().direction"
+          (matSortChange)="onSort($event)"
+          class="checks"
+        >
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Check</th>
+            <td mat-cell *matCellDef="let check">
+              <a class="name">{{ check.name }}</a>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="environment">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Environment</th>
+            <td mat-cell *matCellDef="let check">
+              @if (check.environment) {
+                <span class="sw-tag">{{ check.environment }}</span>
+              } @else {
+                <span class="sw-subtle">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="source">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
+            <td mat-cell *matCellDef="let check">
+              @if (check.source === 'auto') {
+                <span class="sw-tag" matTooltip="Declared automatically by a client library">
+                  auto
+                </span>
+              } @else {
+                <span class="sw-tag" matTooltip="Declared by hand">manual</span>
+              }
+              @if (check.orphanedAt) {
+                <span
+                  class="sw-tag orphan"
+                  matTooltip="The client stopped declaring this job. History is kept; delete it when you are sure."
+                >
+                  orphaned
+                </span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="state">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
+            <td mat-cell *matCellDef="let check"><sw-state-chip [state]="check.state" /></td>
+          </ng-container>
+
+          <!-- Not sortable: "every 5m" and "0 2 * * *" have no order between them. -->
+          <ng-container matColumnDef="schedule">
+            <th mat-header-cell *matHeaderCellDef>Schedule</th>
+            <td mat-cell *matCellDef="let check" class="sw-mono sw-muted">{{ schedule(check) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="lastPingAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Last ping</th>
+            <td mat-cell *matCellDef="let check" [matTooltip]="check.lastPingAt ?? 'No ping received yet'">
+              {{ check.lastPingAt | swRelativeTime }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="nextDueAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Expected</th>
+            <td mat-cell *matCellDef="let check" class="sw-muted" [matTooltip]="check.nextDueAt ?? ''">
+              {{ check.nextDueAt | swRelativeTime }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let check; columns: columns"
+            class="check-row"
+            [class]="'row-' + check.state.toLowerCase()"
+            [routerLink]="['/checks', check.id]"
+          ></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="matching().length"
+        [pageSize]="page().pageSize"
+        [pageIndex]="page().pageIndex"
+        [pageSizeOptions]="pageSizes"
+        (page)="onPage($event)"
+        aria-label="Pages of checks"
+      />
+    </div>
+  }
+</div>

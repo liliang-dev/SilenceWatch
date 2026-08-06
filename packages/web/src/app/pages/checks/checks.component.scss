@@ -1,0 +1,182 @@
+/* ------------------------------------------------------------ counters --- */
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-surface);
+  box-shadow: var(--sw-shadow-sm);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.counter:hover {
+  border-color: var(--sw-border-strong);
+  transform: translateY(-1px);
+}
+
+.counter.selected {
+  border-color: color-mix(in srgb, var(--counter-color, var(--sw-accent)) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--counter-color, var(--sw-accent)) 40%, transparent);
+}
+
+.counter-value {
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--counter-color, var(--sw-text));
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--sw-text-muted);
+}
+
+/* A zero is good news and should not be painted like a problem. */
+.counter.is-down { --counter-color: var(--sw-down); }
+.counter.is-late { --counter-color: var(--sw-late); }
+.counter.is-up { --counter-color: var(--sw-up); }
+.counter.is-zero { --counter-color: var(--sw-text-subtle); }
+
+/* ------------------------------------------------------------- toolbar --- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.states {
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+}
+
+.search {
+  flex: 1 1 240px;
+  max-width: 240px;
+}
+
+.search-icon {
+  margin: 0 8px 0 15px;
+  color: var(--sw-text-subtle);
+}
+
+.loading {
+  margin-bottom: 12px;
+  border-radius: 999px;
+}
+
+.empty-action {
+  margin-top: 20px;
+}
+
+/* --------------------------------------------------------------- table --- */
+
+/* Material's table, wearing the same clothes as the rest of the application.
+   Its own defaults are a Material-3 card in the middle of ours, so the surface,
+   the header and the row rules are restated here rather than inherited. */
+.checks {
+  width: 100%;
+  min-width: 760px;
+  background: transparent;
+}
+
+.checks .mat-mdc-header-row {
+  height: auto;
+  background: var(--sw-surface-2);
+}
+
+.checks .mat-mdc-header-cell {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
+  white-space: nowrap;
+}
+
+.checks .mat-mdc-row {
+  height: auto;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.checks .mat-mdc-row:hover {
+  background: var(--sw-surface-2);
+}
+
+.checks .mat-mdc-cell {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  color: var(--sw-text);
+}
+
+.checks .mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: 0;
+}
+
+/* The sort arrow inherits the header's colour instead of Material's own. */
+.checks .mat-sort-header-arrow {
+  color: var(--sw-text-subtle);
+}
+
+/* A stripe on the row, not a colour on the text: the state chip already
+   carries the colour, and two of them would only compete. */
+.checks .mat-mdc-row.row-down .mat-mdc-cell:first-child {
+  box-shadow: inset 3px 0 0 var(--sw-down);
+}
+
+.checks .mat-mdc-row.row-late .mat-mdc-cell:first-child {
+  box-shadow: inset 3px 0 0 var(--sw-late);
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--sw-border);
+  color: var(--sw-text-muted);
+}
+
+.name {
+  color: var(--sw-text);
+  font-weight: 500;
+}
+
+.name:hover {
+  color: var(--sw-accent);
+  text-decoration: none;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sw-tag.orphan {
+  border-color: color-mix(in srgb, var(--sw-late) 35%, transparent);
+  background: var(--sw-late-soft);
+  color: var(--sw-late);
+}

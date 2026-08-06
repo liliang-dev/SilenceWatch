@@ -3,6 +3,29 @@
 Thank you for considering it. Bug reports, tests and documentation are as welcome
 as code.
 
+## Where pull requests go
+
+**Open them against `dev`, not `main`.** GitHub will offer `main` by default;
+change the base when you open the request.
+
+```
+your branch  ──▶  dev  ──▶  main  ──▶  tag  ──▶  released image
+                   ▲         ▲
+              your PR    one PR, by a maintainer
+```
+
+`dev` is where changes are collected and tried together. `main` is what the
+published image is built from, so it receives exactly one kind of pull request:
+`dev`, once everything on it is green. A change that is on `main` is a change
+someone is running.
+
+CI runs on pull requests to either branch, so nothing untested reaches `dev`
+either — the difference is what a red build costs. On `dev` it costs a review
+comment; on `main` it would already be in a release someone pulled.
+
+Nothing else moves between the two: no direct pushes to `main`, and no pull
+request from a feature branch straight to `main`.
+
 ## Developer Certificate of Origin
 
 Every commit must carry a `Signed-off-by` line:
