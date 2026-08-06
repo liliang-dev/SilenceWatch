@@ -1,3 +1,5 @@
+<img src="packages/web/public/logo.svg" alt="" width="72" align="left" hspace="16" vspace="4">
+
 # 🇫🇷 SilenceWatch
 
 **Open-source heartbeat monitoring for cron jobs, workers and scheduled tasks.

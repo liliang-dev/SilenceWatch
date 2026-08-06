@@ -33,9 +33,19 @@
   --sw-text-muted: #667085;
   --sw-text-subtle: #98a2b3;
 
-  --sw-accent: #3538cd;
-  --sw-accent-hover: #2d30a6;
-  --sw-accent-soft: #eef0ff;
+  /* The brand purple is the logo's, hsl(263 94% 79%) — #bc95fc. It is far too
+     light to put text on, or to be text on white (2.4:1), so the light theme
+     uses the same hue at a lightness that can carry a button: 6.3:1 on white,
+     8.7:1 for the hover state. Saturation is pulled back from the logo's 94%
+     as well; at full saturation the button reads as electric next to a pastel
+     mark, which is the one thing a logo and its interface should not do.
+
+     The mark itself stays #bc95fc, and the dark theme below uses it unchanged
+     — that is where the site's purple and the logo's are the same value. */
+  --sw-brand: #bc95fc;
+  --sw-accent: #7533e1;
+  --sw-accent-hover: #5f22c4;
+  --sw-accent-soft: #f6f0ff;
   --sw-accent-contrast: #ffffff;
 
   /* Status — the only colours allowed to shout */
@@ -75,9 +85,13 @@
     --sw-text-muted: #98a2b3;
     --sw-text-subtle: #6c7689;
 
-    --sw-accent: #8098f9;
-    --sw-accent-hover: #a4bcfd;
-    --sw-accent-soft: #1a2036;
+    /* The logo colour, unmodified: 7.6:1 on the surface it sits on. A pale
+       lavender is exactly what a dark theme wants, so this is the one place
+       the accent needed no adjusting at all. */
+    --sw-brand: #bc95fc;
+    --sw-accent: #bc95fc;
+    --sw-accent-hover: #d3bafe;
+    --sw-accent-soft: #221a36;
     --sw-accent-contrast: #0b0d11;
 
     /* Lightened so they keep contrast on a dark surface: the light-mode greens

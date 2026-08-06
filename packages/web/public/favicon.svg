@@ -1,5 +1,8 @@
+<!-- The same waveform as logo.svg, with the stroke thickened for small sizes:
+     the artwork's own 2.6%-of-tile stroke renders as half a pixel at 16px. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="SilenceWatch">
-  <rect width="32" height="32" rx="7" fill="#1a73e8"/>
-  <path d="M4 17h5l3-7 4 14 3-9 2 2h7" fill="none" stroke="#fff" stroke-width="2.4"
+  <rect width="32" height="32" rx="7" fill="#bc95fc"/>
+  <path d="M2.7 16H7.4L9.4 13.8L11.1 17.9L14.6 5.6L18.1 22.9L22 12.2L23.5 16H29.3"
+        fill="none" stroke="#fff" stroke-width="2.6"
         stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

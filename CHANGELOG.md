@@ -12,6 +12,15 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- New logo, and the interface repainted around it. The mark is the brand
+  waveform on `#bc95fc`, traced from the artwork rather than redrawn — the
+  vertices, the baseline and the stroke width are measured from it. The dark
+  theme's accent is that exact colour; the light theme uses the same hue at a
+  lightness that can carry a button (6.3:1 on white, against 2.4:1 for the
+  brand purple itself), because an accent nobody can read is not a brand. Alert
+  and account emails moved with it — three of them were still on a blue that
+  matched nothing.
+
 - **The project builds with pnpm.** `npm install` no longer produces a tree that
   matches a lockfile; `corepack enable` then `pnpm install` does. The version of
   pnpm is pinned with its hash in `package.json`, so CI, the image and a
