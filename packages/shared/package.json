@@ -1,6 +1,6 @@
 {
   "name": "@silencewatch/shared",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared DTO types and validation schemas for SilenceWatch clients and server.",
   "license": "Apache-2.0",
   "main": "dist/index.js",

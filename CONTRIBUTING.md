@@ -82,6 +82,11 @@ See [docs/development.md](docs/development.md) for setting up a database.
 - Features from the "not yet" list in the README. They are excluded for reasons,
   usually about false positives.
 
+## Cutting a release
+
+Maintainers only: [docs/releasing.md](docs/releasing.md). Changelog, version
+bump, merge, tag — CI publishes the image and deploys.
+
 ## Reporting security issues
 
 Do not open a public issue — see [docs/security.md](docs/security.md).

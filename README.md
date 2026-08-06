@@ -184,3 +184,5 @@ where it goes instead.
 - [Abuse prevention](docs/abuse-prevention.md) — what actually stops bot sign-ups,
   measured rather than assumed
 - [Development](docs/development.md) — running it locally, tests, load tests
+- [Releasing](docs/releasing.md) — cutting a new version, and deploying one by
+  hand
