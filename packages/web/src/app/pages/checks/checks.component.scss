@@ -92,22 +92,70 @@
 
 /* --------------------------------------------------------------- table --- */
 
-.check-row {
-  cursor: pointer;
+/* Material's table, wearing the same clothes as the rest of the application.
+   Its own defaults are a Material-3 card in the middle of ours, so the surface,
+   the header and the row rules are restated here rather than inherited. */
+.checks {
+  width: 100%;
+  min-width: 760px;
+  background: transparent;
 }
 
-.checks {
-  min-width: 760px;
+.checks .mat-mdc-header-row {
+  height: auto;
+  background: var(--sw-surface-2);
+}
+
+.checks .mat-mdc-header-cell {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
+  white-space: nowrap;
+}
+
+.checks .mat-mdc-row {
+  height: auto;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.checks .mat-mdc-row:hover {
+  background: var(--sw-surface-2);
+}
+
+.checks .mat-mdc-cell {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  color: var(--sw-text);
+}
+
+.checks .mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: 0;
+}
+
+/* The sort arrow inherits the header's colour instead of Material's own. */
+.checks .mat-sort-header-arrow {
+  color: var(--sw-text-subtle);
 }
 
 /* A stripe on the row, not a colour on the text: the state chip already
    carries the colour, and two of them would only compete. */
-.checks tbody tr.row-down td:first-child {
+.checks .mat-mdc-row.row-down .mat-mdc-cell:first-child {
   box-shadow: inset 3px 0 0 var(--sw-down);
 }
 
-.checks tbody tr.row-late td:first-child {
+.checks .mat-mdc-row.row-late .mat-mdc-cell:first-child {
   box-shadow: inset 3px 0 0 var(--sw-late);
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--sw-border);
+  color: var(--sw-text-muted);
 }
 
 .name {
