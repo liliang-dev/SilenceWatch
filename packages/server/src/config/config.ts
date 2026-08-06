@@ -135,7 +135,11 @@ const envSchema = z
      *   {"free":{"checks":10,"projects":3,"channelsPerProject":3,"retentionDays":7},
      *    "pro":{"checks":100,"projects":20,"retentionDays":90}}
      */
-    PLAN_LIMITS: z.string().default('{}'),
+    // Blank rather than absent, for the same reason as the optional settings
+    // above: a Compose file cannot express "no value" without writing one, and
+    // `${PLAN_LIMITS:-{}}` cannot be written at all — the closing brace ends the
+    // interpolation early.
+    PLAN_LIMITS: z.preprocess((value) => (value === '' ? undefined : value), z.string().default('{}')),
     /**
      * How often accounts are reconciled with their plan. A downgrade written by
      * the billing system takes effect within one of these.

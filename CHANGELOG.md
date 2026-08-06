@@ -10,6 +10,19 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fifteen documented settings now actually reach the server. `SIGNUP_ENABLED`,
+  the whole sign-up integrity block, quotas, `AUDIT_RETENTION_DAYS`,
+  `EMAIL_FROM_NAME` and `ALLOW_PRIVATE_NOTIFICATION_TARGETS` were described in
+  `.env.example` but forwarded by neither `docker-compose.yml` nor
+  `docker-stack.yml`, so setting them changed nothing and the server kept its
+  default — `SIGNUP_ENABLED=false` left registration open. CI now fails if a
+  name `.env.example` documents is missing from either file.
+- `PLAN_LIMITS` accepts a blank value, like the other optional settings. It
+  could not be given a Compose default at all: `${PLAN_LIMITS:-{}}` ends the
+  interpolation at the first brace.
+
 ## [0.1.1] — 2026-08-03
 
 ### Fixed

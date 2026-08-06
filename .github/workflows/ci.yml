@@ -218,3 +218,40 @@ jobs:
             esac
           done
           exit "$status"
+
+      # A documented setting that no deployment file forwards is worse than an
+      # undocumented one: it is followed, it appears to work, and the server
+      # quietly keeps its default. `SIGNUP_ENABLED=false` was set in a real
+      # .env, reached nothing, and accounts went on being created.
+      #
+      # So every name .env.example teaches has to appear in the files that
+      # actually run the thing.
+      - name: Every documented setting reaches the container
+        run: |
+          set -eu
+
+          # Published as a port rather than passed to the process, and Swarm's
+          # routing mesh has no per-interface bind — so this one is Compose-only
+          # by design. Anything else missing is a bug.
+          stack_exempt='BIND_ADDRESS'
+
+          # Both the live lines and the commented examples: a setting shown as
+          # `# QUOTAS_ENABLED=false` is still documented.
+          names="$(sed -n 's/^#\{0,1\} *\([A-Z][A-Z0-9_]*\)=.*/\1/p' .env.example | sort -u)"
+
+          status=0
+          for file in docker-compose.yml docker-stack.yml; do
+            for name in $names; do
+              case "$file:$name" in
+                docker-stack.yml:$stack_exempt) continue ;;
+              esac
+
+              if grep -q "\${$name[:?-]" "$file"; then
+                echo "ok   $file $name"
+              else
+                echo "FAIL $name is documented in .env.example but $file never forwards it" >&2
+                status=1
+              fi
+            done
+          done
+          exit "$status"
