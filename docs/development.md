@@ -84,7 +84,6 @@ EMAIL_PROVIDER=console
 LOG_LEVEL=debug
 EOF
 
-pnpm run build:shared
 pnpm run prisma:migrate
 pnpm run dev            # API on :8080
 pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
@@ -92,6 +91,29 @@ pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
 with it when `NODE_ENV=production`.
+
+### `@silencewatch/shared` has to be compiled
+
+The server and the UI resolve it through `packages/shared/dist`, which is a
+build artefact and therefore not in git. Until it exists, every file importing
+it fails with:
+
+```
+error TS2307: Cannot find module '@silencewatch/shared' or its corresponding
+type declarations.
+```
+
+`dev`, `dev:web`, `lint`, `test` and `test:e2e` build it first, so this is not
+a step to remember. `build:server` and `build:web` deliberately do not — the
+Dockerfile and CI sequence the three builds themselves, and chaining it here
+would compile it twice.
+
+**Changing shared while the dev server runs** does not propagate: the consumers
+read `dist`, and nothing rebuilt it. Leave a watcher running alongside:
+
+```bash
+pnpm --filter @silencewatch/shared run watch
+```
 
 ## Proving it works with curl
 
