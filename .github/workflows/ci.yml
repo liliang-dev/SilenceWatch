@@ -1,9 +1,13 @@
 name: CI
 
+# Pull requests are opened against `dev`; `main` only ever receives `dev`, and
+# only once it is green. So CI runs on both bases, and on the push that lands on
+# main — never on the push that lands on dev, which the pull request just tested.
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main, dev]
 
 # A newer push makes the previous run irrelevant.
 concurrency:

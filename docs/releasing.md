@@ -10,8 +10,11 @@ This is the maintainer's page. Running an instance is
 ## The whole thing
 
 ```
-CHANGELOG.md  →  version bump  →  merge to main  →  git tag  →  CI ships it
+CHANGELOG.md + version bump  ──▶  dev  ──▶  main  ──▶  git tag  ──▶  CI ships it
 ```
+
+`dev` is where every change is collected; `main` receives it in one pull
+request. See [CONTRIBUTING.md](../CONTRIBUTING.md#where-pull-requests-go).
 
 ### 1. Pick the number
 
@@ -68,11 +71,15 @@ pnpm --recursive --include-workspace-root exec npm version 0.2.0 --no-git-tag-ve
 `docker-stack.yml` needs nothing: its version comes from
 `SILENCEWATCH_VERSION`, which the deploy sets from the tag.
 
-### 4. Merge to main
+### 4. Merge `dev` into `main`
 
-Through a pull request, with CI green. The tag has to point at a commit on
-`main`: that is what the release notes, the image and the deployment all refer
-back to.
+Everything above lands on `dev` first, like any other change — including the
+changelog and the version bump, which are what makes the pull request into
+`main` read as "release 0.2.0" rather than as a pile of unrelated work.
+
+Then one pull request, `dev` → `main`, with CI green. The tag has to point at a
+commit on `main`: that is what the release notes, the image and the deployment
+all refer back to.
 
 ### 5. Tag it
 
