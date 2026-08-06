@@ -61,8 +61,17 @@ export class ApiService {
 
   /* --------------------------------------------------------------- checks --- */
 
+  /** Every project the caller can see. Used by nothing in the UI: every screen
+   *  is scoped to the selected project, so it would show a check from a project
+   *  the header is not pointing at. Kept because it is the REST API's own list. */
   listChecks(query: ChecksQuery = {}): Observable<PageDto<CheckDto>> {
     return this.http.get<PageDto<CheckDto>>('/api/v1/checks', { params: toParams(query) });
+  }
+
+  listProjectChecks(projectId: string, query: ChecksQuery = {}): Observable<PageDto<CheckDto>> {
+    return this.http.get<PageDto<CheckDto>>(`/api/v1/projects/${projectId}/checks`, {
+      params: toParams(query),
+    });
   }
 
   getCheck(checkId: string): Observable<CheckDto> {

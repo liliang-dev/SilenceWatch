@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -350,7 +358,13 @@ export class ChecksComponent implements OnDestroy {
 
   constructor() {
     this.projects.load();
-    this.reload();
+    // Reacts to the picker in the header. Without this the page loaded once and
+    // never again — and because it asked the account-wide endpoint, it was
+    // showing every project's checks at once regardless of what was selected.
+    effect(() => {
+      const project = this.projects.selected();
+      if (project !== null) this.reload();
+    });
   }
 
   ngOnDestroy(): void {
@@ -365,12 +379,15 @@ export class ChecksComponent implements OnDestroy {
 
   /** @param quiet true for the background refresh, which must not flash a spinner. */
   protected reload(quiet = false): void {
+    const project = this.projects.selected();
+    if (project === null) return;
+
     if (!quiet) this.loading.set(true);
 
     const search = this.search.trim();
     const searchQuery = search === '' ? {} : { search };
 
-    this.api.listChecks({ ...searchQuery, limit: 200 }).subscribe({
+    this.api.listProjectChecks(project.id, { ...searchQuery, limit: 200 }).subscribe({
       next: (page) => {
         const items = [...page.items].sort(byUrgency);
         this.population.set(items);
@@ -390,7 +407,8 @@ export class ChecksComponent implements OnDestroy {
     // A state filter has to be applied by the server: filtering the page we just
     // fetched would silently hide the broken checks that fell outside of it.
     if (this.stateFilter !== '') {
-      this.api.listChecks({ ...searchQuery, state: this.stateFilter, limit: 200 }).subscribe({
+      const scoped = { ...searchQuery, state: this.stateFilter, limit: 200 };
+      this.api.listProjectChecks(project.id, scoped).subscribe({
         next: (page) => {
           this.checks.set([...page.items].sort(byUrgency));
           this.loading.set(false);

@@ -67,7 +67,12 @@ const REFRESH_INTERVAL_MS = 15_000;
               <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" />
               {{ current.state === 'PAUSED' ? 'Resume' : 'Pause' }}
             </button>
-            <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="More actions">
+            <button
+              mat-icon-button
+              class="sw-icon-button"
+              [matMenuTriggerFor]="menu"
+              aria-label="More actions"
+            >
               <sw-icon name="more" />
             </button>
             <mat-menu #menu="matMenu">

@@ -29,6 +29,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { IconComponent } from '../../shared/icon.component';
 import { ConfirmDialog, type ConfirmData } from '../../shared/confirm.dialog';
+import { ProjectFormDialog, type ProjectFormData } from './project-form.dialog';
 
 /** Human wording for the audit actions, so the table reads as prose. */
 const AUDIT_LABELS: Record<string, string> = {
@@ -100,15 +101,14 @@ const AUDIT_LABELS: Record<string, string> = {
               </div>
 
               <div class="section-body">
-                <form [formGroup]="projectForm" (ngSubmit)="createProject()" class="sw-form-row">
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
-                    <mat-label>New project</mat-label>
-                    <input matInput formControlName="name" placeholder="Billing jobs" required />
-                  </mat-form-field>
-                  <button mat-flat-button type="submit" [disabled]="projectBusy()">
-                    <sw-icon name="add" /> Create
-                  </button>
-                </form>
+                <button
+                  mat-flat-button
+                  type="button"
+                  [disabled]="projectBusy()"
+                  (click)="createProject()"
+                >
+                  <sw-icon name="add" /> New project
+                </button>
               </div>
 
               <div class="rows">
@@ -120,12 +120,20 @@ const AUDIT_LABELS: Record<string, string> = {
                     </div>
                     <span class="sw-tag">{{ project.checkCount ?? 0 }} checks</span>
                     <div class="row-actions">
-                      <button mat-stroked-button type="button" (click)="renameProject(project)">
-                        Rename
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="sw-icon-button"
+                        aria-label="Rename project"
+                        matTooltip="Rename this project"
+                        (click)="renameProject(project)"
+                      >
+                        <sw-icon name="edit" />
                       </button>
                       <button
                         mat-icon-button
                         type="button"
+                        class="sw-icon-button danger"
                         aria-label="Delete project"
                         [disabled]="projects.all().length < 2"
                         [matTooltip]="
@@ -165,7 +173,12 @@ const AUDIT_LABELS: Record<string, string> = {
               <p class="new-key-title">Copy this key now — it is never shown again.</p>
               <div class="key-row">
                 <code class="sw-mono">{{ created.token }}</code>
-                <button mat-icon-button (click)="copy(created.token)" aria-label="Copy API key">
+                <button
+                  mat-icon-button
+                  class="sw-icon-button"
+                  (click)="copy(created.token)"
+                  aria-label="Copy API key"
+                >
                   <sw-icon name="copy" />
                 </button>
               </div>
@@ -518,19 +531,6 @@ export class SettingsComponent {
   protected readonly projectBusy = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly projectForm = this.formBuilder.nonNullable.group({
-    name: ['', [Validators.required, Validators.maxLength(LIMITS.nameMax)]],
-  });
-
-  /**
-   * The directive, not just the group.
-   *
-   * `FormGroup.reset()` clears values and touched state but leaves the
-   * directive's `submitted` flag set, and Material's default error matcher
-   * reads exactly that flag — so an emptied field stayed painted red after a
-   * successful create. `resetForm()` is what clears both.
-   */
-  private readonly projectFormDirective = viewChild.required(FormGroupDirective);
 
   protected readonly keyForm = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -555,39 +555,43 @@ export class SettingsComponent {
   /* --------------------------------------------------------- projects --- */
 
   protected createProject(): void {
-    if (this.projectForm.invalid || this.projectBusy()) {
-      this.projectForm.markAllAsTouched();
-      return;
-    }
+    this.openProjectForm({}).subscribe((name) => {
+      if (name === undefined) return;
 
-    this.projectBusy.set(true);
-    this.error.set(null);
-    this.api.createProject(this.projectForm.getRawValue().name.trim()).subscribe({
-      next: (project) => {
-        this.projects.add(project);
-        this.projectFormDirective().resetForm({ name: '' });
-        this.projectBusy.set(false);
-        this.snackBar.open(`"${project.name}" created`, 'OK', { duration: 4000 });
-      },
-      error: (failure: unknown) => {
-        this.projectBusy.set(false);
-        this.error.set(errorMessage(failure, 'Could not create the project.'));
-      },
+      this.projectBusy.set(true);
+      this.error.set(null);
+      this.api.createProject(name).subscribe({
+        next: (project) => {
+          this.projects.add(project);
+          this.projectBusy.set(false);
+          this.snackBar.open(`"${project.name}" created`, 'OK', { duration: 4000 });
+        },
+        error: (failure: unknown) => {
+          this.projectBusy.set(false);
+          this.error.set(errorMessage(failure, 'Could not create the project.'));
+        },
+      });
     });
   }
 
   protected renameProject(project: ProjectDto): void {
-    const name = window.prompt('New name for this project', project.name)?.trim();
-    if (name === undefined || name === '' || name === project.name) return;
+    this.openProjectForm({ project }).subscribe((name) => {
+      if (name === undefined) return;
 
-    this.api.updateProject(project.id, { name }).subscribe({
-      next: (updated) => {
-        this.projects.replace(updated);
-        this.snackBar.open('Project renamed', 'OK', { duration: 3000 });
-      },
-      error: (failure: unknown) =>
-        this.error.set(errorMessage(failure, 'Could not rename the project.')),
+      this.api.updateProject(project.id, { name }).subscribe({
+        next: (updated) => {
+          this.projects.replace(updated);
+          this.snackBar.open('Project renamed', 'OK', { duration: 3000 });
+        },
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not rename the project.')),
+      });
     });
+  }
+
+  /** Resolves with the name, or undefined when the dialog was dismissed. */
+  private openProjectForm(data: ProjectFormData) {
+    return this.dialog.open(ProjectFormDialog, { data, autoFocus: false }).afterClosed();
   }
 
   /**

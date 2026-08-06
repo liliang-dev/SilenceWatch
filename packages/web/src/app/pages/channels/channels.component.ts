@@ -119,7 +119,12 @@ import { IconComponent } from '../../shared/icon.component';
                 <button mat-stroked-button (click)="test(channel)" [disabled]="testing() === channel.id">
                   {{ testing() === channel.id ? 'Sending…' : 'Send test' }}
                 </button>
-                <button mat-icon-button (click)="remove(channel)" aria-label="Delete channel">
+                <button
+                  mat-icon-button
+                  class="sw-icon-button danger"
+                  (click)="remove(channel)"
+                  aria-label="Delete channel"
+                >
                   <sw-icon name="delete" />
                 </button>
               </div>
