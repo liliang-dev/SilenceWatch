@@ -12,10 +12,16 @@
 name: "CodeQL Advanced"
 
 on:
+  # Only `main`, unlike CI, which also builds `dev` after a merge. Code scanning
+  # keeps one alert list per analysed branch, so scanning `dev` too would report
+  # every finding twice and ask for it to be dismissed twice. The pull request
+  # run below is what catches a vulnerability before it lands.
   push:
     branches: [ "main" ]
+  # Both bases, like CI: a vulnerability introduced in a pull request should be
+  # reported while it is still a pull request.
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   schedule:
     - cron: '39 22 * * 6'
 
@@ -59,7 +65,7 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
@@ -69,7 +75,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -98,6 +104,6 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
       with:
         category: "/language:${{matrix.language}}"

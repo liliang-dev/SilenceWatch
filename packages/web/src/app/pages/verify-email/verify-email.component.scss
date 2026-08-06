@@ -1,0 +1,63 @@
+.wrap {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, var(--sw-accent-soft), transparent 70%),
+    var(--sw-bg);
+}
+
+.card {
+  position: relative;
+  width: min(420px, 100%);
+  overflow: hidden;
+  box-shadow: var(--sw-shadow-lg);
+}
+
+.progress {
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.body {
+  padding: 36px 28px 32px;
+  text-align: center;
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+}
+
+.glyph.ok {
+  background: var(--sw-up-soft);
+  color: var(--sw-up);
+}
+
+.glyph.bad {
+  background: var(--sw-down-soft);
+  color: var(--sw-down);
+}
+
+h1 {
+  font-size: 1.1875rem;
+}
+
+p {
+  max-width: 40ch;
+  margin: 10px auto 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+/* A button that happens to be an anchor: it should not carry link underlines. */
+.action,
+.action:hover {
+  margin-top: 24px;
+  min-width: 160px;
+  text-decoration: none;
+}

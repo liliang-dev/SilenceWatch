@@ -1,0 +1,261 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--sw-surface) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--sw-border);
+}
+
+.bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 1120px;
+  height: 56px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- brand ------------------------------------------------------------ */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: 12px;
+  color: var(--sw-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+/* The trace of a heartbeat, which is the entire product in one glyph.
+   Flat brand purple with a white stroke, in both themes: this is the logo,
+   not a themed element, and it should be the same object everywhere it
+   appears. */
+.mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--sw-brand);
+  box-shadow: var(--sw-shadow-sm);
+}
+
+.wordmark {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.wordmark-accent {
+  color: var(--sw-text-muted);
+  font-weight: 500;
+}
+
+/* --- navigation ------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  gap: 2px;
+}
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: var(--sw-radius-sm);
+  color: var(--sw-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.nav a:hover {
+  background: var(--sw-surface-3);
+  color: var(--sw-text);
+  text-decoration: none;
+}
+
+.nav a.active {
+  background: var(--sw-accent-soft);
+  color: var(--sw-accent);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* --- project switcher ------------------------------------------------- */
+
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 260px;
+  padding: 5px 8px 5px 11px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+  color: var(--sw-text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.switcher:hover {
+  border-color: var(--sw-border-strong);
+}
+
+.switcher-label {
+  flex: none;
+}
+
+.switcher-name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-caret {
+  flex: none;
+  color: var(--sw-text-subtle);
+}
+
+/* The one place in the chrome allowed to be loud, and only when it must. */
+.down-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--sw-down);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- account ---------------------------------------------------------- */
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  margin-left: 4px;
+  border: 1px solid var(--sw-border);
+  border-radius: 50%;
+  background: var(--sw-surface-3);
+  color: var(--sw-text-muted);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.avatar:hover {
+  border-color: var(--sw-border-strong);
+  color: var(--sw-text);
+}
+
+.menu-email {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--sw-border);
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.menu-project-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-project-down {
+  flex: none;
+  color: var(--sw-down);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Narrow screens: the bar becomes two rows rather than pushing the project
+   switcher off the side of the page. Nothing here is optional — which project
+   you are looking at, and whether anything in it is down, has to stay visible. */
+@media (max-width: 680px) {
+  .bar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 14px 0;
+    row-gap: 4px;
+  }
+
+  .brand {
+    margin-right: auto;
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  .nav {
+    order: 10;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav a {
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  .switcher {
+    max-width: 190px;
+  }
+
+  .switcher-label {
+    display: none;
+  }
+}
+
+@media (max-width: 440px) {
+  .wordmark {
+    display: none;
+  }
+
+  .switcher {
+    max-width: 160px;
+  }
+}

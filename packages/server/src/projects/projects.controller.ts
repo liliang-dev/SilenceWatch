@@ -103,7 +103,9 @@ export class ProjectsController {
     await this.access.assertAccess(principal, projectId, 'owner');
     // Read first: afterwards there is no name left to say what was destroyed.
     const doomed = await this.projects.get(projectId);
-    await this.projects.remove(projectId);
+    // `assertAccess(..., 'owner')` above already refuses an API key, so the
+    // principal here is always a user session.
+    await this.projects.remove(assertUser(principal).userId, projectId);
 
     this.audit.record({
       action: 'project.deleted',
