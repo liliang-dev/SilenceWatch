@@ -307,7 +307,7 @@ function alreadyRegisteredHtml(signInUrl: string): string {
       account was created.
     </p>
     <p style="margin:0 0 20px">
-      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#7533e1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Sign in</a>
+      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#8b4bf1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Sign in</a>
     </p>
     <p style="margin:0;font-size:12px;color:#98a2b3">
       If this was not you, you can ignore this message — nobody learned anything about your account.
@@ -338,11 +338,11 @@ function verificationHtml(link: string, ttlHours: number): string {
       One click and your SilenceWatch account is ready.
     </p>
     <p style="margin:0 0 20px">
-      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#7533e1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Confirm my address</a>
+      <a href="${href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#8b4bf1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Confirm my address</a>
     </p>
     <p style="margin:0 0 8px;font-size:13px;color:#667085">
       Or paste this into your browser:<br>
-      <span style="word-break:break-all;color:#7533e1">${href}</span>
+      <span style="word-break:break-all;color:#8b4bf1">${href}</span>
     </p>
     <p style="margin:16px 0 0;font-size:12px;color:#98a2b3">
       Valid for ${ttlHours} hours, usable once. If you did not create an account, ignore this message — nothing was activated.

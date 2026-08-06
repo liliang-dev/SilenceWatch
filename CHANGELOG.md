@@ -12,14 +12,15 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
-- New logo, and the interface repainted around it. The mark is the brand
-  waveform on `#bc95fc`, traced from the artwork rather than redrawn — the
-  vertices, the baseline and the stroke width are measured from it. The dark
-  theme's accent is that exact colour; the light theme uses the same hue at a
-  lightness that can carry a button (6.3:1 on white, against 2.4:1 for the
-  brand purple itself), because an accent nobody can read is not a brand. Alert
-  and account emails moved with it — three of them were still on a blue that
-  matched nothing.
+- New logo, and one purple across the whole product. The mark is the brand
+  waveform, traced from the artwork rather than redrawn — the vertices, the
+  baseline and the stroke width are measured from it — on `#8b4bf1`, which is
+  the same value the light theme uses for every button and link. That is the
+  lightness at which white on the mark and the mark's colour on white both
+  clear 4.5:1, so the logo and the interface no longer need two purples that
+  merely resemble each other. The dark theme lightens the accent to `#bc95fc`
+  and leaves the mark alone. Alert and account emails moved with it — three of
+  them were still on a blue that matched nothing.
 
 - **The project builds with pnpm.** `npm install` no longer produces a tree that
   matches a lockfile; `corepack enable` then `pnpm install` does. The version of
