@@ -393,6 +393,12 @@ time,
   --mdc-protected-button-container-height: var(--sw-control-height);
 }
 
+/* Limit the height of the paginator selector */
+.mat-mdc-paginator-page-size-select .mat-mdc-form-field-flex {
+  height: 35px;
+  align-items: center;
+}
+
 /* Icon-only buttons.
  *
  * Material's default is a 48px circle with a ripple that fills it, which next
