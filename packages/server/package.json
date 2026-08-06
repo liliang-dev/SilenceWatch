@@ -7,14 +7,14 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",
-    "dev": "nest start --watch",
+    "dev": "node --env-file-if-exists=.env node_modules/@nestjs/cli/bin/nest.js start --watch",
     "diagnostics": "node dist/diagnostics/support-bundle.js",
     "lint": "tsc -p tsconfig.json --noEmit",
     "loadtest": "node scripts/loadtest.mjs",
     "postinstall": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "node --env-file-if-exists=.env node_modules/prisma/build/index.js migrate dev",
     "start": "node dist/main.js",
     "test": "jest --config jest.config.js",
     "test:e2e": "jest --config jest.e2e.config.js --runInBand"

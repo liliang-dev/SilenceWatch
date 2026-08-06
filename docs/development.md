@@ -92,6 +92,28 @@ pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
 with it when `NODE_ENV=production`.
 
+### What reads that `.env`
+
+Nothing in the application does. `loadConfig()` reads `process.env` and nothing
+else — the server is configured by environment variables, and an image whose
+behaviour depended on a file inside it would defeat the point.
+
+The file is a developer convenience, loaded by the two scripts that need it
+through Node's own `--env-file-if-exists`, with no dependency and nothing
+imported:
+
+```
+dev             node --env-file-if-exists=.env … nest start --watch
+prisma:migrate  node --env-file-if-exists=.env … prisma migrate dev
+```
+
+Both invoke the tool's JavaScript entry point rather than its `node_modules/.bin`
+shim, because that shim is a `.cmd` file on Windows and `node` cannot run it.
+
+Exported shell variables win — the file only fills in what is missing — and
+`start`, `prisma:deploy` and the container entrypoint never look at it, so
+production is configured exactly as before.
+
 ### `@silencewatch/shared` has to be compiled
 
 The server and the UI resolve it through `packages/shared/dist`, which is a
