@@ -12,6 +12,10 @@
 name: "CodeQL Advanced"
 
 on:
+  # Only `main`, unlike CI, which also builds `dev` after a merge. Code scanning
+  # keeps one alert list per analysed branch, so scanning `dev` too would report
+  # every finding twice and ask for it to be dismissed twice. The pull request
+  # run below is what catches a vulnerability before it lands.
   push:
     branches: [ "main" ]
   # Both bases, like CI: a vulnerability introduced in a pull request should be

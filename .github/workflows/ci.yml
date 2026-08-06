@@ -1,11 +1,18 @@
 name: CI
 
 # Pull requests are opened against `dev`; `main` only ever receives `dev`, and
-# only once it is green. So CI runs on both bases, and on the push that lands on
-# main — never on the push that lands on dev, which the pull request just tested.
+# only once it is green. So CI runs on both bases, and on the pushes that land
+# on them.
+#
+# The push runs are not a duplicate of the pull request's. A pull request is
+# built from its head merged into the base *as it was when the run started*, so
+# two requests that are each green against yesterday's `dev` can still be red
+# together — and a squash merge produces a commit that no run ever saw. Testing
+# the branch itself is the only thing that answers "is `dev` green right now?",
+# which is the question `main` is promoted on.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
     branches: [main, dev]
 

@@ -23,6 +23,13 @@ CI runs on pull requests to either branch, so nothing untested reaches `dev`
 either — the difference is what a red build costs. On `dev` it costs a review
 comment; on `main` it would already be in a release someone pulled.
 
+It also runs on `dev` and `main` themselves after a merge. That is not the same
+run twice: a pull request is tested merged into the base as it stood when the
+run began, so two changes that are each green can still be red together, and a
+squash merge creates a commit no run has ever built. The run on `dev` is what
+makes "`dev` is green" a fact about the branch rather than about the requests
+that went into it.
+
 Nothing else moves between the two: no direct pushes to `main`, and no pull
 request from a feature branch straight to `main`.
 
