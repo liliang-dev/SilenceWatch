@@ -1,4 +1,4 @@
-import { parseExpression } from 'cron-parser';
+import { CronExpressionParser } from 'cron-parser';
 
 /** The subset of a check needed to know when the next heartbeat is expected. */
 export interface Schedule {
@@ -32,7 +32,10 @@ export function computeNextDueAt(schedule: Schedule, from: Date): Date {
   }
 
   try {
-    return parseExpression(expression, {
+    // cron-parser 5 replaced the `parseExpression` function with a class, and
+    // `currentDate` with `currentDate` on the same options object — the shape
+    // is unchanged, only the entry point moved.
+    return CronExpressionParser.parse(expression, {
       currentDate: from,
       tz: schedule.timezone,
     })

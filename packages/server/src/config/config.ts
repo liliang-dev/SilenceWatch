@@ -45,15 +45,24 @@ const envSchema = z
     /** Public origin, used in ping URLs and alert links. */
     BASE_URL: z.string().url().default('http://localhost:8080'),
     /** Extra browser origins allowed to call the API (the web UI is same-origin). */
-    CORS_ORIGINS: csv.default(''),
+    CORS_ORIGINS: csv.prefault(''),
     /**
      * Set when running behind a reverse proxy so client IPs come from
      * X-Forwarded-For. Leave false when directly exposed: a spoofed header
      * would otherwise defeat per-IP rate limiting.
      */
-    TRUST_PROXY: z.union([booleanish, z.string().min(1)]).default('false'),
+    /**
+     * `prefault`, not `default`, and the distinction is not cosmetic. In zod 4
+     * `.default()` hands back the literal value without parsing it, so
+     * `.default('false')` on this union produced the *string* `"false"` — which
+     * type-checks, because the union admits strings, and which fastify then
+     * tried to read as a CIDR: "invalid IP address: false". `prefault` feeds
+     * the value through the union, so an unset variable still resolves to the
+     * boolean `false` it did before.
+     */
+    TRUST_PROXY: z.union([booleanish, z.string().min(1)]).prefault('false'),
     /** Serve the compiled Angular UI from the same process. */
-    SERVE_WEB: booleanish.default('true'),
+    SERVE_WEB: booleanish.prefault('true'),
 
     DATABASE_URL: z.string().min(1),
     /** Prisma connection ceiling (CRUD, API, detection). */
@@ -69,7 +78,7 @@ const envSchema = z
     ACCESS_TOKEN_TTL_SECONDS: positiveInt(60, 86_400).default(900),
     REFRESH_TOKEN_TTL_DAYS: positiveInt(1, 365).default(30),
     /** When false only the very first account can be created (bootstrap). */
-    SIGNUP_ENABLED: booleanish.default('true'),
+    SIGNUP_ENABLED: booleanish.prefault('true'),
 
     /* --- sign-up integrity -------------------------------------------------
      * All of it is off by default. A self-hosted instance behind a VPN has no
@@ -83,7 +92,7 @@ const envSchema = z
      * on also makes registration enumeration-safe: the response stops depending
      * on whether the address already exists.
      */
-    EMAIL_VERIFICATION_REQUIRED: booleanish.default('false'),
+    EMAIL_VERIFICATION_REQUIRED: booleanish.prefault('false'),
     EMAIL_VERIFICATION_TTL_HOURS: positiveInt(1, 168).default(24),
     /**
      * Lifetime of a password reset link. Shorter than a verification link on
@@ -104,9 +113,9 @@ const envSchema = z
     SIGNUP_POW_TTL_SECONDS: positiveInt(30, 3_600).default(600),
 
     /** Reject addresses at known disposable-mailbox domains. */
-    SIGNUP_BLOCK_DISPOSABLE_EMAIL: booleanish.default('false'),
+    SIGNUP_BLOCK_DISPOSABLE_EMAIL: booleanish.prefault('false'),
     /** Extra domains to reject, comma-separated. */
-    SIGNUP_BLOCKED_EMAIL_DOMAINS: csv.default(''),
+    SIGNUP_BLOCKED_EMAIL_DOMAINS: csv.prefault(''),
 
     /**
      * Accounts creatable per hour from one network prefix (IPv4 /24, IPv6 /48),
@@ -126,7 +135,7 @@ const envSchema = z
      * allowed to do. That is what keeps the commercial model out of a repo
      * licensed to be run by anyone.
      */
-    QUOTAS_ENABLED: booleanish.default('false'),
+    QUOTAS_ENABLED: booleanish.prefault('false'),
     /** Plan assigned to a new account when quotas are on. */
     DEFAULT_PLAN: z.string().min(1).max(40).default('free'),
     /**
@@ -153,7 +162,7 @@ const envSchema = z
 
     DETECTION_INTERVAL_MS: positiveInt(1_000, 600_000).default(10_000),
     DETECTION_BATCH_SIZE: positiveInt(1, 10_000).default(200),
-    DETECTION_ENABLED: booleanish.default('true'),
+    DETECTION_ENABLED: booleanish.prefault('true'),
 
     NOTIFICATION_INTERVAL_MS: positiveInt(500, 600_000).default(3_000),
     NOTIFICATION_BATCH_SIZE: positiveInt(1, 1_000).default(50),
@@ -163,7 +172,7 @@ const envSchema = z
      * Allow alerts to reach private/loopback addresses. Off by default (SSRF
      * protection); self-hosters targeting an internal Mattermost turn it on.
      */
-    ALLOW_PRIVATE_NOTIFICATION_TARGETS: booleanish.default('false'),
+    ALLOW_PRIVATE_NOTIFICATION_TARGETS: booleanish.prefault('false'),
 
     EMAIL_PROVIDER: z.enum(['console', 'smtp', 'postmark', 'brevo']).default('console'),
     EMAIL_FROM: z.string().email().default('alerts@silencewatch.local'),
