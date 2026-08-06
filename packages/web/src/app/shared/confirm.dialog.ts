@@ -23,49 +23,8 @@ export interface ConfirmData {
   selector: 'sw-confirm',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatDialogModule, MatButtonModule],
-  template: `
-    <h2 mat-dialog-title class="title">{{ data.title }}</h2>
-    <mat-dialog-content>
-      <p class="message">{{ data.message }}</p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="actions">
-      <button mat-button type="button" (click)="dialogRef.close(false)">Cancel</button>
-      <button
-        mat-flat-button
-        type="button"
-        [class.destructive]="data.destructive"
-        (click)="dialogRef.close(true)"
-      >
-        {{ data.confirmLabel }}
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: `
-    .title {
-      padding-bottom: 4px !important;
-      font-size: 1.0625rem !important;
-      font-weight: 600 !important;
-    }
-
-    .message {
-      margin: 0;
-      max-width: 42ch;
-      line-height: 1.55;
-      color: var(--sw-text-muted);
-    }
-
-    .actions {
-      padding: 14px 24px 18px !important;
-      gap: 8px;
-    }
-
-    /* Material 3 paints a filled button from the theme's primary, not from a
-       button-specific token — so the colour is swapped at the source. */
-    .destructive {
-      --mat-sys-primary: var(--sw-down);
-      --mat-sys-on-primary: #fff;
-    }
-  `,
+  templateUrl: './confirm.dialog.html',
+  styleUrl: './confirm.dialog.scss',
 })
 export class ConfirmDialog {
   protected readonly data = inject<ConfirmData>(MAT_DIALOG_DATA);

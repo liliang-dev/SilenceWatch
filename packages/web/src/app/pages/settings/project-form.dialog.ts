@@ -29,58 +29,8 @@ export interface ProjectFormData {
     MatFormFieldModule,
     MatInputModule,
   ],
-  template: `
-    <h2 mat-dialog-title class="title">{{ data.project ? 'Rename project' : 'New project' }}</h2>
-
-    <mat-dialog-content>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form body">
-        <mat-form-field appearance="outline">
-          <mat-label>Name</mat-label>
-          <input matInput formControlName="name" placeholder="Billing jobs" required cdkFocusInitial />
-          @if (form.controls.name.touched && form.controls.name.invalid) {
-            <mat-error>A name is required, up to {{ maxLength }} characters</mat-error>
-          }
-        </mat-form-field>
-
-        @if (data.project) {
-          <p class="note sw-subtle">
-            The URL slug stays <span class="sw-mono">{{ data.project.slug }}</span
-            >. Ping URLs already deployed keep working.
-          </p>
-        }
-      </form>
-    </mat-dialog-content>
-
-    <mat-dialog-actions align="end" class="actions">
-      <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
-      <button mat-flat-button type="button" [disabled]="form.invalid" (click)="submit()">
-        {{ data.project ? 'Rename' : 'Create project' }}
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: `
-    .title {
-      padding-bottom: 4px !important;
-      font-size: 1.0625rem !important;
-      font-weight: 600 !important;
-    }
-
-    .body {
-      min-width: min(380px, 74vw);
-      padding-top: 8px;
-    }
-
-    .note {
-      margin: 0;
-      font-size: 0.8125rem;
-      line-height: 1.5;
-    }
-
-    .actions {
-      padding: 14px 24px 18px !important;
-      gap: 8px;
-    }
-  `,
+  templateUrl: './project-form.dialog.html',
+  styleUrl: './project-form.dialog.scss',
 })
 export class ProjectFormDialog {
   protected readonly data = inject<ProjectFormData>(MAT_DIALOG_DATA);

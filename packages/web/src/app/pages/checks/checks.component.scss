@@ -1,0 +1,129 @@
+/* ------------------------------------------------------------ counters --- */
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-surface);
+  box-shadow: var(--sw-shadow-sm);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.counter:hover {
+  border-color: var(--sw-border-strong);
+  transform: translateY(-1px);
+}
+
+.counter.selected {
+  border-color: color-mix(in srgb, var(--counter-color, var(--sw-accent)) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--counter-color, var(--sw-accent)) 40%, transparent);
+}
+
+.counter-value {
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--counter-color, var(--sw-text));
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--sw-text-muted);
+}
+
+/* A zero is good news and should not be painted like a problem. */
+.counter.is-down { --counter-color: var(--sw-down); }
+.counter.is-late { --counter-color: var(--sw-late); }
+.counter.is-up { --counter-color: var(--sw-up); }
+.counter.is-zero { --counter-color: var(--sw-text-subtle); }
+
+/* ------------------------------------------------------------- toolbar --- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.states {
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+}
+
+.search {
+  flex: 1 1 240px;
+  max-width: 340px;
+}
+
+.search-icon {
+  margin: 0 8px 0 2px;
+  color: var(--sw-text-subtle);
+}
+
+.loading {
+  margin-bottom: 12px;
+  border-radius: 999px;
+}
+
+.empty-action {
+  margin-top: 20px;
+}
+
+/* --------------------------------------------------------------- table --- */
+
+.checks {
+  min-width: 760px;
+}
+
+/* A stripe on the row, not a colour on the text: the state chip already
+   carries the colour, and two of them would only compete. */
+.checks tbody tr.row-down td:first-child {
+  box-shadow: inset 3px 0 0 var(--sw-down);
+}
+
+.checks tbody tr.row-late td:first-child {
+  box-shadow: inset 3px 0 0 var(--sw-late);
+}
+
+.name {
+  color: var(--sw-text);
+  font-weight: 500;
+}
+
+.name:hover {
+  color: var(--sw-accent);
+  text-decoration: none;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sw-tag.orphan {
+  border-color: color-mix(in srgb, var(--sw-late) 35%, transparent);
+  background: var(--sw-late-soft);
+  color: var(--sw-late);
+}

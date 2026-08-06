@@ -1,0 +1,126 @@
+<div class="sw-page">
+  <header class="sw-page-header">
+    <div>
+      <h1>Checks</h1>
+      <p class="sw-muted">{{ subtitle() }}</p>
+    </div>
+    <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
+      <sw-icon name="add" />
+      New check
+    </button>
+  </header>
+
+  <!-- The count of what is broken, before anything else on the page. -->
+  <div class="counters">
+    @for (counter of counters(); track counter.label) {
+      <button
+        type="button"
+        class="counter"
+        [class]="'is-' + counter.tone"
+        [class.selected]="stateFilter === counter.filter"
+        [attr.aria-pressed]="stateFilter === counter.filter"
+        (click)="filterBy(counter.filter)"
+      >
+        <span class="counter-value">{{ counter.value }}</span>
+        <span class="counter-label">{{ counter.label }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="toolbar">
+    <mat-button-toggle-group
+      [(ngModel)]="stateFilter"
+      (ngModelChange)="reload()"
+      hideSingleSelectionIndicator
+      class="states"
+    >
+      <mat-button-toggle value="">All</mat-button-toggle>
+      <mat-button-toggle value="DOWN">Down</mat-button-toggle>
+      <mat-button-toggle value="LATE">Late</mat-button-toggle>
+      <mat-button-toggle value="UP">Up</mat-button-toggle>
+      <mat-button-toggle value="PAUSED">Paused</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+      <sw-icon name="search" matPrefix class="search-icon" />
+      <input
+        matInput
+        type="search"
+        placeholder="Search by name"
+        [(ngModel)]="search"
+        (keyup.enter)="reload()"
+        (search)="reload()"
+      />
+    </mat-form-field>
+  </div>
+
+  @if (loading() && checks().length === 0) {
+    <mat-progress-bar mode="indeterminate" class="loading" />
+  }
+
+  @if (error()) {
+    <p class="sw-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (!loading() && checks().length === 0) {
+    <div class="sw-card sw-empty">
+      <h2>Nothing is being watched yet</h2>
+      <p>
+        Create a check, then have your job call its ping URL when it runs — or add the Spring Boot
+        starter and every scheduled task will declare itself.
+      </p>
+      <button mat-flat-button class="empty-action" (click)="create()" [disabled]="projects.selected() === null">
+        <sw-icon name="add" />
+        New check
+      </button>
+    </div>
+  } @else {
+    <div class="sw-card sw-scroll-x">
+      <table class="sw-table checks">
+        <thead>
+          <tr>
+            <th scope="col">Check</th>
+            <th scope="col">State</th>
+            <th scope="col">Schedule</th>
+            <th scope="col">Last ping</th>
+            <th scope="col">Expected</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (check of checks(); track check.id) {
+            <tr [class]="'row-' + check.state.toLowerCase()">
+              <td>
+                <a [routerLink]="['/checks', check.id]" class="name">{{ check.name }}</a>
+                @if (check.environment || check.source === 'auto' || check.orphanedAt) {
+                  <div class="meta">
+                    @if (check.environment) {
+                      <span class="sw-tag">{{ check.environment }}</span>
+                    }
+                    @if (check.source === 'auto') {
+                      <span class="sw-tag" matTooltip="Declared automatically by a client library">auto</span>
+                    }
+                    @if (check.orphanedAt) {
+                      <span
+                        class="sw-tag orphan"
+                        matTooltip="The client stopped declaring this job. History is kept; delete it when you are sure."
+                        >orphaned</span
+                      >
+                    }
+                  </div>
+                }
+              </td>
+              <td><sw-state-chip [state]="check.state" /></td>
+              <td class="sw-mono sw-muted">{{ schedule(check) }}</td>
+              <td [matTooltip]="check.lastPingAt ?? 'No ping received yet'">
+                {{ check.lastPingAt | swRelativeTime }}
+              </td>
+              <td class="sw-muted" [matTooltip]="check.nextDueAt ?? ''">
+                {{ check.nextDueAt | swRelativeTime }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

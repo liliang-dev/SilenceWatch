@@ -1,0 +1,36 @@
+.title {
+  padding-bottom: 4px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+}
+
+/* Rhythm comes from .sw-form; this only sets the dialog's own width. */
+.form {
+  min-width: min(440px, 78vw);
+  padding-top: 8px;
+}
+
+/* The schedule fields belong together — boxing them keeps the dialog from
+   reading as one undifferentiated stack of inputs. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius);
+  background: var(--sw-surface-2);
+}
+
+.group legend {
+  padding: 0 6px;
+}
+
+/* A rule under the scroll area: without it, a hint clipped at the fold reads
+   as a rendering bug rather than as "there is more below". */
+.actions {
+  padding: 14px 24px 18px !important;
+  border-top: 1px solid var(--sw-border);
+  gap: 8px;
+}
