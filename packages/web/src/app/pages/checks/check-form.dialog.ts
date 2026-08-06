@@ -53,7 +53,7 @@ export interface CheckFormData {
     <h2 mat-dialog-title class="title">{{ data.check ? 'Edit check' : 'New check' }}</h2>
 
     <mat-dialog-content>
-      <form [formGroup]="form" class="form">
+      <form [formGroup]="form" class="form sw-form">
         <mat-form-field appearance="outline">
           <mat-label>Name</mat-label>
           <input matInput formControlName="name" required placeholder="Nightly backup" />
@@ -127,9 +127,8 @@ export interface CheckFormData {
       font-weight: 600 !important;
     }
 
+    /* Rhythm comes from .sw-form; this only sets the dialog's own width. */
     .form {
-      display: flex;
-      flex-direction: column;
       min-width: min(440px, 78vw);
       padding-top: 8px;
     }
@@ -139,8 +138,9 @@ export interface CheckFormData {
     .group {
       display: flex;
       flex-direction: column;
-      margin: 0 0 18px;
-      padding: 8px 14px 0;
+      gap: 12px;
+      margin: 0;
+      padding: 12px 14px;
       border: 1px solid var(--sw-border);
       border-radius: var(--sw-radius);
       background: var(--sw-surface-2);

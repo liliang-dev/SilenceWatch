@@ -66,6 +66,10 @@
   --sw-shadow: 0 1px 3px rgb(16 24 40 / 8%), 0 1px 2px rgb(16 24 40 / 4%);
   --sw-shadow-lg: 0 12px 32px -8px rgb(16 24 40 / 14%);
 
+  /* One height for every input, select and button. Declared once so a button
+     beside a field is the same object, on every screen. */
+  --sw-control-height: 48px;
+
   --sw-radius-sm: 6px;
   --sw-radius: 10px;
   --sw-radius-lg: 14px;
@@ -365,8 +369,50 @@ time,
 
 /* ------------------------------------------------------- material trims --- */
 
+/* Every control is one height.
+ *
+ * Before this, each page set its own — 52px on the alerting row, 46px on the
+ * sign-in button, 34px elsewhere — so a button beside an input was a different
+ * object, and the text inside a field sat at a different place depending on
+ * which screen it was on. The height is declared once here and Material's own
+ * layout centres the text within it, rather than a per-page `height:` fighting
+ * the component's internal padding. */
 .mat-mdc-form-field {
   width: 100%;
+  --mat-form-field-container-height: var(--sw-control-height);
+  --mat-form-field-container-vertical-padding: 12px;
+}
+
+.mat-mdc-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button,
+.mat-mdc-raised-button {
+  --mdc-text-button-container-height: var(--sw-control-height);
+  --mdc-filled-button-container-height: var(--sw-control-height);
+  --mdc-outlined-button-container-height: var(--sw-control-height);
+  --mdc-protected-button-container-height: var(--sw-control-height);
+}
+
+/* A stacked form: fields under each other, with room between them.
+ *
+ * Material reserves a line under each field for its hint or error, so the two
+ * never push the layout around as you type. That reserved line is not spacing
+ * though — it belongs to the field above — which is why a stack without a gap
+ * reads as one dense block and a hint looks like it labels the field below it. */
+.sw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A row of controls that has to line up: filter bars, the add-a-channel row.
+ * `subscriptSizing="dynamic"` belongs on these — there is no hint to reserve
+ * room for, and reserving it would make the row taller than its buttons. */
+.sw-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .mat-mdc-snack-bar-container {

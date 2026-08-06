@@ -90,7 +90,6 @@ import { errorMessage } from '../../core/error-message';
       display: grid;
       place-items: center;
       width: 52px;
-      height: 52px;
       margin: 0 auto 18px;
       border-radius: 50%;
     }

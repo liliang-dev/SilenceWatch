@@ -276,7 +276,6 @@ const AUDIT_LABELS: Record<string, string> = {
     }
 
     .tall {
-      height: 52px;
     }
 
     .new-key {

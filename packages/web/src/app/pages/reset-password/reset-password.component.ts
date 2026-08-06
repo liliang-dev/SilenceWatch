@@ -54,7 +54,7 @@ import { errorMessage } from '../../core/error-message';
               This also signs out every device currently using the account.
             </p>
 
-            <form [formGroup]="form" (ngSubmit)="submit()">
+            <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form">
               <mat-form-field appearance="outline">
                 <mat-label>New password</mat-label>
                 <input matInput type="password" formControlName="password" autocomplete="new-password" />
@@ -140,7 +140,6 @@ import { errorMessage } from '../../core/error-message';
     }
 
     .submit {
-      height: 46px;
       margin-top: 8px;
       font-weight: 600;
     }
