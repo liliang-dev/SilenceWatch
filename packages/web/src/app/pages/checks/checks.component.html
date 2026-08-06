@@ -46,9 +46,9 @@
       <input
         matInput
         type="search"
-        placeholder="Search by name"
+        placeholder="Search"
         [(ngModel)]="search"
-        (keyup.enter)="reload()"
+        (input)="reload()"
         (search)="reload()"
       />
     </mat-form-field>
@@ -80,6 +80,8 @@
         <thead>
           <tr>
             <th scope="col">Check</th>
+            <th scope="col">Environment</th>
+            <th scope="col">Source</th>
             <th scope="col">State</th>
             <th scope="col">Schedule</th>
             <th scope="col">Last ping</th>
@@ -88,25 +90,26 @@
         </thead>
         <tbody>
           @for (check of checks(); track check.id) {
-            <tr [class]="'row-' + check.state.toLowerCase()">
+            <tr class="check-row" [class]="'row-' + check.state.toLowerCase()"  [routerLink]="['/checks', check.id]">
               <td>
-                <a [routerLink]="['/checks', check.id]" class="name">{{ check.name }}</a>
-                @if (check.environment || check.source === 'auto' || check.orphanedAt) {
-                  <div class="meta">
-                    @if (check.environment) {
-                      <span class="sw-tag">{{ check.environment }}</span>
-                    }
-                    @if (check.source === 'auto') {
-                      <span class="sw-tag" matTooltip="Declared automatically by a client library">auto</span>
-                    }
-                    @if (check.orphanedAt) {
-                      <span
-                        class="sw-tag orphan"
-                        matTooltip="The client stopped declaring this job. History is kept; delete it when you are sure."
-                        >orphaned</span
-                      >
-                    }
-                  </div>
+                <a class="name">{{ check.name }}</a>
+              </td>
+              <td>
+                <span class="sw-tag">{{ check.environment }}</span>
+              </td>
+              <td>
+                @if (check.source === 'auto') {
+                    <span class="sw-tag" matTooltip="Declared automatically by a client library">auto</span>
+                } @else {
+                    <span class="sw-tag" matTooltip="Declared manually by a user">manual</span>
+                }
+                @if (check.orphanedAt) {
+                  <span
+                    class="sw-tag orphan"
+                    matTooltip="The client stopped declaring this job. History is kept; delete it when you are sure.">
+                      orphaned
+                    </span
+                  >
                 }
               </td>
               <td><sw-state-chip [state]="check.state" /></td>
