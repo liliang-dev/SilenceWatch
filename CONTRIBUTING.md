@@ -54,6 +54,10 @@ A pull request moving client code under AGPL will not be merged.
 
 ## Before opening a pull request
 
+Node 24 LTS and pnpm via `corepack enable` — on an older Node the first command
+fails without saying that the Node version is why. See
+[docs/development.md](docs/development.md#node).
+
 ```bash
 pnpm test        # unit tests
 pnpm run test:e2e  # needs TEST_DATABASE_URL

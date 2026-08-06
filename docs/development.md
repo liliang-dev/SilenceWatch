@@ -9,6 +9,28 @@ packages/web       Angular UI, built into packages/server/public (AGPL-3.0)
 clients/spring-boot-starter   the Spring Boot starter (Apache-2.0)
 ```
 
+## Node
+
+**Node 24 LTS**, or anything else matching `engines.node` in `package.json`
+(`^22.22.3 || ^24.15.0 || >=26.0.0`). This is not a preference: Angular's CLI
+refuses to start below 22.22.3, and it is the version CI and the published image
+run, so it is the one this project is actually tested on.
+
+On an older Node the first failure is not a helpful one. Node 20 ships a
+corepack whose shim loads `pnpm.cjs` in a `vm` context without a dynamic-import
+callback, and pnpm 11 uses dynamic import, so the very first `pnpm` command dies
+with:
+
+```
+TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING]: A dynamic import callback
+was not specified.
+```
+
+That names neither Node nor the version requirement. Upgrading Node fixes it.
+Upgrading only corepack (`npm i -g corepack@latest`) also clears that message,
+and is the wrong fix — the Angular CLI then refuses the same Node one step
+later.
+
 ## The package manager
 
 pnpm, and specifically the version `package.json` pins in `packageManager` —
@@ -21,6 +43,14 @@ corepack enable
 
 Node ships corepack, and the first `pnpm` command fetches exactly that version.
 `npm install` in this repository produces a tree that matches no lockfile.
+
+Coming from a checkout that predates pnpm, delete the npm tree first — an
+existing `node_modules` laid out by npm is not the layout pnpm expects:
+
+```bash
+rm -rf node_modules packages/*/node_modules
+pnpm install
+```
 
 Two settings in `pnpm-workspace.yaml` will interrupt you eventually, so they are
 worth knowing before they do:
