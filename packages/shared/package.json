@@ -21,7 +21,7 @@
     "@types/node": "^26.1.2",
     "jest": "^30.4.2",
     "ts-jest": "^29.2.5",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "module": "dist/esm/index.js",
   "exports": {
