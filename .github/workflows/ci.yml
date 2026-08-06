@@ -184,10 +184,13 @@ jobs:
 
       - run: corepack enable
 
+      # Deliberately without `cache: pnpm`, unlike the build job. Nothing here
+      # installs anything, so the store directory is never created — and the
+      # action's post-job step then fails the whole job trying to save a path
+      # that does not exist. A cache of nothing is not worth a red build.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
-          cache: pnpm
 
       # No install: this reads the lockfile. It is a separate job from the build
       # so that a newly disclosed advisory is reported even when the build is
