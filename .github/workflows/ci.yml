@@ -226,6 +226,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # No setup-node and no install: the script reads two files with the
+      # runner's own node, so this stays a few seconds rather than a build.
+      - name: Documented defaults match the schema
+        run: node scripts/check-documented-defaults.mjs
+
       # A required variable reaches the container through Docker's interpolation,
       # and that step can quietly produce something other than the value it was
       # given: an error message containing punctuation was parsed as part of the

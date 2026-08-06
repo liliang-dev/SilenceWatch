@@ -41,13 +41,45 @@ Every setting is an environment variable. The server validates them at startup a
 **refuses to boot on an unsafe or incoherent configuration** rather than running
 in a degraded state you would discover during an incident.
 
-### Required
+### The minimum
 
-| Variable        | Meaning                                                              |
-| --------------- | -------------------------------------------------------------------- |
-| `DATABASE_URL`  | PostgreSQL connection string                                          |
-| `SECRET_KEY`    | Root secret, 32+ characters. Rotating it signs everyone out           |
-| `BASE_URL`      | Public URL. Ping URLs and alert links are built from it               |
+Three values. With any of them missing the instance does not start, and says
+which one:
+
+| Variable            | Set it to                                                  |
+| ------------------- | ---------------------------------------------------------- |
+| `SECRET_KEY`        | `openssl rand -hex 32`. Every signing key derives from it, so rotating it signs everyone out |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Compose builds `DATABASE_URL` from it |
+| `SMTP_URL`          | `smtp://user:password@relay.example.com:587`. Or a `POSTMARK_TOKEN` / `BREVO_API_KEY` with the matching `EMAIL_PROVIDER` |
+
+`SMTP_URL` is in that list because `docker-compose.yml` defaults
+`EMAIL_PROVIDER` to `smtp`, and a mail provider with no transport is a
+configuration that would accept alerts and drop them. Nothing else on this page
+has to be set.
+
+One more you should set anyway, whose default is only right on a laptop:
+
+| Variable   | Default                 | Why it matters                             |
+| ---------- | ----------------------- | ------------------------------------------ |
+| `BASE_URL` | `http://localhost:8080` | Ping URLs and alert links are built from it, so a wrong value hands out links nobody can follow |
+
+Which makes the smallest genuinely usable `.env` four lines:
+
+```bash
+SECRET_KEY=…
+POSTGRES_PASSWORD=…
+SMTP_URL=smtp://user:password@relay.example.com:587
+BASE_URL=https://watch.example.com
+```
+
+**`DATABASE_URL` is deliberately not in that list.** The server does require it,
+but `docker-compose.yml` and `docker-stack.yml` both assemble it from
+`POSTGRES_PASSWORD` — you only set it yourself when pointing at a PostgreSQL the
+Compose file did not start.
+
+**`EMAIL_PROVIDER=console` is not usable in production.** It prints alerts to
+the log instead of sending them, and the published image sets
+`NODE_ENV=production`, where the server refuses to boot with it.
 
 ### Alerting
 
