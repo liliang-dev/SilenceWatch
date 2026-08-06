@@ -20,7 +20,7 @@
     "test:e2e": "jest --config jest.e2e.config.js --runInBand"
   },
   "dependencies": {
-    "@fastify/cors": "^10.0.2",
+    "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.0.1",
     "@fastify/static": "^10.1.2",
     "@nestjs/common": "^11.0.6",
