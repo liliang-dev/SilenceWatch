@@ -21,7 +21,9 @@ const STATE_ORDER: Record<CheckState, number> = { DOWN: 0, LATE: 1, NEW: 2, UP: 
  */
 export function byUrgency(left: CheckDto, right: CheckDto): number {
   const difference = STATE_ORDER[left.state] - STATE_ORDER[right.state];
-  return difference !== 0 ? difference : left.name.localeCompare(right.name);
+  // Pinned like the rest of the interface: a machine's locale should not
+  // decide where an accented name lands in the table.
+  return difference !== 0 ? difference : left.name.localeCompare(right.name, 'en');
 }
 
 /** What the Source column says, and therefore what "auto" or "orphaned" match. */

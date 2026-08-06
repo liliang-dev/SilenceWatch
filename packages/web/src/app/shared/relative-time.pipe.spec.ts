@@ -20,9 +20,24 @@ describe('RelativeTimePipe', () => {
   });
 
   it('reads the past and the future', () => {
-    expect(pipe.transform('2026-07-30T11:57:00.000Z')).toContain('3 minutes ago');
-    expect(pipe.transform('2026-07-30T14:00:00.000Z')).toContain('in 2 hours');
-    expect(pipe.transform('2026-07-29T12:00:00.000Z')).toContain('yesterday');
+    expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe('3 minutes ago');
+    expect(pipe.transform('2026-07-30T14:00:00.000Z')).toBe('in 2 hours');
+    expect(pipe.transform('2026-07-29T12:00:00.000Z')).toBe('yesterday');
+  });
+
+  /**
+   * The assertions above were already written in English, and they still passed
+   * or failed depending on whose machine ran them: `Intl.RelativeTimeFormat`
+   * with no locale takes the system's, so a laptop set to French produced "il y
+   * a 3 minutes" and a red suite that said nothing about what was wrong.
+   *
+   * This asserts the property rather than the output — the pipe agrees with an
+   * explicitly English formatter, whatever the machine is set to.
+   */
+  it('formats in English on a machine that is not', () => {
+    const english = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe(english.format(-3, 'minute'));
+    expect(pipe.transform('2026-07-30T14:00:00.000Z')).toBe(english.format(2, 'hour'));
   });
 
   it('collapses anything very recent to "just now"', () => {

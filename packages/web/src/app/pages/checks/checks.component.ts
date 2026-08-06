@@ -117,7 +117,7 @@ export class ChecksComponent implements OnDestroy {
     return [...rows].sort((left, right) => {
       const a = sortValue(left, active);
       const b = sortValue(right, active);
-      if (a === b) return left.name.localeCompare(right.name);
+      if (a === b) return left.name.localeCompare(right.name, 'en');
       return (a < b ? -1 : 1) * sign;
     });
   });
