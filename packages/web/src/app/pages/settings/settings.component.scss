@@ -78,10 +78,17 @@
   border-top: 1px solid var(--sw-border);
 }
 
-/* The toolbar is the last thing in its band, so it drops the padding that
-   would otherwise leave a gap above the table's own border. */
-.section-body .sw-toolbar {
-  margin-bottom: 0;
+/* The section is already a card, so the table's controls become a band across
+   it rather than a second card nested inside the first. Same header treatment
+   as `.sw-table-card` in styles.scss, which the other three tables use. */
+.section-toolbar {
+  margin: 0;
+  padding: 12px 20px;
+  background: var(--sw-surface-2);
+}
+
+.audit-empty {
+  padding: 40px 20px;
 }
 
 /* Five columns of which two are an email and an address. */

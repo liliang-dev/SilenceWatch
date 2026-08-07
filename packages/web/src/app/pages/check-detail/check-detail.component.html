@@ -116,7 +116,7 @@
             <p>The first call to the ping URL above will appear here within seconds.</p>
           </div>
         } @else {
-          <div class="panel">
+          <div class="sw-table-card panel">
             <div class="sw-toolbar">
               <mat-button-toggle-group
                 [ngModel]="kindFilter()"
@@ -143,7 +143,7 @@
             </div>
 
             @if (pingsTruncated()) {
-              <p class="sw-muted note">
+              <p class="sw-table-note">
                 Showing the most recent {{ pings.rows().length }} pings. Older ones are still in the
                 database and the REST API returns them.
               </p>
@@ -232,7 +232,7 @@
             <p>This job has never gone quiet.</p>
           </div>
         } @else {
-          <div class="panel">
+          <div class="sw-table-card panel">
             <div class="sw-toolbar">
               <mat-button-toggle-group
                 [ngModel]="incidentFilter()"
@@ -258,7 +258,7 @@
             </div>
 
             @if (incidentsTruncated()) {
-              <p class="sw-muted note">
+              <p class="sw-table-note">
                 Showing the most recent {{ incidents.rows().length }} incidents.
               </p>
             }
