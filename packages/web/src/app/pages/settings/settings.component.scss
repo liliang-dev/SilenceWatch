@@ -56,7 +56,7 @@
 }
 
 .section-head {
-  padding: 18px 20px 0;
+  padding: 18px 20px 10px;
 }
 
 .section-head p {
@@ -76,6 +76,24 @@
 
 .bordered {
   border-top: 1px solid var(--sw-border);
+}
+
+/* The section is already a card, so the table's controls become a band across
+   it rather than a second card nested inside the first. Same header treatment
+   as `.sw-table-card` in styles.scss, which the other three tables use. */
+.section-toolbar {
+  margin: 0;
+  padding: 12px 20px;
+  background: var(--sw-surface-2);
+}
+
+.audit-empty {
+  padding: 40px 20px;
+}
+
+/* Five columns of which two are an email and an address. */
+.audit {
+  min-width: 720px;
 }
 
 .inline-form,

@@ -45,6 +45,23 @@ updates:
     # broken pipeline rather than as the policy doing its job.
     cooldown:
       default-days: 3
+    # Two majors that cannot be taken yet, and would otherwise be proposed,
+    # tested and closed again every week. Each entry names what has to change
+    # before it is deleted — an ignore with no expiry condition is how a project
+    # ends up three majors behind without anyone deciding to be.
+    ignore:
+      # jose 6 dropped its CommonJS build. The server is CommonJS, and while
+      # Node 22 can `require()` an ES module, Jest's runtime cannot — so the
+      # application would run and the whole end-to-end suite would not. Delete
+      # this when the server's tests run as ES modules. jose 5 carries no
+      # advisory, so there is no clock on it.
+      - dependency-name: jose
+        update-types: [version-update:semver-major]
+      # @angular/compiler-cli asks for `typescript: >=6.0 <6.1`. With 7
+      # installed the build fails inside `readConfiguration` before it compiles
+      # anything. Delete this when Angular's peer range admits 7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     groups:
       # One pull request per family. Angular and Nest ship their packages in
       # lockstep, and splitting them produces PRs that cannot pass CI alone.

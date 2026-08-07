@@ -27,47 +27,12 @@
     }
   </div>
 
-  <div class="toolbar">
-    <mat-button-toggle-group
-      [ngModel]="stateFilter()"
-      (ngModelChange)="filterBy($event)"
-      hideSingleSelectionIndicator
-      class="states"
-    >
-      <mat-button-toggle value="">All</mat-button-toggle>
-      <mat-button-toggle value="DOWN">Down</mat-button-toggle>
-      <mat-button-toggle value="LATE">Late</mat-button-toggle>
-      <mat-button-toggle value="UP">Up</mat-button-toggle>
-      <mat-button-toggle value="PAUSED">Paused</mat-button-toggle>
-    </mat-button-toggle-group>
-
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
-      <sw-icon name="search" matPrefix class="search-icon" />
-      <input
-        matInput
-        type="search"
-        placeholder="Search"
-        [ngModel]="search()"
-        (ngModelChange)="onSearch($event)"
-      />
-    </mat-form-field>
-  </div>
-
   @if (loading() && population().length === 0) {
     <mat-progress-bar mode="indeterminate" class="loading" />
   }
 
   @if (error()) {
     <p class="sw-error" role="alert">{{ error() }}</p>
-  }
-
-  @if (truncated()) {
-    <!-- A monitoring screen that quietly omits checks is the failure this
-         product exists to prevent, so it says so instead. -->
-    <p class="sw-error" role="status">
-      This project has more checks than this table loads. Narrow the list with the
-      search box, or the REST API returns them all.
-    </p>
   }
 
   @if (!loading() && population().length === 0) {
@@ -87,22 +52,58 @@
         New check
       </button>
     </div>
-  } @else if (matching().length === 0) {
-    <div class="sw-card sw-empty">
-      <h2>No check matches</h2>
-      <p>Nothing here is called that, or is in that state. Clear the search to see them all.</p>
-    </div>
   } @else {
-    <div class="sw-card">
-      <div class="sw-scroll-x">
+    <div class="sw-table-card">
+      <div class="sw-toolbar">
+        <mat-button-toggle-group
+          [ngModel]="stateFilter()"
+          (ngModelChange)="filterBy($event)"
+          hideSingleSelectionIndicator
+          class="sw-filters"
+        >
+          <mat-button-toggle value="">All</mat-button-toggle>
+          <mat-button-toggle value="DOWN">Down</mat-button-toggle>
+          <mat-button-toggle value="LATE">Late</mat-button-toggle>
+          <mat-button-toggle value="UP">Up</mat-button-toggle>
+          <mat-button-toggle value="PAUSED">Paused</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+          <sw-icon name="search" matPrefix class="sw-search-icon" />
+          <input
+            matInput
+            type="search"
+            placeholder="Search"
+            [ngModel]="table.search()"
+            (ngModelChange)="table.onSearch($event)"
+          />
+        </mat-form-field>
+      </div>
+
+      @if (truncated()) {
+        <!-- A monitoring screen that quietly omits checks is the failure this
+             product exists to prevent, so it says so instead. -->
+        <p class="sw-table-note warn" role="status">
+          This project has more checks than this table loads. Narrow the list with the search box,
+          or the REST API returns them all.
+        </p>
+      }
+
+      @if (table.matching().length === 0) {
+        <div class="sw-empty">
+          <h2>No check matches</h2>
+          <p>Nothing here is called that, or is in that state. Clear the search to see them all.</p>
+        </div>
+      } @else {
+        <div class="sw-scroll-x">
         <table
           mat-table
-          [dataSource]="visible()"
+          [dataSource]="table.visible()"
           matSort
-          [matSortActive]="sort().active"
-          [matSortDirection]="sort().direction"
-          (matSortChange)="onSort($event)"
-          class="checks"
+          [matSortActive]="table.sort().active"
+          [matSortDirection]="table.sort().direction"
+          (matSortChange)="table.onSort($event)"
+          class="sw-datatable sw-rows-clickable checks"
         >
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Check</th>
@@ -177,16 +178,17 @@
             [routerLink]="['/checks', check.id]"
           ></tr>
         </table>
-      </div>
+        </div>
 
-      <mat-paginator
-        [length]="matching().length"
-        [pageSize]="page().pageSize"
-        [pageIndex]="page().pageIndex"
-        [pageSizeOptions]="pageSizes"
-        (page)="onPage($event)"
-        aria-label="Pages of checks"
-      />
+        <mat-paginator
+          [length]="table.matching().length"
+          [pageSize]="table.page().pageSize"
+          [pageIndex]="table.page().pageIndex"
+          [pageSizeOptions]="pageSizes"
+          (page)="table.onPage($event)"
+          aria-label="Pages of checks"
+        />
+      }
     </div>
   }
 </div>

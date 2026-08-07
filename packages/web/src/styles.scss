@@ -367,6 +367,145 @@ time,
   background: var(--sw-surface-2);
 }
 
+/* A table and its controls as one object.
+ *
+ * The filters and the search box are the table's header row, inside its
+ * border, rather than something floating above it — they belong to this table,
+ * and two pages here show two tables at once. It also means the search box
+ * survives a search that matches nothing, which the checks page previously did
+ * not: the toolbar disappeared along with the rows, leaving no way to clear the
+ * term that had emptied the screen. */
+.sw-table-card {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+  /* Keeps the header band's corners inside the card's radius. */
+  overflow: hidden;
+}
+
+.sw-table-card .sw-toolbar {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  background: var(--sw-surface-2);
+}
+
+/* A line the table has to say for itself — "showing the most recent 200" —
+   sitting between the controls and the rows it qualifies. Part of the table
+   rather than a floating alert, because it describes the rows below it. */
+.sw-table-card .sw-table-note {
+  display: block;
+  margin: 0;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--sw-border);
+  border-radius: 0;
+  background: var(--sw-surface);
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* For the one case that is not routine: the table is not showing everything. */
+.sw-table-card .sw-table-note.warn {
+  background: var(--sw-late-soft);
+  color: var(--sw-late);
+}
+
+.sw-table-card .sw-empty {
+  padding: 32px 16px;
+}
+
+/* The bar above a table: what narrows it on the left, the search box on the
+   right. Four tables share it, so it is one rule rather than four that drift. */
+.sw-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sw-toolbar .sw-filters {
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+}
+
+.sw-toolbar .sw-search {
+  flex: 1 1 240px;
+  max-width: 240px;
+}
+
+.sw-toolbar .sw-search-icon {
+  margin: 0 8px 0 15px;
+  color: var(--sw-text-subtle);
+}
+
+/* Angular Material's table, wearing the same clothes as everything else.
+ *
+ * Its own defaults draw a Material-3 card in the middle of one of ours, so the
+ * surface, the header and the row rules are restated rather than inherited.
+ * `.sw-table` above styles the plain ones; this styles the sortable, paged
+ * ones, and the two are kept looking identical on purpose — which table a
+ * screen uses is an implementation detail nobody should be able to see. */
+.sw-datatable {
+  width: 100%;
+  background: transparent;
+  font-size: 0.875rem;
+}
+
+.sw-datatable .mat-mdc-header-row {
+  height: auto;
+  background: var(--sw-surface-2);
+}
+
+.sw-datatable .mat-mdc-header-cell {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
+  white-space: nowrap;
+}
+
+.sw-datatable .mat-mdc-row {
+  height: auto;
+  transition: background-color 120ms ease;
+}
+
+.sw-datatable .mat-mdc-row:hover {
+  background: var(--sw-surface-2);
+}
+
+.sw-datatable .mat-mdc-cell {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  color: var(--sw-text);
+}
+
+.sw-datatable .mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: 0;
+}
+
+/* The sort arrow inherits the header's colour instead of Material's own. */
+.sw-datatable .mat-sort-header-arrow {
+  color: var(--sw-text-subtle);
+}
+
+/* Rows that lead somewhere say so; rows that are a log entry do not. */
+.sw-datatable.sw-rows-clickable .mat-mdc-row {
+  cursor: pointer;
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--sw-border);
+  color: var(--sw-text-muted);
+}
+
 /* ------------------------------------------------------- material trims --- */
 
 /* Every control is one height.
