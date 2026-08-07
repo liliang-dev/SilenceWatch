@@ -15,6 +15,9 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+  # So a branch can be built on demand. Mostly this answers "did the trigger
+  # above actually fire?" without having to merge something to find out.
+  workflow_dispatch:
 
 # A newer push makes the previous run irrelevant.
 concurrency:

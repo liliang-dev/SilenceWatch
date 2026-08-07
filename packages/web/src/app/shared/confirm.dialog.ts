@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { filter, type Observable } from 'rxjs';
 
 export interface ConfirmData {
   title: string;
@@ -13,11 +19,26 @@ export interface ConfirmData {
 }
 
 /**
+ * Asks before something irreversible, and emits only if the answer is yes.
+ *
+ * The whole application confirms through this one function. `window.confirm`
+ * was shorter, and four screens used it, which is exactly the problem: it
+ * cannot be styled, it says "localhost:4200 says", it blocks the event loop,
+ * and the message it shows is a single unformatted string. It also cannot be
+ * tested without stubbing a global.
+ */
+export function confirmWith(dialog: MatDialog, data: ConfirmData): Observable<true> {
+  return dialog
+    .open(ConfirmDialog, { data, autoFocus: false })
+    .afterClosed()
+    .pipe(filter((confirmed): confirmed is true => confirmed === true));
+}
+
+/**
  * A confirmation that names what is being destroyed.
  *
- * `window.confirm` would be shorter, and it is what the channels page still
- * uses, but it cannot say "17 checks and their history" — and for anything
- * irreversible the number is the whole point of asking.
+ * The counts belong in `message`: for anything irreversible, "17 checks and
+ * their history" is the whole point of asking, and "are you sure?" is not.
  */
 @Component({
   selector: 'sw-confirm',

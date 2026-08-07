@@ -12,7 +12,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { FormsModule } from '@angular/forms';
 import {
   LIMITS,
   type ApiKeyDto,
@@ -28,32 +33,13 @@ import { ProjectStore } from '../../core/project.store';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { IconComponent } from '../../shared/icon.component';
-import { ConfirmDialog, type ConfirmData } from '../../shared/confirm.dialog';
+import { confirmWith } from '../../shared/confirm.dialog';
+import { DataTable, PAGE_SIZES } from '../../shared/data-table';
+import { auditLabel, auditRules, auditScope, isFailure } from './audit-table';
 import { ProjectFormDialog, type ProjectFormData } from './project-form.dialog';
 
-/** Human wording for the audit actions, so the table reads as prose. */
-const AUDIT_LABELS: Record<string, string> = {
-  'auth.login': 'Signed in',
-  'auth.login_failed': 'Sign-in failed',
-  'auth.logout': 'Signed out',
-  'auth.password_changed': 'Password changed',
-  'auth.password_reset_requested': 'Password reset requested',
-  'auth.password_reset_completed': 'Password reset',
-  'auth.email_verified': 'Email confirmed',
-  'account.registered': 'Account created',
-  'api_key.created': 'API key created',
-  'api_key.revoked': 'API key revoked',
-  'channel.created': 'Alert channel added',
-  'channel.updated': 'Alert channel changed',
-  'channel.deleted': 'Alert channel removed',
-  'channel.tested': 'Alert channel tested',
-  'check.created': 'Check created',
-  'check.deleted': 'Check deleted',
-  'check.ping_key_rotated': 'Ping URL rotated',
-  'project.created': 'Project created',
-  'project.updated': 'Project changed',
-  'quota.checks_paused': 'Checks paused by plan limit',
-};
+/** The audit endpoints' own maximum, from each of the two lists. */
+const AUDIT_LIMIT = 200;
 
 /**
  * Project and account settings: API keys (used by the client starters), the
@@ -64,10 +50,15 @@ const AUDIT_LABELS: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     IconComponent,
+    FormsModule,
     ReactiveFormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatTableModule,
     MatTabsModule,
     MatTooltipModule,
     RelativeTimePipe,
@@ -85,7 +76,10 @@ export class SettingsComponent {
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly apiKeys = signal<ApiKeyDto[]>([]);
-  protected readonly auditEvents = signal<AuditEventDto[]>([]);
+  protected readonly audit = new DataTable<AuditEventDto>(auditRules);
+  protected readonly auditFilter = signal('');
+  protected readonly auditColumns = ['occurredAt', 'action', 'actor', 'target', 'ip'];
+  protected readonly pageSizes = PAGE_SIZES;
   protected readonly createdKey = signal<CreatedApiKeyDto | null>(null);
   protected readonly busy = signal(false);
   protected readonly projectBusy = signal(false);
@@ -164,7 +158,8 @@ export class SettingsComponent {
    */
   protected deleteProject(project: ProjectDto): void {
     const checks = project.checkCount ?? 0;
-    const data: ConfirmData = {
+
+    confirmWith(this.dialog, {
       title: `Delete "${project.name}"?`,
       message:
         checks === 0
@@ -172,23 +167,16 @@ export class SettingsComponent {
           : `This deletes ${checks} check${checks === 1 ? '' : 's'} with every ping and incident recorded against them. It cannot be undone.`,
       confirmLabel: 'Delete project',
       destructive: true,
-    };
-
-    this.dialog
-      .open(ConfirmDialog, { data, autoFocus: false })
-      .afterClosed()
-      .subscribe((confirmed) => {
-        if (confirmed !== true) return;
-
-        this.api.deleteProject(project.id).subscribe({
-          next: () => {
-            this.projects.remove(project.id);
-            this.snackBar.open(`"${project.name}" deleted`, 'OK', { duration: 4000 });
-          },
-          error: (failure: unknown) =>
-            this.error.set(errorMessage(failure, 'Could not delete the project.')),
-        });
+    }).subscribe(() => {
+      this.api.deleteProject(project.id).subscribe({
+        next: () => {
+          this.projects.remove(project.id);
+          this.snackBar.open(`"${project.name}" deleted`, 'OK', { duration: 4000 });
+        },
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not delete the project.')),
       });
+    });
   }
 
   private loadKeys(projectId: string): void {
@@ -204,12 +192,17 @@ export class SettingsComponent {
    * They live in separate endpoints because they have separate access rules —
    * your own sign-ins are yours, the project's key changes need admin — but a
    * reader looking for "what happened" should not have to know that.
+   *
+   * Both are asked for the server's maximum. The old page took 40 of each and
+   * showed the 60 most recent, which meant a search for a sign-in from last
+   * month could only ever fail — and fail silently, looking like it had not
+   * happened.
    */
   private loadAudit(projectId: string): void {
     forkJoin({
-      account: this.api.listAccountAudit(40),
+      account: this.api.listAccountAudit(AUDIT_LIMIT),
       project: this.api
-        .listProjectAudit(projectId, 40)
+        .listProjectAudit(projectId, AUDIT_LIMIT)
         // A member without the admin role simply sees fewer rows, rather than
         // an error on a page that is otherwise about their own account.
         .pipe(catchError(() => of({ items: [] as AuditEventDto[], nextCursor: null }))),
@@ -218,19 +211,22 @@ export class SettingsComponent {
         const merged = [...account.items, ...project.items].sort((a, b) =>
           b.occurredAt.localeCompare(a.occurredAt),
         );
-        this.auditEvents.set(merged.slice(0, 60));
+        this.audit.setRows(merged);
       },
-      error: () => this.auditEvents.set([]),
+      error: () => this.audit.setRows([]),
     });
   }
 
-  /** "auth.login_failed" reads as noise; "Sign-in failed" reads as a sentence. */
-  protected label(action: string): string {
-    return AUDIT_LABELS[action] ?? action;
-  }
+  protected readonly label = auditLabel;
+  protected readonly isFailure = isFailure;
 
-  protected isFailure(action: string): boolean {
-    return action === 'auth.login_failed' || action === 'quota.checks_paused';
+  protected filterAuditBy(scope: string): void {
+    this.auditFilter.set(scope);
+    this.audit.setFilter((event) => {
+      if (scope === 'failures') return isFailure(event.action);
+      if (scope === '') return true;
+      return auditScope(event) === scope;
+    });
   }
 
   protected createKey(): void {
@@ -255,18 +251,29 @@ export class SettingsComponent {
   }
 
   protected revoke(key: ApiKeyDto): void {
-    if (!window.confirm(`Revoke "${key.name}"? Anything using it stops working immediately.`)) return;
-
-    this.api.revokeApiKey(key.projectId, key.id).subscribe({
-      next: () => {
-        this.apiKeys.update((keys) =>
-          keys.map((existing) =>
-            existing.id === key.id ? { ...existing, revokedAt: new Date().toISOString() } : existing,
-          ),
-        );
-        this.snackBar.open('Key revoked', 'OK', { duration: 3000 });
-      },
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not revoke the key.')),
+    confirmWith(this.dialog, {
+      title: `Revoke "${key.name}"?`,
+      message:
+        'Anything using this key stops working immediately — a starter holding it will fail to ' +
+        'declare its jobs, and the checks it declared will go quiet. Revoking cannot be undone; ' +
+        'issue a new key instead.',
+      confirmLabel: 'Revoke key',
+      destructive: true,
+    }).subscribe(() => {
+      this.api.revokeApiKey(key.projectId, key.id).subscribe({
+        next: () => {
+          this.apiKeys.update((keys) =>
+            keys.map((existing) =>
+              existing.id === key.id
+                ? { ...existing, revokedAt: new Date().toISOString() }
+                : existing,
+            ),
+          );
+          this.snackBar.open('Key revoked', 'OK', { duration: 3000 });
+        },
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not revoke the key.')),
+      });
     });
   }
 
