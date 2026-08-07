@@ -65,3 +65,15 @@ overrides:
   # HTTP/2) but it is one resolution away, and it deduplicates the router.
   find-my-way@<9.6.1: '^9.7.0'
 
+  # GHSA-w5hq-g745-h8pq — uuid writes past the end of a caller-supplied buffer.
+  # Reached only through autocannon, the load-testing tool, which is a dev
+  # dependency and never runs against attacker input. Overridden anyway: the fix
+  # is a patch release, and an advisory left open is an advisory nobody reads.
+  uuid@<11.1.1: '^11.1.1'
+
+  # GHSA-frvp-7c67-39w9 — path traversal in @hono/node-server's static handler
+  # on Windows. It arrives through @angular/cli's MCP server, which is a
+  # development tool and is not part of the built application, so nothing we
+  # ship contains it. Same reasoning: cheap to resolve, so resolve it.
+  '@hono/node-server@<2.0.5': '^2.0.5'
+
