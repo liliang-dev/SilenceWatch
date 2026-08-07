@@ -1,9 +1,24 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterLink } from '@angular/router';
@@ -11,13 +26,23 @@ import type { CheckDto, IncidentDto, PingDto } from '@silencewatch/shared';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
 import { ProjectStore } from '../../core/project.store';
+import { confirmWith } from '../../shared/confirm.dialog';
+import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { DurationPipe, RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { StateChipComponent } from '../../shared/state-chip.component';
 import { CheckFormDialog } from '../checks/check-form.dialog';
 import { IconComponent } from '../../shared/icon.component';
 import { describeSchedule } from '../../shared/schedule';
+import { incidentRules, outageMs, pingRules } from './history-tables';
 
 const REFRESH_INTERVAL_MS = 15_000;
+
+/**
+ * The server's own maximum. One request rather than a cursor loop: unlike the
+ * checks list, this is a log — the interesting part is the recent end of it, and
+ * "the last 200" is a defensible thing for a screen to show.
+ */
+const HISTORY_LIMIT = 200;
 
 /**
  * One check: its ping URL, what it did recently, and what broke when.
@@ -31,9 +56,16 @@ const REFRESH_INTERVAL_MS = 15_000;
   imports: [
     IconComponent,
     RouterLink,
+    FormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatMenuModule,
+    MatPaginatorModule,
     MatProgressBarModule,
+    MatSortModule,
+    MatTableModule,
     MatTabsModule,
     MatTooltipModule,
     StateChipComponent,
@@ -54,10 +86,22 @@ export class CheckDetailComponent implements OnDestroy {
   private readonly projects = inject(ProjectStore);
 
   protected readonly check = signal<CheckDto | null>(null);
-  protected readonly pings = signal<PingDto[]>([]);
-  protected readonly incidents = signal<IncidentDto[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+
+  protected readonly pings = new DataTable<PingDto>(pingRules);
+  protected readonly incidents = new DataTable<IncidentDto>(incidentRules);
+
+  /** True when the log is longer than one request returns. */
+  protected readonly pingsTruncated = signal(false);
+  protected readonly incidentsTruncated = signal(false);
+
+  protected readonly kindFilter = signal('');
+  protected readonly incidentFilter = signal('');
+
+  protected readonly pingColumns = ['receivedAt', 'kind', 'durationMs', 'exitCode', 'sourceIp', 'body'];
+  protected readonly incidentColumns = ['startedAt', 'resolvedAt', 'duration', 'notificationsSent'];
+  protected readonly pageSizes = PAGE_SIZES;
 
   private readonly timer = setInterval(() => this.load(true), REFRESH_INTERVAL_MS);
 
@@ -90,8 +134,33 @@ export class CheckDetailComponent implements OnDestroy {
       },
     });
 
-    this.api.listPings(checkId, 50).subscribe({ next: (page) => this.pings.set(page.items) });
-    this.api.listIncidents(checkId, 20).subscribe({ next: (page) => this.incidents.set(page.items) });
+    this.api.listPings(checkId, HISTORY_LIMIT).subscribe({
+      next: (page) => {
+        this.pings.setRows(page.items);
+        this.pingsTruncated.set(page.nextCursor !== null);
+      },
+    });
+
+    this.api.listIncidents(checkId, HISTORY_LIMIT).subscribe({
+      next: (page) => {
+        this.incidents.setRows(page.items);
+        this.incidentsTruncated.set(page.nextCursor !== null);
+      },
+    });
+  }
+
+  protected filterPingsBy(kind: string): void {
+    this.kindFilter.set(kind);
+    this.pings.setFilter((ping) => kind === '' || ping.kind === kind);
+  }
+
+  protected filterIncidentsBy(status: string): void {
+    this.incidentFilter.set(status);
+    this.incidents.setFilter((incident) => {
+      if (status === 'ongoing') return incident.resolvedAt === null;
+      if (status === 'resolved') return incident.resolvedAt !== null;
+      return true;
+    });
   }
 
   protected edit(check: CheckDto): void {
@@ -117,41 +186,51 @@ export class CheckDetailComponent implements OnDestroy {
   /**
    * Issues a new ping URL.
    *
-   * Confirmed in words rather than behind an "are you sure", because the
-   * consequence is specific and easy to miss: every job still calling the old
-   * URL goes quiet, and this product turns quiet into an alert.
+   * The confirmation spells out the consequence rather than asking "are you
+   * sure", because it is specific and easy to miss: every job still calling the
+   * old URL goes quiet, and this product turns quiet into an alert.
    */
   protected rotate(check: CheckDto): void {
-    const confirmed = window.confirm(
-      `Issue a new ping URL for "${check.name}"?\n\n` +
-        'The current URL stops working immediately. Any job still calling it will be reported ' +
-        'as down until you update it. History and incidents are kept.',
-    );
-    if (!confirmed) return;
-
-    this.api.rotatePingKey(check.id).subscribe({
-      next: (updated) => {
-        this.check.set(updated);
-        this.snackBar.open('New ping URL issued — update your jobs', 'OK', { duration: 6000 });
-      },
-      error: (failure: unknown) =>
-        this.error.set(errorMessage(failure, 'Could not rotate the ping URL.')),
+    confirmWith(this.dialog, {
+      title: 'Issue a new ping URL?',
+      message:
+        `The URL for "${check.name}" stops working immediately. Any job still calling it will be ` +
+        'reported as down until you update it. History and incidents are kept.',
+      confirmLabel: 'Issue a new URL',
+    }).subscribe(() => {
+      this.api.rotatePingKey(check.id).subscribe({
+        next: (updated) => {
+          this.check.set(updated);
+          this.snackBar.open('New ping URL issued — update your jobs', 'OK', { duration: 6000 });
+        },
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not rotate the ping URL.')),
+      });
     });
   }
 
   protected remove(check: CheckDto): void {
-    // Deleting destroys the history, so make the user say the name.
-    const confirmed = window.confirm(
-      `Delete "${check.name}"? Its pings and incidents are destroyed with it. This cannot be undone.`,
-    );
-    if (!confirmed) return;
+    const pings = this.pings.rows().length;
+    const incidents = this.incidents.rows().length;
 
-    this.api.deleteCheck(check.id).subscribe({
-      next: () => {
-        this.snackBar.open('Check deleted', 'OK', { duration: 3000 });
-        void this.router.navigate(['/checks']);
-      },
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not delete the check.')),
+    confirmWith(this.dialog, {
+      title: `Delete "${check.name}"?`,
+      // The counts are the point of asking: "are you sure" tells nobody what
+      // they are about to lose.
+      message:
+        `${count(pings, 'ping')} and ${count(incidents, 'incident')} are destroyed with it. ` +
+        'This cannot be undone.',
+      confirmLabel: 'Delete check',
+      destructive: true,
+    }).subscribe(() => {
+      this.api.deleteCheck(check.id).subscribe({
+        next: () => {
+          this.snackBar.open('Check deleted', 'OK', { duration: 3000 });
+          void this.router.navigate(['/checks']);
+        },
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not delete the check.')),
+      });
     });
   }
 
@@ -163,9 +242,9 @@ export class CheckDetailComponent implements OnDestroy {
   }
 
   protected readonly schedule = describeSchedule;
+  protected readonly outage = outageMs;
+}
 
-  protected outage(incident: IncidentDto): number {
-    const end = incident.resolvedAt === null ? Date.now() : Date.parse(incident.resolvedAt);
-    return end - Date.parse(incident.startedAt);
-  }
+function count(value: number, noun: string): string {
+  return `${value === 0 ? 'No' : value} ${value === 1 ? noun : `${noun}s`}`;
 }

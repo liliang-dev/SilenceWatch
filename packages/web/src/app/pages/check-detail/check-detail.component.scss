@@ -146,6 +146,33 @@
   border: 1px solid var(--sw-border);
   border-radius: var(--sw-radius-lg);
   background: var(--sw-surface);
+  overflow: hidden;
+}
+
+/* The toolbar is the panel's header rather than something floating above it:
+   the filters belong to this table, and there are two tables on this page. */
+.panel .sw-toolbar {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  background: var(--sw-surface-2);
+}
+
+.panel .note {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  font-size: 0.8125rem;
+}
+
+.panel .sw-empty {
+  padding: 32px 16px;
+}
+
+/* Six columns, two of them free text. Narrower than this and the body column
+   has nothing left to show. */
+.panel .sw-datatable {
+  min-width: 720px;
 }
 
 .kind {
@@ -164,7 +191,7 @@
   font-weight: 600;
 }
 
-tr.ongoing td:first-child {
+.mat-mdc-row.ongoing .mat-mdc-cell:first-child {
   box-shadow: inset 3px 0 0 var(--sw-down);
 }
 

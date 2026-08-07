@@ -16,12 +16,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
-import { MatSortModule, type Sort } from '@angular/material/sort';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import type { CheckDto, CheckState } from '@silencewatch/shared';
-import { concatMap, EMPTY, expand, reduce } from 'rxjs';
-import { byUrgency, matchesSearch, sortValue, sourceLabel } from './checks-table';
+import { EMPTY, expand, reduce } from 'rxjs';
+import { byUrgency, checkRules, sourceLabel } from './checks-table';
+import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
 import { ProjectStore } from '../../core/project.store';
@@ -75,61 +76,27 @@ export class ChecksComponent implements OnDestroy {
   protected readonly error = signal<string | null>(null);
 
   /**
-   * Every check in the project, which is what the table sorts, searches and
-   * pages through.
+   * The table, holding every check in the project — which is what it searches,
+   * sorts and pages through.
    *
    * Held whole in the browser deliberately. The server searches `name` only and
    * orders by creation date with a keyset cursor — it can offer neither the
    * four-column search nor the column sorting this table needs, and asking it
    * per keystroke would be a request per keystroke. The cost is bounded below.
    */
-  protected readonly population = signal<CheckDto[]>([]);
+  protected readonly table = new DataTable<CheckDto>(checkRules);
 
   protected readonly stateFilter = signal('');
-  protected readonly search = signal('');
-  protected readonly sort = signal<Sort>({ active: '', direction: '' });
-  protected readonly page = signal<PageEvent>({ pageIndex: 0, pageSize: 25, length: 0 });
 
   protected readonly columns = ['name', 'environment', 'source', 'state', 'schedule', 'lastPingAt', 'nextDueAt'];
-  protected readonly pageSizes = [10, 25, 50, 100];
+  protected readonly pageSizes = PAGE_SIZES;
   protected readonly sourceLabel = sourceLabel;
 
   /** True when the project has more checks than one load will hold. */
   protected readonly truncated = signal(false);
 
-  /**
-   * The rows the table shows: searched, filtered by state, sorted, then paged —
-   * in that order, because sorting a page would sort the wrong ten rows.
-   */
-  protected readonly matching = computed<CheckDto[]>(() => {
-    const search = this.search().trim();
-    const state = this.stateFilter();
-
-    const rows = this.population().filter(
-      (check) =>
-        (state === '' || check.state === state) && matchesSearch(check, search),
-    );
-
-    const { active, direction } = this.sort();
-    if (active === '' || direction === '') return rows;
-
-    const sign = direction === 'asc' ? 1 : -1;
-    return [...rows].sort((left, right) => {
-      const a = sortValue(left, active);
-      const b = sortValue(right, active);
-      if (a === b) return left.name.localeCompare(right.name, 'en');
-      return (a < b ? -1 : 1) * sign;
-    });
-  });
-
-  protected readonly visible = computed<CheckDto[]>(() => {
-    const rows = this.matching();
-    const { pageIndex, pageSize } = this.page();
-    const start = pageIndex * pageSize;
-    // A filter that shrinks the result below the current page would otherwise
-    // show an empty table with rows behind it.
-    return start >= rows.length ? rows.slice(0, pageSize) : rows.slice(start, start + pageSize);
-  });
+  /** Every check loaded, before the search box and the state filter. */
+  protected readonly population = this.table.rows;
 
   private readonly timer = setInterval(() => this.reload(true), REFRESH_INTERVAL_MS);
 
@@ -175,22 +142,8 @@ export class ChecksComponent implements OnDestroy {
   }
 
   protected filterBy(state: string): void {
-    this.stateFilter.update((current) => (current === state ? current : state));
-    this.page.update((page) => ({ ...page, pageIndex: 0 }));
-  }
-
-  protected onSearch(value: string): void {
-    this.search.set(value);
-    this.page.update((page) => ({ ...page, pageIndex: 0 }));
-  }
-
-  protected onSort(sort: Sort): void {
-    this.sort.set(sort);
-    this.page.update((page) => ({ ...page, pageIndex: 0 }));
-  }
-
-  protected onPage(event: PageEvent): void {
-    this.page.set(event);
+    this.stateFilter.set(state);
+    this.table.setFilter((check) => state === '' || check.state === state);
   }
 
   /**
@@ -233,7 +186,7 @@ export class ChecksComponent implements OnDestroy {
       )
       .subscribe({
         next: ({ items, more }) => {
-          this.population.set([...items].sort(byUrgency));
+          this.table.setRows([...items].sort(byUrgency));
           this.truncated.set(more);
           this.loading.set(false);
           this.error.set(null);

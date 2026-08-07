@@ -57,29 +57,8 @@
 
 /* ------------------------------------------------------------- toolbar --- */
 
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.states {
-  border-radius: var(--sw-radius-sm);
-  background: var(--sw-surface);
-}
-
-.search {
-  flex: 1 1 240px;
-  max-width: 240px;
-}
-
-.search-icon {
-  margin: 0 8px 0 15px;
-  color: var(--sw-text-subtle);
-}
+/* The toolbar, search box and table chrome are in styles.scss: four tables
+   share them now, and a copy here is a copy that stops matching. */
 
 .loading {
   margin-bottom: 12px;
@@ -92,54 +71,9 @@
 
 /* --------------------------------------------------------------- table --- */
 
-/* Material's table, wearing the same clothes as the rest of the application.
-   Its own defaults are a Material-3 card in the middle of ours, so the surface,
-   the header and the row rules are restated here rather than inherited. */
+/* Seven columns need the room; below this the horizontal scroll takes over. */
 .checks {
-  width: 100%;
   min-width: 760px;
-  background: transparent;
-}
-
-.checks .mat-mdc-header-row {
-  height: auto;
-  background: var(--sw-surface-2);
-}
-
-.checks .mat-mdc-header-cell {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--sw-border);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--sw-text-subtle);
-  white-space: nowrap;
-}
-
-.checks .mat-mdc-row {
-  height: auto;
-  cursor: pointer;
-  transition: background-color 0.12s ease;
-}
-
-.checks .mat-mdc-row:hover {
-  background: var(--sw-surface-2);
-}
-
-.checks .mat-mdc-cell {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--sw-border);
-  color: var(--sw-text);
-}
-
-.checks .mat-mdc-row:last-child .mat-mdc-cell {
-  border-bottom: 0;
-}
-
-/* The sort arrow inherits the header's colour instead of Material's own. */
-.checks .mat-sort-header-arrow {
-  color: var(--sw-text-subtle);
 }
 
 /* A stripe on the row, not a colour on the text: the state chip already
@@ -150,12 +84,6 @@
 
 .checks .mat-mdc-row.row-late .mat-mdc-cell:first-child {
   box-shadow: inset 3px 0 0 var(--sw-late);
-}
-
-.mat-mdc-paginator {
-  background: transparent;
-  border-top: 1px solid var(--sw-border);
-  color: var(--sw-text-muted);
 }
 
 .name {

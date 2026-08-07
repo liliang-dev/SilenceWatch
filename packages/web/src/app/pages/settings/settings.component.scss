@@ -78,6 +78,17 @@
   border-top: 1px solid var(--sw-border);
 }
 
+/* The toolbar is the last thing in its band, so it drops the padding that
+   would otherwise leave a gap above the table's own border. */
+.section-body .sw-toolbar {
+  margin-bottom: 0;
+}
+
+/* Five columns of which two are an email and an address. */
+.audit {
+  min-width: 720px;
+}
+
 .inline-form,
 .password-form {
   display: flex;
