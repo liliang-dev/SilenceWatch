@@ -44,7 +44,7 @@ export interface TableRules<T> {
   readonly pageSize?: number;
 }
 
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 10;
 
 /** Offered in every paginator, so the control means the same thing everywhere. */
 export const PAGE_SIZES = [10, 25, 50, 100];
