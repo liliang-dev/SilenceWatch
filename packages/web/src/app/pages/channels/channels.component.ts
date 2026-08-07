@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,6 +11,7 @@ import { CHANNEL_TYPES, type ChannelType, type NotificationChannelDto } from '@s
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
 import { ProjectStore } from '../../core/project.store';
+import { confirmWith } from '../../shared/confirm.dialog';
 import { IconComponent } from '../../shared/icon.component';
 
 /**
@@ -38,6 +40,7 @@ export class ChannelsComponent {
   private readonly api = inject(ApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
   protected readonly projects = inject(ProjectStore);
 
   protected readonly channelTypes = CHANNEL_TYPES;
@@ -135,12 +138,24 @@ export class ChannelsComponent {
   }
 
   protected remove(channel: NotificationChannelDto): void {
-    if (!window.confirm(`Delete the channel "${channel.name}"?`)) return;
-
-    this.api.deleteChannel(channel.projectId, channel.id).subscribe({
-      next: () =>
-        this.channels.update((channels) => channels.filter((existing) => existing.id !== channel.id)),
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not delete the channel.')),
+    confirmWith(this.dialog, {
+      title: `Delete "${channel.name}"?`,
+      // Worth spelling out: deleting the last channel leaves the project
+      // watching everything and telling nobody.
+      message:
+        'Alerts stop going to it immediately. Checks carry on being watched — if this is the ' +
+        'only channel, nothing will be sent when one goes down.',
+      confirmLabel: 'Delete channel',
+      destructive: true,
+    }).subscribe(() => {
+      this.api.deleteChannel(channel.projectId, channel.id).subscribe({
+        next: () =>
+          this.channels.update((channels) =>
+            channels.filter((existing) => existing.id !== channel.id),
+          ),
+        error: (failure: unknown) =>
+          this.error.set(errorMessage(failure, 'Could not delete the channel.')),
+      });
     });
   }
 }

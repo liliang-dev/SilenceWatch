@@ -196,42 +196,108 @@
       </p>
     </div>
 
-    @if (auditEvents().length === 0) {
+    @if (audit.rows().length === 0) {
       <p class="section-note sw-muted">Nothing recorded yet.</p>
     } @else {
-      <div class="sw-scroll-x bordered">
-        <table class="sw-table">
-          <thead>
-            <tr>
-              <th scope="col">When</th>
-              <th scope="col">Action</th>
-              <th scope="col">Who</th>
-              <th scope="col">Target</th>
-              <th scope="col">From</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (event of auditEvents(); track event.id) {
-              <tr>
-                <td [matTooltip]="event.occurredAt">{{ event.occurredAt | swRelativeTime }}</td>
-                <td>
-                  <span class="action" [class.danger-text]="isFailure(event.action)">{{
-                    label(event.action)
-                  }}</span>
+      <!-- The controls are a band across the card, directly above the rows they
+           narrow — the same object as the table, as on the other three. -->
+      <div class="sw-toolbar section-toolbar bordered">
+        <mat-button-toggle-group
+          [ngModel]="auditFilter()"
+          (ngModelChange)="filterAuditBy($event)"
+          hideSingleSelectionIndicator
+          class="sw-filters"
+        >
+          <mat-button-toggle value="">All</mat-button-toggle>
+          <mat-button-toggle value="account">Account</mat-button-toggle>
+          <mat-button-toggle value="project">Project</mat-button-toggle>
+          <mat-button-toggle value="failures">Failures</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+          <sw-icon name="search" matPrefix class="sw-search-icon" />
+          <input
+            matInput
+            type="search"
+            placeholder="Search activity"
+            [ngModel]="audit.search()"
+            (ngModelChange)="audit.onSearch($event)"
+          />
+        </mat-form-field>
+      </div>
+
+      @if (audit.matching().length === 0) {
+        <div class="sw-empty bordered audit-empty">
+          <h2>Nothing matches</h2>
+          <p>No activity says that. Clear the search to see everything again.</p>
+        </div>
+      } @else {
+        <div class="bordered">
+          <div class="sw-scroll-x">
+            <table
+              mat-table
+              class="sw-datatable audit"
+              [dataSource]="audit.visible()"
+              matSort
+              [matSortActive]="audit.sort().active"
+              [matSortDirection]="audit.sort().direction"
+              (matSortChange)="audit.onSort($event)"
+            >
+              <ng-container matColumnDef="occurredAt">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>When</th>
+                <td mat-cell *matCellDef="let event" [matTooltip]="event.occurredAt">
+                  {{ event.occurredAt | swRelativeTime }}
                 </td>
-                <td class="sw-muted">
+              </ng-container>
+
+              <ng-container matColumnDef="action">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Action</th>
+                <td mat-cell *matCellDef="let event">
+                  <span class="action" [class.danger-text]="isFailure(event.action)">
+                    {{ label(event.action) }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actor">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Who</th>
+                <td mat-cell *matCellDef="let event" class="sw-muted">
                   {{ event.actorEmail ?? '—' }}
                   @if (event.actorIsApiKey) {
                     <span class="sw-tag">API key</span>
                   }
                 </td>
-                <td class="sw-muted">{{ event.targetLabel ?? '—' }}</td>
-                <td class="sw-mono sw-muted">{{ event.ip ?? '—' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+              </ng-container>
+
+              <ng-container matColumnDef="target">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Target</th>
+                <td mat-cell *matCellDef="let event" class="sw-muted">
+                  {{ event.targetLabel ?? '—' }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="ip">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>From</th>
+                <td mat-cell *matCellDef="let event" class="sw-mono sw-muted">
+                  {{ event.ip ?? '—' }}
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="auditColumns"></tr>
+              <tr mat-row *matRowDef="let event; columns: auditColumns"></tr>
+            </table>
+          </div>
+
+          <mat-paginator
+            [length]="audit.matching().length"
+            [pageSize]="audit.page().pageSize"
+            [pageIndex]="audit.page().pageIndex"
+            [pageSizeOptions]="pageSizes"
+            (page)="audit.onPage($event)"
+            aria-label="Pages of security activity"
+          />
+        </div>
+      }
     }
   </section>
       </ng-template>
