@@ -206,8 +206,12 @@ jobs:
       # No install: this reads the lockfile. It is a separate job from the build
       # so that a newly disclosed advisory is reported even when the build is
       # broken for some unrelated reason.
+      # `moderate` rather than `high`: the two advisories this repository has
+      # actually had were both moderate, so a `high` threshold reported nothing
+      # while GitHub's own alerts page showed two. A threshold that disagrees
+      # with the page people look at is worse than no threshold.
       - name: Known vulnerabilities
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=moderate
 
       # pnpm-workspace.yaml decides which dependencies may run code at install
       # time. That list is only a control while it is short and deliberate, and
