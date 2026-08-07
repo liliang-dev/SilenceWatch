@@ -199,37 +199,38 @@
     @if (audit.rows().length === 0) {
       <p class="section-note sw-muted">Nothing recorded yet.</p>
     } @else {
-      <div class="section-body">
-        <div class="sw-toolbar">
-          <mat-button-toggle-group
-            [ngModel]="auditFilter()"
-            (ngModelChange)="filterAuditBy($event)"
-            hideSingleSelectionIndicator
-            class="sw-filters"
-          >
-            <mat-button-toggle value="">All</mat-button-toggle>
-            <mat-button-toggle value="account">Account</mat-button-toggle>
-            <mat-button-toggle value="project">Project</mat-button-toggle>
-            <mat-button-toggle value="failures">Failures</mat-button-toggle>
-          </mat-button-toggle-group>
+      <!-- The controls are a band across the card, directly above the rows they
+           narrow — the same object as the table, as on the other three. -->
+      <div class="sw-toolbar section-toolbar bordered">
+        <mat-button-toggle-group
+          [ngModel]="auditFilter()"
+          (ngModelChange)="filterAuditBy($event)"
+          hideSingleSelectionIndicator
+          class="sw-filters"
+        >
+          <mat-button-toggle value="">All</mat-button-toggle>
+          <mat-button-toggle value="account">Account</mat-button-toggle>
+          <mat-button-toggle value="project">Project</mat-button-toggle>
+          <mat-button-toggle value="failures">Failures</mat-button-toggle>
+        </mat-button-toggle-group>
 
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
-            <sw-icon name="search" matPrefix class="sw-search-icon" />
-            <input
-              matInput
-              type="search"
-              placeholder="Search activity"
-              [ngModel]="audit.search()"
-              (ngModelChange)="audit.onSearch($event)"
-            />
-          </mat-form-field>
-        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+          <sw-icon name="search" matPrefix class="sw-search-icon" />
+          <input
+            matInput
+            type="search"
+            placeholder="Search activity"
+            [ngModel]="audit.search()"
+            (ngModelChange)="audit.onSearch($event)"
+          />
+        </mat-form-field>
       </div>
 
       @if (audit.matching().length === 0) {
-        <p class="section-note sw-muted">
-          Nothing recorded matches. Clear the search to see everything again.
-        </p>
+        <div class="sw-empty bordered audit-empty">
+          <h2>Nothing matches</h2>
+          <p>No activity says that. Clear the search to see everything again.</p>
+        </div>
       } @else {
         <div class="bordered">
           <div class="sw-scroll-x">

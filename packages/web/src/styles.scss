@@ -367,6 +367,55 @@ time,
   background: var(--sw-surface-2);
 }
 
+/* A table and its controls as one object.
+ *
+ * The filters and the search box are the table's header row, inside its
+ * border, rather than something floating above it — they belong to this table,
+ * and two pages here show two tables at once. It also means the search box
+ * survives a search that matches nothing, which the checks page previously did
+ * not: the toolbar disappeared along with the rows, leaving no way to clear the
+ * term that had emptied the screen. */
+.sw-table-card {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+  /* Keeps the header band's corners inside the card's radius. */
+  overflow: hidden;
+}
+
+.sw-table-card .sw-toolbar {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sw-border);
+  background: var(--sw-surface-2);
+}
+
+/* A line the table has to say for itself — "showing the most recent 200" —
+   sitting between the controls and the rows it qualifies. Part of the table
+   rather than a floating alert, because it describes the rows below it. */
+.sw-table-card .sw-table-note {
+  display: block;
+  margin: 0;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--sw-border);
+  border-radius: 0;
+  background: var(--sw-surface);
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* For the one case that is not routine: the table is not showing everything. */
+.sw-table-card .sw-table-note.warn {
+  background: var(--sw-late-soft);
+  color: var(--sw-late);
+}
+
+.sw-table-card .sw-empty {
+  padding: 32px 16px;
+}
+
 /* The bar above a table: what narrows it on the left, the search box on the
    right. Four tables share it, so it is one rule rather than four that drift. */
 .sw-toolbar {
