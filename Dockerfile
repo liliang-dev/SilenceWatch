@@ -5,7 +5,7 @@
 # only thing it needs is a PostgreSQL it can reach.
 
 # --------------------------------------------------------------------- build ---
-FROM node:24-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 
 # openssl so Prisma resolves the same engine target here as in the runtime
 # image; the explicit binaryTargets in schema.prisma is the real guarantee, this
@@ -51,7 +51,7 @@ RUN pnpm run build:shared \
  && pnpm run build:web
 
 # ------------------------------------------------------------------- runtime ---
-FROM node:24-bookworm-slim AS runtime
+FROM node:26-bookworm-slim AS runtime
 
 # openssl is required by Prisma's query engine; curl gives the image a working
 # HEALTHCHECK without adding a shell script.
