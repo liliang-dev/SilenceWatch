@@ -77,3 +77,11 @@ overrides:
   # ship contains it. Same reasoning: cheap to resolve, so resolve it.
   '@hono/node-server@<2.0.5': '^2.0.5'
 
+  # GHSA-2v37-7h3g-55p8 — a custom nanoid generator loops forever when asked
+  # for size zero. It reaches us eleven ways and every one of them is postcss
+  # inside a build tool (@nestjs/cli, @angular/build, vite), so nothing we ship
+  # contains it and nothing we run feeds it attacker-controlled input. Still
+  # worth the one line: it is rated high, the fix is a patch release, and CI
+  # fails the build on anything moderate or above.
+  nanoid@<3.3.18: '^3.3.18'
+

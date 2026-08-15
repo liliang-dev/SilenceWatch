@@ -118,3 +118,16 @@ updates:
     commit-message:
       prefix: 'deps'
     labels: [dependencies, docker]
+    # The image tracks Node's LTS line, and Dependabot offers the newest major
+    # the day it exists — which is six months before it becomes LTS. Node 26
+    # was released 2026-05-05 and enters LTS on 2026-10-28; until then node 24
+    # is LTS and supported to 2028-04-30, so there is nothing to gain and a
+    # support window to lose. This is a monitoring product: the thing that is
+    # supposed to still be running when everything else stops should not be the
+    # first to try a new runtime.
+    #
+    # Delete this entry after 2026-10-28, bump to node 26, and keep
+    # `node-version` in ci.yml in step so CI tests what the image ships.
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
