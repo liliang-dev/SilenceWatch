@@ -94,6 +94,52 @@ The pattern worth carrying: **the failure is almost never where the diff is.**
 A dependency bump changes behaviour at runtime and at build time, and the type
 checker is the one tool that sees neither.
 
+## Verifying an override that ships
+
+Most overrides need nothing beyond `pnpm audit` going quiet: the package sits
+inside a build tool and never reaches the image. Two facts change that, and both
+are worth checking before adding the line rather than after.
+
+**Is the parent in the production install?** `prisma`, `@prisma/client` and
+`@prisma/adapter-pg` are `dependencies`, not `devDependencies` — the container
+entrypoint runs `prisma migrate deploy` at start, so `pnpm install --prod` keeps
+them and everything under them.
+
+```bash
+python3 -c "
+import json; d=json.load(open('packages/server/package.json'))
+print([p for p in d['dependencies'] if 'prisma' in p])"
+grep -n -- '--prod' Dockerfile
+```
+
+**Does the override cross an exact pin?** A range gets picked up eventually on
+its own; an exact pin does not, and stepping over it is a bet on an API.
+
+```bash
+grep -o '"<pkg>": *"[^"]*"' node_modules/.pnpm/<parent>@*/node_modules/<parent>/package.json
+```
+
+`"deepmerge-ts": "7.1.5"` — no caret — is what turned GHSA-ggr8-5vv4-36mx from a
+one-line override into something to test. `@prisma/config` had been told to use
+that version and no other.
+
+When both are true, exercise the parent along the path the override crosses:
+
+```bash
+pnpm --filter @silencewatch/server exec prisma version        # reads prisma.config.ts
+pnpm run prisma:generate                                      # reads it again, writes the client
+DATABASE_URL=... pnpm --filter @silencewatch/server exec prisma migrate deploy
+```
+
+Then the end-to-end suite, against the client that was just generated. And on a
+shipped path, let the `Container image` job be the last word: it builds the
+`--prod` install where the override actually lands, starts the container, and
+asks it for `/health`.
+
+A clean audit proves the version changed. Only these prove the software still
+runs — and on a runtime dependency that is the difference between closing an
+advisory and causing an outage.
+
 ## What a rejected bump needs
 
 Not "does not work". Record:

@@ -145,7 +145,37 @@ loosen a peer range or add `--force` to make a major fit.
 ## 5. Overrides, for advisories the parent has not picked up
 
 When a security advisory reaches you through a transitive dependency and there
-is no direct bump to take, resolve it in `pnpm-workspace.yaml`:
+is no direct bump to take, resolve it in `pnpm-workspace.yaml`. Two questions
+decide how much care it needs.
+
+**Does it ship?** Follow the path `pnpm audit` prints and check the parent
+against the Dockerfile's production install. Most advisories here arrive through
+build tooling — `@angular/build`, `@nestjs/cli`, `vite`, `autocannon` — and
+nothing in the image contains them, so the override is a formality, taken
+because CI fails from `moderate` up rather than because anyone is at risk. Some
+do ship: `prisma` and `@prisma/client` are runtime dependencies on purpose,
+because the entrypoint runs `prisma migrate deploy`, and `--prod` keeps them.
+Say which case it is in the comment. Someone deciding later whether the override
+can go needs that sentence more than you need it now.
+
+**Does the override cross an exact pin?** The parent's own manifest tells you.
+A parent asking for `^7.1.0` will take `7.2.0` on its own eventually and the
+override merely hurries it; a parent pinning `7.1.5` exactly has been told to
+use that version and no other, and forcing a major past it is a bet that the
+API it relies on did not change. That bet is testable, so test it — exercise
+the parent along the path the override crosses:
+
+```
+$ prisma version          → Loaded Prisma config from prisma.config.ts.
+$ prisma generate         → ✔ Generated Prisma Client
+$ prisma migrate deploy   → No pending migrations to apply.
+```
+
+A clean `pnpm audit` proves the version changed. It says nothing about whether
+the software still works, and when the overridden package ships inside a runtime
+dependency that distinction is the whole point: `prisma migrate deploy` is what
+starts the container, so an override that breaks it turns a theoretical advisory
+into a real outage.
 
 ```yaml
 overrides:
