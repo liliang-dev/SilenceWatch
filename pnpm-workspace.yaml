@@ -85,3 +85,20 @@ overrides:
   # fails the build on anything moderate or above.
   nanoid@<3.3.18: '^3.3.18'
 
+  # GHSA-ggr8-5vv4-36mx — deepmerge-ts below 8 exhausts the stack on a
+  # recursive object graph. Unlike the others here this one does ship: it
+  # arrives through @prisma/client and the prisma CLI, both runtime
+  # dependencies, and the image's --prod install keeps them because the
+  # entrypoint runs `prisma migrate deploy` at start.
+  #
+  # What it merges is prisma.config.ts — our own checked-in file, never
+  # attacker input — so the practical risk is nil. It is overridden because CI
+  # fails from moderate up, and because @prisma/config pins 7.1.5 exactly,
+  # which means Prisma will not pick the fix up on its own.
+  #
+  # Forcing a major past an exact pin is the risky kind of override, so it is
+  # verified rather than assumed: prisma generate, prisma migrate deploy and
+  # the end-to-end suite all run against it below. Delete this when Prisma
+  # ships a version asking for deepmerge-ts 8.
+  'deepmerge-ts@<8.0.0': '^8.0.0'
+
