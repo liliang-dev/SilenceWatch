@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "@angular/animations": "^22.1.0",
-    "@angular/cdk": "^22.1.2",
+    "@angular/cdk": "^22.1.4",
     "@angular/common": "^22.1.2",
     "@angular/compiler": "^22.1.2",
     "@angular/core": "^22.1.2",
     "@angular/forms": "^22.1.2",
-    "@angular/material": "^22.1.2",
+    "@angular/material": "^22.1.4",
     "@angular/platform-browser": "^22.1.2",
     "@angular/router": "^22.1.2",
     "@silencewatch/shared": "workspace:^",
@@ -26,8 +26,8 @@
     "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@angular/build": "^22.1.4",
-    "@angular/cli": "^22.1.4",
+    "@angular/build": "^22.1.6",
+    "@angular/cli": "^22.1.6",
     "@angular/compiler-cli": "^22.1.2",
     "@types/node": "^26.2.0",
     "jsdom": "^30.0.1",
