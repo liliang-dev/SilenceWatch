@@ -46,12 +46,12 @@
     "@nestjs/cli": "^11.0.2",
     "@nestjs/testing": "^11.2.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.6.2",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.23.1",
     "autocannon": "^8.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.2.5",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.13",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
