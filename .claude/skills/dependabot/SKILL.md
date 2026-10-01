@@ -57,6 +57,26 @@ update, and whether it is a major. Group them:
 If the backlog is large, say what you found before you start work. "Eleven open:
 seven routine, three majors, one security" is a useful sentence.
 
+**Audit the untouched `dev` before reading a single diff:**
+
+```bash
+pnpm audit --audit-level=moderate     # what CI's supply-chain job enforces
+pnpm audit --prod                     # the part of it that ships in the image
+```
+
+If `dev` is already red, the backlog is not the cause and no bot pull request can
+be green — each carries the same failing audit. Once, sixty-one advisories had
+accumulated unnoticed and the bot's own pull requests were red for it. Then split
+the findings by the second command: advisories in build tooling are a formality,
+advisories in the `--prod` tree are the actual work, and they are what the rest of
+this run is ordered around.
+
+Also check the environment before blaming anything on a dependency. These
+containers get recycled: `node_modules`, the scratchpad's Node 24 and the
+PostgreSQL role have each vanished between sessions, and a missing role surfaces
+as Prisma's `P1000: Authentication failed`, which reads exactly like a regression
+and is not one.
+
 ## 2. One branch, off the current `dev`
 
 Start by fetching, and branch from `origin/dev` rather than from a local `dev`
@@ -96,6 +116,31 @@ pnpm install --no-frozen-lockfile
 For GitHub Actions bumps, edit the SHA pin and the trailing `# vX.Y.Z` comment
 together — the comment is the only human-readable record of what the SHA is.
 
+**Prove every proposed line landed.** Once a `sed` with `|` as its delimiter and
+`\|` for alternation matched nothing, exited 0, and a pull request claimed pins it
+had not moved. Edit with a script that asserts it changed something, and then,
+before committing, diff each bot branch's added lines against your tree:
+
+```bash
+mine=$(git diff origin/dev -- '*package.json' '.github/workflows/*' '*pom.xml' \
+  | grep '^+[^+]' | sed 's/^+//;s/[[:space:]]*$//' | sort -u)
+git diff origin/dev refs/dbot/<group> -- '*package.json' '.github/workflows/*' '*pom.xml' \
+  | grep '^+[^+]' | sed 's/^+//;s/[[:space:]]*$//' \
+  | while IFS= read -r l; do grep -Fxq "$l" <<<"$mine" || echo "DIFFERS: $l"; done
+```
+
+Every line it prints must be a deviation you chose and can name. Do this from the
+working tree, not `HEAD`: before the first commit they are the same commit and the
+diff is empty, which looks like success.
+
+**Pick versions the install policy will actually allow.** `minimumReleaseAge`
+refuses anything under three days old, and the newest release of a package is
+often exactly that — several advisory fixes were published the same morning. List
+what is eligible instead of guessing (`pnpm view <pkg> time --json`, keep the
+entries older than three days) and bump to the newest of those. Read the install's
+exit status too: when it refuses, nothing has been installed, and a type-check
+that then passes is a type-check of the old tree.
+
 ## 3. Majors, one at a time
 
 A major is a migration and deserves its own verification pass. After each one,
@@ -105,6 +150,23 @@ run the full pipeline from `references/verification.md`. If it fails:
 - Otherwise revert that bump alone, keep the rest, and **write down what broke
   and what would have to change** — that sentence is the deliverable for a
   rejected bump.
+
+Before installing a major, spend twenty seconds on how it is *packaged*, because
+that is where this repository's majors have actually failed:
+
+```bash
+pnpm view <pkg>@<new> --json | python3 -c "import sys,json;d=json.load(sys.stdin);\
+print(d.get('type','commonjs'), json.dumps(d.get('exports'))[:200])"
+```
+
+`type: module` with no `require` condition means ESM-only. The server is
+CommonJS and Jest cannot `require()` ESM without `--experimental-vm-modules`, so
+an ESM-only dependency passes in production, where Node 22+ can, and fails the
+suite. Seen three times: jose 6, `content-disposition` 3 (pulled in by
+`@fastify/static` 10.1.4), and all of Nest 12. A package with both `import` and
+`require` conditions (nodemailer 10) is fine. One condition lifts every one of
+these blockers at once — the server and its tests running as ES modules — so
+`.github/dependabot.yml` points them all at it.
 
 A rejected major should also get an `ignore` entry in `.github/dependabot.yml`,
 so it is not re-proposed, tested and rejected again every week. Each entry names
@@ -145,7 +207,7 @@ loosen a peer range or add `--force` to make a major fit.
 ## 5. Overrides, for advisories the parent has not picked up
 
 When a security advisory reaches you through a transitive dependency and there
-is no direct bump to take, resolve it in `pnpm-workspace.yaml`. Two questions
+is no direct bump to take, resolve it in `pnpm-workspace.yaml`. Three questions
 decide how much care it needs.
 
 **Does it ship?** Follow the path `pnpm audit` prints and check the parent
@@ -176,6 +238,33 @@ the software still works, and when the overridden package ships inside a runtime
 dependency that distinction is the whole point: `prisma migrate deploy` is what
 starts the container, so an override that breaks it turns a theoretical advisory
 into a real outage.
+
+**Which copy does the runtime load?** Bumping your own dependency fixes nothing
+if a framework carries a second copy of it. `@nestjs/platform-fastify` pins
+`fastify` exactly — 5.11.3 across the whole Nest 11 line — and it is the adapter
+that builds the instance serving requests, so our own `fastify ^5.12.5` was a
+second copy used for types while the authentication-bypass advisory sat in the
+one that mattered. Look for the duplicate, and resolve from the parent's own
+directory rather than from yours:
+
+```bash
+pnpm why <pkg>                      # more than one version = a second copy
+node -e "console.log(require(require.resolve('<pkg>/package.json',
+  {paths:['<the parent, under node_modules/.pnpm>']})).version)"
+```
+
+Read a version off `node_modules/.pnpm` with care: it keeps directories for
+versions the lockfile no longer references, so a glob finds the stale one first.
+The lockfile and `require.resolve` are the truth.
+
+Write one override selector **per major** of a package that exists in several
+(`brace-expansion@>=2.0.0 <2.1.7: ^2.1.7`, not `<5`): they are separate codebases
+that share a name, and one broad selector drags the older users across a major
+for nothing.
+
+Overrides also expire. Now and then remove them all, install, and look at what
+the resolver picks unaided: three of four had become dead weight and one had not,
+and the file's own rule is to delete them the moment the parent ships the fix.
 
 ```yaml
 overrides:
@@ -212,6 +301,18 @@ Only after your pull request exists. Close each one with a comment that says
 which of the two happened: *applied in #N*, or *tested and rejected, here is the
 error and here is the condition for revisiting*. Closing without a reason is how
 the same major gets proposed and re-tested by someone else next month.
+
+A pull request that targets `main` is not like the others. Dependabot's
+*security* updates ignore `target-branch` and go to the default branch, so one can
+appear beside a backlog that is all aimed at `dev`. It cannot be consolidated —
+`main` only ever receives `dev`, as a merge commit — and applying it there on its
+own is usually worse than nothing: the bot picks the first fixed version of the
+one package, which may leave later advisories open and does nothing about a
+framework's exact pin. Close it with that explanation, and then say plainly in
+your report that **`main` stays vulnerable until `dev` is promoted** and by what
+distance (`git rev-list --count origin/main..origin/dev`). A fix that lives only
+on `dev` protects nobody running the published image. Promoting is the
+maintainer's decision, not part of this run.
 
 Every comment ends with the attribution footer:
 
