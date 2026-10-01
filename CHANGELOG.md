@@ -10,6 +10,39 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+No database migration. One new optional setting, `DATABASE_STATEMENT_TIMEOUT_MS`,
+whose default needs no action.
+
+### Fixed
+
+- **A page waiting on a server that never answers now says so instead of
+  spinning.** Every read had no time limit, so a connection that went silent —
+  a proxy that lost its upstream, a socket the network dropped without a word —
+  left the Checks page on its loading bar for as long as the browser cared to
+  wait, which is minutes. A read now gives up after 30 seconds, aborts the
+  request, and shows "The server is taking too long to answer". Writes are left
+  alone: one that timed out in the browser may still have succeeded.
+- **The Checks page asks for one thing at a time.** Its background refresh fires
+  every 15 seconds whether or not the last answer had come back, so against a
+  stalled server it stacked a request behind every stalled one and released them
+  all together when the server recovered.
+
+### Changed
+
+- **Database queries are bounded, and idle connections are probed.** A query on
+  the API's connection pool is cancelled after 30 seconds
+  (`DATABASE_STATEMENT_TIMEOUT_MS`), and all three database connections — API,
+  ingestion, and the listener that invalidates the ingest cache — now send TCP
+  keep-alive probes. Before this, a connection the network had dropped never
+  failed on its own: the request using it waited for TCP to give up, and the
+  listener never noticed it was deaf.
+- **The server logs what it cannot otherwise explain afterwards.** A request that
+  takes two seconds or more is logged by route pattern — never by URL, since
+  heartbeat URLs are secrets — and so is any stretch of 500 ms or more in which
+  the event loop did not turn. A healthy server writes neither. When the
+  application seems to freeze, these say whether the process was stuck or
+  something around it was.
+
 ## [0.2.2] — 2026-10-01
 
 A release-pipeline fix only: the application, the database schema and the

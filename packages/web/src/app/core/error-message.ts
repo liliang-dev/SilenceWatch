@@ -33,6 +33,9 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong.')
   }
 
   if (error.status === 429) return 'Too many attempts. Wait a moment and try again.';
+  // The page's own timeout, or a proxy giving up on the application: either way
+  // the answer is "slow", which is a different thing to tell someone than "down".
+  if (error.status === 504) return 'The server is taking too long to answer. Try again shortly.';
   if (error.status >= 500) return 'The server is having trouble. Try again shortly.';
   return fallback;
 }

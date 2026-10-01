@@ -67,6 +67,11 @@ export class PgListenerService implements OnModuleInit, OnModuleDestroy {
     const client = new Client({
       connectionString: this.config.DATABASE_URL,
       application_name: 'silencewatch-listener',
+      // This connection is idle by design — it only ever receives. Without
+      // probes, one the network dropped never raises an error, so the reconnect
+      // logic below has nothing to react to and invalidations quietly stop.
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
     });
     client.on('error', (error) => {
       this.logger.warn(`Listener connection error: ${error.message}`);
