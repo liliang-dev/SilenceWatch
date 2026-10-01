@@ -60,6 +60,18 @@ never changes which version is running. Forgetting it is the mistake that
 matters: the release exists, and everyone following the install instructions
 still gets the previous one.
 
+The README names the version too — "This pulls `ghcr.io/…/silencewatch:0.2.0`" —
+and is the first thing a newcomer reads, so it goes in the same edit. Find every
+place that still says the old number instead of trusting this list:
+
+```bash
+grep -rn "0\.1\.1" . --exclude-dir=node_modules --exclude-dir=.git \
+  --exclude=pnpm-lock.yaml --exclude=CHANGELOG.md
+```
+
+What remains should be only the rollback example at the bottom of this page,
+which names the *previous* version on purpose.
+
 Then keep the package manifests in step — cosmetic, since the running version
 comes from the image's build argument, but a repository that says 0.1.0 while
 shipping 0.2.0 is a bug report waiting to happen:
