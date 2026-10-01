@@ -10,8 +10,81 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-01
+
+No database migration and no new setting: upgrading is the usual pull and
+restart, and going back to 0.1.1 is safe. The reason to take it soon is the
+Security section — the HTTP framework under every request was carrying
+advisories, one of them an authentication bypass.
+
+### Security
+
+- **The HTTP server is on fastify 5.12.5.** Seven advisories applied below
+  that: an authentication bypass through malformed URLs reaching encapsulated
+  routes, three ways around request validation (an asynchronous validation
+  result, a boolean `false` schema, header-name case normalisation),
+  `X-Forwarded-*` spoofing under a hop-count `trustProxy`, and an HTTP/2 denial
+  of service. Raising our own `fastify` dependency would have changed nothing:
+  `@nestjs/platform-fastify` pins its own copy exactly — 5.11.3 across the
+  whole Nest 11 line — and that copy is the one that answers requests. The
+  version is forced past that pin in `pnpm-workspace.yaml`, and checked by
+  asking which copy the adapter actually loads. Authentication here is a Nest
+  guard rather than an encapsulated fastify hook, nothing serves HTTP/2, and
+  `TRUST_PROXY` is documented as a list of addresses rather than a hop count,
+  so we have not shown that any of these was exploitable in SilenceWatch — we
+  did not try to — but they were in the layer that handles every request.
+- **nodemailer is on 10.** Seven advisories: recipient-domain validation
+  bypasses, quadratic-time address parsing, and a process-wide DNS cache that
+  reused the TLS server name across connections. Three of them are fixed only
+  in 10, which is why this is a major. If alerts leave over SMTP this is the one
+  that touches you; the STARTTLS path was exercised against a relay that
+  refuses plaintext until TLS is up.
+- `@nestjs/platform-fastify` 11.2.6 (a path-scoped middleware bypass, fixed in
+  11.2.4), `@angular/router` 22.2.0, and overrides for `fast-uri` (twelve
+  host-confusion and SSRF advisories, reached through fastify's serialiser),
+  `brace-expansion` and `js-yaml`. `mysql2` is the odd one out: the Prisma CLI
+  bundles it, and the image keeps that CLI to run migrations. SilenceWatch talks
+  to PostgreSQL and never opens a MySQL connection, so that advisory was
+  unreachable here and is overridden only so the audit can be clean.
+- Nothing a dependency ships runs at install time unless it is named in
+  `allowBuilds`, and that list is four packages. A postinstall script from a
+  compromised package is how the npm ecosystem's actual compromises have
+  worked, and it runs with whatever the developer or the build has.
+- Nothing published in the last three days is installed. Dependabot is set to
+  the same three days, so the two agree instead of fighting.
+- CI fails on an advisory of moderate severity or above, and on the
+  install-script allowlist growing past five entries.
+
+### Added
+
+- **Projects can be created, renamed and deleted** from Settings → Projects.
+  Deleting one says how many checks go with it — "36 pings and 15 incidents are
+  destroyed with it" — instead of asking whether you are sure.
+- **Settings is five tabs** — Projects, API keys, Password, Security activity,
+  Account — instead of four unrelated concerns stacked on one page.
+- **The Checks list, a check's Recent pings and Incidents, and Security activity
+  are tables you can search, filter, sort and page.** Search covers a check's
+  name, environment, source and state; a ping's body, exit code and source
+  address; an event's action, actor and target. Urgency stays the default order
+  on Checks, because a list sorted by name is one where the outage is somewhere
+  in the middle.
+- **Confirmations are modals that name what is lost**, replacing the browser's
+  native dialogs for rotating a ping URL, deleting a check or a channel, and
+  revoking an API key.
+
 ### Changed
 
+- **An account can no longer delete its last project.** `DELETE
+  /api/v1/projects/:id` answers `409` instead of leaving an account that every
+  screen assumes has one. Create another project first. The UI disables the
+  button; the server is what enforces it.
+- Validation errors are worded by zod 4 — `Invalid option: expected one of
+  "interval"|"cron"`. The shape of the error body is unchanged; if you match on
+  the text, match on `details[].path` instead.
+- The interface is English whatever the browser's language: relative times
+  ("3 minutes ago") and the sort order of accented names no longer follow the
+  machine's locale, so a French browser stops reading "il y a 3 minutes" next to
+  "never" and "just now".
 - New logo, and one purple across the whole product. The mark is the brand
   waveform, traced from the artwork rather than redrawn — the vertices, the
   baseline and the stroke width are measured from it — on `#8b4bf1`, which is
@@ -32,22 +105,25 @@ called out under **Changed** with what to do about it.
   pnpm `node_modules` copies links whose targets are left behind, and the
   version of that trick for npm had already produced one release that started,
   migrated, and died on a missing package.
-
-### Security
-
-- Nothing a dependency ships runs at install time unless it is named in
-  `allowBuilds`, and that list is four packages. A postinstall script from a
-  compromised package is how the npm ecosystem's actual compromises have
-  worked, and it runs with whatever the developer or the build has.
-- Nothing published in the last three days is installed. Dependabot is set to
-  the same three days, so the two agree instead of fighting.
-- `find-my-way` is forced to 9.7.0. `@nestjs/platform-fastify` still asks for
-  9.6.0, which GHSA-c96f-x56v-gq3h covers.
-- CI fails on a high-severity advisory, and on the install-script allowlist
-  growing past five entries.
+- Dependency majors taken since 0.1.1: `zod` 4, `cron-parser` 5, `@fastify/cors`
+  11, `nodemailer` 10 and `vitest` 5 (the Angular 22.2 builder admits it); Angular
+  itself moves from 22.1 to 22.2, which the router advisory needs. Nest 12 is not
+  among them: it is ESM-only and the server is CommonJS, so it is a migration of
+  the server, not an update. `@fastify/static` is held at 10.1.3 for the same
+  reason, and the Dependabot configuration records the one condition that lifts
+  both.
+- Pull requests go to `dev`, and `main` receives `dev` as a merge commit once it
+  is green. CI also runs on pushes to `dev` and `main`, not only on pull
+  requests. See CONTRIBUTING.md.
 
 ### Fixed
 
+- **The Checks page showed every project's checks at once** and ignored the
+  project picker. It follows the selected project now, live, without a reload.
+- Recent pings, Incidents and Security activity quietly showed only the newest
+  50, 20 and 60 rows, so searching for something older could only ever fail, and
+  look as though it had not happened. They load up to 200 and say so when there
+  is more.
 - Fifteen documented settings now actually reach the server. `SIGNUP_ENABLED`,
   the whole sign-up integrity block, quotas, `AUDIT_RETENTION_DAYS`,
   `EMAIL_FROM_NAME` and `ALLOW_PRIVATE_NOTIFICATION_TARGETS` were described in
@@ -148,6 +224,7 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.1.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.2.0
 [0.1.1]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.1
 [0.1.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.0
