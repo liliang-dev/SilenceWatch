@@ -114,11 +114,13 @@ who already pulled it. Made a mistake? Release the next number.
 [Actions → Release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/release.yml).
 It takes a few minutes and does, in order:
 
-1. builds and pushes `ghcr.io/liliang-dev/silencewatch:0.2.0` (and `latest`),
-2. starts the image against a throwaway PostgreSQL and checks `/health` — a
+1. checks that the tagged commit is releasable — the four manifests say the
+   tag's version and `CHANGELOG.md` has its section — before anything is built,
+2. builds and pushes `ghcr.io/liliang-dev/silencewatch:0.2.0` (and `latest`),
+3. starts the image against a throwaway PostgreSQL and checks `/health` — a
    version that cannot boot is never released,
-3. creates or updates the GitHub release,
-4. deploys to the swarm over SSH and waits for the update to converge.
+4. creates or updates the GitHub release,
+5. deploys to the swarm over SSH and waits for the update to converge.
 
 If the deploy step rolls back, the build goes red. A rolled-back release is a
 failure, not a quiet no-op.

@@ -23,6 +23,15 @@ version bump had landed, so the workflow built and pushed an image and then
 refused to publish empty release notes. A published tag is never moved; this
 is the next number, carrying the same fix.
 
+### Changed
+
+- **A release that is not ready now fails before anything is published.** The
+  workflow checks, first of all, that the four package manifests carry the
+  tag's version and that `CHANGELOG.md` has its section. Both used to be
+  noticed at the last step, after the image was already in the registry — which
+  is how 0.2.1 left an image behind with no release to go with it. A premature
+  tag now fails in seconds with nothing built and nothing pushed.
+
 ### Fixed
 
 - **The first automatic deployment no longer fails its own health check.** The
