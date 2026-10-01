@@ -1,6 +1,6 @@
 {
   "name": "@silencewatch/web",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "private": true,
   "description": "SilenceWatch web interface.",
   "license": "AGPL-3.0-only",

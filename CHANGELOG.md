@@ -10,6 +10,28 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-10-01
+
+A release-pipeline fix only: the application, the database schema and the
+configuration are exactly what 0.2.0 shipped, so there is nothing to migrate,
+no new setting, and going back to 0.2.0 is safe. Nobody running the image needs
+to hurry; the people it matters to are those who deploy to a Swarm with the
+release workflow.
+
+There is no 0.2.1 release. The tag was cut before its changelog entry and the
+version bump had landed, so the workflow built and pushed an image and then
+refused to publish empty release notes. A published tag is never moved; this
+is the next number, carrying the same fix.
+
+### Changed
+
+- **A release that is not ready now fails before anything is published.** The
+  workflow checks, first of all, that the four package manifests carry the
+  tag's version and that `CHANGELOG.md` has its section. Both used to be
+  noticed at the last step, after the image was already in the registry — which
+  is how 0.2.1 left an image behind with no release to go with it. A premature
+  tag now fails in seconds with nothing built and nothing pushed.
+
 ### Fixed
 
 - **The first automatic deployment no longer fails its own health check.** The
@@ -235,7 +257,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...HEAD
+[0.2.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...0.2.2
 [0.2.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.2.0
 [0.1.1]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.1
 [0.1.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.0
