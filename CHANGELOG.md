@@ -10,6 +10,17 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The first automatic deployment no longer fails its own health check.** The
+  release workflow probed `/health` once, two seconds after creating the
+  services, when a freshly created service has no update status for the
+  convergence wait to look at — so on a stack's first deploy it asked before
+  PostgreSQL and the application had started, and failed on a port nobody was
+  listening on yet. It now polls within the same seven-minute budget and, if
+  the budget runs out, prints the service's task list. Upgrades were never
+  affected.
+
 ## [0.2.0] — 2026-10-01
 
 No database migration and no new setting: upgrading is the usual pull and
