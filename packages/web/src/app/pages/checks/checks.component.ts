@@ -20,7 +20,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import type { CheckDto, CheckState } from '@silencewatch/shared';
-import { EMPTY, expand, reduce } from 'rxjs';
+import { EMPTY, type Subscription, expand, reduce } from 'rxjs';
 import { byUrgency, checkRules, sourceLabel } from './checks-table';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { ApiService } from '../../core/api.service';
@@ -100,6 +100,9 @@ export class ChecksComponent implements OnDestroy {
 
   private readonly timer = setInterval(() => this.reload(true), REFRESH_INTERVAL_MS);
 
+  /** The load in flight, if any. */
+  private inFlight: Subscription | null = null;
+
   protected readonly subtitle = computed(() => {
     const all = this.population();
     if (all.length === 0) return 'Nothing is being watched in this project yet';
@@ -139,6 +142,7 @@ export class ChecksComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.timer);
+    this.inFlight?.unsubscribe();
   }
 
   protected filterBy(state: string): void {
@@ -161,10 +165,21 @@ export class ChecksComponent implements OnDestroy {
     const project = this.projects.selected();
     if (project === null) return;
 
+    // One load at a time. The background refresh fires every few seconds whether
+    // or not the last answer has come back, so against a server that has stopped
+    // answering it used to stack a new request behind every stalled one — and
+    // release them all at once when it recovered. A refresh that finds one still
+    // running has nothing to add; a deliberate load (a new project, a created
+    // check) replaces it, because what it was fetching is already stale.
+    if (this.inFlight !== null && !this.inFlight.closed) {
+      if (quiet) return;
+      this.inFlight.unsubscribe();
+    }
+
     if (!quiet) this.loading.set(true);
 
     let pages = 0;
-    this.api
+    this.inFlight = this.api
       .listProjectChecks(project.id, { limit: PAGE_SIZE })
       .pipe(
         expand((page) => {

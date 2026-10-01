@@ -30,6 +30,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       max: config.DATABASE_POOL_MAX,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
+      // Both ends of a query. The server cancels a statement that runs too long;
+      // the client gives up a little after, which is the one that still works
+      // when the connection is half-dead and the server can no longer say so.
+      statement_timeout: config.DATABASE_STATEMENT_TIMEOUT_MS,
+      query_timeout: config.DATABASE_STATEMENT_TIMEOUT_MS + 5_000,
+      // A transaction left open by a request that went away would hold its locks
+      // until someone noticed.
+      idle_in_transaction_session_timeout: 60_000,
+      // Probe idle sockets, so one the network dropped is found by the probe
+      // rather than by the request that was unlucky enough to be handed it.
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
       application_name: 'silencewatch',
     });
 
