@@ -84,6 +84,46 @@ jobs:
         id: commit
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # Before anything is built, and certainly before anything is pushed. The
+      # changelog entry and the version bump are what make a commit releasable,
+      # and both used to be noticed only at the very last step — after the
+      # image was already in the registry. Tagging 0.2.1 before either had
+      # landed left an image published under a version with no release behind
+      # it, and a published tag is never moved.
+      - name: Check the tagged commit is releasable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          failed=0
+
+          for manifest in package.json packages/shared/package.json \
+                          packages/server/package.json packages/web/package.json; do
+            found="$(node -p "require('./$manifest').version")"
+            if [ "$found" != "$VERSION" ]; then
+              echo "::error file=$manifest::$manifest says $found, but the tag is $VERSION."
+              failed=1
+            fi
+          done
+
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::No '## [$VERSION]' section in CHANGELOG.md."
+            failed=1
+          fi
+
+          if [ "$failed" -ne 0 ]; then
+            cat >&2 <<MESSAGE
+
+          Tag $VERSION points at a commit that is not ready to be released.
+
+          The version bump and the changelog entry have to be in the commit being
+          tagged: land them on dev, promote to main, then tag. Nothing has been
+          built or pushed. A tag that was already pushed is not moved — release the
+          next number instead (docs/releasing.md).
+          MESSAGE
+            exit 1
+          fi
+
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       # Built and tested before it is pushed. An image that cannot start is
@@ -200,7 +240,8 @@ jobs:
           that the notes describe what was actually released. That means the
           entry has to exist in the commit being tagged: write the section,
           merge it, then tag. A tag created before its own changelog entry
-          cannot describe itself, and moving the tag forward is the fix.
+          cannot describe itself, and a published tag is not moved: release the
+          next number instead.
           MESSAGE
             exit 1
           fi
@@ -388,13 +429,28 @@ jobs:
           set +a
           port="${PORT:-8080}"
 
-          reported=$(curl -fsS --max-time 10 "http://127.0.0.1:${port}/health" \
-                     | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+          # Polled, not asked once. A service that has just been created has no
+          # update status at all, so the loop above sees 'none' and falls through
+          # on its first look — the very first deployment of a stack would be
+          # probed before the database and the application had started, and
+          # fail on a port nobody was listening on yet. Same budget as above: a
+          # deployment that never answers still fails, just not before it could
+          # have.
+          while :; do
+            reported=$(curl -fs --max-time 10 "http://127.0.0.1:${port}/health" \
+                       | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)
 
-          if [ "$reported" != "$VERSION" ]; then
-            echo "/health reports version '$reported', expected '$VERSION'." >&2
-            exit 1
-          fi
+            if [ "$reported" = "$VERSION" ]; then
+              break
+            fi
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "/health reports version '$reported' after 7 minutes, expected '$VERSION'." >&2
+              docker service ps "$service" --no-trunc >&2 || true
+              exit 1
+            fi
+            sleep 5
+          done
 
           echo "Deployed $VERSION; /health agrees."
           REMOTE
