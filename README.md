@@ -21,11 +21,12 @@ Self-host it, or use the hosted service.**
 
   The release badge counts prereleases on purpose — 0.1.0 is published as one,
   and a badge that reads "no releases" while a release exists is worse than
-  absent. It stays in shields.io's default blue: it names the version that was
-  published and says nothing about whether anything is passing, and a green one
-  beside the CI badges would read as a status it is not. It is the one badge
-  served by a third party (shields.io), which sees the IP of everyone who loads
-  this page; drop it if that matters more than showing the version.
+  absent. Its colour is chosen by shields.io from the version itself, not set
+  here — orange while the version is below 1.0 or a prerelease, blue from 1.0 —
+  so it is not a status and is deliberately not forced to green, which beside
+  the CI badges would read as one. It is the one badge served by a third party
+  (shields.io), which sees the IP of everyone who loads this page; drop it if
+  that matters more than showing the version.
 -->
 
 ---
