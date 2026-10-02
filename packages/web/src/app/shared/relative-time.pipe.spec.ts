@@ -1,16 +1,24 @@
+import { TestBed } from '@angular/core/testing';
+import { I18n } from '../core/i18n/i18n.service';
 import { DurationPipe, RelativeTimePipe } from './relative-time.pipe';
 
 describe('RelativeTimePipe', () => {
-  const pipe = new RelativeTimePipe();
+  let pipe: RelativeTimePipe;
+  let i18n: I18n;
   const now = new Date('2026-07-30T12:00:00.000Z');
 
   beforeEach(() => {
+    localStorage.clear();
     vi.useFakeTimers();
     vi.setSystemTime(now);
+    i18n = TestBed.inject(I18n);
+    i18n.set('en');
+    pipe = TestBed.runInInjectionContext(() => new RelativeTimePipe());
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    localStorage.clear();
   });
 
   it('says "never" rather than showing an empty cell', () => {
@@ -26,18 +34,24 @@ describe('RelativeTimePipe', () => {
   });
 
   /**
-   * The assertions above were already written in English, and they still passed
-   * or failed depending on whose machine ran them: `Intl.RelativeTimeFormat`
-   * with no locale takes the system's, so a laptop set to French produced "il y
-   * a 3 minutes" and a red suite that said nothing about what was wrong.
-   *
-   * This asserts the property rather than the output — the pipe agrees with an
-   * explicitly English formatter, whatever the machine is set to.
+   * `Intl.RelativeTimeFormat` with no locale takes the system's, so a laptop set
+   * to French used to produce "il y a 3 minutes" and a red suite that said
+   * nothing about what was wrong. The pipe now takes the application's language,
+   * which the test pins, so the output no longer depends on the machine.
    */
-  it('formats in English on a machine that is not', () => {
+  it('formats in the language of the application, not of the machine', () => {
     const english = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe(english.format(-3, 'minute'));
     expect(pipe.transform('2026-07-30T14:00:00.000Z')).toBe(english.format(2, 'hour'));
+  });
+
+  it('follows the language when it changes, without a new input', () => {
+    // The same timestamp, asked again: this is what a pure pipe would get wrong.
+    expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe('3 minutes ago');
+    i18n.set('fr');
+    expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe('il y a 3 minutes');
+    expect(pipe.transform(null)).toBe('jamais');
+    expect(pipe.transform(now)).toBe("à l'instant");
   });
 
   it('collapses anything very recent to "just now"', () => {

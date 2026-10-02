@@ -221,6 +221,26 @@ To change the schema:
 Do not use `prisma migrate dev`: it would offer to drop the objects it does not
 know about.
 
+## Translating the interface
+
+The web interface speaks English and French. There is no translation library: the
+text lives in two typed objects, `packages/web/src/app/core/i18n/en.ts` (the
+source) and `fr.ts`, which is typed against it, so a key added to one and not the
+other does not compile. A spec also checks that a translation keeps every
+`{placeholder}` of the English.
+
+- A component keeps `protected readonly t = inject(I18n).t` and writes
+  `{{ t('checks.title') }}`. It reads a signal, so the page follows a change of
+  language without a reload; do not cache its result in a field.
+- A plural is two keys, `foo_one` and `foo_other` (and `foo_zero` where a sentence
+  needs one), read with `plural('foo', count)`. French counts 0 as singular,
+  English does not.
+- Nothing user-facing is written as a literal in a template or a component. Error
+  messages go through `errorMessage(error, fallback, t)`; server sentences worth
+  translating are listed in `core/i18n/server-messages.ts`.
+- A new language is a new `xx.ts`, an entry in `LANGUAGES`, and a card in the
+  Preferences tab.
+
 ## Conventions
 
 - The ingestion path stays bare. No ORM, no pipes, no guards, no interceptors, no

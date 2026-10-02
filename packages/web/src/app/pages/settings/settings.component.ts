@@ -29,9 +29,14 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage } from '../../core/error-message';
+import type { MessageKey } from '../../core/i18n/en';
+import { I18n, type Language } from '../../core/i18n/i18n.service';
+import { ThemeService, type ThemeChoice } from '../../core/theme.service';
 import { ProjectStore } from '../../core/project.store';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { PAGINATOR_INTL } from '../../shared/paginator-intl';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
+import { FlagComponent } from '../../shared/flag.component';
 import { IconComponent } from '../../shared/icon.component';
 import { confirmWith } from '../../shared/confirm.dialog';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
@@ -49,6 +54,7 @@ const AUDIT_LIMIT = 200;
   selector: 'sw-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FlagComponent,
     IconComponent,
     FormsModule,
     ReactiveFormsModule,
@@ -63,6 +69,7 @@ const AUDIT_LIMIT = 200;
     MatTooltipModule,
     RelativeTimePipe,
   ],
+  providers: [PAGINATOR_INTL],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
@@ -73,10 +80,35 @@ export class SettingsComponent {
   private readonly dialog = inject(MatDialog);
   protected readonly auth = inject(AuthService);
   protected readonly projects = inject(ProjectStore);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
+  protected readonly plural = this.i18n.plural;
+  protected readonly theme = inject(ThemeService);
+  protected readonly language = this.i18n.language;
+
+  /** Named in their own language, as language pickers do: you find yours by its own word. */
+  protected readonly languages: ReadonlyArray<{
+    code: Language;
+    flag: 'fr' | 'gb';
+    name: string;
+  }> = [
+    { code: 'fr', flag: 'fr', name: 'Français' },
+    { code: 'en', flag: 'gb', name: 'English' },
+  ];
+
+  protected readonly themes: ReadonlyArray<{
+    choice: ThemeChoice;
+    icon: string;
+    label: MessageKey;
+  }> = [
+    { choice: 'system', icon: 'monitor', label: 'prefs.themeSystem' },
+    { choice: 'light', icon: 'sun', label: 'prefs.themeLight' },
+    { choice: 'dark', icon: 'moon', label: 'prefs.themeDark' },
+  ];
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly apiKeys = signal<ApiKeyDto[]>([]);
-  protected readonly audit = new DataTable<AuditEventDto>(auditRules);
+  protected readonly audit = new DataTable<AuditEventDto>(auditRules(this.t));
   protected readonly auditFilter = signal('');
   protected readonly auditColumns = ['occurredAt', 'action', 'actor', 'target', 'ip'];
   protected readonly pageSizes = PAGE_SIZES;
@@ -118,11 +150,17 @@ export class SettingsComponent {
         next: (project) => {
           this.projects.add(project);
           this.projectBusy.set(false);
-          this.snackBar.open(`"${project.name}" created`, 'OK', { duration: 4000 });
+          this.snackBar.open(
+            this.t('settings.projectCreated', { name: project.name }),
+            this.t('common.ok'),
+            {
+              duration: 4000,
+            },
+          );
         },
         error: (failure: unknown) => {
           this.projectBusy.set(false);
-          this.error.set(errorMessage(failure, 'Could not create the project.'));
+          this.error.set(errorMessage(failure, this.t('settings.projectCreateFailed'), this.t));
         },
       });
     });
@@ -135,10 +173,12 @@ export class SettingsComponent {
       this.api.updateProject(project.id, { name }).subscribe({
         next: (updated) => {
           this.projects.replace(updated);
-          this.snackBar.open('Project renamed', 'OK', { duration: 3000 });
+          this.snackBar.open(this.t('settings.projectRenamed'), this.t('common.ok'), {
+            duration: 3000,
+          });
         },
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not rename the project.')),
+          this.error.set(errorMessage(failure, this.t('settings.projectRenameFailed'), this.t)),
       });
     });
   }
@@ -147,7 +187,11 @@ export class SettingsComponent {
   private openProjectForm(data: ProjectFormData) {
     // One field: a compact card, not the whole screen the longer forms get on a phone.
     return this.dialog
-      .open(ProjectFormDialog, { data, autoFocus: false, panelClass: 'sw-confirm' })
+      .open(ProjectFormDialog, {
+        data,
+        autoFocus: false,
+        panelClass: 'sw-confirm',
+      })
       .afterClosed();
   }
 
@@ -163,21 +207,27 @@ export class SettingsComponent {
     const checks = project.checkCount ?? 0;
 
     confirmWith(this.dialog, {
-      title: `Delete "${project.name}"?`,
+      title: this.t('settings.projectDeleteTitle', { name: project.name }),
       message:
         checks === 0
-          ? 'This project has no checks. Deleting it cannot be undone.'
-          : `This deletes ${checks} check${checks === 1 ? '' : 's'} with every ping and incident recorded against them. It cannot be undone.`,
-      confirmLabel: 'Delete project',
+          ? this.t('settings.projectDeleteEmpty')
+          : this.i18n.plural('settings.projectDeleteMessage', checks),
+      confirmLabel: this.t('settings.projectDeleteConfirm'),
       destructive: true,
     }).subscribe(() => {
       this.api.deleteProject(project.id).subscribe({
         next: () => {
           this.projects.remove(project.id);
-          this.snackBar.open(`"${project.name}" deleted`, 'OK', { duration: 4000 });
+          this.snackBar.open(
+            this.t('settings.projectDeleted', { name: project.name }),
+            this.t('common.ok'),
+            {
+              duration: 4000,
+            },
+          );
         },
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not delete the project.')),
+          this.error.set(errorMessage(failure, this.t('settings.projectDeleteFailed'), this.t)),
       });
     });
   }
@@ -185,7 +235,8 @@ export class SettingsComponent {
   private loadKeys(projectId: string): void {
     this.api.listApiKeys(projectId).subscribe({
       next: (keys) => this.apiKeys.set(keys),
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not load API keys.')),
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, this.t('settings.keysLoadFailed'), this.t)),
     });
   }
 
@@ -220,8 +271,12 @@ export class SettingsComponent {
     });
   }
 
-  protected readonly label = auditLabel;
+  protected readonly label = (action: string): string => auditLabel(action, this.t);
   protected readonly isFailure = isFailure;
+
+  protected setLanguage(language: Language): void {
+    this.i18n.set(language);
+  }
 
   protected filterAuditBy(scope: string): void {
     this.auditFilter.set(scope);
@@ -248,19 +303,16 @@ export class SettingsComponent {
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Could not create the key.'));
+        this.error.set(errorMessage(failure, this.t('settings.keyCreateFailed'), this.t));
       },
     });
   }
 
   protected revoke(key: ApiKeyDto): void {
     confirmWith(this.dialog, {
-      title: `Revoke "${key.name}"?`,
-      message:
-        'Anything using this key stops working immediately — a starter holding it will fail to ' +
-        'declare its jobs, and the checks it declared will go quiet. Revoking cannot be undone; ' +
-        'issue a new key instead.',
-      confirmLabel: 'Revoke key',
+      title: this.t('settings.revokeTitle', { name: key.name }),
+      message: this.t('settings.revokeMessage'),
+      confirmLabel: this.t('settings.revokeConfirm'),
       destructive: true,
     }).subscribe(() => {
       this.api.revokeApiKey(key.projectId, key.id).subscribe({
@@ -272,10 +324,12 @@ export class SettingsComponent {
                 : existing,
             ),
           );
-          this.snackBar.open('Key revoked', 'OK', { duration: 3000 });
+          this.snackBar.open(this.t('settings.keyRevoked'), this.t('common.ok'), {
+            duration: 3000,
+          });
         },
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not revoke the key.')),
+          this.error.set(errorMessage(failure, this.t('settings.keyRevokeFailed'), this.t)),
       });
     });
   }
@@ -292,12 +346,14 @@ export class SettingsComponent {
     this.auth.changePassword(this.passwordForm.getRawValue()).subscribe({
       next: () => {
         this.busy.set(false);
-        this.snackBar.open('Password changed — sign in again', 'OK', { duration: 5000 });
+        this.snackBar.open(this.t('settings.passwordChanged'), this.t('common.ok'), {
+          duration: 5000,
+        });
         this.auth.logout();
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Could not change the password.'));
+        this.error.set(errorMessage(failure, this.t('settings.passwordChangeFailed'), this.t));
       },
     });
   }
@@ -305,7 +361,15 @@ export class SettingsComponent {
   protected copy(text: string): void {
     void navigator.clipboard
       .writeText(text)
-      .then(() => this.snackBar.open('Copied', 'OK', { duration: 2000 }))
-      .catch(() => this.snackBar.open('Could not copy — select the text manually', 'OK', { duration: 4000 }));
+      .then(() =>
+        this.snackBar.open(this.t('settings.copied'), this.t('common.ok'), {
+          duration: 2000,
+        }),
+      )
+      .catch(() =>
+        this.snackBar.open(this.t('settings.copyFailed'), this.t('common.ok'), {
+          duration: 4000,
+        }),
+      );
   }
 }

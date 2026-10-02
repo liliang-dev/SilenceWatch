@@ -7,6 +7,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router } from '@angular/router';
 import { LIMITS, type RegisterResponse, type SessionDto } from '@silencewatch/shared';
 import type { Observable } from 'rxjs';
+import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage, isVerificationPending } from '../../core/error-message';
@@ -31,6 +32,9 @@ export class LoginComponent {
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
   private readonly challenge = inject(SignupChallengeService);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
+  protected readonly around = this.i18n.around;
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly mode = signal<'login' | 'register'>('login');
@@ -50,7 +54,7 @@ export class LoginComponent {
   protected readonly working = signal<'challenge' | 'request' | null>(null);
 
   protected readonly workingLabel = computed(() =>
-    this.working() === 'challenge' ? 'Checking your browser…' : 'Working…',
+    this.working() === 'challenge' ? this.t('login.checkingBrowser') : this.t('login.working'),
   );
 
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -83,7 +87,7 @@ export class LoginComponent {
     const email = this.form.getRawValue().email.trim();
     if (email === '') {
       this.form.controls.email.markAsTouched();
-      this.error.set('Enter your email address first.');
+      this.error.set(this.t('login.enterEmailFirst'));
       return;
     }
 
@@ -96,7 +100,7 @@ export class LoginComponent {
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Could not send the link right now. Try again shortly.'));
+        this.error.set(errorMessage(failure, this.t('login.cannotSendLink'), this.t));
       },
     });
   }
@@ -162,9 +166,7 @@ export class LoginComponent {
         this.busy.set(false);
         this.working.set(null);
         this.verificationPending.set(isVerificationPending(failure));
-        this.error.set(
-          errorMessage(failure, 'Sign-in failed. Check your credentials and try again.'),
-        );
+        this.error.set(errorMessage(failure, this.t('login.failed'), this.t));
       },
     });
   }
@@ -188,7 +190,7 @@ export class LoginComponent {
       },
       error: () => {
         this.busy.set(false);
-        this.error.set('Could not send the link right now. Try again in a minute.');
+        this.error.set(this.t('login.cannotSendLinkMinute'));
       },
     });
   }

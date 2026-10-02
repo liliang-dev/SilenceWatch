@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { I18n } from '../../core/i18n/i18n.service';
 import { errorMessage } from '../../core/error-message';
 
 /**
@@ -24,6 +25,7 @@ import { errorMessage } from '../../core/error-message';
 export class VerifyEmailComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly t = inject(I18n).t;
 
   protected readonly state = signal<'working' | 'done' | 'failed'>('working');
   protected readonly error = signal('');
@@ -35,7 +37,7 @@ export class VerifyEmailComponent {
     const token = new URLSearchParams(window.location.search).get('token') ?? '';
 
     if (token === '') {
-      this.fail('That link is missing its confirmation code. Open the one from the email directly.');
+      this.fail(this.t('verify.missingToken'));
       return;
     }
 
@@ -47,12 +49,7 @@ export class VerifyEmailComponent {
         void this.router.navigate([], { replaceUrl: true });
       },
       error: (failure: unknown) =>
-        this.fail(
-          errorMessage(
-            failure,
-            'This confirmation link is no longer valid. Request a new one from the sign-in page.',
-          ),
-        ),
+        this.fail(errorMessage(failure, this.t('verify.invalid'), this.t)),
     });
   }
 

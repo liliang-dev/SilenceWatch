@@ -1,27 +1,34 @@
-<h2 mat-dialog-title class="title">{{ data.project ? 'Rename project' : 'New project' }}</h2>
+<h2 mat-dialog-title class="title">
+  {{ data.project ? t('projectForm.renameTitle') : t('projectForm.newTitle') }}
+</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form body">
     <mat-form-field appearance="outline">
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" placeholder="Billing jobs" required cdkFocusInitial />
+      <mat-label>{{ t('projectForm.name') }}</mat-label>
+      <input
+        matInput
+        formControlName="name"
+        [placeholder]="t('projectForm.namePlaceholder')"
+        required
+        cdkFocusInitial
+      />
       @if (form.controls.name.touched && form.controls.name.invalid) {
-        <mat-error>A name is required, up to {{ maxLength }} characters</mat-error>
+      <mat-error>{{ t('projectForm.nameInvalid', { count: maxLength }) }}</mat-error>
       }
     </mat-form-field>
 
-    @if (data.project) {
-      <p class="note sw-subtle">
-        The URL slug stays <span class="sw-mono">{{ data.project.slug }}</span
-        >. Ping URLs already deployed keep working.
-      </p>
+    @if (data.project) { @let note = around('projectForm.slugNote', 'slug');
+    <p class="note sw-subtle">
+      {{ note[0] }}<span class="sw-mono">{{ data.project.slug }}</span>{{ note[1] }}
+    </p>
     }
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="actions">
-  <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
+  <button mat-button type="button" (click)="dialogRef.close()">{{ t('common.cancel') }}</button>
   <button mat-flat-button type="button" [disabled]="form.invalid" (click)="submit()">
-    {{ data.project ? 'Rename' : 'Create project' }}
+    {{ data.project ? t('projectForm.rename') : t('projectForm.create') }}
   </button>
 </mat-dialog-actions>

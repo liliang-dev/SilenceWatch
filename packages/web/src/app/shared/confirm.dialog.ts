@@ -7,6 +7,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { filter, type Observable } from 'rxjs';
+import { I18n } from '../core/i18n/i18n.service';
 
 export interface ConfirmData {
   title: string;
@@ -50,4 +51,5 @@ export function confirmWith(dialog: MatDialog, data: ConfirmData): Observable<tr
 export class ConfirmDialog {
   protected readonly data = inject<ConfirmData>(MAT_DIALOG_DATA);
   protected readonly dialogRef = inject<MatDialogRef<ConfirmDialog, boolean>>(MatDialogRef);
+  protected readonly t = inject(I18n).t;
 }

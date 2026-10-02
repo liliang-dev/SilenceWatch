@@ -1,58 +1,71 @@
-<h2 mat-dialog-title class="title">{{ data.check ? 'Edit check' : 'New check' }}</h2>
+<h2 mat-dialog-title class="title">
+  {{ data.check ? t('checkForm.editTitle') : t('checkForm.newTitle') }}
+</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="form sw-form">
     <mat-form-field appearance="outline">
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" required placeholder="Nightly backup" />
+      <mat-label>{{ t('checkForm.name') }}</mat-label>
+      <input
+        matInput
+        formControlName="name"
+        required
+        [placeholder]="t('checkForm.namePlaceholder')"
+      />
     </mat-form-field>
 
     <fieldset class="group">
-      <legend class="sw-label">Schedule</legend>
+      <legend class="sw-label">{{ t('checkForm.schedule') }}</legend>
 
       <mat-form-field appearance="outline">
-        <mat-label>Type</mat-label>
+        <mat-label>{{ t('checkForm.type') }}</mat-label>
         <mat-select formControlName="scheduleType">
-          <mat-option value="interval">Every N seconds</mat-option>
-          <mat-option value="cron">Cron expression</mat-option>
+          <mat-option value="interval">{{ t('checkForm.typeInterval') }}</mat-option>
+          <mat-option value="cron">{{ t('checkForm.typeCron') }}</mat-option>
         </mat-select>
       </mat-form-field>
 
       @if (form.controls.scheduleType.value === 'interval') {
-        <mat-form-field appearance="outline">
-          <mat-label>Period (seconds)</mat-label>
-          <input matInput type="number" formControlName="periodSeconds" required />
-          <mat-hint>Minimum {{ minPeriod }}s</mat-hint>
-        </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('checkForm.period') }}</mat-label>
+        <input matInput type="number" formControlName="periodSeconds" required />
+        <mat-hint>{{ t('checkForm.periodMin', { count: minPeriod }) }}</mat-hint>
+      </mat-form-field>
       } @else {
-        <mat-form-field appearance="outline">
-          <mat-label>Cron expression</mat-label>
-          <input matInput formControlName="cronExpression" required placeholder="0 2 * * *" class="sw-mono" />
-          @if (form.controls.cronExpression.touched && form.controls.cronExpression.invalid) {
-            <mat-error>5 or 6 fields, e.g. "0 2 * * *"</mat-error>
-          }
-        </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('checkForm.cron') }}</mat-label>
+        <input
+          matInput
+          formControlName="cronExpression"
+          required
+          placeholder="0 2 * * *"
+          class="sw-mono"
+        />
+        @if (form.controls.cronExpression.touched && form.controls.cronExpression.invalid) {
+        <mat-error>{{ t('checkForm.cronInvalid') }}</mat-error>
+        }
+      </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Time zone</mat-label>
-          <input matInput formControlName="timezone" placeholder="Europe/Paris" />
-          @if (form.controls.timezone.touched && form.controls.timezone.invalid) {
-            <mat-error>Unknown IANA time zone</mat-error>
-          }
-        </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('checkForm.timezone') }}</mat-label>
+        <input matInput formControlName="timezone" placeholder="Europe/Paris" />
+        @if (form.controls.timezone.touched && form.controls.timezone.invalid) {
+        <mat-error>{{ t('checkForm.timezoneInvalid') }}</mat-error>
+        }
+      </mat-form-field>
       }
     </fieldset>
 
     <mat-form-field appearance="outline">
-      <mat-label>Grace period (seconds)</mat-label>
+      <mat-label>{{ t('checkForm.grace') }}</mat-label>
       <input matInput type="number" formControlName="graceSeconds" required />
-      <mat-hint>How late a run may be before you are alerted</mat-hint>
+      <mat-hint>{{ t('checkForm.graceHint') }}</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Environment</mat-label>
+      <mat-label>{{ t('checkForm.environment') }}</mat-label>
       <input matInput formControlName="environment" placeholder="production" />
-      <mat-hint>Optional — keeps staging and production apart</mat-hint>
+      <mat-hint>{{ t('checkForm.environmentHint') }}</mat-hint>
     </mat-form-field>
 
     @if (error()) {
@@ -62,8 +75,8 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="actions">
-  <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
+  <button mat-button type="button" (click)="dialogRef.close()">{{ t('common.cancel') }}</button>
   <button mat-flat-button type="button" [disabled]="busy()" (click)="save()">
-    {{ data.check ? 'Save' : 'Create check' }}
+    {{ data.check ? t('checkForm.save') : t('checkForm.create') }}
   </button>
 </mat-dialog-actions>

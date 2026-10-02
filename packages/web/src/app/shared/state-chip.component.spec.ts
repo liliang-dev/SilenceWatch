@@ -6,7 +6,9 @@ describe('StateChipComponent', () => {
   let fixture: ComponentFixture<StateChipComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [StateChipComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [StateChipComponent],
+    }).compileComponents();
     fixture = TestBed.createComponent(StateChipComponent);
   });
 

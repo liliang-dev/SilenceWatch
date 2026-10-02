@@ -78,46 +78,67 @@
   --sw-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
+/* The dark palette, written once and applied two ways below: when the device
+   asks for it and nothing has been chosen, and when the person chose it. */
+@mixin dark-tokens {
+  color-scheme: dark;
+
+  --sw-bg: #0b0d11;
+  --sw-bg-accent: #10131a;
+  --sw-surface: #14171e;
+  --sw-surface-2: #191d26;
+  --sw-surface-3: #212734;
+  --sw-border: #252b36;
+  --sw-border-strong: #333b49;
+  --sw-text: #e8eaf0;
+  --sw-text-muted: #98a2b3;
+  --sw-text-subtle: #6c7689;
+
+  /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
+     surface it sits on. The mark stays #8b4bf1 in both themes — a logo is
+     one object, not a themed one — and only the interface lightens. */
+  --sw-brand: #8b4bf1;
+  --sw-accent: #bc95fc;
+  --sw-accent-hover: #d3bafe;
+  --sw-accent-soft: #221a36;
+  --sw-accent-contrast: #0b0d11;
+
+  /* Lightened so they keep contrast on a dark surface: the light-mode greens
+     and reds are unreadable here, which is how status colour quietly stops
+     working in dark mode. */
+  --sw-up: #47cd89;
+  --sw-up-soft: #0c1f18;
+  --sw-late: #fdb022;
+  --sw-late-soft: #241a09;
+  --sw-down: #f97066;
+  --sw-down-soft: #2a1211;
+  --sw-paused: #98a2b3;
+  --sw-paused-soft: #1b2029;
+  --sw-new: #84adff;
+  --sw-new-soft: #101c33;
+
+  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+  --sw-shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 70%);
+}
+
+/* Following the device — the default, and what "System" means in the
+   preferences. A chosen light theme opts out of it. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --sw-bg: #0b0d11;
-    --sw-bg-accent: #10131a;
-    --sw-surface: #14171e;
-    --sw-surface-2: #191d26;
-    --sw-surface-3: #212734;
-    --sw-border: #252b36;
-    --sw-border-strong: #333b49;
-    --sw-text: #e8eaf0;
-    --sw-text-muted: #98a2b3;
-    --sw-text-subtle: #6c7689;
-
-    /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
-       surface it sits on. The mark stays #8b4bf1 in both themes — a logo is
-       one object, not a themed one — and only the interface lightens. */
-    --sw-brand: #8b4bf1;
-    --sw-accent: #bc95fc;
-    --sw-accent-hover: #d3bafe;
-    --sw-accent-soft: #221a36;
-    --sw-accent-contrast: #0b0d11;
-
-    /* Lightened so they keep contrast on a dark surface: the light-mode greens
-       and reds are unreadable here, which is how status colour quietly stops
-       working in dark mode. */
-    --sw-up: #47cd89;
-    --sw-up-soft: #0c1f18;
-    --sw-late: #fdb022;
-    --sw-late-soft: #241a09;
-    --sw-down: #f97066;
-    --sw-down-soft: #2a1211;
-    --sw-paused: #98a2b3;
-    --sw-paused-soft: #1b2029;
-    --sw-new: #84adff;
-    --sw-new-soft: #101c33;
-
-    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
-    --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%);
-    --sw-shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 70%);
+  :root:not([data-theme='light']) {
+    @include dark-tokens;
   }
+}
+
+/* A chosen theme wins over the device in both directions: a dark choice on a
+   light machine, and a light choice on a dark one. `data-theme` is set by the
+   ThemeService, and before the application starts by public/theme-init.js. */
+:root[data-theme='dark'] {
+  @include dark-tokens;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 /* Angular Material provides the dialogs, menus, inputs and snackbars. Its own
@@ -676,7 +697,7 @@ time,
      of every page stayed under the bar. Every signed-in screen is a `.sw-page`;
      the sign-in pages have no bar and do not use it. */
   .sw-page {
-    padding: 20px 16px calc(90px + env(safe-area-inset-bottom));
+    padding: 20px 16px calc(76px + env(safe-area-inset-bottom));
   }
 
   .sw-page-header {
@@ -731,14 +752,18 @@ time,
     padding: 12px;
   }
 
+  /* The segments share the row but each keeps the width of its own word: equal
+     fifths clipped "En panne" and "En retard" in French, which are longer than
+     "Down" and "Late". If a language ever needs more than the row has, the
+     group scrolls sideways instead of cutting a label. */
   .sw-toolbar .sw-filters {
     display: flex;
     width: 100%;
+    overflow-x: auto;
   }
 
   .sw-toolbar .sw-filters .mat-button-toggle {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 0 auto;
   }
 
   .sw-toolbar .sw-filters .mat-button-toggle-button {
@@ -746,8 +771,10 @@ time,
   }
 
   .sw-toolbar .sw-filters .mat-button-toggle-label-content {
-    padding: 0 4px;
+    padding: 0 10px;
+    font-size: 0.8125rem;
     line-height: 42px;
+    white-space: nowrap;
   }
 
   .sw-toolbar .sw-search {

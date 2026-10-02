@@ -21,11 +21,14 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import type { CheckDto, CheckState } from '@silencewatch/shared';
 import { EMPTY, type Subscription, expand, reduce } from 'rxjs';
-import { byUrgency, checkRules, sourceLabel } from './checks-table';
+import { byUrgency, checkRules } from './checks-table';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
+import type { MessageKey } from '../../core/i18n/en';
+import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
+import { PAGINATOR_INTL } from '../../shared/paginator-intl';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { StateChipComponent } from '../../shared/state-chip.component';
 import { CheckFormDialog } from './check-form.dialog';
@@ -64,6 +67,7 @@ const MAX_PAGES = 10;
     StateChipComponent,
     RelativeTimePipe,
   ],
+  providers: [PAGINATOR_INTL],
   templateUrl: './checks.component.html',
   styleUrl: './checks.component.scss',
 })
@@ -71,6 +75,8 @@ export class ChecksComponent implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly dialog = inject(MatDialog);
   protected readonly projects = inject(ProjectStore);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
 
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -84,13 +90,12 @@ export class ChecksComponent implements OnDestroy {
    * four-column search nor the column sorting this table needs, and asking it
    * per keystroke would be a request per keystroke. The cost is bounded below.
    */
-  protected readonly table = new DataTable<CheckDto>(checkRules);
+  protected readonly table = new DataTable<CheckDto>(checkRules(this.t));
 
   protected readonly stateFilter = signal('');
 
   protected readonly columns = ['name', 'environment', 'source', 'state', 'schedule', 'lastPingAt', 'nextDueAt'];
   protected readonly pageSizes = PAGE_SIZES;
-  protected readonly sourceLabel = sourceLabel;
 
   /** True when the project has more checks than one load will hold. */
   protected readonly truncated = signal(false);
@@ -105,12 +110,16 @@ export class ChecksComponent implements OnDestroy {
 
   protected readonly subtitle = computed(() => {
     const all = this.population();
-    if (all.length === 0) return 'Nothing is being watched in this project yet';
+    if (all.length === 0) return this.t('checks.subtitleEmpty');
 
     const broken = all.filter((check) => check.state === 'DOWN' || check.state === 'LATE').length;
     return broken === 0
-      ? `${all.length} ${plural(all.length, 'check')}, everything is reporting on time`
-      : `${broken} of ${all.length} ${plural(all.length, 'check')} ${plural(broken, 'needs', 'need')} attention`;
+      ? this.i18n.plural('checks.subtitleOk', all.length)
+      : this.i18n.plural('checks.subtitleBroken', broken, {
+          broken,
+          count: all.length,
+          noun: this.i18n.plural('checks.noun', all.length),
+        });
   });
 
   protected readonly counters = computed<Counter[]>(() => {
@@ -122,10 +131,30 @@ export class ChecksComponent implements OnDestroy {
 
     return [
       // A zero here is good news; painting it red would teach people to ignore red.
-      { label: 'Down', filter: 'DOWN', value: down, tone: down === 0 ? 'zero' : 'down' },
-      { label: 'Late', filter: 'LATE', value: late, tone: late === 0 ? 'zero' : 'late' },
-      { label: 'Reporting', filter: 'UP', value: count('UP'), tone: 'up' },
-      { label: 'All checks', filter: '', value: all.length, tone: 'neutral' },
+      {
+        label: 'checks.counterDown',
+        filter: 'DOWN',
+        value: down,
+        tone: down === 0 ? 'zero' : 'down',
+      },
+      {
+        label: 'checks.counterLate',
+        filter: 'LATE',
+        value: late,
+        tone: late === 0 ? 'zero' : 'late',
+      },
+      {
+        label: 'checks.counterReporting',
+        filter: 'UP',
+        value: count('UP'),
+        tone: 'up',
+      },
+      {
+        label: 'checks.counterAll',
+        filter: '',
+        value: all.length,
+        tone: 'neutral',
+      },
     ];
   });
 
@@ -208,7 +237,7 @@ export class ChecksComponent implements OnDestroy {
         },
         error: (failure: unknown) => {
           this.loading.set(false);
-          this.error.set(errorMessage(failure, 'Could not load checks.'));
+          this.error.set(errorMessage(failure, this.t('checks.loadFailed'), this.t));
         },
       });
   }
@@ -218,24 +247,24 @@ export class ChecksComponent implements OnDestroy {
     if (project === null) return;
 
     this.dialog
-      .open(CheckFormDialog, { data: { projectId: project.id }, panelClass: 'sw-sheet' })
+      .open(CheckFormDialog, {
+        data: { projectId: project.id },
+        panelClass: 'sw-sheet',
+      })
       .afterClosed()
       .subscribe((created?: CheckDto) => {
         if (created) this.reload();
       });
   }
 
-  protected readonly schedule = describeSchedule;
+  protected readonly schedule = (check: CheckDto): string => describeSchedule(check, this.t);
 }
 
 interface Counter {
-  readonly label: string;
+  /** A message key: the label is looked up where it is drawn, so it follows the language. */
+  readonly label: MessageKey;
   /** Value written into `stateFilter` when the counter is clicked. */
   readonly filter: string;
   readonly value: number;
   readonly tone: 'down' | 'late' | 'up' | 'zero' | 'neutral';
-}
-
-function plural(count: number, one: string, many = `${one}s`): string {
-  return count === 1 ? one : many;
 }

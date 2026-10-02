@@ -1,18 +1,18 @@
 <div class="sw-page">
   <header class="sw-page-header">
     <div>
-      <h1>Checks</h1>
+      <h1>{{ t('checks.title') }}</h1>
       <p class="sw-muted">{{ subtitle() }}</p>
     </div>
     <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
       <sw-icon name="add" />
-      New check
+      {{ t('checks.new') }}
     </button>
   </header>
 
   <!-- The count of what is broken, before anything else on the page. -->
   <div class="counters">
-    @for (counter of counters(); track counter.label) {
+    @for (counter of counters(); track counter.filter) {
       <button
         type="button"
         class="counter"
@@ -22,7 +22,7 @@
         (click)="filterBy(counter.filter)"
       >
         <span class="counter-value">{{ counter.value }}</span>
-        <span class="counter-label">{{ counter.label }}</span>
+        <span class="counter-label">{{ t(counter.label) }}</span>
       </button>
     }
   </div>
@@ -37,11 +37,8 @@
 
   @if (!loading() && population().length === 0) {
     <div class="sw-card sw-empty">
-      <h2>Nothing is being watched yet</h2>
-      <p>
-        Create a check, then have your job call its ping URL when it runs — or add the Spring Boot
-        starter and every scheduled task will declare itself.
-      </p>
+      <h2>{{ t('checks.emptyTitle') }}</h2>
+      <p>{{ t('checks.emptyBody') }}</p>
       <button
         mat-flat-button
         class="empty-action"
@@ -49,7 +46,7 @@
         [disabled]="projects.selected() === null"
       >
         <sw-icon name="add" />
-        New check
+        {{ t('checks.new') }}
       </button>
     </div>
   } @else {
@@ -61,11 +58,11 @@
           hideSingleSelectionIndicator
           class="sw-filters"
         >
-          <mat-button-toggle value="">All</mat-button-toggle>
-          <mat-button-toggle value="DOWN">Down</mat-button-toggle>
-          <mat-button-toggle value="LATE">Late</mat-button-toggle>
-          <mat-button-toggle value="UP">Up</mat-button-toggle>
-          <mat-button-toggle value="PAUSED">Paused</mat-button-toggle>
+          <mat-button-toggle value="">{{ t('common.all') }}</mat-button-toggle>
+          <mat-button-toggle value="DOWN">{{ t('checks.filterDown') }}</mat-button-toggle>
+          <mat-button-toggle value="LATE">{{ t('checks.filterLate') }}</mat-button-toggle>
+          <mat-button-toggle value="UP">{{ t('checks.filterUp') }}</mat-button-toggle>
+          <mat-button-toggle value="PAUSED">{{ t('checks.filterPaused') }}</mat-button-toggle>
         </mat-button-toggle-group>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
@@ -73,7 +70,7 @@
           <input
             matInput
             type="search"
-            placeholder="Search"
+            [placeholder]="t('checks.search')"
             [ngModel]="table.search()"
             (ngModelChange)="table.onSearch($event)"
           />
@@ -84,100 +81,138 @@
         <!-- A monitoring screen that quietly omits checks is the failure this
              product exists to prevent, so it says so instead. -->
         <p class="sw-table-note warn" role="status">
-          This project has more checks than this table loads. Narrow the list with the search box,
-          or the REST API returns them all.
+          {{ t('checks.truncated') }}
         </p>
       }
 
       @if (table.matching().length === 0) {
         <div class="sw-empty">
-          <h2>No check matches</h2>
-          <p>Nothing here is called that, or is in that state. Clear the search to see them all.</p>
+          <h2>{{ t('checks.noMatchTitle') }}</h2>
+          <p>{{ t('checks.noMatchBody') }}</p>
         </div>
       } @else {
         <div class="sw-scroll-x">
-        <table
-          mat-table
-          [dataSource]="table.visible()"
-          matSort
-          [matSortActive]="table.sort().active"
-          [matSortDirection]="table.sort().direction"
-          (matSortChange)="table.onSort($event)"
-          class="sw-datatable sw-rows-clickable checks"
-        >
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Check</th>
-            <td mat-cell *matCellDef="let check" class="sw-cell-main">
-              <a class="name">{{ check.name }}</a>
-            </td>
-          </ng-container>
+          <table
+            mat-table
+            [dataSource]="table.visible()"
+            matSort
+            [matSortActive]="table.sort().active"
+            [matSortDirection]="table.sort().direction"
+            (matSortChange)="table.onSort($event)"
+            class="sw-datatable sw-rows-clickable checks"
+          >
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colCheck') }}
+              </th>
+              <td mat-cell *matCellDef="let check" class="sw-cell-main">
+                <a class="name">{{ check.name }}</a>
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="environment">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Environment</th>
-            <td mat-cell *matCellDef="let check" class="sw-cell-half" data-label="Environment">
-              @if (check.environment) {
-                <span class="sw-tag">{{ check.environment }}</span>
-              } @else {
-                <span class="sw-subtle">—</span>
-              }
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="environment">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colEnvironment') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let check"
+                class="sw-cell-half"
+                [attr.data-label]="t('checks.colEnvironment')"
+              >
+                @if (check.environment) {
+                  <span class="sw-tag">{{ check.environment }}</span>
+                } @else {
+                  <span class="sw-subtle">—</span>
+                }
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="source">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
-            <td mat-cell *matCellDef="let check" class="sw-hide-mobile">
-              @if (check.source === 'auto') {
-                <span class="sw-tag" matTooltip="Declared automatically by a client library">
-                  auto
-                </span>
-              } @else {
-                <span class="sw-tag" matTooltip="Declared by hand">manual</span>
-              }
-              @if (check.orphanedAt) {
-                <span
-                  class="sw-tag orphan"
-                  matTooltip="The client stopped declaring this job. History is kept; delete it when you are sure."
-                >
-                  orphaned
-                </span>
-              }
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="source">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colSource') }}
+              </th>
+              <td mat-cell *matCellDef="let check" class="sw-hide-mobile">
+                @if (check.source === 'auto') {
+                  <span class="sw-tag" [matTooltip]="t('checks.sourceAutoTip')">
+                    {{ t('checks.sourceAuto') }}
+                  </span>
+                } @else {
+                  <span class="sw-tag" [matTooltip]="t('checks.sourceManualTip')">{{
+                    t('checks.sourceManual')
+                  }}</span>
+                }
+                @if (check.orphanedAt) {
+                  <span class="sw-tag orphan" [matTooltip]="t('checks.sourceOrphanedTip')">
+                    {{ t('checks.sourceOrphaned') }}
+                  </span>
+                }
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="state">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
-            <td mat-cell *matCellDef="let check" class="sw-cell-aside"><sw-state-chip [state]="check.state" /></td>
-          </ng-container>
+            <ng-container matColumnDef="state">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colState') }}
+              </th>
+              <td mat-cell *matCellDef="let check" class="sw-cell-aside">
+                <sw-state-chip [state]="check.state" />
+              </td>
+            </ng-container>
 
-          <!-- Not sortable: "every 5m" and "0 2 * * *" have no order between them. -->
-          <ng-container matColumnDef="schedule">
-            <th mat-header-cell *matHeaderCellDef>Schedule</th>
-            <td mat-cell *matCellDef="let check" class="sw-mono sw-muted sw-cell-half" data-label="Schedule">{{ schedule(check) }}</td>
-          </ng-container>
+            <!-- Not sortable: "every 5m" and "0 2 * * *" have no order between them. -->
+            <ng-container matColumnDef="schedule">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ t('checks.colSchedule') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let check"
+                class="sw-mono sw-muted sw-cell-half"
+                [attr.data-label]="t('checks.colSchedule')"
+              >
+                {{ schedule(check) }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="lastPingAt">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Last ping</th>
-            <td mat-cell *matCellDef="let check" class="sw-cell-half" data-label="Last ping" [matTooltip]="check.lastPingAt ?? 'No ping received yet'">
-              {{ check.lastPingAt | swRelativeTime }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="lastPingAt">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colLastPing') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let check"
+                class="sw-cell-half"
+                [attr.data-label]="t('checks.colLastPing')"
+                [matTooltip]="check.lastPingAt ?? t('checks.noPingYet')"
+              >
+                {{ check.lastPingAt | swRelativeTime }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="nextDueAt">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Expected</th>
-            <td mat-cell *matCellDef="let check" class="sw-muted sw-cell-half" data-label="Expected" [matTooltip]="check.nextDueAt ?? ''">
-              {{ check.nextDueAt | swRelativeTime }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="nextDueAt">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('checks.colExpected') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let check"
+                class="sw-muted sw-cell-half"
+                [attr.data-label]="t('checks.colExpected')"
+                [matTooltip]="check.nextDueAt ?? ''"
+              >
+                {{ check.nextDueAt | swRelativeTime }}
+              </td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="columns"></tr>
-          <tr
-            mat-row
-            *matRowDef="let check; columns: columns"
-            class="check-row"
-            [class]="'row-' + check.state.toLowerCase()"
-            [routerLink]="['/checks', check.id]"
-          ></tr>
-        </table>
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <tr
+              mat-row
+              *matRowDef="let check; columns: columns"
+              class="check-row"
+              [class]="'row-' + check.state.toLowerCase()"
+              [routerLink]="['/checks', check.id]"
+            ></tr>
+          </table>
         </div>
 
         <mat-paginator
@@ -186,7 +221,7 @@
           [pageIndex]="table.page().pageIndex"
           [pageSizeOptions]="pageSizes"
           (page)="table.onPage($event)"
-          aria-label="Pages of checks"
+          [attr.aria-label]="t('checks.pagesAria')"
         />
       }
     </div>

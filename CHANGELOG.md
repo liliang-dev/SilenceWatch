@@ -10,6 +10,23 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **A Preferences section in Settings: the language, and light or dark.** The
+  interface is now available in French as well as English, and the colour mode can
+  be set to light, dark, or "System", which follows the device as it always did and
+  stays the default. Each choice is a card with a flag or an icon (the flags are
+  drawn, not typed: Windows does not render flag emoji). A French browser gets
+  French on the first visit; anything else gets English. The choice applies at once
+  without a reload — texts, dates ("il y a 3 minutes"), the window title, the
+  table footers and the `lang` attribute — and is kept in the browser, so it is
+  per device, not per account. A saved colour mode is applied before the first
+  paint by a small script, `theme-init.js`, so a dark choice does not flash white
+  on load. The messages the server sends are translated where they are the ones a
+  person meets (wrong password, expired link, last project…); a validation detail
+  or a sentence the table does not know stays as it arrives,
+  in English.
+
 ### Fixed
 
 - **The end of a page is no longer hidden under the tab bar on a phone.** The room
@@ -22,6 +39,10 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **The tab bar on a phone is slimmer.** It was 66px tall and sits over every
+  screen; it is now 53px, with a 20px icon in place of 22px, and the room reserved
+  for it at the foot of a page went from 90px to 76px so the last line still ends
+  24px clear of it.
 - **The whole project is licensed under Apache-2.0, except the name and the logo.**
   The server and the web interface were AGPL-3.0 and everything else Apache-2.0;
   there is now one licence over all of it. In practice: you can use, modify, host
