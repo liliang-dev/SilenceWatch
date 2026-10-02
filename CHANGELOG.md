@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The end of a page is no longer hidden under the tab bar on a phone.** The room
+  for the bar was reserved as padding on `<body>`, which is `height: 100%`, so
+  the content overflowed past that padding instead of being pushed up by it and
+  the last ~40px of every page stayed under the bar, out of reach however far you
+  scrolled. The room is now on the page itself. Measured after scrolling to the
+  very end, on every signed-in screen at 360 and 390 pixels wide: 13 of 18 views
+  had content hidden before (by 42px), none have now (24px of clearance).
+
 ## [0.2.3] — 2026-10-02
 
 No database migration, so going back to 0.2.2 is safe. One new optional setting,
