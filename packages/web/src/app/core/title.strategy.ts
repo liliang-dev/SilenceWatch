@@ -1,7 +1,7 @@
 import { Injectable, effect, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
-import type { MessageKey } from './i18n/en';
+import type { MessageKey } from './i18n/messages';
 import { I18n } from './i18n/i18n.service';
 
 const SUFFIX = 'SilenceWatch';

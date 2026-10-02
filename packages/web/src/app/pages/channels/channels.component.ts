@@ -10,7 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CHANNEL_TYPES, type ChannelType, type NotificationChannelDto } from '@silencewatch/shared';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
-import type { MessageKey } from '../../core/i18n/en';
+import type { MessageKey } from '../../core/i18n/messages';
 import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { confirmWith } from '../../shared/confirm.dialog';

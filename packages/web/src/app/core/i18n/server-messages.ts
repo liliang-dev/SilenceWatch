@@ -1,4 +1,4 @@
-import type { MessageKey } from './en';
+import type { MessageKey } from './messages';
 import type { Translate } from './i18n.service';
 
 /**

@@ -29,7 +29,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage } from '../../core/error-message';
-import type { MessageKey } from '../../core/i18n/en';
+import type { MessageKey } from '../../core/i18n/messages';
 import { I18n, type Language } from '../../core/i18n/i18n.service';
 import { ThemeService, type ThemeChoice } from '../../core/theme.service';
 import { ProjectStore } from '../../core/project.store';
@@ -275,7 +275,7 @@ export class SettingsComponent {
   protected readonly isFailure = isFailure;
 
   protected setLanguage(language: Language): void {
-    this.i18n.set(language);
+    void this.i18n.set(language);
   }
 
   protected filterAuditBy(scope: string): void {

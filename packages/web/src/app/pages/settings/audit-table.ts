@@ -1,5 +1,5 @@
 import type { AuditEventDto } from '@silencewatch/shared';
-import type { MessageKey } from '../../core/i18n/en';
+import type { MessageKey } from '../../core/i18n/messages';
 import type { Translate } from '../../core/i18n/i18n.service';
 import type { TableRules } from '../../shared/data-table';
 

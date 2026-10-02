@@ -1,18 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
 import { errorMessage as translatedErrorMessage } from './error-message';
-import { en } from './i18n/en';
-import { fr } from './i18n/fr';
-import type { Translate } from './i18n/i18n.service';
+import type { I18n } from './i18n/i18n.service';
+import { loadI18n, provideI18n } from './i18n/i18n.testing';
 
-/** A translator for one dictionary, whatever language the machine running the tests is set to. */
-const translator =
-  (dictionary: Record<string, string>): Translate =>
-  (key, params) =>
-    (dictionary[key] ?? key).replace(/\{(\w+)\}/gu, (_, name: string) => String(params?.[name] ?? ''));
-
-const t = translator(en);
+let i18n: I18n;
 const errorMessage = (error: unknown, fallback = 'Something went wrong.'): string =>
-  translatedErrorMessage(error, fallback, t);
+  translatedErrorMessage(error, fallback, i18n.t);
+
+beforeEach(async () => {
+  localStorage.clear();
+  TestBed.configureTestingModule({ providers: [provideI18n()] });
+  i18n = await loadI18n('en');
+});
+
+afterEach(() => localStorage.clear());
 
 describe('errorMessage', () => {
   it('surfaces the validation details the server sends', () => {
@@ -69,27 +71,30 @@ describe('errorMessage', () => {
     expect(message).not.toContain('Cannot reach');
   });
 
-  it('translates the server\'s own sentences it recognises, and passes the rest through', () => {
-    const french = translator(fr);
+  it("translates the server's own sentences it recognises, and passes the rest through", async () => {
+    await i18n.set('fr');
     const wrongPassword = new HttpErrorResponse({
       status: 401,
       error: { message: 'Invalid email or password' },
     });
-    expect(translatedErrorMessage(wrongPassword, 'x', french)).toBe('E-mail ou mot de passe incorrect');
-    expect(errorMessage(wrongPassword)).toBe('Invalid email or password');
+    expect(errorMessage(wrongPassword)).toBe('E-mail ou mot de passe incorrect');
 
     // A reason after a fixed beginning keeps the reason exactly as sent.
     const delivery = new HttpErrorResponse({
       status: 400,
       error: { message: 'Test delivery failed: connect ECONNREFUSED 10.0.0.1:443' },
     });
-    expect(translatedErrorMessage(delivery, 'x', french)).toBe(
+    expect(errorMessage(delivery)).toBe(
       "Échec de l'envoi du test\u00a0: connect ECONNREFUSED 10.0.0.1:443",
     );
 
     // A sentence this build has never heard of is shown as it arrived.
     const unknown = new HttpErrorResponse({ status: 400, error: { message: 'Something new' } });
-    expect(translatedErrorMessage(unknown, 'x', french)).toBe('Something new');
+    expect(errorMessage(unknown)).toBe('Something new');
+
+    // And in English the sentence is the server's own.
+    await i18n.set('en');
+    expect(errorMessage(wrongPassword)).toBe('Invalid email or password');
   });
 
   it('uses the caller\'s fallback for anything else', () => {

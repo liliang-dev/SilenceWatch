@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { I18n } from '../core/i18n/i18n.service';
+import type { I18n } from '../core/i18n/i18n.service';
+import { loadI18n, provideI18n } from '../core/i18n/i18n.testing';
 import { DurationPipe, RelativeTimePipe } from './relative-time.pipe';
 
 describe('RelativeTimePipe', () => {
@@ -7,12 +8,13 @@ describe('RelativeTimePipe', () => {
   let i18n: I18n;
   const now = new Date('2026-07-30T12:00:00.000Z');
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideI18n()] });
+    // Loaded with the real timers: the file arrives through a promise.
+    i18n = await loadI18n('en');
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    i18n = TestBed.inject(I18n);
-    i18n.set('en');
     pipe = TestBed.runInInjectionContext(() => new RelativeTimePipe());
   });
 
@@ -45,10 +47,13 @@ describe('RelativeTimePipe', () => {
     expect(pipe.transform('2026-07-30T14:00:00.000Z')).toBe(english.format(2, 'hour'));
   });
 
-  it('follows the language when it changes, without a new input', () => {
+  it('follows the language when it changes, without a new input', async () => {
     // The same timestamp, asked again: this is what a pure pipe would get wrong.
     expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe('3 minutes ago');
-    i18n.set('fr');
+    vi.useRealTimers();
+    await i18n.set('fr');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
     expect(pipe.transform('2026-07-30T11:57:00.000Z')).toBe('il y a 3 minutes');
     expect(pipe.transform(null)).toBe('jamais');
     expect(pipe.transform(now)).toBe("à l'instant");

@@ -1,6 +1,8 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
+  inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -12,6 +14,8 @@ import {
   withInMemoryScrolling,
 } from '@angular/router';
 import { authInterceptor } from './core/auth.interceptor';
+import { provideI18n } from './core/i18n/i18n.providers';
+import { I18n } from './core/i18n/i18n.service';
 import { TranslatedTitleStrategy } from './core/title.strategy';
 import { timeoutInterceptor } from './core/timeout.interceptor';
 import { routes } from './app.routes';
@@ -34,5 +38,9 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([timeoutInterceptor, authInterceptor])),
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },
     provideAnimations(),
+    provideI18n(),
+    // The first frame is drawn in the chosen language, not in keys: the app does
+    // not start until that language's file has arrived.
+    provideAppInitializer(() => inject(I18n).load()),
   ],
 };

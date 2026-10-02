@@ -25,7 +25,7 @@ import { byUrgency, checkRules } from './checks-table';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
-import type { MessageKey } from '../../core/i18n/en';
+import type { MessageKey } from '../../core/i18n/messages';
 import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { PAGINATOR_INTL } from '../../shared/paginator-intl';
@@ -115,7 +115,9 @@ export class ChecksComponent implements OnDestroy {
     const broken = all.filter((check) => check.state === 'DOWN' || check.state === 'LATE').length;
     return broken === 0
       ? this.i18n.plural('checks.subtitleOk', all.length)
-      : this.i18n.plural('checks.subtitleBroken', broken, {
+      : // Counted by how many are broken; the noun follows the total in English
+        // ("1 of 5 checks needs attention"), and French simply does not use it.
+        this.i18n.plural('checks.subtitleBroken', broken, {
           broken,
           count: all.length,
           noun: this.i18n.plural('checks.noun', all.length),

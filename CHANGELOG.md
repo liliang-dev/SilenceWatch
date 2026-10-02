@@ -25,7 +25,14 @@ called out under **Changed** with what to do about it.
   on load. The messages the server sends are translated where they are the ones a
   person meets (wrong password, expired link, last project…); a validation detail
   or a sentence the table does not know stays as it arrives,
-  in English.
+  in English. The translations are two JSON files read with
+  [Transloco](https://jsverse.gitbook.io/transloco), each fetched only when its
+  language is in use. One dependency, `@jsverse/transloco` (MIT), which brings two
+  small packages of its own, one of them a pinned beta, `@jsverse/utils`; it adds
+  about 18 kB (raw) to the first load. Transloco's ICU MessageFormat plugin is
+  deliberately not used: it builds each message with `new Function`, which the
+  Content-Security-Policy (`script-src 'self'`) forbids, so plurals are separate
+  keys instead.
 
 ### Fixed
 
@@ -40,8 +47,8 @@ called out under **Changed** with what to do about it.
 ### Changed
 
 - **The tab bar on a phone is slimmer.** It was 66px tall and sits over every
-  screen; it is now 53px, with a 20px icon in place of 22px, and the room reserved
-  for it at the foot of a page went from 90px to 76px so the last line still ends
+  screen; it is now 58px, with a 20px icon in place of 22px, and the room reserved
+  for it at the foot of a page went from 90px to 82px so the last line still ends
   24px clear of it.
 - **The whole project is licensed under Apache-2.0, except the name and the logo.**
   The server and the web interface were AGPL-3.0 and everything else Apache-2.0;
