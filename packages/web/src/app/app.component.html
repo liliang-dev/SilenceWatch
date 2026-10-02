@@ -57,6 +57,24 @@
       </mat-menu>
     </div>
   </header>
+
+  <!-- Phones: the three destinations move to the bottom, where a thumb is. The
+       header keeps what has to stay visible — which project, whether anything
+       is down — and the same links stay in it on wider screens. -->
+  <nav class="tabbar" aria-label="Primary">
+    <a routerLink="/checks" routerLinkActive="active">
+      <sw-icon name="checks" [size]="22" />
+      <span>Checks</span>
+    </a>
+    <a routerLink="/channels" routerLinkActive="active">
+      <sw-icon name="bell" [size]="22" />
+      <span>Alerting</span>
+    </a>
+    <a routerLink="/settings" routerLinkActive="active">
+      <sw-icon name="settings" [size]="22" />
+      <span>Settings</span>
+    </a>
+  </nav>
 }
 
 <router-outlet />

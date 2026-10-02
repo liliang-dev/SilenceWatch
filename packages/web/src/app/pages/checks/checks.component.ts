@@ -218,7 +218,7 @@ export class ChecksComponent implements OnDestroy {
     if (project === null) return;
 
     this.dialog
-      .open(CheckFormDialog, { data: { projectId: project.id } })
+      .open(CheckFormDialog, { data: { projectId: project.id }, panelClass: 'sw-sheet' })
       .afterClosed()
       .subscribe((created?: CheckDto) => {
         if (created) this.reload();

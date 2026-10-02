@@ -29,7 +29,7 @@ export interface ConfirmData {
  */
 export function confirmWith(dialog: MatDialog, data: ConfirmData): Observable<true> {
   return dialog
-    .open(ConfirmDialog, { data, autoFocus: false })
+    .open(ConfirmDialog, { data, autoFocus: false, panelClass: 'sw-confirm' })
     .afterClosed()
     .pipe(filter((confirmed): confirmed is true => confirmed === true));
 }
