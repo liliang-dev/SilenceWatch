@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { registerProxyTrustCheck } from './common/proxy-trust';
+import { EventLoopLagMonitor, registerSlowRequestLog } from './common/runtime-watch';
 import { loadConfig, type AppConfig } from './config/config';
 import { registerIngestRoutes } from './ingest/ingest.plugin';
 import { IngestService } from './ingest/ingest.service';
@@ -78,6 +79,11 @@ async function bootstrap(): Promise<void> {
   else if (config.SERVE_WEB) {
     new Logger('Bootstrap').warn(`No web UI found at ${webRoot} — serving the API only`);
   }
+
+  // Evidence for the reports that cannot be reproduced: a stalled process and a
+  // slow route both leave one line, and a healthy one leaves none.
+  registerSlowRequestLog(app.getHttpAdapter().getInstance() as never);
+  new EventLoopLagMonitor().start();
 
   // Lets onModuleDestroy hooks stop the loops and drain the pools on SIGTERM.
   app.enableShutdownHooks();

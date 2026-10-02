@@ -26,6 +26,8 @@ export class PgService implements OnModuleDestroy {
       // rather than pile connections up behind a lock.
       statement_timeout: 5_000,
       query_timeout: 5_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
       application_name: 'silencewatch-ingest',
     });
 

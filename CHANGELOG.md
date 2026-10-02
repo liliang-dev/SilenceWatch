@@ -10,6 +10,76 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-10-02
+
+No database migration, so going back to 0.2.2 is safe. One new optional setting,
+`DATABASE_STATEMENT_TIMEOUT_MS`, whose default needs no action. On a Swarm
+deployment Caddy restarts once, for a few seconds, and its certificates are not
+reissued.
+
+The reason to take it is the first fix below: the Checks page could stall for
+minutes in a desktop browser while the server sat idle. The interface on a phone
+is the other half of the release.
+
+### Fixed
+- **A page waiting on a server that never answers now says so instead of
+  spinning.** Every read had no time limit, so a connection that went silent —
+  a proxy that lost its upstream, a socket the network dropped without a word —
+  left the Checks page on its loading bar for as long as the browser cared to
+  wait, which is minutes. A read now gives up after 30 seconds, aborts the
+  request, and shows "The server is taking too long to answer". Writes are left
+  alone: one that timed out in the browser may still have succeeded.
+- **The Checks page asks for one thing at a time.** Its background refresh fires
+  every 15 seconds whether or not the last answer had come back, so against a
+  stalled server it stacked a request behind every stalled one and released them
+  all together when the server recovered.
+- **The Swarm stack no longer offers HTTP/3.** Caddy advertised it to every
+  browser (`Alt-Svc: h3=":443"; ma=2592000`, which a browser remembers for thirty
+  days), but QUIC is UDP and the routing mesh in front of Caddy is the one place
+  a UDP flow is not dependable. The symptom matches what was reported: on one
+  desktop browser the Checks page stalled with its requests unsent — no protocol,
+  nothing transferred — and recovered after about five minutes, which is how long
+  Chrome keeps QUIC marked broken before trying it again; the same site on a
+  phone, and `curl`, which never tries QUIC, were fine throughout. Caddy now
+  serves HTTP/1.1 and HTTP/2 only, answers `Alt-Svc: clear` so browsers that
+  already learned the old advertisement forget it on their next visit, and
+  `443/udp` is no longer published. Nothing to configure. Caddy restarts once on
+  the deploy that carries this, a few seconds of interruption; its certificates
+  are in a volume and are not reissued. Turning QUIC off in the affected
+  browser (`chrome://flags/#enable-quic`) made the stalls stop, which is what
+  points at this; if they continue after this release, the logging added below is
+  how to find out what it was instead. Docker Compose is unchanged — it publishes
+  UDP through Docker's own proxy, not the routing mesh.
+
+### Changed
+- **The interface works on a phone.** It used to come apart: the Checks table
+  showed two columns and scrolled the state — the one that matters — off the
+  edge, forms were clipped, and the three destinations were a second row of small
+  links. Under 820px (which includes a tablet held upright) the header is one
+  row with the project at full width and the three destinations move to a tab bar
+  under the thumb; tables become lists of cards, the state beside the name and
+  the facts below it; the check form takes the whole screen with its buttons
+  pinned at the foot, while confirmations stay small; and everything you press is
+  44px, with 16px fields so iOS does not zoom in on focus. Sorting is a column
+  header, so on a phone each list keeps the order it was designed to be read in.
+  Wider screens are unchanged. Checked in a real browser at 360, 390, 768, 844×390
+  and 1280 pixels on every screen and dialog, not yet on a physical device.
+- **A hint longer than one line no longer overlaps the next field.** It did on
+  every screen, not only a phone: the form field reserved one line for it.
+- **Database queries are bounded, and idle connections are probed.** A query on
+  the API's connection pool is cancelled after 30 seconds
+  (`DATABASE_STATEMENT_TIMEOUT_MS`), and all three database connections — API,
+  ingestion, and the listener that invalidates the ingest cache — now send TCP
+  keep-alive probes. Before this, a connection the network had dropped never
+  failed on its own: the request using it waited for TCP to give up, and the
+  listener never noticed it was deaf.
+- **The server logs what it cannot otherwise explain afterwards.** A request that
+  takes two seconds or more is logged by route pattern — never by URL, since
+  heartbeat URLs are secrets — and so is any stretch of 500 ms or more in which
+  the event loop did not turn. A healthy server writes neither. When the
+  application seems to freeze, these say whether the process was stuck or
+  something around it was.
+
 ## [0.2.2] — 2026-10-01
 
 A release-pipeline fix only: the application, the database schema and the
@@ -257,7 +327,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...HEAD
+[0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...0.2.2
 [0.2.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.2.0
 [0.1.1]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.1.1

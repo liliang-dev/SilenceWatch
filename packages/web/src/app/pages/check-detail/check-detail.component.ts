@@ -165,7 +165,7 @@ export class CheckDetailComponent implements OnDestroy {
 
   protected edit(check: CheckDto): void {
     this.dialog
-      .open(CheckFormDialog, { data: { projectId: check.projectId, check } })
+      .open(CheckFormDialog, { data: { projectId: check.projectId, check }, panelClass: 'sw-sheet' })
       .afterClosed()
       .subscribe((updated?: CheckDto) => {
         if (updated) this.check.set(updated);

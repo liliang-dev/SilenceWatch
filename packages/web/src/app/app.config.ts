@@ -7,6 +7,7 @@ import {
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { authInterceptor } from './core/auth.interceptor';
+import { timeoutInterceptor } from './core/timeout.interceptor';
 import { routes } from './app.routes';
 
 /**
@@ -22,7 +23,9 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
     ),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    // The timeout is outermost: it bounds the whole read, including the one
+    // refresh-and-retry the auth interceptor may add to it.
+    provideHttpClient(withInterceptors([timeoutInterceptor, authInterceptor])),
     provideAnimations(),
   ],
 };

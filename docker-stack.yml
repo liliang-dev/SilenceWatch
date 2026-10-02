@@ -149,10 +149,35 @@ services:
   # 443 reachable, which is how Caddy proves control of the name.
   caddy:
     image: caddy:2-alpine
-    # One line instead of a Caddyfile, which would otherwise have to be
-    # distributed to every node as a swarm config object. Automatic HTTPS comes
-    # from `--from` being a hostname rather than a port.
-    command: caddy reverse-proxy --from ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required} --to silencewatch:8080
+    # The Caddyfile is written at start rather than shipped as a swarm config
+    # object, which `docker stack deploy -c -` (how the release workflow deploys)
+    # cannot carry and which would have to reach every node. It says what
+    # `caddy reverse-proxy --from <domain> --to silencewatch:8080` said — that
+    # command is a Caddyfile with those two lines — plus two more, both about
+    # HTTP/3:
+    #
+    #  - `protocols h1 h2` stops Caddy serving it, and with it stops Caddy telling
+    #    browsers to use it. Caddy advertises HTTP/3 with `Alt-Svc: h3=":443";
+    #    ma=2592000`, which a browser remembers for thirty days. QUIC is UDP, and
+    #    through the routing mesh (IPVS and NAT on the way in) it is the one
+    #    transport here that is not reliable: a browser that tries it can sit on
+    #    requests it never manages to send, then fall back to TCP only after it
+    #    has marked QUIC broken for five minutes. The same browser on a phone,
+    #    or `curl`, which never tries QUIC, shows nothing wrong at all.
+    #  - `Alt-Svc: clear` tells browsers that already learned the old
+    #    advertisement to forget it on their next visit, rather than keep
+    #    trying until it expires.
+    #
+    # `$$` is how this file spells a literal `$`, so that the shell inside the
+    # container, not `docker stack deploy`, expands it.
+    command:
+      - sh
+      - -c
+      - |
+        printf '{\n  servers {\n    protocols h1 h2\n  }\n}\n\n%s {\n  header Alt-Svc clear\n  reverse_proxy silencewatch:8080\n}\n' "$$SILENCEWATCH_DOMAIN" > /tmp/Caddyfile
+        exec caddy run --config /tmp/Caddyfile --adapter caddyfile
+    environment:
+      SILENCEWATCH_DOMAIN: ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required}
 
     deploy:
       replicas: 1
@@ -176,12 +201,9 @@ services:
       - target: 80
         published: 80
         mode: ingress
+      # TCP only. 443/udp was published for HTTP/3, which is switched off above.
       - target: 443
         published: 443
-        mode: ingress
-      - target: 443
-        published: 443
-        protocol: udp
         mode: ingress
 
     volumes:

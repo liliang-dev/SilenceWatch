@@ -612,6 +612,22 @@ time,
   border-bottom: 1px solid var(--sw-border);
 }
 
+/* A hint that runs to two lines used to be drawn underneath the next field: the
+ * form field reserves exactly one line for it and positions the hint absolutely
+ * inside that line, and on a phone almost every hint is two. These are the two
+ * rules Material itself applies to `subscriptSizing="dynamic"`, applied to every
+ * field — in CSS rather than through its default-options token, because
+ * importing that token into app.config.ts pulls the form field into the initial
+ * bundle: 110 kB the sign-in page does not need. */
+.mat-mdc-form-field .mat-mdc-form-field-hint-wrapper,
+.mat-mdc-form-field .mat-mdc-form-field-error-wrapper {
+  position: static;
+}
+
+.mat-mdc-form-field .mat-mdc-form-field-bottom-align::before {
+  content: unset;
+}
+
 /* --------------------------------------------------------- scrollbars --- */
 
 * {
@@ -629,6 +645,353 @@ time,
   border: 3px solid transparent;
   border-radius: 99px;
   background-clip: content-box;
+}
+
+/* ------------------------------------------------------------ phones --- */
+
+/* One breakpoint for the whole application: 820px, the width below which a
+ * table of six columns stops fitting (the widest needs about 800) and a bar of
+ * three links stops fitting beside a project name. It also catches a tablet
+ * held upright, which has the width of a large phone and the same thumbs. Every screen answers to it the same way,
+ * which is the point — before this each page decided for itself, and each
+ * decided differently.
+ *
+ * Four ideas, applied everywhere rather than screen by screen:
+ *   1. the chrome splits — a slim top bar, a tab bar under the thumb;
+ *   2. a table becomes a list of cards, because the column that matters most
+ *      (the state) used to be the one scrolled off the edge;
+ *   3. a dialog becomes the whole screen, with its buttons pinned at the foot;
+ *   4. anything you press is at least 44px, the size a fingertip can hit. */
+@media (max-width: 820px) {
+  /* Room under the content for the fixed tab bar, and only when it exists. */
+  body:has(.tabbar) {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  .sw-page {
+    padding: 20px 16px 24px;
+  }
+
+  .sw-page-header {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  /* A page's one primary action is the full width of the page. */
+  .sw-page-header > .mat-mdc-button-base {
+    width: 100%;
+  }
+
+  .sw-card-pad {
+    padding: 16px;
+  }
+
+  /* --- controls ----------------------------------------------------------- */
+
+  .mat-mdc-button-base.mdc-button {
+    min-height: 44px;
+  }
+
+  .mat-mdc-icon-button.mat-mdc-button-base {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+  }
+
+  /* 16px or iOS zooms the page in when a field takes focus, and does not zoom
+     back out. */
+  .mat-mdc-input-element,
+  .mat-mdc-select,
+  .mat-mdc-select-value,
+  .mat-mdc-form-field input,
+  .mat-mdc-form-field textarea {
+    font-size: 16px;
+  }
+
+  .mat-mdc-tab.mdc-tab {
+    min-width: 0;
+    padding: 0 16px;
+  }
+
+  /* --- the bar above a table --------------------------------------------- */
+
+  .sw-toolbar,
+  .sw-table-card .sw-toolbar,
+  .section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .sw-toolbar .sw-filters {
+    display: flex;
+    width: 100%;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle-button {
+    height: 44px;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle-label-content {
+    padding: 0 4px;
+    line-height: 42px;
+  }
+
+  .sw-toolbar .sw-search {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .sw-table-card .sw-table-note {
+    padding: 10px 12px;
+  }
+
+  /* --- tables become lists of cards ---------------------------------------
+   *
+   * The markup is untouched and stays a table for a screen reader and for
+   * every wider screen; only how it is drawn changes. Each cell says how much
+   * room it wants with a class —
+   *
+   *     sw-cell-main    the title: the first line, less the status
+   *     sw-cell-aside   the status, at the end of that line
+   *     sw-cell-half    a labelled fact, two to a line
+   *     sw-cell-third   a labelled fact, three to a line
+   *     (nothing)       a labelled fact on a line of its own
+   *     sw-hide-mobile  not worth a line on a phone
+   *
+   * — and `data-label` is what the fact is called, drawn above its value in
+   * place of the column header, which a card does not have. Sorting goes with
+   * the header: on a phone the order is the default one, which is the order
+   * each of these lists was designed to be read in. */
+  .sw-scroll-x {
+    overflow: visible;
+  }
+
+  .sw-datatable,
+  .sw-table.sw-stack {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .sw-datatable .mat-mdc-header-row,
+  .sw-datatable thead,
+  .sw-table.sw-stack thead {
+    display: none;
+  }
+
+  .sw-datatable tbody,
+  .sw-table.sw-stack tbody {
+    display: block;
+  }
+
+  .sw-datatable .mat-mdc-row,
+  .sw-table.sw-stack tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px 12px;
+    height: auto;
+    min-height: 0;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--sw-border);
+  }
+
+  .sw-datatable .mat-mdc-row:last-child,
+  .sw-table.sw-stack tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  /* The line break between the title row and the facts. Without it a short
+     fact fits beside the title and squeezes it into a column one word wide; a
+     full-width item that follows the title and the status, and precedes
+     everything else, makes "title and status" a line of their own whatever the
+     widths turn out to be. The negative margin takes back one of the two row
+     gaps it would otherwise add. */
+  .sw-datatable .mat-mdc-row::before,
+  .sw-table.sw-stack tbody tr::before {
+    content: '';
+    order: 2;
+    flex: 0 0 100%;
+    height: 0;
+    margin-top: -6px;
+  }
+
+  /* A card is a wrapping row. The title takes whatever the status leaves, the
+     status takes exactly what it needs — a fixed fraction of the width clipped
+     "10 minutes ago" — and the facts fall into the lines below by their width.
+     `order` puts the status beside the title wherever its column sits. */
+  .sw-datatable .mat-mdc-cell,
+  .sw-table.sw-stack tbody td {
+    display: block;
+    flex: 0 0 100%;
+    order: 3;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none !important;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-main,
+  .sw-table.sw-stack td.sw-cell-main {
+    flex: 1 1 0;
+    order: 0;
+    font-weight: 500;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-aside,
+  .sw-table.sw-stack td.sw-cell-aside {
+    flex: 0 0 auto;
+    order: 1;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-half,
+  .sw-table.sw-stack td.sw-cell-half {
+    flex: 0 0 calc((100% - 12px) / 2);
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-third,
+  .sw-table.sw-stack td.sw-cell-third {
+    flex: 0 0 calc((100% - 24px) / 3);
+  }
+
+  .sw-datatable .mat-mdc-cell[data-label]::before,
+  .sw-table.sw-stack td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 1px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sw-text-subtle);
+  }
+
+  /* Free-form output: a few lines, not a column. */
+  .sw-datatable .mat-mdc-cell.body {
+    max-width: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-hide-mobile,
+  .sw-table.sw-stack td.sw-hide-mobile {
+    display: none !important;
+  }
+
+  /* The state stripe moves from the first cell to the card. */
+  .sw-datatable .mat-mdc-row.row-down {
+    box-shadow: inset 3px 0 0 var(--sw-down);
+  }
+
+  .sw-datatable .mat-mdc-row.row-late {
+    box-shadow: inset 3px 0 0 var(--sw-late);
+  }
+
+  .sw-datatable .mat-mdc-row.ongoing {
+    box-shadow: inset 3px 0 0 var(--sw-down);
+  }
+
+  .sw-datatable.sw-rows-clickable .mat-mdc-row:active {
+    background: var(--sw-surface-3);
+  }
+
+  /* --- paging: where you are, and the two arrows -------------------------- */
+
+  /* Nested under the paginator for the specificity: Material's own rules for
+     these are loaded after this file and win a tie. */
+  .mat-mdc-paginator .mat-mdc-paginator-container {
+    justify-content: space-between;
+    min-height: 56px;
+    padding: 0 4px 0 16px;
+  }
+
+  .mat-mdc-paginator .mat-mdc-paginator-page-size {
+    display: none;
+  }
+
+  .mat-mdc-paginator .mat-mdc-paginator-range-actions {
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+
+  /* --- dialogs ------------------------------------------------------------
+   *
+   * Forms take the whole screen: a keyboard leaves a centred card with a
+   * sliver of form above it. Confirmations stay small — "Delete this check?"
+   * is not a screen — but get a margin so they are never wider than the
+   * glass. Which is which is the `panelClass` each is opened with: `sw-sheet`
+   * for the check form, `sw-confirm` for a confirmation and the one-field
+   * project form. Not a default for every dialog: replacing Material's default
+   * options also replaces what they carry, the open animation among it. */
+  .cdk-overlay-pane.sw-sheet {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh;
+    max-height: 100dvh !important;
+  }
+
+  .sw-sheet .mat-mdc-dialog-container {
+    height: 100%;
+  }
+
+  .sw-sheet .mat-mdc-dialog-surface {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .sw-sheet .mat-mdc-dialog-content {
+    flex: 1 1 auto;
+    max-height: none;
+  }
+
+  /* Cancel and the action share the width, as wide as a thumb is. */
+  .sw-sheet .mat-mdc-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--sw-border);
+  }
+
+  .sw-sheet .mat-mdc-dialog-actions .mat-mdc-button-base {
+    width: 100%;
+    margin: 0;
+  }
+
+  .cdk-overlay-pane.sw-confirm {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  /* Material's headline line-height is sized for a short title; a project's
+     name in quotes is not one. */
+  .sw-confirm .mat-mdc-dialog-title {
+    line-height: 1.35;
+  }
+
+  .sw-confirm .mat-mdc-dialog-actions {
+    padding: 8px 16px 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

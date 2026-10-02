@@ -41,6 +41,13 @@ describe('errorMessage', () => {
     expect(errorMessage(new HttpErrorResponse({ status: 503 }))).toContain('having trouble');
   });
 
+  it('says "slow" rather than "down" when the server took too long', () => {
+    // The page's own timeout arrives as a 504 with no body.
+    const message = errorMessage(new HttpErrorResponse({ status: 504, statusText: 'Timeout' }));
+    expect(message).toContain('taking too long');
+    expect(message).not.toContain('Cannot reach');
+  });
+
   it('uses the caller\'s fallback for anything else', () => {
     expect(errorMessage(new Error('boom'), 'Could not save the check.')).toBe(
       'Could not save the check.',
