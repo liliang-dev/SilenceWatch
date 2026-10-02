@@ -73,14 +73,13 @@ It applies to new commits only — anything already pushed still needs amending.
 
 ## Which licence applies
 
-| What you are changing | Licence |
-| --- | --- |
-| `packages/server`, `packages/web` | AGPL-3.0 |
-| `packages/shared`, `clients/**`, examples | Apache-2.0 |
+Everything is [Apache-2.0](LICENSE), and so is your contribution: by opening a pull
+request you license it under the same terms, as section 5 of the licence provides.
 
-The split is not cosmetic. Client libraries **must** stay Apache-2.0: an AGPL
-library would contaminate the applications embedding it, and nobody would ship it.
-A pull request moving client code under AGPL will not be merged.
+The exception is the **name and the logo**, which are not licensed — see
+[TRADEMARK.md](TRADEMARK.md) for what that covers and which files it is. A pull
+request that changes the logo, or adds one, will not be merged without a
+conversation first.
 
 ## Before opening a pull request
 

@@ -20,6 +20,24 @@ called out under **Changed** with what to do about it.
   very end, on every signed-in screen at 360 and 390 pixels wide: 13 of 18 views
   had content hidden before (by 42px), none have now (24px of clearance).
 
+### Changed
+
+- **The whole project is licensed under Apache-2.0, except the name and the logo.**
+  The server and the web interface were AGPL-3.0 and everything else Apache-2.0;
+  there is now one licence over all of it. In practice: you can use, modify, host
+  and redistribute SilenceWatch, commercially and as a service included, without
+  publishing your changes. What stays outside the licence is the brand — the name
+  "SilenceWatch" and the logo — and a fork is expected to be renamed and given its
+  own logo. [TRADEMARK.md](TRADEMARK.md) says what can be done without asking and
+  lists exactly which files are excluded; [NOTICE](NOTICE) lists third-party
+  software, one package of which (elkjs, brought in by Prisma's tooling) is under
+  the Eclipse Public License 2.0, unmodified. There is a single `LICENSE` text now
+  (the official one, where the old copy had been reflowed) and no
+  `LICENSE.Apache-2.0`; the package manifests, the image label and the contributing
+  guide follow. A new CI check keeps the licence, the manifests and the brand
+  exclusion saying the same thing. Releases up to and including 0.2.3 stay under
+  the licences they were published with.
+
 ## [0.2.3] — 2026-10-02
 
 No database migration, so going back to 0.2.2 is safe. One new optional setting,

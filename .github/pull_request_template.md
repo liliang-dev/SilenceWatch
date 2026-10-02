@@ -14,7 +14,7 @@
 
 - [ ] The base branch is `dev` (only a release PR targets `main`)
 - [ ] Commits are signed off (`git commit -s`) — see [CONTRIBUTING.md](../CONTRIBUTING.md)
-- [ ] Client code stays Apache-2.0; server and UI stay AGPL-3.0
+- [ ] Contributed under Apache-2.0; the name and logo are not licensed (see [TRADEMARK.md](../TRADEMARK.md)), so none is added or changed here
 - [ ] No new runtime dependency, or the reason for one is explained above
 - [ ] The ingestion path is untouched, or the change keeps it free of ORM, guards,
       pipes, interceptors and outbound calls

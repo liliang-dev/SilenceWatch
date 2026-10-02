@@ -153,24 +153,21 @@ rotations, SMS and phone calls, fine-grained performance metrics.
 
 ## Licensing
 
-| Component                                                          | Licence        |
-| ------------------------------------------------------------------ | -------------- |
-| Server (backend + frontend)                                         | **AGPL-3.0**   |
-| Client libraries, Spring Boot starter, integrations, CLI, examples   | **Apache-2.0** |
+SilenceWatch is licensed under the **[Apache License 2.0](LICENSE)** — the server,
+the web interface, the shared types, the client libraries, the Spring Boot starter
+and the examples alike. You may use, modify, host and redistribute it, commercially
+included, and nothing in it asks you to publish your own code.
 
-> The server is licensed under AGPL-3.0. Client libraries and integrations are
-> licensed under Apache-2.0.
+The **name "SilenceWatch" and the logo are not covered** by that licence: they are
+the project's brand, and the code does not carry them with it. In short — run it,
+modify it, say that you use it, freely; if you fork and distribute it, give it its
+own name and logo. [TRADEMARK.md](TRADEMARK.md) has the detail and lists exactly
+which files are excluded; [NOTICE](NOTICE) lists third-party software.
 
-This split is deliberate and non-negotiable: an AGPL client library would
-contaminate the applications that embed it, no company would ship it, and the
-project's whole differentiator would die with it.
-
-Which licence applies is readable from the tree: the root `LICENSE` is AGPL-3.0
-and governs by default, and every Apache-2.0 subtree carries its own `LICENSE`
-file — `packages/shared`, `clients/**` and `examples/**`.
-
-The name "SilenceWatch" and the logo are not covered by these licences — see
-[TRADEMARK.md](TRADEMARK.md).
+Releases up to and including 0.2.3 were published with the server and the web
+interface under AGPL-3.0 and the rest under Apache-2.0. Those releases stay
+available under the licence they were published with; the Apache License 2.0
+applies to what is released after them.
 
 ## Contributing
 

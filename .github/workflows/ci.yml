@@ -245,6 +245,12 @@ jobs:
       - name: Documented defaults match the schema
         run: node scripts/check-documented-defaults.mjs
 
+      # One licence, said in several places, and a brand outside it. They are
+      # compared here so that a pull request about something else cannot change
+      # one and leave the others saying the opposite.
+      - name: The licence is consistent, and the brand is excluded from it
+        run: node scripts/check-licence.mjs
+
       # A required variable reaches the container through Docker's interpolation,
       # and that step can quietly produce something other than the value it was
       # given: an error message containing punctuation was parsed as part of the
