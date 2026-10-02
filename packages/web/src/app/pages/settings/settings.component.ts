@@ -145,7 +145,10 @@ export class SettingsComponent {
 
   /** Resolves with the name, or undefined when the dialog was dismissed. */
   private openProjectForm(data: ProjectFormData) {
-    return this.dialog.open(ProjectFormDialog, { data, autoFocus: false }).afterClosed();
+    // One field: a compact card, not the whole screen the longer forms get on a phone.
+    return this.dialog
+      .open(ProjectFormDialog, { data, autoFocus: false, panelClass: 'sw-confirm' })
+      .afterClosed();
   }
 
   /**
