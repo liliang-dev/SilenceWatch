@@ -3,10 +3,10 @@
 ## Layout
 
 ```
-packages/shared    validation schemas and DTO types, shared by server, UI and clients (Apache-2.0)
-packages/server    NestJS + Fastify API, ingestion, detection, alerting (AGPL-3.0)
-packages/web       Angular UI, built into packages/server/public (AGPL-3.0)
-clients/spring-boot-starter   the Spring Boot starter (Apache-2.0)
+packages/shared    validation schemas and DTO types, shared by server, UI and clients
+packages/server    NestJS + Fastify API, ingestion, detection, alerting
+packages/web       Angular UI, built into packages/server/public
+clients/spring-boot-starter   the Spring Boot starter
 ```
 
 ## Node

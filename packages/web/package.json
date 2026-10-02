@@ -3,7 +3,7 @@
   "version": "0.2.3",
   "private": true,
   "description": "SilenceWatch web interface.",
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "scripts": {
     "start": "ng serve",
     "build": "ng build",

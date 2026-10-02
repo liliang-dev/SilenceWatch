@@ -3,7 +3,7 @@
   "version": "0.2.3",
   "private": true,
   "description": "SilenceWatch server: heartbeat ingestion, silence detection and alerting.",
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "main": "dist/main.js",
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",

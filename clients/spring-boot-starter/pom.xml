@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SilenceWatch Spring Boot starter — Apache-2.0.
+  SilenceWatch Spring Boot starter — Apache-2.0, like the rest of the project.
 
-  The licence matters as much as the code: a client library under AGPL would
-  contaminate the applications it is embedded in, and no company would add it to
-  a production service. Apache-2.0 is what makes this usable.
+  It is a library that ends up inside other people's applications, so the licence
+  has to be one a company can put in a production service without conditions on
+  its own code. Apache-2.0 is that.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
