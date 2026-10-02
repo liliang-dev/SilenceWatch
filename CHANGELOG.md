@@ -27,6 +27,23 @@ whose default needs no action.
   stalled server it stacked a request behind every stalled one and released them
   all together when the server recovered.
 
+- **The Swarm stack no longer offers HTTP/3.** Caddy advertised it to every
+  browser (`Alt-Svc: h3=":443"; ma=2592000`, which a browser remembers for thirty
+  days), but QUIC is UDP and the routing mesh in front of Caddy is the one place
+  a UDP flow is not dependable. The symptom matches what was reported: on one
+  desktop browser the Checks page stalled with its requests unsent — no protocol,
+  nothing transferred — and recovered after about five minutes, which is how long
+  Chrome keeps QUIC marked broken before trying it again; the same site on a
+  phone, and `curl`, which never tries QUIC, were fine throughout. Caddy now
+  serves HTTP/1.1 and HTTP/2 only, answers `Alt-Svc: clear` so browsers that
+  already learned the old advertisement forget it on their next visit, and
+  `443/udp` is no longer published. Nothing to configure. Caddy restarts once on
+  the deploy that carries this, a few seconds of interruption; its certificates
+  are in a volume and are not reissued. This is the best-supported cause of the
+  freezes rather than a proven one: if they continue, the logging added below is
+  how to find out what it was instead. Docker Compose is unchanged — it publishes
+  UDP through Docker's own proxy, not the routing mesh.
+
 ### Changed
 
 - **Database queries are bounded, and idle connections are probed.** A query on
