@@ -10,6 +10,19 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-10-03
+
+No database migration, so going back to 0.3.0 is safe, and no new setting: upgrading
+is a change of image tag.
+
+The reasons to take it: an account can now be deleted from Settings, by its owner,
+without database access; a wrong current password in Settings no longer signs you
+out; and the application has its new logo. If you script against the API, one
+behaviour changed: `POST /api/auth/password` answers a wrong current password with
+**403** instead of 401 (see **Fixed**), and the new `POST /api/auth/delete-account`
+does the same. The rest of this release is the showcase site, which a self-hosted
+instance does not run.
+
 ### Added
 
 - **Deleting your account, from Settings → Account.** A "Delete account" section
@@ -503,7 +516,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...0.2.2
