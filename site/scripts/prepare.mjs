@@ -106,10 +106,11 @@ const CARDS = {
   },
 };
 
-const mark = readFileSync(join(root, 'src/assets/logo.svg'), 'utf8')
-  .replace(/<!--[\s\S]*?-->/g, '')
-  .replace(/<svg[^>]*>/, '')
-  .replace('</svg>', '');
+// The artwork's children: what sits between the root element's opening tag and
+// its closing one. Sliced rather than stripped with patterns, so the leading
+// licence comment falls outside the slice and nothing has to be "sanitised".
+const logo = readFileSync(join(root, 'src/assets/logo.svg'), 'utf8');
+const mark = logo.slice(logo.indexOf('>', logo.indexOf('<svg')) + 1, logo.lastIndexOf('</svg>'));
 
 const FONT = "'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif";
 const escape = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
