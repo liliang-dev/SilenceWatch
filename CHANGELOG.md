@@ -14,9 +14,14 @@ called out under **Changed** with what to do about it.
 
 - **A showcase site and user documentation**, in French and English, in `site/`
   (Astro and Starlight; a project of its own, outside the application's workspace,
-  lockfile and image). Pages for what people search for — cron monitoring, job
-  monitoring, Spring Boot `@Scheduled` and Quartz monitoring, what a dead man's
-  switch is, self-hosting, monitoring a backup — and a documentation section:
+  lockfile and image). Its slogan is "Vos Jobs ne vous préviennent pas quand ils
+  s'arrêtent. Nous oui." ("Your jobs don't tell you when they stop. We do."), and
+  it is written around *job monitoring* — cron is one way of scheduling a job, so
+  "cron and job monitoring" would say the same thing twice; cron monitoring is a
+  page of its own beneath it. Pages for what people search for — job monitoring,
+  cron monitoring, Spring Boot `@Scheduled` and Quartz monitoring, what a dead
+  man's switch is, self-hosting, monitoring a backup or a Kubernetes CronJob, a
+  cron job that does not run — and a documentation section:
   getting started, the ping API, copy-paste examples (crontab, systemd, Docker,
   Kubernetes, GitHub Actions, Python, Node, PowerShell), schedules and states,
   alert channels (with signature verification), the Spring Boot starter, and the

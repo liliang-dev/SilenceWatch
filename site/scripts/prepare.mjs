@@ -95,13 +95,13 @@ for (const [slug, page] of Object.entries(REFERENCE)) {
 // in one language.
 const CARDS = {
   fr: {
-    title: 'Monitoring de cron et de jobs',
-    lines: ['Soyez prévenu quand une tâche', 'planifiée ne s’exécute plus.'],
+    title: 'Monitoring de jobs',
+    lines: ['Vos Jobs ne vous préviennent pas', 'quand ils s’arrêtent. Nous oui.'],
     foot: 'Open source · Auto-hébergeable · Spring Boot',
   },
   en: {
-    title: 'Cron and job monitoring',
-    lines: ['Hear about it when a scheduled', 'task stops running.'],
+    title: 'Job monitoring',
+    lines: ['Your jobs don’t tell you when', 'they stop. We do.'],
     foot: 'Open source · Self-hostable · Spring Boot',
   },
 };

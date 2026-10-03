@@ -20,7 +20,7 @@ export default defineConfig({
     starlight({
       title: 'SilenceWatch',
       description:
-        'Monitoring de cron et de jobs planifiés : SilenceWatch vous alerte quand une tâche ne s’exécute plus.',
+        'Vos Jobs ne vous préviennent pas quand ils s’arrêtent. Nous oui. Monitoring de jobs par heartbeat, open source et auto-hébergeable.',
       // French is the language of the site and lives at the root; English is
       // under /en/. The root locale needs a `lang` because it is not 'root'.
       defaultLocale: 'root',

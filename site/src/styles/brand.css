@@ -194,3 +194,27 @@
 [data-has-hero] .hero h1 {
   text-align: center;
 }
+
+/* The slogan: two short sentences, the answer set apart on its own line. The hero
+   heading is longer than a usual one-liner, so it is sized down a step and
+   balanced rather than left to leave a single word on the last line. */
+[data-has-hero] .hero h1 {
+  font-size: clamp(var(--sl-text-3xl), calc(0.75rem + 3.6vw), var(--sl-text-5xl));
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.hero h1 .sw-answer {
+  display: block;
+  margin-top: 0.25em;
+  background: linear-gradient(90deg, var(--sl-color-accent), var(--sl-color-accent-high));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme='light'] .hero h1 .sw-answer {
+  background: linear-gradient(90deg, #7a35e8, #4a14a8);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

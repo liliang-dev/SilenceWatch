@@ -31,8 +31,8 @@ export const onRequest = defineRouteMiddleware((context) => {
       attrs: {
         property: 'og:image:alt',
         content: english
-          ? 'SilenceWatch: cron and job monitoring'
-          : 'SilenceWatch : monitoring de cron et de jobs',
+          ? 'SilenceWatch: job monitoring. Your jobs don’t tell you when they stop. We do.'
+          : 'SilenceWatch : monitoring de jobs. Vos Jobs ne vous préviennent pas quand ils s’arrêtent. Nous oui.',
       },
     },
     { tag: 'meta', attrs: { name: 'twitter:image', content: image } },

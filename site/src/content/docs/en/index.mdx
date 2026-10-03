@@ -1,10 +1,10 @@
 ---
-title: "Cron and scheduled job monitoring"
-description: "SilenceWatch monitors your cron jobs and scheduled tasks: each sends a heartbeat, and an alert goes out when one is missing. Open source, self-hostable."
+title: "Job monitoring: get alerted when a job stops"
+description: "Your jobs don’t tell you when they stop. SilenceWatch does: heartbeat job monitoring with email, Slack and webhook alerts. Open source, self-hostable."
 template: splash
 hero:
-  title: "Hear about it when your jobs stop"
-  tagline: "SilenceWatch is a cron and job monitoring tool. Each task sends a heartbeat when it runs; if the heartbeat does not arrive in time, you get an alert. Open source, self-hostable or hosted."
+  title: "Your jobs don’t tell you when they stop. <span class='sw-answer'>We do.</span>"
+  tagline: "SilenceWatch is a job monitoring tool: each job sends a heartbeat when it runs, and you get an alert as soon as one is missing. Open source, self-hostable or hosted."
   actions:
     - text: "Get started with SilenceWatch"
       link: https://app.silencewatch.com/login
@@ -15,7 +15,7 @@ hero:
       variant: minimal
 head:
   - tag: title
-    content: "SilenceWatch — Cron and scheduled job monitoring"
+    content: "SilenceWatch — Job monitoring for scheduled tasks"
 ---
 
 import { Card, CardGrid, LinkButton, Steps } from '@astrojs/starlight/components';
@@ -30,11 +30,11 @@ A nightly backup, an export, a certificate renewal, a billing run, a worker: whe
 
 Ordinary **job monitoring** watches for what went wrong. SilenceWatch watches for **what did not happen**: it is a *dead man's switch*. You declare how often a task should run and how late it may be. If it does not check in on time, the alert goes out.
 
-## Cron job monitoring in three steps
+## Job monitoring in three steps
 
 <Steps>
 
-1. **Declare the job.** Create a check with its frequency (every 15 minutes) or its cron expression (`0 2 * * *`), its time zone and the lateness you tolerate.
+1. **Declare the job.** Create a check with its frequency (every 15 minutes) or its cron expression (`0 2 * * *`), its time zone and the lateness you tolerate. See [job monitoring](/en/job-monitoring/).
 
 2. **Call the ping URL when the job finishes.** A plain HTTP request; `curl` is enough:
 
@@ -46,13 +46,13 @@ Ordinary **job monitoring** watches for what went wrong. SilenceWatch watches fo
 
 </Steps>
 
-The details of the endpoints (`/start`, `/fail`, exit code, duration) are in the [ping API documentation](/en/docs/ping-api/). Copy-paste examples for crontab, systemd, Docker, Kubernetes and GitHub Actions are in the [cron monitoring examples](/en/docs/cron-examples/).
+The details of the endpoints (`/start`, `/fail`, exit code, duration) are in the [ping API documentation](/en/docs/ping-api/). Copy-paste examples for crontab, systemd, Docker, Kubernetes and GitHub Actions are in the [examples](/en/docs/cron-examples/).
 
 ## What SilenceWatch does
 
 <CardGrid>
   <Card title="Cron and intervals" icon="seti:clock">
-    A fixed period or a 5- or 6-field cron expression, with a time zone, plus a grace period. See [cron job monitoring](/en/cron-monitoring/).
+    A fixed period or a 5- or 6-field cron expression, with a time zone, plus a grace period. See also [cron job monitoring](/en/cron-monitoring/).
   </Card>
   <Card title="Detection every 10 seconds" icon="rocket">
     A late check is spotted within seconds, without scanning the whole database: the cost follows the late checks, not the total.
@@ -73,7 +73,7 @@ The details of the endpoints (`/start`, `/fail`, exit code, duration) are in the
 
 ## Which jobs?
 
-Anything that must run at regular intervals and whose absence matters: [cron backup monitoring](/en/guides/backup-monitoring/), data imports and exports, billing runs, purges, certificate renewals, workers and task queues. If the job can call a URL, it can be monitored. See also general [job monitoring](/en/job-monitoring/) and [what a dead man's switch is](/en/dead-mans-switch/).
+Anything that must run at regular intervals and whose absence matters: [backups](/en/guides/backup-monitoring/), data imports and exports, billing runs, purges, certificate renewals, workers and [Kubernetes CronJobs](/en/guides/kubernetes-cronjob-monitoring/). If the job can call a URL, it can be monitored. The [job monitoring guide](/en/job-monitoring/) covers what to watch, and [what a dead man's switch is](/en/dead-mans-switch/) explains the principle.
 
 ## Spring Boot: nothing to declare by hand
 
@@ -108,8 +108,8 @@ SilenceWatch is released under the **Apache 2.0** licence. Use it as the hosted 
   title="Frequently asked questions about SilenceWatch"
   items={[
     {
-      q: 'What is cron job monitoring?',
-      a: 'It is watching that your scheduled tasks actually run. Rather than looking for errors, it checks that each task checks in at its expected time, and alerts when it does not. SilenceWatch does it with one HTTP call at the end of the job.',
+      q: 'What is job monitoring?',
+      a: 'It is watching that your jobs and scheduled tasks, cron jobs included, actually run. Rather than looking for errors, it checks that each job checks in at its expected time, and alerts when it does not. SilenceWatch does it with one HTTP call at the end of the job.',
     },
     {
       q: 'How do I monitor a job that does not crash but stops running?',

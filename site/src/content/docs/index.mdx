@@ -1,10 +1,10 @@
 ---
-title: "Monitoring de cron et de jobs planifiés"
-description: "SilenceWatch surveille vos crons et vos jobs : chaque tâche envoie un signal, et une alerte part s’il manque. Open source, auto-hébergeable, Spring Boot."
+title: "Monitoring de jobs : alerte quand un job s’arrête"
+description: "Vos jobs ne vous préviennent pas quand ils s’arrêtent. SilenceWatch si : monitoring de jobs par heartbeat, alertes e-mail, Slack, webhook. Open source."
 template: splash
 hero:
-  title: "Soyez prévenu quand vos jobs s’arrêtent"
-  tagline: "SilenceWatch est un outil de monitoring de cron et de jobs planifiés. Chaque tâche envoie un signal quand elle s’exécute ; si le signal n’arrive pas à temps, vous recevez une alerte. Open source, auto-hébergeable ou hébergé."
+  title: "Vos Jobs ne vous préviennent pas quand ils s’arrêtent. <span class='sw-answer'>Nous oui.</span>"
+  tagline: "SilenceWatch est un outil de monitoring de jobs : chaque job envoie un signal quand il s’exécute, et vous recevez une alerte dès qu’il manque. Open source, auto-hébergeable ou hébergé."
   actions:
     - text: "Commencer avec SilenceWatch"
       link: https://app.silencewatch.com/login
@@ -15,7 +15,7 @@ hero:
       variant: minimal
 head:
   - tag: title
-    content: "SilenceWatch — Monitoring de cron et de jobs planifiés"
+    content: "SilenceWatch — Monitoring de jobs planifiés"
 ---
 
 import { Card, CardGrid, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -24,17 +24,17 @@ import ProductPreview from '../../components/ProductPreview.astro';
 
 <ProductPreview />
 
-## Une tâche qui s’arrête en silence ressemble à une tâche qui n’a rien à faire
+## Un job qui s’arrête en silence ressemble à un job qui n’a rien à faire
 
 Une sauvegarde nocturne, un export, un renouvellement de certificat, une facturation, un worker : quand l’un de ces **jobs planifiés** cesse de tourner, aucune erreur n’est levée et personne n’est prévenu. On s’en aperçoit parfois des semaines plus tard, quand quelqu’un a besoin des données d’hier.
 
-Le **monitoring de job** classique surveille ce qui s’est mal passé. SilenceWatch surveille **ce qui ne s’est pas passé** : c’est un *dead man’s switch*. Vous déclarez à quelle fréquence une tâche doit s’exécuter et quel retard vous tolérez. Si elle ne donne pas signe de vie à temps, l’alerte part.
+Le **monitoring de jobs** classique surveille ce qui s’est mal passé. SilenceWatch surveille **ce qui ne s’est pas passé** : c’est un *dead man’s switch*. Vous déclarez à quelle fréquence un job doit s’exécuter et quel retard vous tolérez. S’il ne donne pas signe de vie à temps, l’alerte part.
 
-## Le monitoring de cron en trois étapes
+## Le monitoring de jobs en trois étapes
 
 <Steps>
 
-1. **Déclarez le job.** Créez un check avec sa fréquence (toutes les 15 minutes) ou son expression cron (`0 2 * * *`), son fuseau horaire et le retard toléré.
+1. **Déclarez le job.** Créez un check avec sa fréquence (toutes les 15 minutes) ou son expression cron (`0 2 * * *`), son fuseau horaire et le retard toléré. Voir le [monitoring de jobs](/job-monitoring/).
 
 2. **Appelez l’URL de ping à la fin du job.** Une simple requête HTTP, `curl` suffit :
 
@@ -46,13 +46,13 @@ Le **monitoring de job** classique surveille ce qui s’est mal passé. SilenceW
 
 </Steps>
 
-Le détail des points d’entrée (`/start`, `/fail`, code de sortie, durée) est dans la [documentation de l’API de ping](/docs/ping-api/). Des exemples prêts à copier pour crontab, systemd, Docker, Kubernetes et GitHub Actions sont dans les [exemples de monitoring de cron](/docs/cron-examples/).
+Le détail des points d’entrée (`/start`, `/fail`, code de sortie, durée) est dans la [documentation de l’API de ping](/docs/ping-api/). Des exemples prêts à copier pour crontab, systemd, Docker, Kubernetes et GitHub Actions sont dans les [exemples](/docs/cron-examples/).
 
 ## Ce que fait SilenceWatch
 
 <CardGrid>
   <Card title="Cron et intervalles" icon="seti:clock">
-    Une fréquence fixe ou une expression cron à 5 ou 6 champs, avec fuseau horaire, plus un délai de grâce. Voir le [monitoring de cron](/cron-monitoring/).
+    Une fréquence fixe ou une expression cron à 5 ou 6 champs, avec fuseau horaire, plus un délai de grâce. Voir aussi le [monitoring de cron](/cron-monitoring/).
   </Card>
   <Card title="Détection toutes les 10 secondes" icon="rocket">
     Un check en retard est repéré en quelques secondes, sans balayer toute la base : le coût dépend des checks en retard, pas du nombre total.
@@ -73,7 +73,7 @@ Le détail des points d’entrée (`/start`, `/fail`, code de sortie, durée) es
 
 ## Pour quels jobs ?
 
-Tout ce qui doit tourner à intervalle régulier et dont l’absence compte : le [monitoring d’une sauvegarde cron](/guides/backup-monitoring/), les imports et exports de données, les traitements de facturation, les purges, les renouvellements de certificats, les workers et les files de tâches. Si le job peut appeler une URL, il peut être surveillé. Voir aussi le [monitoring de jobs](/job-monitoring/) en général et [ce qu’est un dead man’s switch](/dead-mans-switch/).
+Tout ce qui doit tourner à intervalle régulier et dont l’absence compte : les [sauvegardes](/guides/backup-monitoring/), les imports et exports de données, les traitements de facturation, les purges, les renouvellements de certificats, les workers et les [CronJobs Kubernetes](/guides/kubernetes-cronjob-monitoring/). Si le job peut appeler une URL, il peut être surveillé. Le [guide du monitoring de jobs](/job-monitoring/) détaille quoi surveiller, et [ce qu’est un dead man’s switch](/dead-mans-switch/) explique le principe.
 
 ## Spring Boot : zéro déclaration à la main
 
@@ -108,8 +108,8 @@ SilenceWatch est publié sous licence **Apache 2.0**. Vous pouvez l’utiliser e
   title="Questions fréquentes sur SilenceWatch"
   items={[
     {
-      q: 'Qu’est-ce que le monitoring de cron ?',
-      a: 'C’est la surveillance de l’exécution de vos tâches planifiées. Plutôt que de chercher des erreurs, on vérifie que chaque tâche donne signe de vie à l’heure prévue, et on alerte quand elle ne le fait pas. SilenceWatch le fait avec un simple appel HTTP à la fin du job.',
+      q: 'Qu’est-ce que le monitoring de jobs ?',
+      a: 'C’est la surveillance de l’exécution de vos jobs et tâches planifiées, crons compris. Plutôt que de chercher des erreurs, on vérifie que chaque job donne signe de vie à l’heure prévue, et on alerte quand il ne le fait pas. SilenceWatch le fait avec un simple appel HTTP à la fin du job.',
     },
     {
       q: 'Comment surveiller un job qui ne plante pas mais ne s’exécute plus ?',
