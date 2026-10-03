@@ -1,0 +1,24 @@
+{
+  "name": "@silencewatch/site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The SilenceWatch showcase site and user documentation.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.19.0+sha512.7881f3ed590d472c4a955e2b88b2121791116066dcc88cbca3849ec9b60f1bbaa6d2ccb221fa91da4e1c65bef2bcbe379365aea7ac539c7bf86dedc3a1b22dce",
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "prepare:assets": "node scripts/prepare.mjs",
+    "dev": "node scripts/prepare.mjs && astro dev",
+    "build": "node scripts/prepare.mjs && astro build",
+    "preview": "astro preview",
+    "check:seo": "node scripts/check-seo.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.4",
+    "astro": "^7.3.5",
+    "sharp": "^0.35.5"
+  }
+}

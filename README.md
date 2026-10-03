@@ -44,7 +44,7 @@ may be. If the heartbeat does not arrive in time, you get told.
 
 ```bash
 # in a crontab
-0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://silencewatch.com/p/<ping-key>
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
 ```
 
 That is the entire integration for a shell script. For Java, there is something
@@ -101,7 +101,8 @@ Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 **The self-hosted edition is never crippled.** There is no reserved feature, no
 "enterprise edition", no seat limit. The hosted service at
 [silencewatch.com](https://silencewatch.com) sells not running a server, not
-features.
+features. The site there also carries the user documentation; the hosted
+application itself is at [app.silencewatch.com](https://app.silencewatch.com).
 
 ## How it works
 

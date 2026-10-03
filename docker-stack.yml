@@ -147,14 +147,20 @@ services:
   # Swarm has none — and a deployment reached over the internet wants TLS
   # anyway. It needs SILENCEWATCH_DOMAIN pointing at this swarm, with 80 and
   # 443 reachable, which is how Caddy proves control of the name.
+  #
+  # Optionally it also serves a static site on a second name, SILENCEWATCH_SITE_DOMAIN
+  # — the hosted service's showcase and documentation, which live on the bare
+  # domain while the application lives on `app.`. Left unset, nothing about that
+  # exists: no second block, no redirect, and the `site` volume stays empty and
+  # unused. Self-hosters set one name and are unaffected.
   caddy:
     image: caddy:2-alpine
     # The Caddyfile is written at start rather than shipped as a swarm config
     # object, which `docker stack deploy -c -` (how the release workflow deploys)
-    # cannot carry and which would have to reach every node. It says what
-    # `caddy reverse-proxy --from <domain> --to silencewatch:8080` said — that
-    # command is a Caddyfile with those two lines — plus two more, both about
-    # HTTP/3:
+    # cannot carry and which would have to reach every node. For the application
+    # it says what `caddy reverse-proxy --from <domain> --to silencewatch:8080`
+    # said — that command is a Caddyfile with those two lines — plus two more,
+    # both about HTTP/3:
     #
     #  - `protocols h1 h2` stops Caddy serving it, and with it stops Caddy telling
     #    browsers to use it. Caddy advertises HTTP/3 with `Alt-Svc: h3=":443";
@@ -168,16 +174,69 @@ services:
     #    advertisement to forget it on their next visit, rather than keep
     #    trying until it expires.
     #
+    # The site block, when there is one:
+    #
+    #  - serves /srv/site/live, a symlink the site's deploy job moves to a freshly
+    #    unpacked directory, so a visitor never sees a half-written site;
+    #  - sends the addresses the application used to answer on the bare domain
+    #    (/p/…, /api/…, /login and the rest) to the application's name, with a 308
+    #    so a POST stays a POST. Nothing links there any more; this is for the
+    #    bookmark, the verification email sent before the move, and a crontab
+    #    that has not been updated;
+    #  - sets its own security headers. The site is static and loads nothing from
+    #    anywhere else, but Starlight writes small inline scripts and styles and
+    #    its search runs WebAssembly, hence the two relaxations in the policy
+    #    that the application's own policy does not make;
+    #  - redirects `www.` to the bare name.
+    #
     # `$$` is how this file spells a literal `$`, so that the shell inside the
     # container, not `docker stack deploy`, expands it.
     command:
       - sh
       - -c
       - |
-        printf '{\n  servers {\n    protocols h1 h2\n  }\n}\n\n%s {\n  header Alt-Svc clear\n  reverse_proxy silencewatch:8080\n}\n' "$$SILENCEWATCH_DOMAIN" > /tmp/Caddyfile
+        {
+          printf '{\n  servers {\n    protocols h1 h2\n  }\n}\n\n'
+          printf '%s {\n  header Alt-Svc clear\n  reverse_proxy silencewatch:8080\n}\n' "$$SILENCEWATCH_DOMAIN"
+        } > /tmp/Caddyfile
+        if [ -n "$$SILENCEWATCH_SITE_DOMAIN" ]; then
+        cat >> /tmp/Caddyfile <<EOF
+
+        $$SILENCEWATCH_SITE_DOMAIN {
+          header Alt-Svc clear
+          encode zstd gzip
+
+          @legacy path /p/* /api/* /health /login /checks /checks/* /channels /settings /verify-email /reset-password
+          redir @legacy https://$$SILENCEWATCH_DOMAIN{uri} 308
+
+          header {
+            Strict-Transport-Security "max-age=31536000"
+            X-Content-Type-Options nosniff
+            Referrer-Policy strict-origin-when-cross-origin
+            Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          }
+
+          @immutable path /_astro/*
+          header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+          root * /srv/site/live
+          file_server
+
+          handle_errors {
+            rewrite * /404.html
+            file_server
+          }
+        }
+
+        www.$$SILENCEWATCH_SITE_DOMAIN {
+          redir https://$$SILENCEWATCH_SITE_DOMAIN{uri} 301
+        }
+        EOF
+        fi
         exec caddy run --config /tmp/Caddyfile --adapter caddyfile
     environment:
       SILENCEWATCH_DOMAIN: ${SILENCEWATCH_DOMAIN:?SILENCEWATCH_DOMAIN is required}
+      SILENCEWATCH_SITE_DOMAIN: ${SILENCEWATCH_SITE_DOMAIN:-}
 
     deploy:
       replicas: 1
@@ -209,6 +268,9 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+      # Read-only: Caddy serves the site and never writes to it. The deploy job
+      # fills it (.github/workflows/site.yml).
+      - site:/srv/site:ro
 
     networks:
       - silencewatch
@@ -233,4 +295,8 @@ volumes:
   caddy_data:
     driver: local
   caddy_config:
+    driver: local
+  # The static site, when SILENCEWATCH_SITE_DOMAIN is set. Local to the node
+  # Caddy is pinned to, like its certificates.
+  site:
     driver: local

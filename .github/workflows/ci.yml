@@ -190,6 +190,55 @@ jobs:
           # And the UI is actually in the image.
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
 
+  # The showcase site and documentation (site/), which is its own project with its
+  # own lockfile and is not part of the application's build or image. Built and
+  # checked on every pull request so a broken page is found before it merges;
+  # shipping is .github/workflows/site.yml, on main only.
+  site:
+    name: Site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Its own audit and its own install-script allowlist: this project does not
+      # share the application's, on purpose, so the application's checks do not
+      # see it.
+      - name: Known vulnerabilities
+        run: pnpm audit --audit-level=moderate
+
+      - name: The install-script allowlist is still small
+        run: |
+          set -eu
+          allowed=$(grep -cE "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml || true)
+          echo "$allowed dependencies may run install scripts:"
+          grep -E "^  '?[@A-Za-z0-9./_-]+'?: true$" pnpm-workspace.yaml || true
+          if [ "$allowed" -gt 2 ]; then
+            echo "FAIL: $allowed is more than a static site should need." >&2
+            exit 1
+          fi
+
+      - name: Build
+        run: pnpm run build
+
+      # Titles, descriptions, canonical and hreflang links, structured data, the
+      # sitemap, and every internal link, in every page. A page that would rank
+      # badly, or lead nowhere, fails here instead of after launch.
+      - name: Check what search engines will find
+        run: node scripts/check-seo.mjs
+
   supply-chain:
     name: Supply chain
     runs-on: ubuntu-latest
@@ -263,8 +312,8 @@ jobs:
       - name: Interpolation delivers the value it was given
         env:
           SILENCEWATCH_VERSION: 0.0.0-test
-          BASE_URL: https://example.test
-          SILENCEWATCH_DOMAIN: example.test
+          BASE_URL: https://app.example.test
+          SILENCEWATCH_DOMAIN: app.example.test
         run: |
           set -eu
           # Distinct, and shaped like the real thing: 64 hex characters.
@@ -311,8 +360,8 @@ jobs:
       - name: The Caddyfile the stack writes is one Caddy accepts
         env:
           SILENCEWATCH_VERSION: 0.0.0-test
-          BASE_URL: https://example.test
-          SILENCEWATCH_DOMAIN: example.test
+          BASE_URL: https://app.example.test
+          SILENCEWATCH_DOMAIN: app.example.test
           SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           POSTGRES_PASSWORD: fedcba9876543210fedcba9876543210fedcba9876543210
         run: |
@@ -326,22 +375,50 @@ jobs:
           # Write the file, print it, and validate instead of running.
           check="$(printf '%s\n' "$script" \
                    | sed 's#^exec caddy run #cat /tmp/Caddyfile; exec caddy validate #')"
-          output="$(docker run --rm -e SILENCEWATCH_DOMAIN caddy:2-alpine sh -c "$check" 2>&1)"
-          printf '%s\n' "$output"
 
-          case "$output" in
-            *"Valid configuration"*) ;;
-            *) echo "FAIL: Caddy did not accept the Caddyfile the stack writes." >&2; exit 1 ;;
-          esac
-          # The whole line, not a substring: `protocols h1 h2 h3` contains it too.
-          if ! printf '%s\n' "$output" | grep -Eq '^ +protocols h1 h2$'; then
-            echo "FAIL: the Caddyfile no longer restricts Caddy to HTTP/1.1 and HTTP/2." >&2
-            exit 1
-          fi
-          case "$output" in
-            *"example.test {"*) ;;
-            *) echo "FAIL: the domain did not reach the Caddyfile." >&2; exit 1 ;;
-          esac
+          # Twice: the way a self-hoster runs it, with one name, and the way the
+          # hosted service runs it, with the application on `app.` and the
+          # showcase site on the bare domain. A mistake in the second must not be
+          # able to take down the first, and the first must not grow a site.
+          status=0
+          for site in "" "example.test"; do
+            echo "::group::SILENCEWATCH_SITE_DOMAIN='$site'"
+            output="$(docker run --rm -e SILENCEWATCH_DOMAIN -e SILENCEWATCH_SITE_DOMAIN="$site" \
+                        caddy:2-alpine sh -c "$check" 2>&1)"
+            printf '%s\n' "$output"
+            echo "::endgroup::"
+
+            expect() {
+              if ! printf '%s\n' "$output" | grep -Eq "$1"; then
+                echo "FAIL (site='$site'): $2" >&2
+                status=1
+              fi
+            }
+            refute() {
+              if printf '%s\n' "$output" | grep -Eq "$1"; then
+                echo "FAIL (site='$site'): $2" >&2
+                status=1
+              fi
+            }
+
+            expect 'Valid configuration' 'Caddy did not accept the Caddyfile the stack writes.'
+            # The whole line, not a substring: `protocols h1 h2 h3` contains it too.
+            expect '^ +protocols h1 h2$' 'the Caddyfile no longer restricts Caddy to HTTP/1.1 and HTTP/2.'
+            expect '^app\.example\.test \{' 'the application name did not reach the Caddyfile.'
+            expect 'reverse_proxy silencewatch:8080' 'the application is no longer proxied.'
+
+            if [ -z "$site" ]; then
+              refute 'file_server|/srv/site|legacy' 'a site block appeared although no site domain was set.'
+            else
+              expect '^example\.test \{' 'the site name did not reach the Caddyfile.'
+              expect '^www\.example\.test \{' 'www is no longer redirected to the bare name.'
+              expect 'root \* /srv/site/live' 'the site is no longer served from the symlink the deploy job moves.'
+              expect 'redir @legacy https://app\.example\.test\{uri\} 308' \
+                'the old application addresses no longer redirect to the application.'
+              expect 'Content-Security-Policy' 'the site lost its Content-Security-Policy.'
+            fi
+          done
+          exit "$status"
 
       # A documented setting that no deployment file forwards is worse than an
       # undocumented one: it is followed, it appears to work, and the server

@@ -1,0 +1,75 @@
+---
+title: "API REST : authentification et endpoints"
+description: "Résumé de l’API REST de SilenceWatch : clés d’API, endpoints des checks, déclaration en masse et format des erreurs. Référence complète en anglais."
+sidebar:
+  label: API REST
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+L’API REST permet de créer et piloter vos checks par programme. Cette page en donne les grandes lignes ; la **[référence complète, en anglais](/en/docs/reference/api/)** détaille chaque point d’entrée. L’adresse de base est `https://app.silencewatch.com/api` (ou celle de votre instance), versionnée sous `/api/v1`.
+
+## Authentification
+
+Deux types d’identifiants, un seul en-tête :
+
+- **Les clés d’API** (`sw_…`) sont limitées à un seul projet et servent aux machines. Elles se créent dans *Réglages › Clés API*.
+
+  ```bash
+  curl -H "Authorization: Bearer sw_3f9a2b1c8d7e6f50_…" https://app.silencewatch.com/api/v1/checks
+  ```
+
+  Une clé gère les checks de son projet et rien d’autre : elle ne lit jamais un autre projet et ne peut ni créer ni lister de clés, donc une clé de CI qui fuit ne peut pas s’octroyer plus d’accès.
+- **Les sessions utilisateur** sont celles de l’interface web.
+
+## Les principaux points d’entrée
+
+| Endpoint | Rôle |
+| --- | --- |
+| `GET /api/v1/checks` | Lister les checks (filtres : `state`, `environment`, `tag`, `search`, `orphaned`) |
+| `POST /api/v1/projects/:projectId/checks` | Créer un check |
+| `GET /api/v1/checks/:checkId` | Lire un check |
+| `PATCH /api/v1/checks/:checkId` | Modifier, mettre en pause (`{"paused": true}`) ou reprendre |
+| `DELETE /api/v1/checks/:checkId` | Supprimer, avec son historique (rôle administrateur) |
+| `GET /api/v1/checks/:checkId/pings` | Historique des pings |
+| `GET /api/v1/checks/:checkId/incidents` | Historique des incidents |
+| `POST /api/v1/checks/sync` | Déclaration en masse, utilisée par les starters |
+
+Créer un check à intervalle :
+
+```bash
+curl -X POST https://app.silencewatch.com/api/v1/projects/$PROJECT/checks \
+  -H "Authorization: Bearer $API_KEY" -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Sauvegarde nocturne",
+    "scheduleType": "interval",
+    "periodSeconds": 86400,
+    "graceSeconds": 3600,
+    "environment": "production"
+  }'
+```
+
+ou un check à expression cron : `"scheduleType": "cron"`, `"cronExpression": "0 2 * * *"`, `"timezone": "Europe/Paris"`. La réponse contient `pingUrl`, la seule chose dont votre job a besoin.
+
+## Les pings ne font pas partie de `/api`
+
+Les signaux de vos jobs vivent sous `/p/<clé>` : voir l’[API de ping](/docs/ping-api/).
+
+## Erreurs
+
+Toutes les erreurs ont la même forme :
+
+```json
+{
+  "statusCode": 400,
+  "error": "BAD_REQUEST",
+  "message": "Validation failed",
+  "details": [{ "path": "periodSeconds", "message": "Number must be greater than or equal to 30" }]
+}
+```
+
+Une ressource d’un autre projet répond **404** et non 403 : un « interdit » confirmerait qu’elle existe. Les rejets pour débit excessif portent un en-tête `Retry-After`.
+
+<Aside type="note">
+Les messages d’erreur du serveur sont en anglais. Pour le détail du contrat de déclaration en masse (`/checks/sync`), des canaux de notification et des limites de débit, voir la [référence en anglais](/en/docs/reference/api/).
+</Aside>

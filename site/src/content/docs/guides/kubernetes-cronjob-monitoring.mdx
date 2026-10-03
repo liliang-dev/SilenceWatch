@@ -1,0 +1,92 @@
+---
+title: "Surveiller un CronJob Kubernetes"
+description: "Comment surveiller un CronJob Kubernetes : détecter un job jamais créé, en échec ou trop long, avec un ping à la fin du conteneur et une alerte si le signal manque."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">Un <strong>CronJob Kubernetes</strong> peut cesser de produire des Jobs sans qu’aucun Pod n’échoue : il n’y a alors rien à observer. Un ping envoyé à la fin du conteneur transforme cette absence en alerte.</p>
+
+## Ce que Kubernetes ne vous dit pas
+
+Un CronJob crée un Job à chaque échéance, et le Job crée un Pod. Les pannes visibles (Pod en erreur, `Failed`) se surveillent avec les outils habituels. Mais plusieurs situations n’en produisent aucune :
+
+- le CronJob est **suspendu** (`spec.suspend: true`) et le reste sans que personne s’en souvienne ;
+- la politique de concurrence (`concurrencyPolicy`) fait **sauter** une exécution : avec `Forbid`, si la précédente tourne encore, la nouvelle n’est pas créée ;
+- une échéance est manquée au-delà de `startingDeadlineSeconds` (cluster indisponible, contrôleur redémarré) ;
+- le fuseau horaire n’est pas celui que vous pensiez : le champ `spec.timeZone` existe depuis Kubernetes 1.27, et sans lui l’heure du contrôleur s’applique ;
+- le **cluster entier** ou son contrôleur est à l’arrêt.
+
+Dans tous ces cas, aucun Pod n’est créé, donc aucun Pod n’échoue. C’est exactement ce qu’un [dead man’s switch](/dead-mans-switch/) détecte.
+
+## Ajouter le ping au CronJob
+
+L’URL de ping est un secret : stockez-la dans un `Secret`, et appelez-la à la fin du conteneur, seulement en cas de succès.
+
+```yaml title="cronjob.yaml"
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "Europe/Paris"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: mon-image:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  curl -fsS -m 10 --retry 3 "$PING_URL/start" || true
+                  /app/backup.sh
+                  code=$?
+                  curl -fsS -m 10 --retry 3 "$PING_URL/$code" || true
+                  exit $code
+              env:
+                - name: PING_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: silencewatch
+                      key: ping-url
+```
+
+Le conteneur appelle `/start` au début, puis l’URL suffixée du code de sortie à la fin : `0` réussit, tout autre code fait passer le check **en panne** immédiatement. L’image doit contenir `curl` ; sinon, ajoutez-le ou utilisez un second conteneur.
+
+## Réglages du check
+
+- **Planification** : la même expression cron que `spec.schedule`, avec le même fuseau horaire.
+- **Délai de grâce** : plus que la durée normale du job, plus la latence habituelle de démarrage du Pod.
+- **Un check par CronJob**, avec l’environnement (`production`, `staging`) pour ne pas mélanger les clusters.
+
+Voir aussi les [exemples pour d’autres environnements](/docs/cron-examples/) et les [états d’un check](/docs/schedules-and-states/).
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller mes CronJobs</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur la surveillance des CronJobs Kubernetes"
+  items={[
+    { q: 'Comment savoir si un CronJob Kubernetes ne s’est pas exécuté ?', a: 'Faites envoyer un ping à la fin du conteneur et surveillez son arrivée avec SilenceWatch : si le ping manque à l’échéance plus le délai de grâce, vous êtes alerté, que le Pod ait échoué ou n’ait jamais été créé.' },
+    { q: 'Pourquoi un CronJob ne crée-t-il plus de Job ?', a: 'Causes courantes : le CronJob est suspendu, la concurrencyPolicy Forbid saute l’exécution quand la précédente tourne encore, une échéance a été manquée au-delà de startingDeadlineSeconds, ou le fuseau horaire n’est pas celui attendu.' },
+    { q: 'Le ping fait-il échouer mon Job s’il est injoignable ?', a: 'Pas si vous ajoutez || true après le curl : un ping perdu ne change alors pas le code de sortie du job.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
+  <li><a href="/docs/cron-examples/">Exemples (crontab, systemd, Docker…)</a></li>
+  <li><a href="/guides/cron-not-running/">Cron qui ne s’exécute pas</a></li>
+</ul>

@@ -1,0 +1,61 @@
+---
+title: "Dead man’s switch : définition et usage"
+description: "Qu’est-ce qu’un dead man’s switch ? Le principe du heartbeat, ce qu’il détecte que les autres outils ratent, et comment SilenceWatch l’applique à vos jobs."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../components/Faq.astro';
+
+<p class="splash-lede">Un <strong>dead man’s switch</strong> (« interrupteur d’homme mort ») déclenche une action quand un signal régulier cesse d’arriver. Appliqué aux jobs, c’est le moyen fiable de détecter qu’une tâche planifiée ne s’exécute plus.</p>
+
+## Le principe
+
+Le nom vient des commandes de sécurité des trains et des machines : l’opérateur doit maintenir ou actionner régulièrement un dispositif, et c’est **l’arrêt du geste**, non un geste, qui déclenche l’alarme. En informatique, on dit aussi **heartbeat** (« battement de cœur ») ou *check-in* : un programme envoie un signal à intervalle régulier, et un service surveille que ce signal arrive.
+
+Si le signal arrive à l’heure, tout va bien et rien ne se passe. S’il manque, une alerte part.
+
+## Pourquoi c’est la bonne approche pour les jobs planifiés
+
+Les surveillances habituelles cherchent un événement : une erreur dans un journal, une réponse HTTP en échec, une trace anormale. Or la panne la plus fréquente d’une tâche planifiée est qu’**elle ne se lance plus**, et une absence ne produit aucun événement à détecter. Le dead man’s switch renverse la logique : on ne cherche pas le problème, on exige la preuve que tout s’est bien passé.
+
+C’est aussi ce qui le rend simple à mettre en place : une requête HTTP à la fin du job, et rien à installer sur la machine.
+
+## Ce que le dead man’s switch détecte
+
+- un cron ou un ordonnanceur arrêté, une planification supprimée ou écrasée ;
+- une machine ou un conteneur éteint, un déploiement qui a retiré le job ;
+- un job bloqué ou qui n’aboutit jamais à sa fin ;
+- un job qui échoue et le signale explicitement (`/fail`), ou qui devient anormalement long.
+
+## Ses limites
+
+Un dead man’s switch **atteste de l’exécution, pas de la qualité du travail** : un job peut tourner, envoyer son signal et produire un résultat faux. Pour une sauvegarde, il faut donc que le script vérifie son propre résultat avant d’envoyer le signal de réussite, comme dans le [guide de surveillance d’une sauvegarde](/guides/backup-monitoring/). Il convient aussi aux tâches **périodiques** : pour une file de messages ou un traitement à la demande, une autre surveillance est nécessaire. Enfin, c’est une surveillance « passive » : c’est le job qui appelle, et non le service qui interroge.
+
+## SilenceWatch, un dead man’s switch pour vos jobs
+
+SilenceWatch en est une implémentation complète : une URL de ping par check, une planification (intervalle ou cron avec fuseau horaire), un délai de grâce, des incidents, des alertes par e-mail, webhook, Slack, Microsoft Teams ou Discord, et un historique de chaque signal. Il est open source (Apache 2.0) et peut être [auto-hébergé](/self-hosted/).
+
+<div class="sw-cta">
+  <LinkButton href="/cron-monitoring/" variant="primary" icon="right-arrow">Monitoring de cron</LinkButton>
+  <LinkButton href="/docs/getting-started/" variant="secondary">Premiers pas</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur le dead man’s switch"
+  items={[
+    { q: 'Qu’est-ce qu’un dead man’s switch en informatique ?', a: 'C’est un mécanisme qui déclenche une alerte quand un signal régulier cesse d’arriver. Un programme envoie un heartbeat à intervalle régulier, et un service surveille son arrivée. L’absence du signal est ce qui déclenche l’alerte.' },
+    { q: 'Quelle différence entre dead man’s switch et heartbeat monitoring ?', a: 'Ce sont deux noms de la même idée. Heartbeat monitoring désigne le signal régulier envoyé par le programme ; dead man’s switch insiste sur le fait que c’est son arrêt qui déclenche l’alarme.' },
+    { q: 'Un dead man’s switch détecte-t-il un job qui tourne mais produit un mauvais résultat ?', a: 'Pas seul : il atteste de l’exécution. Faites vérifier son résultat par le script avant d’envoyer le signal de réussite, et appelez l’URL d’échec en cas de problème.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
+  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
+  <li><a href="/docs/schedules-and-states/">États d’un check</a></li>
+</ul>

@@ -1,0 +1,74 @@
+---
+title: "Monitoring de jobs open source et auto-hébergé"
+description: "Auto-hébergez SilenceWatch, un outil de monitoring de jobs open source (Apache 2.0) : un conteneur et PostgreSQL, installé avec Docker Compose."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../components/Faq.astro';
+
+<p class="splash-lede">SilenceWatch est un outil de monitoring de jobs <strong>open source</strong>, sous licence Apache 2.0. Vous pouvez l’exploiter vous-même : un conteneur, une base PostgreSQL, et c’est tout.</p>
+
+## Une installation qui tient en quatre commandes
+
+```bash
+git clone https://github.com/liliang-dev/SilenceWatch.git
+cd SilenceWatch
+cp .env.example .env         # renseignez SECRET_KEY et POSTGRES_PASSWORD
+docker compose up -d
+```
+
+Ouvrez `http://localhost:8080` et créez le premier compte : sur une instance vide c’est toujours autorisé, et ce compte devient propriétaire. Les migrations de schéma s’exécutent automatiquement au démarrage : mettre à jour consiste à changer le numéro de version dans `docker-compose.yml`, puis `docker compose pull` et `docker compose up -d`.
+
+Le minimum à renseigner dans `.env` :
+
+```bash title=".env"
+SECRET_KEY=…                 # openssl rand -hex 32
+POSTGRES_PASSWORD=…          # openssl rand -hex 24
+SMTP_URL=smtp://user:password@relais.exemple.fr:587
+BASE_URL=https://watch.exemple.fr
+```
+
+`BASE_URL` est l’adresse que vos utilisateurs tapent : les URL de ping et les liens des alertes en sont construits. Le serveur **refuse de démarrer** sur une configuration dangereuse ou incohérente plutôt que de tourner en mode dégradé, et dit laquelle.
+
+## Léger par conception
+
+- **Node.js et PostgreSQL, rien d’autre.** Pas de Redis, pas de Kafka, pas de Kubernetes. PostgreSQL sert aussi de file de travail et de bus d’invalidation de cache : chaque composant ajouté est un composant de plus à surveiller, ce qui serait ironique pour ce produit.
+- **Un VPS modeste suffit** : 1 vCPU et 1 Go de RAM gèrent des milliers de checks.
+- **Plusieurs instances sans doubles alertes** : les lignes sont réclamées avec `FOR UPDATE SKIP LOCKED`.
+- **Le chemin d’ingestion reste nu** : pas d’ORM, pas de validation, pas d’appel sortant. C’est celui qui ne doit jamais tomber.
+
+## Jamais bridé
+
+L’édition auto-hébergée n’a ni fonction réservée, ni « édition entreprise », ni limite de sièges. Ce que vend l’offre hébergée sur [app.silencewatch.com](https://app.silencewatch.com), c’est de ne pas exploiter de serveur, pas des fonctionnalités.
+
+## Bon à savoir
+
+- **N’hébergez pas vous-même le SMTP des alertes.** La délivrabilité est une affaire de réputation ; le jour où une alerte compte est le jour où elle ne doit pas finir en courrier indésirable. Passez par un fournisseur ou par un relais de confiance. Postmark et Brevo sont pris en charge, en plus de SMTP.
+- **Sauvegardez PostgreSQL**, c’est là que tout se trouve.
+- **Surveillez le moniteur** : le guide d’auto-hébergement explique comment, y compris avec un heartbeat sortant.
+
+<div class="sw-cta">
+  <LinkButton href="/en/docs/reference/self-hosting/" variant="primary" icon="right-arrow">Guide d’auto-hébergement (en anglais)</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch" variant="secondary" icon="github">Code source</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur l’auto-hébergement de SilenceWatch"
+  items={[
+    { q: 'Quelle licence pour SilenceWatch ?', a: 'Apache 2.0, pour tout le code. Vous pouvez l’utiliser, le modifier et l’héberger, y compris commercialement, sans publier votre propre code. Le nom et le logo ne sont pas couverts par la licence.' },
+    { q: 'De quoi a-t-on besoin pour auto-héberger SilenceWatch ?', a: 'De Docker avec Compose, d’un petit serveur (1 vCPU et 1 Go de RAM suffisent pour des milliers de checks), et d’un relais d’e-mail pour envoyer les alertes. La base PostgreSQL est fournie par le fichier Compose.' },
+    { q: 'L’édition auto-hébergée a-t-elle moins de fonctions que l’offre hébergée ?', a: 'Non. Il n’y a aucune fonction réservée : l’offre hébergée vend le fait de ne pas exploiter de serveur.' },
+    { q: 'Comment mettre à jour une instance auto-hébergée ?', a: 'Changez le numéro de version de l’image dans docker-compose.yml, puis exécutez docker compose pull et docker compose up -d. Les migrations de schéma s’appliquent automatiquement au démarrage.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
+  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
+  <li><a href="/en/docs/reference/security/">Sécurité (en anglais)</a></li>
+</ul>

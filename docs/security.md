@@ -30,6 +30,13 @@ token stored only as SHA-256. Refresh tokens are single-use and rotated on every
 refresh; presenting a revoked one is treated as theft and revokes every session of
 that user. Changing a password revokes all sessions, including the current one.
 
+In a browser the refresh token lives in an **HttpOnly cookie** (`sw_refresh`),
+`SameSite=Strict`, `Secure` over HTTPS, and limited to `/api/auth`; the access
+token is kept in memory and never written to storage. Script on the page cannot
+read the cookie, so a successful XSS can act as the user while the page is open
+but cannot walk away with a long-lived credential. Clients that are not browsers
+send the refresh token in the request body instead.
+
 The access token is verified against the session on every request — one indexed
 primary-key lookup — so logout, password changes and theft response take effect
 immediately rather than after the token expires.
@@ -89,8 +96,11 @@ targets legitimately live on a private network. It is off by default.
 A strict Content-Security-Policy (`default-src 'self'`, no `script-src-attr`,
 `frame-ancestors 'none'`), `nosniff`, `no-referrer`, and HSTS in production. The
 UI ships no external font, script or stylesheet — icons are inline SVG precisely
-so the policy can stay strict. Authentication is bearer-token based with no
-cookies, so there is no CSRF surface.
+so the policy can stay strict. The access token travels in the `Authorization`
+header, which a cross-site request cannot set. The one cookie is the refresh
+token, described above: `SameSite=Strict` means the browser never attaches it to a
+request that starts on another site, so there is no cross-site request to forge,
+and its path keeps it off every other route.
 
 ## Denial of service
 

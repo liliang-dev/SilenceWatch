@@ -1,0 +1,98 @@
+---
+title: "Job monitoring: get alerted when a job stops"
+description: "Job monitoring with SilenceWatch: know whether your jobs, batches, ETL, workers and scheduled tasks run on time, take the expected time and succeed."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">Your jobs don’t tell you when they stop. <strong>Job monitoring</strong> answers a simple question: <em>did my job run when it should, and did it finish properly?</em> SilenceWatch answers it for any job that can send an HTTP request.</p>
+
+## What is job monitoring?
+
+A **job** is a task that runs without anyone starting it: a backup, an export, a billing run, an import, a purge, a batch, a periodic worker. It is also called a *scheduled task*, a *batch* or a *cron job* — cron is only one way of scheduling a job among others, which is why [cron job monitoring](/en/cron-monitoring/) is a special case. Job monitoring checks that each one runs **at the expected time**, **in a normal amount of time** and **successfully**, and alerts otherwise.
+
+## What you really watch in a job
+
+Three things, and each fails differently:
+
+- **Presence.** Did the job start at the expected time? It is the sneakiest failure, because it produces no error: a stopped scheduler, a deleted schedule, a container that no longer starts.
+- **Outcome.** Did it finish successfully? A job that starts but crashes should be able to say so right away, with its exit code.
+- **Duration.** Does it take the usual time? A process that doubles in duration often announces a problem before it stops.
+
+## Why other monitoring is not enough
+
+| What you have | What it sees | What it misses |
+| --- | --- | --- |
+| Log alerts | The errors that were written | A job that does not run writes nothing |
+| Uptime monitoring | That a service responds | That a scheduled job is running |
+| APM / tracing | The behaviour of code that executes | The absence of execution |
+| **Heartbeat (SilenceWatch)** | **The arrival, or absence, of a signal at the expected time** | The content of the work (you need an explicit failure signal) |
+
+These tools are complementary. The heartbeat covers what none of the others sees: absence.
+
+## How SilenceWatch monitors a job
+
+Each job calls a ping URL at the end of its run and, if you like, at the start (to measure duration) and on failure:
+
+```text
+GET|POST /p/<key>          the run succeeded
+GET|POST /p/<key>/start    the run started
+GET|POST /p/<key>/fail     the run failed
+GET|POST /p/<key>/<code>   exit code (0 succeeds)
+```
+
+You declare the expected frequency (interval or cron expression, with time zone) and a grace period. Past the deadline, the check is **late**; once the grace period has passed, it is **down**, an incident opens and your channels are alerted (email, webhook, Slack, Microsoft Teams, Discord). The detail is in [check states](/en/docs/schedules-and-states/).
+
+## Which jobs to monitor
+
+- [Database and file backups](/en/guides/backup-monitoring/).
+- Data imports and exports, ETL processing, synchronisations.
+- Billing runs, reminders, bulk mailings.
+- Purges, rotations, certificate renewals.
+- `@Scheduled` tasks and Quartz jobs of a [Spring Boot](/en/spring-boot/) application, discovered automatically.
+- The [cron jobs](/en/cron-monitoring/) of a server, a container or a [Kubernetes CronJob](/en/guides/kubernetes-cronjob-monitoring/).
+
+For **message queues** or on-demand processing, a periodic heartbeat is not the right tool: SilenceWatch monitors jobs that must run at regular intervals.
+
+## Choosing a job monitoring tool
+
+A few useful questions, whatever the tool:
+
+1. **Does it detect absence?** That is the heart of the matter: a tool that only looks at errors cannot see a job that no longer starts.
+2. **Does it understand your schedules?** Cron expressions, time zones, clock changes, a grace period.
+3. **Does it measure duration, and tell a failure from lateness?**
+4. **Does it alert where you are**, and can a channel be tested before the incident?
+5. **Does it integrate without effort?** One HTTP request for a script; one dependency for a Java application.
+6. **Where does your data live?** A hosted service, or a [self-hostable](/en/self-hosted/) tool that is never crippled.
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my jobs</LinkButton>
+  <LinkButton href="/en/docs/ping-api/" variant="secondary">See the ping API</LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions about job monitoring"
+  items={[
+    { q: 'What is job monitoring?', a: 'It is watching that your jobs and scheduled tasks run: checking that each one runs at the expected time, in a normal amount of time and successfully, and alerting otherwise. Cron jobs are part of it.' },
+    { q: 'How do I monitor a job that does not crash but no longer starts?', a: 'With a heartbeat: the job sends a signal on every run, and SilenceWatch alerts you if it does not arrive within the expected window. It is the only way to detect an absence, because a job that does not run produces no error.' },
+    { q: 'What is the difference between job monitoring and log monitoring?', a: 'Log monitoring detects errors that were written. Heartbeat job monitoring detects that a job did not run at all, which a log cannot show since an absent job writes nothing.' },
+    { q: 'Can I measure how long a job takes?', a: 'Yes. The job calls /start at the beginning and the result URL at the end; SilenceWatch measures the interval, or you can pass a duration yourself with the duration_ms parameter.' },
+    { q: 'How do I get alerted when a job fails without waiting for the deadline?', a: 'Call /fail, or the URL with a non-zero exit code, when the job fails: the check goes down immediately, without waiting for the grace period to end.' },
+    { q: 'Is SilenceWatch suitable for Java jobs?', a: 'Yes, with a Spring Boot starter that automatically discovers @Scheduled tasks and Quartz jobs and sends the heartbeats for you.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/en/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/en/spring-boot/">Spring Boot monitoring</a></li>
+  <li><a href="/en/guides/backup-monitoring/">Monitoring a backup</a></li>
+  <li><a href="/en/guides/kubernetes-cronjob-monitoring/">Monitor a Kubernetes CronJob</a></li>
+  <li><a href="/en/dead-mans-switch/">Dead man's switch</a></li>
+  <li><a href="/en/self-hosted/">Self-hosting</a></li>
+</ul>

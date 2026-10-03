@@ -1,0 +1,129 @@
+name: Site
+
+# Deploys the showcase site and the documentation (site/) to the swarm, on its own
+# schedule: not with a release, because a change of wording is not a new version
+# of the application and should not wait for one, nor put the application's
+# release pipeline in the way.
+#
+# It runs when what the site is built from lands on `main` — the site itself, the
+# Markdown in docs/ it generates its reference pages from, the logo it copies — or
+# by hand. Every pull request already builds and checks it (the `Site` job in
+# ci.yml); this workflow only ships.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'packages/web/public/logo.svg'
+      - 'packages/web/public/favicon.svg'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+# Two deploys at once would unpack into the same volume. A newer one waits for the
+# older to finish rather than cancelling it halfway through a swap.
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  deploy:
+    name: Build and deploy the site
+    runs-on: ubuntu-latest
+
+    # The same environment as the application's deploy: the SSH credentials live
+    # there, and a required reviewer added to it covers both.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: site
+        run: pnpm install --frozen-lockfile
+
+      # Built for the address it will be served from: canonical links, the sitemap
+      # and the social cards are all made from it.
+      - name: Build
+        working-directory: site
+        env:
+          SITE_URL: https://silencewatch.com
+        run: pnpm run build
+
+      # The same checks every pull request ran, against the build that is about to
+      # ship. A page without a title or with a dead link stops here.
+      - name: Check what search engines will find
+        working-directory: site
+        env:
+          SITE_URL: https://silencewatch.com
+        run: node scripts/check-seo.mjs
+
+      - name: Prepare the SSH client
+        env:
+          SSH_KEY: ${{ secrets.SWARM_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SWARM_SSH_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # The host key comes from a secret rather than StrictHostKeyChecking=no,
+          # for the reason the application's deploy gives.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "SWARM_SSH_KNOWN_HOSTS is empty — refusing to connect blind." >&2
+            exit 1
+          fi
+
+      # The site is unpacked into a new directory in the `silencewatch_site`
+      # volume, and `live` — the symlink Caddy serves — is moved to it in one
+      # rename. A visitor sees the old site or the new one, never half of either.
+      # The three newest releases are kept, so going back is `ln -sfn`.
+      #
+      # The archive goes down stdin, so the script cannot: it travels as the remote
+      # command instead. GNU coreutils is needed for `mv -T`, the atomic rename of
+      # a symlink over a symlink; busybox's `mv` is not relied on for it.
+      - name: Publish
+        env:
+          SSH_HOST: ${{ secrets.SWARM_SSH_HOST }}
+          SSH_USER: ${{ secrets.SWARM_SSH_USER }}
+        run: |
+          set -eu
+          release="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA:0:7}"
+
+          inside='
+            set -eu
+            mkdir "/site/$RELEASE"
+            tar -xzf - -C "/site/$RELEASE"
+            test -s "/site/$RELEASE/index.html"
+            ln -sfn "$RELEASE" /site/live.new
+            mv -Tf /site/live.new /site/live
+            ls -1d /site/20* | sort | head -n -3 | xargs -r rm -rf
+            echo "live -> $(readlink /site/live)"
+          '
+
+          # Created if this is the first deploy; the stack declares the same
+          # volume, and finds it there.
+          remote="docker volume create silencewatch_site >/dev/null && \
+            docker run --rm -i -e RELEASE='$release' -v silencewatch_site:/site \
+              debian:stable-slim sh -c '$inside'"
+
+          tar -C site/dist -czf - . | ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            "$SSH_USER@$SSH_HOST" "$remote"
