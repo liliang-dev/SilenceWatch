@@ -61,6 +61,9 @@ const policy = read('TRADEMARK.md');
 const excluded = [
   'packages/web/public/logo.svg',
   'packages/web/public/favicon.svg',
+  'packages/web/public/favicon.ico',
+  'packages/web/public/apple-touch-icon.png',
+  'packages/web/public/logo-96.png',
   'packages/web/src/app/app.component.html',
   'packages/web/src/app/pages/login/login.component.html',
 ];

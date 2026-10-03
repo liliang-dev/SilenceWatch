@@ -125,7 +125,7 @@ if (!existsSync(join(dist, 'robots.txt'))) fail('robots', 'robots.txt is missing
 else if (!readFileSync(join(dist, 'robots.txt'), 'utf8').includes(`${SITE}/sitemap-index.xml`)) {
   fail('robots', 'robots.txt does not name the sitemap');
 }
-for (const image of ['og/fr.png', 'og/en.png', 'favicon.svg', 'lang-redirect.js']) {
+for (const image of ['og/fr.png', 'og/en.png', 'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'lang-redirect.js']) {
   if (!existsSync(join(dist, image))) fail('assets', `${image} is missing`);
 }
 

@@ -33,20 +33,16 @@
   text-decoration: none;
 }
 
-/* The trace of a heartbeat, which is the entire product in one glyph.
-   Flat brand purple with a white stroke, in both themes: this is the logo,
-   not a themed element, and it should be the same object everywhere it
-   appears. */
+/* The logo: its own rounded tile, the same in both themes. It is not a themed
+   element and should be the same object everywhere it appears, so it is an
+   image rather than something drawn in the page's colours. The shadow follows
+   the tile's shape, which a box-shadow would not. */
 .mark {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 28px;
   height: 28px;
   flex: none;
-  border-radius: 8px;
-  color: #fff;
-  background: var(--sw-brand);
-  box-shadow: var(--sw-shadow-sm);
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
 }
 
 .wordmark {

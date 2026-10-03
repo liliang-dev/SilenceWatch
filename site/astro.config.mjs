@@ -43,6 +43,9 @@ export default defineConfig({
       head: [
         // Sends a browser set to French to /fr/, unless a language was chosen.
         { tag: 'script', attrs: { src: '/lang-redirect.js' } },
+        // Browsers that ignore an SVG favicon, and the home screen of an iPhone.
+        { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '48x48' } },
+        { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
         { tag: 'meta', attrs: { name: 'theme-color', content: '#8b4bf1' } },
         { tag: 'meta', attrs: { name: 'author', content: 'SilenceWatch' } },
         { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
