@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type {
   ChangePasswordRequest,
+  DeleteAccountRequest,
   LoginRequest,
   RegisterRequest,
   RegisterResponse,
@@ -381,7 +383,10 @@ export class AuthService {
   async changePassword(userId: string, input: ChangePasswordRequest): Promise<void> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
-      throw new UnauthorizedException('Current password is incorrect');
+      // 403, not 401: the caller is signed in, and 401 is what tells the browser
+      // its session has expired, so it refreshes and sends the same wrong
+      // password a second time before signing the user out.
+      throw new ForbiddenException('Current password is incorrect');
     }
 
     const passwordHash = await hashPassword(input.newPassword);
@@ -408,6 +413,77 @@ export class AuthService {
     this.audit.record({
       action: 'auth.password_changed',
       actor: { userId, email: user.email },
+    });
+  }
+
+  /**
+   * Deletes the account and everything only it held, at once and for good.
+   *
+   * What goes: the user, its sessions and tokens, every project it is the sole
+   * member of, and with those their checks, ping and incident history, API keys
+   * and channels (the schema cascades). What stays: a project other people also
+   * belong to, which merely loses this member, and the audit trail, which keeps
+   * the address of whoever acted on purpose (see AuditService).
+   *
+   * A project that has other members but no other owner is refused rather than
+   * orphaned: there is no way to hand ownership over yet, and leaving people in
+   * a project nobody owns is worse than asking this user to sort it out first.
+   *
+   * The password is asked again even though the caller is signed in: an
+   * unattended browser or a stolen access token must not be enough to destroy an
+   * account. It counts against the lockout like a login does, for the same
+   * reason: it is a password guess against the same account.
+   */
+  async deleteAccount(
+    userId: string,
+    input: DeleteAccountRequest,
+    context: SessionContext,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+
+    // 403 for both refusals, for the reason given in changePassword: the caller is
+    // signed in, and a 401 would make the browser retry the same wrong password.
+    if (user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now()) {
+      throw new ForbiddenException(
+        'Too many failed attempts. Try again in a few minutes or reset your password.',
+      );
+    }
+    if (!(await verifyPassword(user.passwordHash, input.password))) {
+      await this.recordFailedLogin(user.id, user.failedLoginCount + 1);
+      throw new ForbiddenException('Current password is incorrect');
+    }
+
+    const memberships = await this.prisma.projectMember.findMany({
+      where: { userId },
+      include: { project: { include: { members: { select: { userId: true, role: true } } } } },
+    });
+
+    const sole: string[] = [];
+    for (const membership of memberships) {
+      const others = membership.project.members.filter((member) => member.userId !== userId);
+      if (others.length === 0) {
+        sole.push(membership.projectId);
+      } else if (membership.role === 'owner' && !others.some((member) => member.role === 'owner')) {
+        throw new ConflictException(
+          `You are the only owner of "${membership.project.name}", which has other members, ` +
+            'so deleting your account would leave it without one.',
+        );
+      }
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.project.deleteMany({ where: { id: { in: sole } } }),
+      // Memberships, sessions and tokens go with the user (onDelete: Cascade).
+      this.prisma.user.delete({ where: { id: userId } }),
+    ]);
+
+    this.logger.log(`Account deleted for ${maskEmail(user.email)} (${sole.length} project(s))`);
+    this.audit.record({
+      action: 'account.deleted',
+      actor: { userId, email: user.email, ip: context.ip, userAgent: context.userAgent },
+      targetType: 'user',
+      targetId: userId,
+      detail: { projectsDeleted: sole.length },
     });
   }
 

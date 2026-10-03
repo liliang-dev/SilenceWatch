@@ -111,6 +111,17 @@ export class AuthService {
     return this.http.post<void>('/api/auth/password', request).pipe(tap(() => this.forget()));
   }
 
+  /**
+   * Deletes the account and everything in it. The password is asked again: the
+   * server will not take a signed-in session alone as proof. Every session ends
+   * with the account, this one included.
+   */
+  deleteAccount(password: string): Observable<void> {
+    return this.http
+      .post<void>('/api/auth/delete-account', { password })
+      .pipe(tap(() => this.forget()));
+  }
+
   logout(): void {
     this.forget();
     // Fire and forget: the local session is already gone, and the response is

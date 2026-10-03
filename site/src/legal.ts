@@ -14,14 +14,22 @@
 export const PENDING = '[À COMPLÉTER]';
 
 export const LEGAL = {
+  /**
+   * A private person acting outside any professional activity may stay anonymous
+   * (LCEN, art. 6-III-2), provided they have given their identity to the host.
+   * Then only the contact address and the host are published, and `name`, `form`,
+   * `address` and `director` are not shown. Set to false, and fill those in, the
+   * day the service is run as a business: a business must be identified.
+   */
+  anonymous: true,
   /** Name of the person, or the company's registered name. */
-  name: PENDING,
-  /** Legal form: "Entrepreneur individuel", "SAS", "Particulier"… */
-  form: PENDING,
-  /** Postal address. For a private person this may be the host's, see the legal page. */
-  address: PENDING,
+  name: '',
+  /** Legal form: "Entrepreneur individuel", "SAS"… */
+  form: '',
+  /** Postal address of the publisher. */
+  address: '',
   /** A contact address that is read: it is also where privacy requests arrive. */
-  email: PENDING,
+  email: 'contact@silencewatch.com',
   /** Optional. */
   phone: '',
   /** Optional: "SIRET 123 456 789 00012 — RCS Paris B 123 456 789". */
@@ -31,7 +39,7 @@ export const LEGAL = {
   /** Optional: intra-community VAT number. */
   vat: '',
   /** The publication director: a natural person, often the publisher. */
-  director: PENDING,
+  director: '',
 };
 
 /** The host, which the law also requires the site to name. */

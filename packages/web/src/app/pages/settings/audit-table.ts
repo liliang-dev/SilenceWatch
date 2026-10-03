@@ -17,6 +17,7 @@ const AUDIT_ACTIONS = new Set<string>([
   'auth.password_reset_completed',
   'auth.email_verified',
   'account.registered',
+  'account.deleted',
   'api_key.created',
   'api_key.revoked',
   'channel.created',

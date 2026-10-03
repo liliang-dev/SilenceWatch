@@ -12,15 +12,38 @@ called out under **Changed** with what to do about it.
 
 ### Added
 
+- **Deleting your account, from Settings → Account.** A "Delete account" section
+  opens a confirmation that says, in the user's language, that the account and all
+  its data are deleted immediately and for good, says how many projects and checks
+  that is, and asks for two things a stray click cannot supply: a word typed out
+  (`DELETE`, or `SUPPRIMER` in French) and the account's password. It removes the
+  user, its sessions, and every project it is the only member of, with their
+  checks, ping and incident history, API keys and alert channels. A project shared
+  with other members only loses this member; an account that is the only owner of
+  a project other people belong to is refused, whole, with a 409, rather than
+  leaving that project without an owner. Behind it is `POST /api/auth/delete-account`
+  (a user session and the password; an API key is refused), whose failed attempts
+  count towards the same lockout as a login. The security log records it, with the
+  address, for its retention period. Until now an account could not be deleted
+  without database access.
 - **Legal pages on the site, in French and English: legal notice, privacy policy
   and terms of use**, linked from the footer. The privacy policy is written from
   what the application actually stores (accounts, sessions, the security log,
   heartbeat history, alert deliveries, and how long each is kept), names the
   processors (OVH, Mailjet) and lists the one cookie, `sw_refresh`, which is
-  strictly necessary. The publisher's identity, which French law requires the
-  legal notice to give, is filled in once in `site/src/legal.ts`; until it is,
-  `scripts/check-legal.mjs` makes the site's publishing workflow stop rather than
-  put a placeholder on silencewatch.com.
+  strictly necessary. The legal notice names the host (OVH) and a contact address;
+  the publisher, a private individual, stays anonymous as French law allows
+  (LCEN, art. 6-III-2), and `site/src/legal.ts` is where a fuller identity goes
+  the day the service is run as a business.
+
+### Fixed
+
+- **A wrong current password no longer signs you out of the interface.** Changing
+  the password answered a wrong current password with a 401, which is also what
+  tells the browser its session expired: it refreshed the session, sent the same
+  wrong password a second time (counting twice towards the lockout) and then sent
+  the user to the login page. It now answers 403, which leaves the session alone and
+  shows "Current password is incorrect" in place.
 
 ### Changed
 

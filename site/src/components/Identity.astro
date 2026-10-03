@@ -30,9 +30,22 @@ const host: [string, string][] = [
 ---
 
 <h2>{en ? 'Publisher' : 'Éditeur du site'}</h2>
-<dl class="sw-identity">
-  {publisher.map(([term, value]) => (<><dt>{term}</dt><dd>{value}</dd></>))}
-</dl>
+{LEGAL.anonymous ? (
+  <>
+    <p>
+      {en
+        ? 'The site is published by a private individual who is not acting in a professional capacity. In accordance with article 6, III, 2 of the French law n° 2004-575 of 21 June 2004 (LCEN), they have chosen to remain anonymous; their identity has been given to the host named below.'
+        : 'Le site est édité par une personne physique qui n’agit pas à titre professionnel. Conformément à l’article 6, III, 2 de la loi n° 2004-575 du 21 juin 2004 (LCEN), elle a choisi de rester anonyme ; son identité a été communiquée à l’hébergeur indiqué ci-dessous.'}
+    </p>
+    <dl class="sw-identity">
+      <dt>E-mail</dt><dd>{LEGAL.email}</dd>
+    </dl>
+  </>
+) : (
+  <dl class="sw-identity">
+    {publisher.map(([term, value]) => (<><dt>{term}</dt><dd>{value}</dd></>))}
+  </dl>
+)}
 
 <h2>{en ? 'Host' : 'Hébergeur'}</h2>
 <dl class="sw-identity">
