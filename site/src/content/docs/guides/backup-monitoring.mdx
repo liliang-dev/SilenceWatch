@@ -1,89 +1,89 @@
 ---
-title: "Surveiller une sauvegarde cron pas à pas"
-description: "Guide pas à pas : surveillez une sauvegarde de base de données lancée par cron, et détectez une sauvegarde absente, en échec ou vide."
+title: "Monitor a cron backup, step by step"
+description: "Step-by-step guide: monitor a database backup run by cron, and detect a backup that is missing, failed or empty."
 template: splash
 ---
 
 import { Steps, LinkButton } from '@astrojs/starlight/components';
 import Faq from '../../../components/Faq.astro';
 
-<p class="splash-lede">Une sauvegarde dont personne ne sait si elle tourne n’est pas une sauvegarde. Ce guide montre comment <strong>surveiller une sauvegarde cron</strong> pour être prévenu si elle ne se lance pas, échoue ou produit un fichier vide.</p>
+<p class="splash-lede">A backup nobody knows is running is not a backup. This guide shows how to <strong>monitor a cron backup</strong> so you hear about it if it does not start, fails or produces an empty file.</p>
 
-## Les trois façons dont une sauvegarde échoue
+## The three ways a backup fails
 
-1. **Elle ne se lance plus** (crontab perdue, serveur redémarré, utilisateur supprimé). Rien n’est écrit nulle part : seul un [dead man’s switch](/dead-mans-switch/) le détecte.
-2. **Elle échoue** (base inaccessible, disque plein, mot de passe changé). Le script peut le dire explicitement.
-3. **Elle « réussit » mais produit un fichier vide ou tronqué.** Le code de sortie est bon, la sauvegarde est inutilisable. Seul le script peut le vérifier avant d’annoncer le succès.
+1. **It stops starting** (lost crontab, rebooted server, deleted user). Nothing is written anywhere: only a [dead man's switch](/dead-mans-switch/) detects it.
+2. **It fails** (database unreachable, disk full, changed password). The script can say so explicitly.
+3. **It "succeeds" but produces an empty or truncated file.** The exit code is fine, the backup is unusable. Only the script can check that before announcing success.
 
-## Pas à pas
+## Step by step
 
 <Steps>
 
-1. **Créez le check.** Dans SilenceWatch : nom « Sauvegarde PostgreSQL », planification cron `0 2 * * *` avec le fuseau `Europe/Paris`, délai de grâce d’une heure (plus que la durée normale de la sauvegarde), environnement `production`. Copiez l’URL de ping.
+1. **Create the check.** In SilenceWatch: name "PostgreSQL backup", cron schedule `0 2 * * *` with the `Europe/Paris` time zone, a grace period of one hour (more than the backup's normal duration), environment `production`. Copy the ping URL.
 
-2. **Écrivez un script qui vérifie son résultat.**
+2. **Write a script that checks its own result.**
 
    ```bash title="/usr/local/bin/backup-db.sh"
    #!/bin/bash
    set -uo pipefail
 
-   URL=https://app.silencewatch.com/p/<clé-de-ping>
+   URL=https://app.silencewatch.com/p/<ping-key>
    DUMP="/backups/db-$(date +%F).sql.gz"
-   MIN_BYTES=1048576   # en dessous, la sauvegarde est suspecte
+   MIN_BYTES=1048576   # below this, the backup is suspect
 
    curl -fsS -m 10 --retry 3 "$URL/start" || true
 
-   if pg_dump -U app mabase | gzip > "$DUMP" \
+   if pg_dump -U app mydb | gzip > "$DUMP" \
       && [ "$(stat -c %s "$DUMP")" -ge "$MIN_BYTES" ]; then
      curl -fsS -m 10 --retry 3 --data-raw "OK $(basename "$DUMP") $(du -h "$DUMP" | cut -f1)" "$URL" || true
    else
-     curl -fsS -m 10 --retry 3 --data-raw "Sauvegarde en échec ou trop petite : $DUMP" "$URL/fail" || true
+     curl -fsS -m 10 --retry 3 --data-raw "Backup failed or too small: $DUMP" "$URL/fail" || true
      exit 1
    fi
    ```
 
-   Le début (`/start`) permet à SilenceWatch de mesurer la durée ; le corps du ping garde la taille du fichier dans l’historique ; l’échec appelle `/fail` et le check passe **en panne tout de suite**, sans attendre l’échéance. Les `|| true` empêchent un ping raté de faire échouer la sauvegarde elle-même.
+   The start call (`/start`) lets SilenceWatch measure the duration; the ping body keeps the file size in the history; failure calls `/fail` and the check goes **down immediately**, without waiting for the deadline. The `|| true` keep a failed ping from failing the backup itself.
 
-3. **Planifiez-la avec cron.**
+3. **Schedule it with cron.**
 
    ```bash title="crontab -e"
    0 2 * * *  /usr/local/bin/backup-db.sh
    ```
 
-4. **Testez les trois cas.** Lancez le script à la main : le check passe à *OK*. Cassez l’accès à la base et relancez : il passe *en panne* et l’alerte part. Désactivez la ligne de crontab : à l’échéance suivante plus le délai de grâce, il passe aussi *en panne*. Voilà les trois pannes couvertes.
+4. **Test the three cases.** Run the script by hand: the check goes *UP*. Break database access and run it again: it goes *down* and the alert is sent. Disable the crontab line: at the next deadline plus the grace period it goes *down* too. That is the three failures covered.
 
-5. **Ajoutez un canal d’alerte** si ce n’est pas fait, et testez-le : voir les [canaux d’alerte](/docs/alerting/).
+5. **Add an alert channel** if you have not, and test it: see [alert channels](/docs/alerting/).
 
 </Steps>
 
-## Aller plus loin
+## Going further
 
-- **Testez vos restaurations.** Surveiller la sauvegarde prouve qu’elle est faite, pas qu’elle se restaure. Prévoyez une restauration périodique, surveillée elle aussi par son propre check.
-- **Un check par sauvegarde.** Base de données, fichiers, objets : un check chacun, pour savoir laquelle manque.
-- **Suivez la durée.** Une sauvegarde qui double de durée annonce souvent un disque qui se remplit ou une base qui grossit trop vite.
+- **Test your restores.** Monitoring the backup proves it is made, not that it restores. Plan a periodic restore, monitored by its own check too.
+- **One check per backup.** Database, files, objects: one check each, so you know which is missing.
+- **Watch the duration.** A backup that doubles in duration often announces a filling disk or a database growing too fast.
 
-Pour d’autres environnements (systemd, Docker, Kubernetes, GitHub Actions), voir les [exemples de monitoring de cron](/docs/cron-examples/).
+For other environments (systemd, Docker, Kubernetes, GitHub Actions), see the [cron monitoring examples](/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller ma sauvegarde</LinkButton>
-  <LinkButton href="/docs/ping-api/" variant="secondary">API de ping</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my backup</LinkButton>
+  <LinkButton href="/docs/ping-api/" variant="secondary">Ping API</LinkButton>
 </div>
 
-## Questions fréquentes
+## Frequently asked questions
 
 <Faq
-  title="Questions fréquentes sur la surveillance des sauvegardes"
+  title="Frequently asked questions about backup monitoring"
   items={[
-    { q: 'Comment être alerté si une sauvegarde cron ne s’est pas exécutée ?', a: 'Faites envoyer un ping à SilenceWatch à la fin de chaque sauvegarde réussie. Si le ping n’arrive pas à l’heure prévue plus le délai de grâce, le check passe en panne et vos canaux d’alerte sont prévenus.' },
-    { q: 'Comment détecter une sauvegarde vide ?', a: 'Faites vérifier la taille du fichier par le script avant d’annoncer le succès, et appelez l’URL /fail quand elle est inférieure à un seuil raisonnable.' },
-    { q: 'Quel délai de grâce choisir pour une sauvegarde ?', a: 'Un peu plus que sa durée normale, avec de la marge : une à deux heures pour une sauvegarde de vingt minutes évite les fausses alertes sans retarder l’information inutilement.' },
+    { q: 'How do I get alerted if a cron backup did not run?', a: 'Have it send a ping to SilenceWatch at the end of every successful backup. If the ping does not arrive by the expected time plus the grace period, the check goes down and your alert channels are notified.' },
+    { q: 'How do I detect an empty backup?', a: 'Have the script check the file size before announcing success, and call the /fail URL when it is below a reasonable threshold.' },
+    { q: 'What grace period should I choose for a backup?', a: 'A little more than its normal duration, with margin: one to two hours for a twenty-minute backup avoids false alerts without delaying the news needlessly.' },
   ]}
 />
 
-## Voir aussi
+## See also
 
 <ul class="sw-related">
-  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
-  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
-  <li><a href="/docs/ping-api/">API de ping</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/job-monitoring/">Job monitoring</a></li>
+  <li><a href="/docs/ping-api/">Ping API</a></li>
 </ul>

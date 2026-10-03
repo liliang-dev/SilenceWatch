@@ -24,6 +24,14 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **The site is in English by default; French is under `/fr/`.** It was the other
+  way round. A browser whose first language is French is taken to the matching
+  French page once, unless the visitor picked a language with the picker (the
+  choice is remembered in the browser). Search engines and link previews see
+  English, which is also `x-default` for `hreflang`. The French addresses move:
+  `/job-monitoring/` is now `/fr/job-monitoring/`, and the English ones lose their
+  `/en/` (`/en/job-monitoring/` is `/job-monitoring/`). Nobody has bookmarked these
+  yet, so there is no redirect from the old ones.
 - **The footer no longer lists "Cron job monitoring"** beside "Job monitoring": it
   said the same thing twice. The page itself stays, linked from the pages that
   discuss cron.

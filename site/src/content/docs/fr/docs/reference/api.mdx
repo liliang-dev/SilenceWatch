@@ -7,7 +7,7 @@ sidebar:
 
 import { Aside } from '@astrojs/starlight/components';
 
-L’API REST permet de créer et piloter vos checks par programme. Cette page en donne les grandes lignes ; la **[référence complète, en anglais](/en/docs/reference/api/)** détaille chaque point d’entrée. L’adresse de base est `https://app.silencewatch.com/api` (ou celle de votre instance), versionnée sous `/api/v1`.
+L’API REST permet de créer et piloter vos checks par programme. Cette page en donne les grandes lignes ; la **[référence complète, en anglais](/docs/reference/api/)** détaille chaque point d’entrée. L’adresse de base est `https://app.silencewatch.com/api` (ou celle de votre instance), versionnée sous `/api/v1`.
 
 ## Authentification
 
@@ -53,7 +53,7 @@ ou un check à expression cron : `"scheduleType": "cron"`, `"cronExpression": "0
 
 ## Les pings ne font pas partie de `/api`
 
-Les signaux de vos jobs vivent sous `/p/<clé>` : voir l’[API de ping](/docs/ping-api/).
+Les signaux de vos jobs vivent sous `/p/<clé>` : voir l’[API de ping](/fr/docs/ping-api/).
 
 ## Erreurs
 
@@ -71,5 +71,5 @@ Toutes les erreurs ont la même forme :
 Une ressource d’un autre projet répond **404** et non 403 : un « interdit » confirmerait qu’elle existe. Les rejets pour débit excessif portent un en-tête `Retry-After`.
 
 <Aside type="note">
-Les messages d’erreur du serveur sont en anglais. Pour le détail du contrat de déclaration en masse (`/checks/sync`), des canaux de notification et des limites de débit, voir la [référence en anglais](/en/docs/reference/api/).
+Les messages d’erreur du serveur sont en anglais. Pour le détail du contrat de déclaration en masse (`/checks/sync`), des canaux de notification et des limites de débit, voir la [référence en anglais](/docs/reference/api/).
 </Aside>

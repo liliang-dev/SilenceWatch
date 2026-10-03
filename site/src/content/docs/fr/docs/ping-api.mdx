@@ -1,0 +1,84 @@
+---
+title: "API de ping (heartbeat)"
+description: "Les points d’entrée /p/ de SilenceWatch : succès, début, échec, code de sortie, durée et sortie du job, avec des exemples curl et les codes de réponse."
+sidebar:
+  label: API de ping
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Le **ping** (ou *heartbeat*) est ce que votre job envoie pour dire « j’ai tourné ». C’est une requête HTTP sur l’URL de ping du check, qui ressemble à :
+
+```text
+https://app.silencewatch.com/p/<clé-de-ping>
+```
+
+L’URL est son propre identifiant : **il n’y a pas d’authentification en plus**, donc traitez-la comme un secret. Si elle fuite, [renouvelez-la](/fr/docs/getting-started/) depuis la page du check (*Renouveler l’URL de ping*) : l’ancienne cesse de fonctionner immédiatement.
+
+Les pings n’appartiennent pas à l’API `/api` : ils vivent sous `/p/` et acceptent **GET et POST**, parce que `curl` dans un crontab est le client le plus courant.
+
+## Les points d’entrée
+
+| Route | Signification |
+| --- | --- |
+| `GET` ou `POST /p/<clé>` | L’exécution a réussi |
+| `GET` ou `POST /p/<clé>/start` | L’exécution commence (permet de mesurer la durée) |
+| `GET` ou `POST /p/<clé>/fail` | L’exécution a échoué : le check passe **en panne tout de suite** |
+| `GET` ou `POST /p/<clé>/<code>` | Code de sortie : `0` réussit, tout autre code échoue |
+
+## Exemples
+
+Réussite simple :
+
+```bash
+curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+```
+
+Début puis résultat, pour mesurer la durée :
+
+```bash
+URL=https://app.silencewatch.com/p/<clé-de-ping>
+curl -fsS -m 10 --retry 3 "$URL/start"
+/usr/local/bin/backup.sh
+curl -fsS -m 10 --retry 3 "$URL/$?"      # 0 → succès, sinon échec
+```
+
+Durée mesurée par le client (en millisecondes) :
+
+```bash
+curl -fsS -m 10 --retry 3 "$URL?duration_ms=1234"
+```
+
+Joindre la fin de la sortie du job (le corps de la requête est conservé avec le ping, tronqué s’il est trop long, jamais rejeté) :
+
+```bash
+tail -n 20 /var/log/backup.log | curl -fsS -m 10 --retry 3 --data-binary @- "$URL"
+```
+
+<Aside type="tip" title="Les options curl recommandées">
+`-f` fait échouer la commande sur une réponse HTTP d’erreur, `-sS` reste silencieux sauf erreur, `-m 10` borne la requête à dix secondes et `--retry 3` réessaie en cas d’échec réseau. Un signal perdu sur un réseau capricieux ne doit pas déclencher une fausse alerte.
+</Aside>
+
+## Réponses
+
+Les réponses sont du texte brut, minimal :
+
+| Réponse | Code | Sens |
+| --- | --- | --- |
+| `OK` | 200 | Ping enregistré |
+| `PAUSED` | 200 | Le check est en pause : le ping est ignoré, il n’est pas enregistré |
+| `NOT FOUND` | 404 | Clé inconnue |
+| `BAD REQUEST` | 400 | Requête invalide |
+| `RATE LIMITED` | 429 | Trop d’appels ; l’en-tête `Retry-After` dit quand réessayer |
+| `UNAVAILABLE` | 503 | Service momentanément indisponible |
+
+Une clé mal recopiée reste volontairement une **404** : elle ne doit jamais ressembler à un succès pour le script qui l’appelle.
+
+## Limites
+
+Deux limites de débit s’appliquent, toutes deux avec un code 429 et `Retry-After`. L’une est **par clé** et borne un job qui s’emballe (120 appels par minute par défaut). L’autre est **par adresse source** et n’est consommée que par des clés qui n’existent pas : un client légitime ne l’atteint jamais.
+
+## Aller plus loin
+
+- Des commandes prêtes à copier pour chaque environnement : [exemples de monitoring de cron](/fr/docs/cron-examples/).
+- Créer et piloter des checks par programme : l’[API REST](/docs/reference/api/) (en anglais).

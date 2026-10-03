@@ -1,71 +1,71 @@
 ---
-title: "Politique de confidentialité"
-description: "Quelles données personnelles SilenceWatch traite, pourquoi, combien de temps, avec quels prestataires, et comment exercer vos droits (RGPD)."
+title: "Privacy policy"
+description: "What personal data SilenceWatch processes, why, for how long, with which providers, and how to exercise your rights under the GDPR."
 template: splash
 ---
 
 import { LEGAL } from '../../legal';
 
-Cette page décrit comment le service hébergé **app.silencewatch.com** traite vos données personnelles, conformément au règlement général sur la protection des données (RGPD) et à la loi Informatique et Libertés. Elle ne concerne pas une instance que vous auto-hébergez : dans ce cas, l’éditeur n’a accès à rien.
+This page describes how the hosted service at **app.silencewatch.com** handles your personal data, in line with the General Data Protection Regulation (GDPR) and the French data-protection law. It does not apply to an instance you host yourself: in that case the publisher has access to nothing.
 
-## Qui est responsable
+## Who is responsible
 
-Le responsable du traitement est l’éditeur du service, identifié dans les [mentions légales](/legal/). Pour toute question ou demande : <strong>{LEGAL.email}</strong>.
+The controller is the publisher of the service, identified in the [legal notice](/legal/). For any question or request: <strong>{LEGAL.email}</strong>.
 
-## Les données traitées, et pourquoi
+## The data, and why
 
-| Donnée | Pourquoi | Durée de conservation |
+| Data | Why | How long it is kept |
 | --- | --- | --- |
-| **Compte** : adresse e-mail, empreinte du mot de passe (Argon2id, jamais le mot de passe lui-même), état de la vérification de l’adresse | Créer et faire fonctionner votre compte | Tant que le compte existe. Lorsque la vérification de l’adresse est exigée, un compte jamais vérifié est supprimé au bout de 7 jours |
-| **Sessions** : jeton de rafraîchissement (conservé uniquement sous forme d’empreinte), adresse IP et navigateur de la connexion | Vous garder connecté, détecter le vol d’une session | Durée de la session, 30 jours au plus |
-| **Journal de sécurité** : actions sensibles (connexion, changement de mot de passe, clés d’API, suppression…), avec l’e-mail, l’adresse IP et le navigateur | Sécurité du service et enquête en cas d’incident | 1 an. Il garde l’e-mail de l’auteur de l’action même après la suppression du compte |
-| **Réinitialisation du mot de passe** : adresse IP de la demande, jeton (empreinte uniquement) | Sécuriser la réinitialisation | Jusqu’à son utilisation ou son expiration |
-| **Inscription** : le réseau de provenance, tronqué (IPv4 /24, IPv6 /48) | Freiner les inscriptions automatisées | 7 jours |
-| **Votre configuration** : projets, checks (noms, planifications, environnements, étiquettes), canaux d’alerte (adresses e-mail, adresses de webhook, Slack, Teams, Discord), clés d’API (sous forme d’empreinte) | Fournir le service | Tant que vous les gardez |
-| **Historique des signaux** : date, résultat, durée, adresse IP et navigateur de l’appelant, et le texte éventuellement joint (10 000 octets au plus) | Détecter qu’un job s’est arrêté, afficher l’historique | 90 jours par défaut, réglable par projet |
-| **Alertes envoyées** : destinataire, date, résultat | Vous prévenir, savoir si l’alerte est partie | 30 jours |
+| **Account**: email address, password hash (Argon2id, never the password itself), whether the address has been verified | To create and run your account | As long as the account exists. Where address verification is required, an account that is never verified is deleted after 7 days |
+| **Sessions**: refresh token (stored only as a hash), and the IP address and browser of the sign-in | To keep you signed in and to detect a stolen session | The life of the session, 30 days at most |
+| **Security log**: sensitive actions (sign-in, password change, API keys, deletions…), with the email, IP address and browser | Security of the service and investigation after an incident | 1 year. It keeps the email of whoever acted even after the account is deleted |
+| **Password reset**: IP address of the request, token (hash only) | To secure the reset | Until it is used or expires |
+| **Sign-up**: the network the request came from, truncated (IPv4 /24, IPv6 /48) | To slow automated sign-ups | 7 days |
+| **Your configuration**: projects, checks (names, schedules, environments, tags), alert channels (email addresses, webhook addresses, Slack, Teams, Discord), API keys (as a hash) | To provide the service | As long as you keep them |
+| **Heartbeat history**: time, result, duration, the caller’s IP address and browser, and any text attached (10,000 bytes at most) | To detect that a job has stopped and to show the history | 90 days by default, adjustable per project |
+| **Alerts sent**: recipient, time, outcome | To tell you, and to know whether the alert went out | 30 days |
 
-N’envoyez pas de données personnelles de tiers dans le texte joint à un signal : il est conservé tel quel avec l’historique.
+Do not send third parties’ personal data in the text attached to a heartbeat: it is stored as it is with the history.
 
-Le service n’utilise **aucun outil de mesure d’audience, aucune publicité et aucun traceur**, et ne revend ni ne loue aucune donnée.
+The service uses **no audience-measurement tool, no advertising and no tracker**, and neither sells nor rents any data.
 
-## Fondements juridiques
+## Legal bases
 
-- **L’exécution du contrat** (article 6.1.b du RGPD) pour tout ce qui fait fonctionner le compte et le service.
-- **L’intérêt légitime** (article 6.1.f) pour la sécurité : limitation du débit, journal de sécurité, lutte contre les inscriptions automatisées.
-- **Une obligation légale** (article 6.1.c) lorsque la loi impose de conserver ou de communiquer une information.
+- **Performance of the contract** (GDPR article 6.1.b) for everything that makes the account and the service work.
+- **Legitimate interest** (article 6.1.f) for security: rate limiting, the security log, and fighting automated sign-ups.
+- **A legal obligation** (article 6.1.c) where the law requires information to be kept or disclosed.
 
-## Avec qui les données sont partagées
+## Who the data is shared with
 
-Les données ne sont communiquées qu’aux prestataires nécessaires au service, en tant que sous-traitants :
+Data is shared only with the providers the service needs, as processors:
 
-- **OVH SAS** (France) : hébergement des serveurs et de la base de données.
-- **Mailjet** : envoi des e-mails du service (vérification de l’adresse, réinitialisation du mot de passe, alertes).
+- **OVH SAS** (France): hosting of the servers and the database.
+- **Mailjet**: sending the service’s emails (address verification, password reset, alerts).
 
-Ces deux prestataires sont établis dans l’Union européenne. Ils ne reçoivent que ce qui est nécessaire à leur mission. Les alertes que vous configurez vers Slack, Microsoft Teams, Discord ou un webhook de votre choix sont envoyées au service que vous avez vous-même désigné, sous votre responsabilité.
+Both are established in the European Union. They receive only what their task requires. The alerts you configure towards Slack, Microsoft Teams, Discord or a webhook of your choosing are sent to the service you designated yourself, under your responsibility.
 
-## Vos droits
+## Your rights
 
-Vous pouvez demander l’**accès** à vos données, leur **rectification**, leur **effacement**, la **limitation** de leur traitement, leur **portabilité**, et vous pouvez vous **opposer** à un traitement fondé sur l’intérêt légitime. Écrivez à <strong>{LEGAL.email}</strong> en indiquant l’adresse de votre compte ; une réponse est apportée dans un délai d’un mois.
+You may ask for **access** to your data, its **rectification**, its **erasure**, the **restriction** of its processing, its **portability**, and you may **object** to processing based on legitimate interest. Write to <strong>{LEGAL.email}</strong> giving your account’s address; you will get an answer within one month.
 
-La suppression de votre compte et des données qui lui sont liées se demande par ce même moyen. Les entrées du journal de sécurité sont conservées pour la durée indiquée plus haut.
+Deleting your account and the data linked to it is requested the same way. Entries in the security log are kept for the period given above.
 
-Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la [CNIL](https://www.cnil.fr/fr/plaintes).
+If you think your rights are not respected, you may complain to the [CNIL](https://www.cnil.fr/en/complaints), the French data-protection authority, or to the authority of your own country.
 
-## Cookies et stockage dans le navigateur
+## Cookies and browser storage
 
-L’application dépose **un seul cookie**, `sw_refresh` : le jeton qui vous garde connecté. Il est `HttpOnly`, `SameSite=Strict`, réservé aux routes d’authentification, et indispensable au fonctionnement du service. À ce titre il n’est pas soumis à votre consentement.
+The application sets **one cookie**, `sw_refresh`: the token that keeps you signed in. It is `HttpOnly`, `SameSite=Strict`, limited to the authentication routes, and essential to the service. As such it does not need your consent.
 
-Elle enregistre aussi dans le stockage local de votre navigateur vos préférences d’affichage (langue, mode clair ou sombre) et le projet sélectionné. Ces valeurs restent sur votre appareil et ne sont jamais envoyées au serveur.
+It also stores your display preferences (language, light or dark mode) and the selected project in your browser’s local storage. These values stay on your device and are never sent to the server.
 
-Le site silencewatch.com ne dépose aucun cookie ; son thème d’affichage est lui aussi gardé localement.
+The silencewatch.com site sets no cookie; its display theme is also kept locally.
 
-## Sécurité
+## Security
 
-Les mots de passe sont stockés sous forme d’empreinte Argon2id, les jetons de session et les clés d’API sous forme d’empreinte SHA-256, et les échanges sont chiffrés (HTTPS). Le détail des mesures est publié dans la page [Sécurité](/docs/reference/security/). Une faille se signale selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+Passwords are stored as Argon2id hashes, and session tokens and API keys as SHA-256 hashes, and traffic is encrypted (HTTPS). The measures are detailed on the [Security](/docs/reference/security/) page. A vulnerability is reported through the procedure in [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
 
-## Modifications
+## Changes
 
-Cette politique peut évoluer ; la date de la dernière mise à jour figure en bas de page, et un changement important est porté à la connaissance des titulaires de compte.
+This policy may change; the date of the last update is at the foot of the page, and a significant change is brought to the attention of account holders.
 
-*Dernière mise à jour : 3 octobre 2026.*
+*Last updated: 3 October 2026.*

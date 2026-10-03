@@ -1,98 +1,98 @@
 ---
-title: "Monitoring de jobs : alerte quand un job s’arrête"
-description: "Le monitoring de jobs avec SilenceWatch : sachez si vos jobs, batchs, ETL, workers et tâches planifiées s’exécutent à l’heure, durent le temps prévu et réussissent."
+title: "Job monitoring: get alerted when a job stops"
+description: "Job monitoring with SilenceWatch: know whether your jobs, batches, ETL, workers and scheduled tasks run on time, take the expected time and succeed."
 template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
 import Faq from '../../components/Faq.astro';
 
-<p class="splash-lede">Vos jobs ne vous préviennent pas quand ils s’arrêtent. Le <strong>monitoring de jobs</strong> répond à une question simple : <em>mon job a-t-il tourné quand il devait, et s’est-il bien terminé ?</em> SilenceWatch y répond pour tout job capable d’envoyer une requête HTTP.</p>
+<p class="splash-lede">Your jobs don’t tell you when they stop. <strong>Job monitoring</strong> answers a simple question: <em>did my job run when it should, and did it finish properly?</em> SilenceWatch answers it for any job that can send an HTTP request.</p>
 
-## Qu’est-ce que le monitoring de jobs ?
+## What is job monitoring?
 
-Un **job** est une tâche qui s’exécute sans que personne la lance : une sauvegarde, un export, un traitement de facturation, un import, une purge, un batch, un worker périodique. On parle aussi de *tâche planifiée*, de *batch* ou de *cron* — le cron n’est qu’une façon de planifier un job parmi d’autres, d’où le [monitoring de cron](/cron-monitoring/) comme cas particulier. Le monitoring de jobs (on dit aussi supervision ou surveillance de jobs) vérifie que chacun s’exécute **à l’heure prévue**, **dans un temps normal** et **avec succès**, et alerte sinon.
+A **job** is a task that runs without anyone starting it: a backup, an export, a billing run, an import, a purge, a batch, a periodic worker. It is also called a *scheduled task*, a *batch* or a *cron job* — cron is only one way of scheduling a job among others, which is why [cron job monitoring](/cron-monitoring/) is a special case. Job monitoring checks that each one runs **at the expected time**, **in a normal amount of time** and **successfully**, and alerts otherwise.
 
-## Ce qu’on surveille vraiment dans un job
+## What you really watch in a job
 
-Trois choses, et chacune échoue différemment :
+Three things, and each fails differently:
 
-- **La présence.** Le job a-t-il démarré à l’heure prévue ? C’est la panne la plus sournoise, parce qu’elle ne produit aucune erreur : un ordonnanceur arrêté, une planification supprimée, un conteneur qui ne se lance plus.
-- **Le résultat.** S’est-il terminé avec succès ? Un job qui part mais plante doit pouvoir le dire tout de suite, avec son code de sortie.
-- **La durée.** Prend-il le temps habituel ? Un traitement qui double de durée annonce souvent un problème avant qu’il ne s’arrête.
+- **Presence.** Did the job start at the expected time? It is the sneakiest failure, because it produces no error: a stopped scheduler, a deleted schedule, a container that no longer starts.
+- **Outcome.** Did it finish successfully? A job that starts but crashes should be able to say so right away, with its exit code.
+- **Duration.** Does it take the usual time? A process that doubles in duration often announces a problem before it stops.
 
-## Pourquoi les autres surveillances ne suffisent pas
+## Why other monitoring is not enough
 
-| Ce que vous avez | Ce qu’il voit | Ce qu’il rate |
+| What you have | What it sees | What it misses |
 | --- | --- | --- |
-| Alertes sur les journaux | Les erreurs écrites | Un job qui ne s’exécute pas n’écrit rien |
-| Supervision de disponibilité (*uptime*) | Qu’un service répond | Qu’un job planifié tourne |
-| APM / traces | Le comportement d’un code qui s’exécute | L’absence d’exécution |
-| **Heartbeat (SilenceWatch)** | **L’arrivée, ou l’absence, d’un signal à l’heure prévue** | Le contenu du travail (il faut un signal d’échec explicite) |
+| Log alerts | The errors that were written | A job that does not run writes nothing |
+| Uptime monitoring | That a service responds | That a scheduled job is running |
+| APM / tracing | The behaviour of code that executes | The absence of execution |
+| **Heartbeat (SilenceWatch)** | **The arrival, or absence, of a signal at the expected time** | The content of the work (you need an explicit failure signal) |
 
-Ces outils sont complémentaires. Le heartbeat comble ce qu’aucun des autres ne voit : l’absence.
+These tools are complementary. The heartbeat covers what none of the others sees: absence.
 
-## Comment SilenceWatch surveille un job
+## How SilenceWatch monitors a job
 
-Chaque job appelle une URL de ping, à la fin de son exécution et, si vous le souhaitez, au début (pour mesurer la durée) et en cas d’échec :
+Each job calls a ping URL at the end of its run and, if you like, at the start (to measure duration) and on failure:
 
 ```text
-GET|POST /p/<clé>          l’exécution a réussi
-GET|POST /p/<clé>/start    l’exécution commence
-GET|POST /p/<clé>/fail     l’exécution a échoué
-GET|POST /p/<clé>/<code>   code de sortie (0 réussit)
+GET|POST /p/<key>          the run succeeded
+GET|POST /p/<key>/start    the run started
+GET|POST /p/<key>/fail     the run failed
+GET|POST /p/<key>/<code>   exit code (0 succeeds)
 ```
 
-Vous déclarez la fréquence attendue (intervalle ou expression cron, avec fuseau horaire) et un délai de grâce. Passé l’échéance, le check est **en retard** ; une fois le délai de grâce écoulé, il est **en panne**, un incident s’ouvre et vos canaux sont alertés (e-mail, webhook, Slack, Microsoft Teams, Discord). Le détail est dans les [états d’un check](/docs/schedules-and-states/).
+You declare the expected frequency (interval or cron expression, with time zone) and a grace period. Past the deadline, the check is **late**; once the grace period has passed, it is **down**, an incident opens and your channels are alerted (email, webhook, Slack, Microsoft Teams, Discord). The detail is in [check states](/docs/schedules-and-states/).
 
-## Quels jobs surveiller
+## Which jobs to monitor
 
-- Les [sauvegardes de bases de données et de fichiers](/guides/backup-monitoring/).
-- Les imports et exports de données, les traitements ETL, les synchronisations.
-- Les traitements de facturation, les relances, les envois en masse.
-- Les purges, les rotations, les renouvellements de certificats.
-- Les tâches `@Scheduled` et les jobs Quartz d’une application [Spring Boot](/spring-boot/), découverts automatiquement.
-- Les [crons](/cron-monitoring/) d’un serveur, d’un conteneur ou d’un [CronJob Kubernetes](/guides/kubernetes-cronjob-monitoring/).
+- [Database and file backups](/guides/backup-monitoring/).
+- Data imports and exports, ETL processing, synchronisations.
+- Billing runs, reminders, bulk mailings.
+- Purges, rotations, certificate renewals.
+- `@Scheduled` tasks and Quartz jobs of a [Spring Boot](/spring-boot/) application, discovered automatically.
+- The [cron jobs](/cron-monitoring/) of a server, a container or a [Kubernetes CronJob](/guides/kubernetes-cronjob-monitoring/).
 
-Pour des **files de messages** ou des traitements à la demande, un heartbeat périodique ne convient pas : SilenceWatch surveille des jobs qui doivent tourner à intervalle régulier.
+For **message queues** or on-demand processing, a periodic heartbeat is not the right tool: SilenceWatch monitors jobs that must run at regular intervals.
 
-## Choisir un outil de monitoring de jobs
+## Choosing a job monitoring tool
 
-Quelques questions utiles, quel que soit l’outil :
+A few useful questions, whatever the tool:
 
-1. **Détecte-t-il l’absence ?** C’est le cœur du sujet : un outil qui ne regarde que les erreurs ne voit pas un job qui ne se lance plus.
-2. **Comprend-il vos planifications ?** Expressions cron, fuseaux horaires, changements d’heure, délai de grâce.
-3. **Mesure-t-il la durée et distingue-t-il l’échec du retard ?**
-4. **Alerte-t-il là où vous êtes**, et peut-on tester un canal avant l’incident ?
-5. **S’intègre-t-il sans effort ?** Une requête HTTP pour un script ; une dépendance pour une application Java.
-6. **Où tournent vos données ?** Un service hébergé, ou un outil [auto-hébergeable](/self-hosted/) sans version bridée.
+1. **Does it detect absence?** That is the heart of the matter: a tool that only looks at errors cannot see a job that no longer starts.
+2. **Does it understand your schedules?** Cron expressions, time zones, clock changes, a grace period.
+3. **Does it measure duration, and tell a failure from lateness?**
+4. **Does it alert where you are**, and can a channel be tested before the incident?
+5. **Does it integrate without effort?** One HTTP request for a script; one dependency for a Java application.
+6. **Where does your data live?** A hosted service, or a [self-hostable](/self-hosted/) tool that is never crippled.
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller mes jobs</LinkButton>
-  <LinkButton href="/docs/ping-api/" variant="secondary">Voir l’API de ping</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my jobs</LinkButton>
+  <LinkButton href="/docs/ping-api/" variant="secondary">See the ping API</LinkButton>
 </div>
 
-## Questions fréquentes
+## Frequently asked questions
 
 <Faq
-  title="Questions fréquentes sur le monitoring de jobs"
+  title="Frequently asked questions about job monitoring"
   items={[
-    { q: 'Qu’est-ce que le monitoring de jobs ?', a: 'C’est la surveillance de l’exécution de vos jobs et tâches planifiées : on vérifie que chacun s’exécute à l’heure prévue, dans un temps normal et avec succès, et on alerte sinon. Les crons en font partie.' },
-    { q: 'Comment surveiller un job qui ne plante pas mais ne se lance plus ?', a: 'Avec un heartbeat : le job envoie un signal à chaque exécution, et SilenceWatch vous alerte si le signal n’arrive pas dans le délai prévu. C’est le seul moyen de détecter une absence, puisqu’un job qui ne tourne pas ne produit aucune erreur.' },
-    { q: 'Quelle différence entre monitoring de jobs et monitoring de logs ?', a: 'Le monitoring de logs détecte les erreurs écrites. Le monitoring de jobs par heartbeat détecte qu’un job ne s’est pas exécuté du tout, ce qu’un journal ne peut pas montrer puisqu’un job absent n’écrit rien.' },
-    { q: 'Peut-on mesurer la durée d’un job ?', a: 'Oui. Le job appelle /start au début puis l’URL de résultat à la fin ; SilenceWatch mesure l’intervalle, ou vous pouvez transmettre vous-même une durée avec le paramètre duration_ms.' },
-    { q: 'Comment être alerté quand un job échoue sans attendre l’échéance ?', a: 'Faites appeler /fail, ou l’URL avec un code de sortie non nul, quand le job échoue : le check passe en panne tout de suite, sans attendre la fin du délai de grâce.' },
-    { q: 'SilenceWatch convient-il aux jobs Java ?', a: 'Oui, avec un starter Spring Boot qui découvre automatiquement les tâches @Scheduled et les jobs Quartz et envoie les signaux à votre place.' },
+    { q: 'What is job monitoring?', a: 'It is watching that your jobs and scheduled tasks run: checking that each one runs at the expected time, in a normal amount of time and successfully, and alerting otherwise. Cron jobs are part of it.' },
+    { q: 'How do I monitor a job that does not crash but no longer starts?', a: 'With a heartbeat: the job sends a signal on every run, and SilenceWatch alerts you if it does not arrive within the expected window. It is the only way to detect an absence, because a job that does not run produces no error.' },
+    { q: 'What is the difference between job monitoring and log monitoring?', a: 'Log monitoring detects errors that were written. Heartbeat job monitoring detects that a job did not run at all, which a log cannot show since an absent job writes nothing.' },
+    { q: 'Can I measure how long a job takes?', a: 'Yes. The job calls /start at the beginning and the result URL at the end; SilenceWatch measures the interval, or you can pass a duration yourself with the duration_ms parameter.' },
+    { q: 'How do I get alerted when a job fails without waiting for the deadline?', a: 'Call /fail, or the URL with a non-zero exit code, when the job fails: the check goes down immediately, without waiting for the grace period to end.' },
+    { q: 'Is SilenceWatch suitable for Java jobs?', a: 'Yes, with a Spring Boot starter that automatically discovers @Scheduled tasks and Quartz jobs and sends the heartbeats for you.' },
   ]}
 />
 
-## Voir aussi
+## See also
 
 <ul class="sw-related">
-  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
-  <li><a href="/spring-boot/">Monitoring Spring Boot</a></li>
-  <li><a href="/guides/backup-monitoring/">Surveiller une sauvegarde</a></li>
-  <li><a href="/guides/kubernetes-cronjob-monitoring/">Surveiller un CronJob Kubernetes</a></li>
-  <li><a href="/dead-mans-switch/">Dead man’s switch</a></li>
-  <li><a href="/self-hosted/">Auto-hébergement</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/spring-boot/">Spring Boot monitoring</a></li>
+  <li><a href="/guides/backup-monitoring/">Monitoring a backup</a></li>
+  <li><a href="/guides/kubernetes-cronjob-monitoring/">Monitor a Kubernetes CronJob</a></li>
+  <li><a href="/dead-mans-switch/">Dead man's switch</a></li>
+  <li><a href="/self-hosted/">Self-hosting</a></li>
 </ul>

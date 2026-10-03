@@ -20,13 +20,14 @@ export default defineConfig({
     starlight({
       title: 'SilenceWatch',
       description:
-        'Vos Jobs ne vous préviennent pas quand ils s’arrêtent. Nous oui. Monitoring de jobs par heartbeat, open source et auto-hébergeable.',
-      // French is the language of the site and lives at the root; English is
-      // under /en/. The root locale needs a `lang` because it is not 'root'.
+        'Your jobs don’t tell you when they stop. We do. Job monitoring by heartbeat: open source and self-hostable.',
+      // English is the language of the site and lives at the root; French is
+      // under /fr/. The root locale needs a `lang` because it is not 'root'.
+      // A browser set to French is sent to /fr/ by public/lang-redirect.js.
       defaultLocale: 'root',
       locales: {
-        root: { label: 'Français', lang: 'fr' },
-        en: { label: 'English', lang: 'en' },
+        root: { label: 'English', lang: 'en' },
+        fr: { label: 'Français', lang: 'fr' },
       },
       favicon: '/favicon.svg',
       logo: { src: './src/assets/logo.svg', alt: 'SilenceWatch' },
@@ -40,6 +41,8 @@ export default defineConfig({
       },
       routeMiddleware: './src/route-middleware.ts',
       head: [
+        // Sends a browser set to French to /fr/, unless a language was chosen.
+        { tag: 'script', attrs: { src: '/lang-redirect.js' } },
         { tag: 'meta', attrs: { name: 'theme-color', content: '#8b4bf1' } },
         { tag: 'meta', attrs: { name: 'author', content: 'SilenceWatch' } },
         { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
@@ -48,7 +51,7 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Documentation',
-          translations: { en: 'Documentation' },
+          translations: { fr: 'Documentation' },
           items: [
             { slug: 'docs/getting-started' },
             { slug: 'docs/ping-api' },
@@ -59,8 +62,8 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Référence',
-          translations: { en: 'Reference' },
+          label: 'Reference',
+          translations: { fr: 'Référence' },
           items: [
             { slug: 'docs/reference/api' },
             { slug: 'docs/reference/self-hosting' },

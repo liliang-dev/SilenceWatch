@@ -1,61 +1,61 @@
 ---
-title: "Dead man’s switch : définition et usage"
-description: "Qu’est-ce qu’un dead man’s switch ? Le principe du heartbeat, ce qu’il détecte que les autres outils ratent, et comment SilenceWatch l’applique à vos jobs."
+title: "Dead man's switch: definition and use"
+description: "What is a dead man's switch? The heartbeat principle, what it detects that other tools miss, and how SilenceWatch applies it to your jobs."
 template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
 import Faq from '../../components/Faq.astro';
 
-<p class="splash-lede">Un <strong>dead man’s switch</strong> (« interrupteur d’homme mort ») déclenche une action quand un signal régulier cesse d’arriver. Appliqué aux jobs, c’est le moyen fiable de détecter qu’une tâche planifiée ne s’exécute plus.</p>
+<p class="splash-lede">A <strong>dead man's switch</strong> triggers an action when a regular signal stops arriving. Applied to jobs, it is the reliable way to detect that a scheduled task no longer runs.</p>
 
-## Le principe
+## The principle
 
-Le nom vient des commandes de sécurité des trains et des machines : l’opérateur doit maintenir ou actionner régulièrement un dispositif, et c’est **l’arrêt du geste**, non un geste, qui déclenche l’alarme. En informatique, on dit aussi **heartbeat** (« battement de cœur ») ou *check-in* : un programme envoie un signal à intervalle régulier, et un service surveille que ce signal arrive.
+The name comes from the safety controls of trains and machinery: the operator must hold or press a device regularly, and it is **the stopping of the gesture**, not a gesture, that raises the alarm. In IT it is also called **heartbeat** or *check-in*: a program sends a signal at regular intervals, and a service watches that the signal arrives.
 
-Si le signal arrive à l’heure, tout va bien et rien ne se passe. S’il manque, une alerte part.
+If the signal arrives on time, all is well and nothing happens. If it is missing, an alert goes out.
 
-## Pourquoi c’est la bonne approche pour les jobs planifiés
+## Why it is the right approach for scheduled jobs
 
-Les surveillances habituelles cherchent un événement : une erreur dans un journal, une réponse HTTP en échec, une trace anormale. Or la panne la plus fréquente d’une tâche planifiée est qu’**elle ne se lance plus**, et une absence ne produit aucun événement à détecter. Le dead man’s switch renverse la logique : on ne cherche pas le problème, on exige la preuve que tout s’est bien passé.
+The usual kinds of monitoring look for an event: an error in a log, a failing HTTP response, an abnormal trace. But the most common failure of a scheduled task is that **it stops starting**, and an absence produces no event to detect. The dead man's switch reverses the logic: you do not look for the problem, you require proof that everything went well.
 
-C’est aussi ce qui le rend simple à mettre en place : une requête HTTP à la fin du job, et rien à installer sur la machine.
+That is also what makes it simple to set up: one HTTP request at the end of the job, and nothing to install on the machine.
 
-## Ce que le dead man’s switch détecte
+## What a dead man's switch detects
 
-- un cron ou un ordonnanceur arrêté, une planification supprimée ou écrasée ;
-- une machine ou un conteneur éteint, un déploiement qui a retiré le job ;
-- un job bloqué ou qui n’aboutit jamais à sa fin ;
-- un job qui échoue et le signale explicitement (`/fail`), ou qui devient anormalement long.
+- a stopped cron or scheduler, a deleted or overwritten schedule;
+- a machine or container that is off, a deployment that removed the job;
+- a job that hangs or never reaches its end;
+- a job that fails and says so explicitly (`/fail`), or that becomes abnormally long.
 
-## Ses limites
+## Its limits
 
-Un dead man’s switch **atteste de l’exécution, pas de la qualité du travail** : un job peut tourner, envoyer son signal et produire un résultat faux. Pour une sauvegarde, il faut donc que le script vérifie son propre résultat avant d’envoyer le signal de réussite, comme dans le [guide de surveillance d’une sauvegarde](/guides/backup-monitoring/). Il convient aussi aux tâches **périodiques** : pour une file de messages ou un traitement à la demande, une autre surveillance est nécessaire. Enfin, c’est une surveillance « passive » : c’est le job qui appelle, et non le service qui interroge.
+A dead man's switch **attests to execution, not to the quality of the work**: a job can run, send its signal and still produce a wrong result. For a backup, the script must therefore check its own result before sending the success signal, as in the [backup monitoring guide](/guides/backup-monitoring/). It also suits **periodic** tasks: for a message queue or on-demand processing, other monitoring is needed. Finally, it is "passive" monitoring: the job calls in, the service does not poll.
 
-## SilenceWatch, un dead man’s switch pour vos jobs
+## SilenceWatch, a dead man's switch for your jobs
 
-SilenceWatch en est une implémentation complète : une URL de ping par check, une planification (intervalle ou cron avec fuseau horaire), un délai de grâce, des incidents, des alertes par e-mail, webhook, Slack, Microsoft Teams ou Discord, et un historique de chaque signal. Il est open source (Apache 2.0) et peut être [auto-hébergé](/self-hosted/).
+SilenceWatch is a complete implementation: one ping URL per check, a schedule (interval or cron with time zone), a grace period, incidents, alerts by email, webhook, Slack, Microsoft Teams or Discord, and a history of every signal. It is open source (Apache 2.0) and can be [self-hosted](/self-hosted/).
 
 <div class="sw-cta">
-  <LinkButton href="/cron-monitoring/" variant="primary" icon="right-arrow">Monitoring de cron</LinkButton>
-  <LinkButton href="/docs/getting-started/" variant="secondary">Premiers pas</LinkButton>
+  <LinkButton href="/cron-monitoring/" variant="primary" icon="right-arrow">Cron job monitoring</LinkButton>
+  <LinkButton href="/docs/getting-started/" variant="secondary">Getting started</LinkButton>
 </div>
 
-## Questions fréquentes
+## Frequently asked questions
 
 <Faq
-  title="Questions fréquentes sur le dead man’s switch"
+  title="Frequently asked questions about the dead man's switch"
   items={[
-    { q: 'Qu’est-ce qu’un dead man’s switch en informatique ?', a: 'C’est un mécanisme qui déclenche une alerte quand un signal régulier cesse d’arriver. Un programme envoie un heartbeat à intervalle régulier, et un service surveille son arrivée. L’absence du signal est ce qui déclenche l’alerte.' },
-    { q: 'Quelle différence entre dead man’s switch et heartbeat monitoring ?', a: 'Ce sont deux noms de la même idée. Heartbeat monitoring désigne le signal régulier envoyé par le programme ; dead man’s switch insiste sur le fait que c’est son arrêt qui déclenche l’alarme.' },
-    { q: 'Un dead man’s switch détecte-t-il un job qui tourne mais produit un mauvais résultat ?', a: 'Pas seul : il atteste de l’exécution. Faites vérifier son résultat par le script avant d’envoyer le signal de réussite, et appelez l’URL d’échec en cas de problème.' },
+    { q: 'What is a dead man’s switch in IT?', a: 'It is a mechanism that raises an alert when a regular signal stops arriving. A program sends a heartbeat at regular intervals, and a service watches for it. The absence of the signal is what triggers the alert.' },
+    { q: 'What is the difference between a dead man’s switch and heartbeat monitoring?', a: 'They are two names for the same idea. Heartbeat monitoring refers to the regular signal the program sends; dead man’s switch stresses that it is its stopping that raises the alarm.' },
+    { q: 'Does a dead man’s switch detect a job that runs but produces a wrong result?', a: 'Not by itself: it attests to execution. Have the script check its result before sending the success signal, and call the failure URL when something is wrong.' },
   ]}
 />
 
-## Voir aussi
+## See also
 
 <ul class="sw-related">
-  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
-  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
-  <li><a href="/docs/schedules-and-states/">États d’un check</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/job-monitoring/">Job monitoring</a></li>
+  <li><a href="/docs/schedules-and-states/">Check states</a></li>
 </ul>

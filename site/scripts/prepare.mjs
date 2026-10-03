@@ -30,8 +30,9 @@ copy(join(repo, 'packages/web/public/favicon.svg'), join(root, 'public/favicon.s
 
 // --- 2. the reference pages --------------------------------------------------
 //
-// English only, because the Markdown is. They are served under /en/ and the
-// French sidebar links to them there, rather than pretending to a translation.
+// English only, because the Markdown is. English is the site's language, so they
+// are served at /docs/reference/ and the French summaries link to them there,
+// rather than pretending to a translation.
 const REFERENCE = {
   api: {
     file: 'api.md',
@@ -50,7 +51,7 @@ const REFERENCE = {
   },
 };
 
-const outDir = join(root, 'src/content/docs/en/docs/reference');
+const outDir = join(root, 'src/content/docs/docs/reference');
 rmSync(outDir, { recursive: true, force: true });
 
 /** Links in /docs are written for the repository; on the site they go to the site or to GitHub. */
@@ -59,7 +60,7 @@ function rewriteLinks(markdown, fromFile) {
   return markdown.replace(/\]\(([^)#\s]+)(#[^)\s]*)?\)/g, (whole, target, hash = '') => {
     if (/^(https?:|mailto:)/.test(target)) return whole;
     const name = target.replace(/^\.\//, '');
-    if (pages[name]) return `](/en/docs/reference/${pages[name]}/${hash})`;
+    if (pages[name]) return `](/docs/reference/${pages[name]}/${hash})`;
     const absolute = resolve(dirname(join(repo, 'docs', fromFile)), target);
     const inRepo = absolute.slice(repo.length + 1);
     return `](${REPOSITORY}/blob/dev/${inRepo}${hash})`;

@@ -1,65 +1,65 @@
 ---
-title: "Conditions d’utilisation"
-description: "Les règles d’utilisation du service hébergé SilenceWatch : compte, usage acceptable, disponibilité, données, responsabilité et résiliation."
+title: "Terms of use"
+description: "The rules for using the hosted SilenceWatch service: account, acceptable use, availability, data, liability and ending your use."
 template: splash
 ---
 
 import { LEGAL } from '../../legal';
 
-Ces conditions encadrent l’utilisation du service hébergé **app.silencewatch.com**. En créant un compte ou en utilisant le service, vous les acceptez. Elles ne concernent pas le logiciel que vous installez vous-même : celui-ci est régi par sa licence [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+These terms govern the use of the hosted service at **app.silencewatch.com**. By creating an account or using the service you accept them. They do not apply to software you install yourself, which is governed by its [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) licence.
 
-L’éditeur est identifié dans les [mentions légales](/legal/), et vous pouvez le joindre à <strong>{LEGAL.email}</strong>.
+The publisher is identified in the [legal notice](/legal/), and can be reached at <strong>{LEGAL.email}</strong>.
 
-## 1. Le service
+## 1. The service
 
-SilenceWatch surveille des tâches planifiées (cron, workers, jobs) à partir de signaux, des appels HTTP qu’elles envoient quand elles s’exécutent. Quand un signal n’arrive pas à temps, le service ouvre un incident et envoie une alerte sur les canaux que vous avez configurés (e-mail, webhook, Slack, Microsoft Teams, Discord).
+SilenceWatch monitors scheduled tasks (cron, workers, jobs) through heartbeats: HTTP calls they send when they run. When a heartbeat does not arrive in time, the service opens an incident and sends an alert to the channels you configured (email, webhook, Slack, Microsoft Teams, Discord).
 
-## 2. Votre compte
+## 2. Your account
 
-- Vous fournissez une adresse e-mail valide, que vous contrôlez.
-- Vous gardez vos identifiants, vos clés d’API et vos adresses de signal confidentiels. Ce qui est fait avec vos clés est fait en votre nom : si vous soupçonnez une fuite, révoquez la clé et changez votre mot de passe.
-- Un compte est personnel. Vous êtes responsable des personnes que vous invitez dans vos projets.
+- You provide a valid email address that you control.
+- You keep your credentials, API keys and heartbeat addresses confidential. What is done with your keys is done in your name: if you suspect a leak, revoke the key and change your password.
+- An account is personal. You are responsible for the people you invite to your projects.
 
-## 3. Usage acceptable
+## 3. Acceptable use
 
-Vous vous engagez à ne pas :
+You agree not to:
 
-- chercher à accéder aux données d’un autre utilisateur, ni à contourner l’isolation entre les comptes ;
-- explorer ou deviner des adresses de signal, ni envoyer un volume de requêtes qui dégrade le service pour les autres ;
-- faire passer par le service un contenu illicite, ou des données personnelles de tiers que vous n’avez pas le droit de traiter ;
-- utiliser les alertes pour harceler ou pour atteindre un système qui n’est pas le vôtre ;
-- tester la sécurité du service autrement que selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+- try to reach another user’s data, or get around the isolation between accounts;
+- probe or guess heartbeat addresses, or send a volume of requests that degrades the service for others;
+- pass unlawful content through the service, or third parties’ personal data that you have no right to process;
+- use alerts to harass anyone or to reach a system that is not yours;
+- test the service’s security other than through the procedure in [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
 
-En cas de manquement, l’éditeur peut limiter ou suspendre le compte, sans préavis lorsque la sécurité du service ou des autres utilisateurs l’exige.
+In case of a breach, the publisher may limit or suspend the account, without notice where the security of the service or of other users requires it.
 
-## 4. Disponibilité et limites du service
+## 4. Availability and limits
 
-Le service est fourni avec le soin que l’on doit à un outil dont le métier est de rester en ligne, mais **sans garantie de disponibilité continue** : il peut être interrompu pour une maintenance ou par un incident, et l’éditeur ne s’engage sur aucun niveau de service qui ne serait pas convenu par écrit.
+The service is provided with the care owed to a tool whose job is to stay up, but **without a guarantee of continuous availability**: it may be interrupted for maintenance or by an incident, and the publisher commits to no service level that is not agreed in writing.
 
-Une alerte dépend de services que l’éditeur ne maîtrise pas : votre messagerie, le fournisseur d’e-mail, Slack, Teams, Discord, ou l’adresse de votre webhook. Elle peut être retardée, filtrée ou perdue. **Ne faites pas de SilenceWatch la seule protection d’une activité critique** ; prévoyez au moins un second moyen d’être prévenu.
+An alert depends on services the publisher does not control: your mailbox, the email provider, Slack, Teams, Discord, or your webhook’s address. It may be delayed, filtered or lost. **Do not make SilenceWatch the only safeguard for a critical activity**; keep at least a second way of being told.
 
-## 5. Vos données
+## 5. Your data
 
-Vous restez propriétaire de vos données. Elles sont traitées comme l’explique la [politique de confidentialité](/privacy/), et vous pouvez demander leur suppression à tout moment. Vous êtes responsable de ce que vous envoyez au service, y compris dans le texte joint à un signal.
+You remain the owner of your data. It is handled as the [privacy policy](/privacy/) explains, and you may ask for it to be deleted at any time. You are responsible for what you send to the service, including the text attached to a heartbeat.
 
-## 6. Tarifs
+## 6. Prices
 
-Les conditions financières, le cas échéant, sont indiquées au moment où vous souscrivez une offre payante, et complétées par des conditions de vente. Aucune somme n’est due sans que vous l’ayez acceptée.
+Any financial terms are shown when you subscribe to a paid plan, and completed by terms of sale. No amount is due unless you have accepted it.
 
-## 7. Responsabilité
+## 7. Liability
 
-Dans les limites permises par la loi, l’éditeur ne répond pas des dommages indirects (perte d’exploitation, perte de données, perte de chance) liés à l’usage du service ou à l’absence d’une alerte, et sa responsabilité, quel que soit le fondement, est limitée au montant que vous avez payé pour le service au cours des douze derniers mois. Rien dans ces conditions n’exclut ce que la loi ne permet pas d’exclure, ni les droits que vous reconnaît le droit de la consommation si vous agissez en tant que consommateur.
+Within the limits the law allows, the publisher is not liable for indirect damages (loss of business, loss of data, loss of opportunity) arising from the use of the service or from a missing alert, and its liability, whatever the legal ground, is limited to the amount you paid for the service in the last twelve months. Nothing in these terms excludes what the law does not allow to be excluded, nor the rights consumer law gives you if you are acting as a consumer.
 
-## 8. Fin de l’utilisation
+## 8. Ending your use
 
-Vous pouvez cesser d’utiliser le service et demander la suppression de votre compte à tout moment, à l’adresse ci-dessus. L’éditeur peut mettre fin à un compte qui manque à ces conditions, ou arrêter le service en prévenant les titulaires de compte dans un délai raisonnable.
+You may stop using the service and ask for your account to be deleted at any time, at the address above. The publisher may end an account that breaches these terms, or stop the service, giving account holders reasonable notice.
 
-## 9. Propriété intellectuelle
+## 9. Intellectual property
 
-Le logiciel est sous licence Apache 2.0. Le nom « SilenceWatch » et le logo n’en font pas partie ; voir les [mentions légales](/legal/#propriété-intellectuelle).
+The software is under the Apache 2.0 licence. The name “SilenceWatch” and the logo are not part of it; see the [legal notice](/legal/#intellectual-property).
 
-## 10. Modifications et droit applicable
+## 10. Changes and governing law
 
-L’éditeur peut modifier ces conditions ; la nouvelle version s’applique à partir de sa publication, et un changement important est porté à la connaissance des titulaires de compte. Elles sont régies par le droit français. En cas de litige, et sous réserve des règles protectrices du consommateur, les tribunaux français sont compétents.
+The publisher may change these terms; the new version applies from its publication, and a significant change is brought to the attention of account holders. They are governed by French law. In case of a dispute, and subject to the protective rules for consumers, the French courts have jurisdiction.
 
-*Dernière mise à jour : 3 octobre 2026.*
+*Last updated: 3 October 2026.*

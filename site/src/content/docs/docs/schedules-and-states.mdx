@@ -1,49 +1,49 @@
 ---
-title: "Planifications, délai de grâce et états"
-description: "Comment SilenceWatch décide qu’un job est en retard ou en panne : intervalle ou cron, fuseau horaire, délai de grâce, états et incidents."
+title: "Schedules, grace period and check states"
+description: "How SilenceWatch decides a job is late or down: interval or cron, time zone, grace period, states and incidents."
 sidebar:
-  label: Planifications et états
+  label: Schedules and states
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-Un check a deux réglages qui décident de tout : **quand le prochain signal est attendu** (la planification) et **combien de retard vous tolérez** (le délai de grâce).
+A check has two settings that decide everything: **when the next heartbeat is expected** (the schedule) and **how late you tolerate** (the grace period).
 
-## La planification
+## The schedule
 
-Deux formes, jamais les deux à la fois :
+Two forms, never both:
 
-- **Un intervalle** : « toutes les N secondes ». Le minimum est de 30 secondes. Convient aux traitements réguliers (toutes les 5 minutes, toutes les heures).
-- **Une expression cron** : à 5 champs (Unix) ou à 6 champs (secondes en tête, comme l’écrivent Spring et Quartz), avec un **fuseau horaire** IANA (`Europe/Paris`). Les formes `?`, `L`, `5L` et `MON#2` sont acceptées. Le `W` de Quartz (jour ouvré le plus proche) est refusé : le serveur ne saurait pas calculer l’échéance, et un check dont l’échéance est incalculable est pire que pas de check.
+- **An interval**: "every N seconds". The minimum is 30 seconds. Suited to regular processing (every 5 minutes, every hour).
+- **A cron expression**: with 5 fields (Unix) or 6 (leading seconds, as Spring and Quartz write them), and an IANA **time zone** (`Europe/Paris`). The forms `?`, `L`, `5L` and `MON#2` are accepted. Quartz's `W` (nearest weekday) is rejected: the server could not compute the deadline, and a check whose deadline cannot be computed is worse than no check.
 
-Le fuseau horaire compte pour les expressions cron : `0 2 * * *` ne tombe pas à la même heure à Paris et à New York, ni avant et après un changement d’heure.
+The time zone matters for cron expressions: `0 2 * * *` is not the same moment in Paris and in New York, nor before and after a clock change.
 
-## Le délai de grâce
+## The grace period
 
-C’est le retard accepté après l’échéance avant de vous alerter. Réglez-le à la mesure du job : une sauvegarde qui dure normalement vingt minutes mérite un délai de grâce de plus de vingt minutes. Trop court, vous aurez de fausses alertes ; trop long, vous serez prévenu tard.
+It is the lateness accepted after the deadline before you are alerted. Size it to the job: a backup that normally takes twenty minutes deserves a grace period of more than twenty minutes. Too short and you get false alerts; too long and you hear late.
 
-## Les états
+## The states
 
-| État | Ce que cela veut dire |
+| State | What it means |
 | --- | --- |
-| **En attente** | Aucun ping n’est encore arrivé. |
-| **OK** | Le dernier ping est arrivé dans les temps. |
-| **En retard** | L’échéance est dépassée, mais le délai de grâce court encore. Aucune alerte n’est envoyée. |
-| **En panne** | L’échéance et le délai de grâce sont dépassés, ou le job a signalé un échec (`/fail`, ou un code de sortie non nul). Un incident s’ouvre et chaque canal activé est alerté. |
-| **En pause** | Vous avez suspendu le check : il n’alerte pas et ses pings sont ignorés. |
+| **Waiting** | No ping has arrived yet. |
+| **UP** | The last ping arrived on time. |
+| **Late** | The deadline has passed, but the grace period is still running. No alert is sent. |
+| **Down** | The deadline and the grace period have passed, or the job reported a failure (`/fail`, or a non-zero exit code). An incident opens and every enabled channel is alerted. |
+| **Paused** | You suspended the check: it does not alert and its pings are ignored. |
 
-La couleur n’est jamais le seul signal : chaque état a aussi un libellé et une forme, pour rester lisible en niveaux de gris.
+Colour is never the only signal: each state also has a label and a shape, so it stays readable in greyscale.
 
-## Incidents et retour à la normale
+## Incidents and recovery
 
-Quand un check passe **en panne**, un **incident** s’ouvre et les canaux sont alertés. Le ping suivant le remet **OK**, ferme l’incident et envoie une **alerte de retour à la normale**, uniquement à ceux qui avaient été prévenus de la panne. L’historique garde la durée de chaque incident et le nombre d’alertes envoyées.
+When a check goes **down**, an **incident** opens and the channels are alerted. The next ping brings it **UP**, closes the incident and sends a **recovery alert**, only to those who were told about the outage. The history keeps each incident's duration and the number of alerts sent.
 
-La détection tourne toutes les 10 secondes ; chaque passage ne coûte que ce que coûtent les checks en retard, quel que soit le nombre total de checks.
+Detection runs every 10 seconds; each pass costs only what the late checks cost, whatever the total number of checks.
 
-## Les checks déclarés automatiquement
+## Automatically declared checks
 
-Les checks créés par un [starter](/docs/spring-boot/) sont marqués *auto*. Si l’application cesse de déclarer un job (renommé, supprimé), son check devient **orphelin** : il est signalé comme tel, jamais supprimé automatiquement, parce qu’une suppression automatique détruirait l’historique à la première refactorisation. La suppression est votre décision.
+Checks created by a [starter](/docs/spring-boot/) are marked *auto*. If the application stops declaring a job (renamed, removed), its check becomes **orphaned**: it is flagged, never deleted automatically, because an automatic delete would destroy the history at the first refactoring. Deleting it is your decision.
 
 <Aside type="tip">
-Pour un job quotidien, un délai de grâce d’une à quelques heures suffit presque toujours à éviter les fausses alertes sans retarder l’information de plus que nécessaire.
+For a daily job, a grace period of one to a few hours almost always avoids false alerts without delaying the news more than necessary.
 </Aside>

@@ -1,13 +1,13 @@
 ---
-title: "Starter Spring Boot : @Scheduled et Quartz"
-description: "Surveillez les @Scheduled et les jobs Quartz avec le starter SilenceWatch : une clé d’API, découverte automatique, sans jamais perturber votre application."
+title: "Spring Boot starter: @Scheduled and Quartz"
+description: "Monitor @Scheduled tasks and Quartz jobs with the SilenceWatch starter: one API key, automatic discovery, never disturbing your application."
 sidebar:
-  label: Starter Spring Boot
+  label: Spring Boot starter
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-Le **starter Spring Boot** de SilenceWatch surveille les tâches planifiées de votre application sans que vous déclariez quoi que ce soit : il découvre chaque `@Scheduled` et chaque job Quartz, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution. Il est sous licence Apache 2.0, volontairement, pour pouvoir être embarqué dans n’importe quelle application.
+The SilenceWatch **Spring Boot starter** monitors your application's scheduled tasks without you declaring anything: it discovers every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around every run. It is licensed under Apache 2.0, deliberately, so it can be embedded in any application.
 
 ## Installation
 
@@ -28,64 +28,64 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-Créez la clé d’API dans *Réglages › Clés API* de votre projet. C’est toute la configuration.
+Create the API key in your project's *Settings › API keys*. That is the whole setup.
 
-## Ce qu’il fait au démarrage
+## What it does at startup
 
-À l’événement `ApplicationReadyEvent`, en un seul appel HTTP :
+On `ApplicationReadyEvent`, in one HTTP call:
 
-- **Spring** : il lit les tâches que Spring a lui-même planifiées, donc les planifications *résolues* : `@Scheduled(cron = "${backup.cron}")` est déclaré avec l’expression que la propriété contenait réellement.
-- **Quartz** : si Quartz est présent, il parcourt les jobs et lit leurs déclencheurs. Un job avec plusieurs déclencheurs est déclaré d’après celui qui se déclenche le plus souvent, puisque c’est l’échéance qu’une exécution manquée dépasse en premier.
-- Il déclare le tout à `POST /api/v1/checks/sync` et garde en mémoire les clés de ping.
+- **Spring**: it reads the tasks Spring itself scheduled, so the schedules are the *resolved* ones: `@Scheduled(cron = "${backup.cron}")` is declared with the expression the property actually held.
+- **Quartz**: if Quartz is present, it iterates the jobs and reads their triggers. A job with several triggers is declared from the one that fires most often, since that is the deadline a missed run breaches first.
+- It declares everything to `POST /api/v1/checks/sync` and keeps the returned ping keys in memory.
 
-Chaque job reçoit une **identité stable** qui le relie à son historique à travers les redémarrages, les redéploiements et les renommages : `com.acme.jobs.BackupJob#run` pour Spring, `groupe.nomDuJob` pour Quartz. Un job qui disparaît du code est marqué **orphelin**, jamais supprimé.
+Each job gets a **stable identity** that ties it to its history across restarts, redeployments and renames: `com.acme.jobs.BackupJob#run` for Spring, `group.jobName` for Quartz. A job that disappears from the code is flagged **orphaned**, never deleted.
 
-## Ce qu’il fait à chaque exécution
+## What it does at run time
 
-Un advisor Spring AOP (de l’AOP Spring ordinaire, sans AspectJ) entoure chaque méthode `@Scheduled` ; un `JobListener` fait de même pour Quartz :
+A Spring AOP advisor (plain Spring AOP, no AspectJ) wraps every `@Scheduled` method; a `JobListener` does the same for Quartz:
 
 ```text
-POST /p/<clé>/start                      au début de l’exécution
-POST /p/<clé>/0?duration_ms=1234         quand elle se termine
-POST /p/<clé>/fail?duration_ms=1234      quand elle lève une exception
+POST /p/<key>/start                      when the run begins
+POST /p/<key>/0?duration_ms=1234         when it returns
+POST /p/<key>/fail?duration_ms=1234      when it throws
 ```
 
 ## Configuration
 
 ```yaml
 silencewatch:
-  enabled: true                          # false supprime tout, voir plus bas
+  enabled: true                          # false removes everything, see below
   api-key: ${SILENCEWATCH_API_KEY}
-  base-url: https://app.silencewatch.com # votre instance si vous auto-hébergez
-  environment: production                # fait partie de l’identité d’un check
-  default-grace: 5m                      # pour les jobs qui n’en déclarent pas
-  auto-register: true                    # false pour gérer les checks à la main
-  report-start: true                     # false pour n’envoyer que le résultat
-  timeout: 2s                            # par appel, volontairement court
-  queue-capacity: 1000                   # bornée, les plus anciens sont abandonnés
-  timezone: Europe/Paris                 # pour les cron sans fuseau dans le déclencheur
+  base-url: https://app.silencewatch.com # your own instance when self-hosting
+  environment: production                # part of a check's identity
+  default-grace: 5m                      # for jobs that declare none
+  auto-register: true                    # false to manage checks by hand
+  report-start: true                     # false to send only the outcome
+  timeout: 2s                            # per call, deliberately short
+  queue-capacity: 1000                   # bounded, oldest dropped when full
+  timezone: Europe/Paris                 # for cron jobs whose trigger carries none
   discover-spring-tasks: true
   discover-quartz-jobs: true
 ```
 
-## Les règles qu’il ne transgresse pas
+## Rules it will not break
 
-C’est ce qui permet de le mettre en production sans crainte :
+These are what make it safe to put in a production application:
 
-- **Il ne fait jamais échouer votre job.** Toute erreur réseau ou HTTP est avalée et journalisée en `WARN`. L’intercepteur appelle votre méthode exactement une fois, renvoie son résultat tel quel et relance son exception inchangée.
-- **Il ne bloque jamais votre job.** L’envoi d’un signal est un dépôt dans une file traitée par un thread daemon de basse priorité. Un SilenceWatch injoignable ne coûte rien à votre job.
-- **Il est borné.** La file contient au plus `queue-capacity` signaux ; au-delà, les plus anciens sont abandonnés, parce que l’état le plus récent est celui qui compte. Les avertissements sont limités à un par minute.
-- **Il se dégrade en silence.** Pas de clé d’API, pas de réseau, pas de serveur : l’application démarre et tourne exactement comme sans la dépendance.
-- **`silencewatch.enabled: false` supprime tout le mécanisme** : pas de découverte, pas de proxy, pas de thread, pas de bean.
-- **Aucune dépendance lourde.** `spring-boot-starter` et le client HTTP du JDK. Pas de bibliothèque JSON, donc pas de version de Jackson imposée à votre application.
+- **It never fails your job.** Every network or HTTP error is swallowed and logged at `WARN`. The interceptor calls your method exactly once, returns its result untouched, and rethrows its exception unchanged.
+- **It never blocks your job.** Sending a heartbeat is a queue offer handled by a low-priority daemon thread. An unreachable SilenceWatch costs your job nothing.
+- **It is bounded.** The queue holds at most `queue-capacity` heartbeats; past that the oldest are dropped, because the freshest state is the one worth reporting. Warnings are limited to one a minute.
+- **It degrades silently.** No API key, no network, no server: the application starts and runs exactly as it would without the dependency.
+- **`silencewatch.enabled: false` removes the mechanism entirely**: no discovery, no proxying, no threads, no beans.
+- **No heavy dependencies.** `spring-boot-starter` plus the JDK HTTP client. No JSON library, so no Jackson version is forced on your application.
 
-## Limites
+## Limits
 
-- Les jobs de **moins de 30 secondes** sont déclarés avec une période de 30 secondes, la plus courte acceptée, et un avertissement les nomme.
-- Le **`W` de Quartz** ne peut pas être évalué par le serveur : ces jobs sont ignorés avec un avertissement plutôt que de faire échouer toute la déclaration.
-- Les **tâches planifiées par programme** (`SchedulingConfigurer`, lambdas) n’ont pas d’identité stable et sont ignorées. Déclarez ces checks à la main ou donnez-leur une méthode `@Scheduled`.
-- **`spring.aop.auto=false`** désactive le proxy que Spring Boot fournit normalement : les jobs sont déclarés mais aucun signal ne peut partir. Le starter le dit au démarrage.
+- **Sub-30-second jobs** are declared with a 30-second period, the shortest accepted, and a warning names them.
+- **Quartz's `W`** cannot be evaluated by the server, so those jobs are skipped with a warning rather than failing the whole declaration.
+- **Programmatically scheduled tasks** (`SchedulingConfigurer`, lambdas) have no stable identity and are ignored. Declare those checks by hand, or give them a `@Scheduled` method.
+- **`spring.aop.auto=false`** disables the proxying Spring Boot normally provides: jobs are declared but no heartbeat can be sent. The starter says so at startup.
 
 <Aside type="note">
-Voir aussi la page [Monitoring Spring Boot](/spring-boot/) pour une vue d’ensemble, et le [README du starter](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/spring-boot-starter) pour la référence complète.
+See also the [Spring Boot monitoring](/spring-boot/) overview page, and the [starter README](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/spring-boot-starter) for the full reference.
 </Aside>
