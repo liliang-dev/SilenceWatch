@@ -1,0 +1,53 @@
+<h2 mat-dialog-title class="title">{{ t('deleteAccount.title') }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form body" autocomplete="off">
+    <p class="warning" role="alert">{{ t('deleteAccount.warning') }}</p>
+    <p class="scope">
+      {{
+        t('deleteAccount.scope', {
+          projects: plural('deleteAccount.projects', data.projects),
+          checks: plural('deleteAccount.checks', data.checks)
+        })
+      }}
+    </p>
+
+    <p class="instruction">{{ t('deleteAccount.typeToConfirm', { word }) }}</p>
+    <mat-form-field appearance="outline">
+      <mat-label>{{ t('deleteAccount.confirmField') }}</mat-label>
+      <input
+        matInput
+        formControlName="confirmation"
+        [placeholder]="word"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        cdkFocusInitial
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ t('deleteAccount.passwordField') }}</mat-label>
+      <input matInput type="password" formControlName="password" autocomplete="current-password" />
+    </mat-form-field>
+
+    @if (error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  <button mat-button type="button" [disabled]="busy()" (click)="dialogRef.close(false)">
+    {{ t('common.cancel') }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    class="destructive"
+    [disabled]="!canSubmit"
+    (click)="submit()"
+  >
+    {{ t('deleteAccount.submit') }}
+  </button>
+</mat-dialog-actions>

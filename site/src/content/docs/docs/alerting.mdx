@@ -1,40 +1,40 @@
 ---
-title: "Canaux d’alerte : e-mail, webhook, Slack"
-description: "Configurer les alertes SilenceWatch : e-mail, webhook signé HMAC-SHA256, Slack, Microsoft Teams, Discord, test des canaux et vérification de la signature."
+title: "Alert channels: email, webhook, Slack"
+description: "Configure SilenceWatch alerts: email, HMAC-SHA256 signed webhook, Slack, Microsoft Teams, Discord, testing channels and verifying the signature."
 sidebar:
-  label: Alertes
+  label: Alerting
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-Quand un check passe [en panne](/docs/schedules-and-states/), **chaque canal activé** du projet est alerté, puis de nouveau quand le job reprend. Les canaux se gèrent dans l’onglet *Alertes*.
+When a check goes [down](/docs/schedules-and-states/), **every enabled channel** of the project is alerted, and again when the job resumes. Channels are managed in the *Alerting* tab.
 
-## Les canaux disponibles
+## Available channels
 
-| Canal | Ce qu’il faut fournir |
+| Channel | What to provide |
 | --- | --- |
-| **E-mail** | Une adresse |
-| **Webhook** | Une URL, et facultativement un secret de signature (16 caractères minimum) |
-| **Slack** | L’URL d’un *Incoming Webhook* Slack |
-| **Microsoft Teams** | L’URL d’un webhook entrant du canal Teams |
-| **Discord** | L’URL d’un webhook du canal Discord |
+| **Email** | An address |
+| **Webhook** | A URL, and optionally a signing secret (16 characters minimum) |
+| **Slack** | The URL of a Slack *Incoming Webhook* |
+| **Microsoft Teams** | The URL of an incoming webhook of the Teams channel |
+| **Discord** | The URL of a webhook of the Discord channel |
 
-Chaque canal peut être désactivé sans être supprimé, et possède un bouton **Envoyer un test** : il envoie tout de suite une alerte d’exemple et vous rapporte l’erreur telle quelle si la livraison échoue. Testez chaque canal à la création : un canal que personne n’a jamais exercé est un canal qui échoue pendant l’incident pour lequel il existait.
+Each channel can be disabled without being deleted, and has a **Send test** button: it immediately sends a sample alert and reports the error verbatim if delivery fails. Test each channel when you create it: a channel nobody has ever exercised is a channel that fails during the incident it existed for.
 
-Une alerte qui échoue est réessayée plusieurs fois avant d’être abandonnée. Par sécurité, une URL de webhook qui pointe vers une adresse privée est refusée, pour qu’un canal ne serve pas à interroger votre réseau interne.
+A failed alert is retried several times before it is abandoned. For safety, a webhook URL that points to a private address is refused, so a channel cannot be used to probe your internal network.
 
-## Le webhook générique
+## The generic webhook
 
-Il envoie un JSON stable, en `POST`, avec ces en-têtes :
+It sends stable JSON, as a `POST`, with these headers:
 
 ```text
-X-SilenceWatch-Event: check.down        # ou check.up
+X-SilenceWatch-Event: check.down        # or check.up
 X-SilenceWatch-Timestamp: 1769812345
-X-SilenceWatch-Incident: <identifiant de l’incident>
-X-SilenceWatch-Signature: sha256=<hex>  # si un secret est défini
+X-SilenceWatch-Incident: <incident id>
+X-SilenceWatch-Signature: sha256=<hex>  # when a secret is set
 ```
 
-et un corps de cette forme :
+and a body of this shape:
 
 ```json
 {
@@ -44,7 +44,7 @@ et un corps de cette forme :
   "project": { "id": "…", "name": "Production" },
   "check": {
     "id": "…",
-    "name": "Sauvegarde nocturne",
+    "name": "Nightly backup",
     "state": "DOWN",
     "environment": "production",
     "tags": [],
@@ -63,9 +63,9 @@ et un corps de cette forme :
 }
 ```
 
-### Vérifier la signature
+### Verifying the signature
 
-Si le canal a un secret, la signature est `HMAC_SHA256(secret, "<timestamp>.<corps brut>")`, en hexadécimal, préfixée par `sha256=`. Vérifiez-la, et refusez les horodatages trop anciens pour être honnêtes (contre le rejeu) :
+If the channel has a secret, the signature is `HMAC_SHA256(secret, "<timestamp>.<raw body>")`, hex-encoded and prefixed with `sha256=`. Verify it, and reject timestamps too old to be honest (against replay):
 
 ```js title="Node.js"
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -74,7 +74,7 @@ function isFromSilenceWatch(rawBody, headers, secret) {
   const timestamp = headers['x-silencewatch-timestamp'];
   const received = headers['x-silencewatch-signature'] ?? '';
 
-  // Refuse ce qui date de plus de cinq minutes.
+  // Reject anything older than five minutes.
   if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
 
   const expected =
@@ -87,11 +87,11 @@ function isFromSilenceWatch(rawBody, headers, secret) {
 ```
 
 <Aside type="caution">
-Calculez la signature sur le **corps brut** reçu, avant tout décodage JSON : le ré-encoder change les octets.
+Compute the signature over the **raw body** as received, before any JSON decoding: re-encoding it changes the bytes.
 </Aside>
 
-## À savoir
+## Good to know
 
-- Pour l’e-mail, pensez à vérifier le dossier des courriers indésirables lors du premier test.
-- Un e-mail de retour à la normale n’est envoyé qu’aux destinataires qui avaient reçu l’alerte de panne.
-- En auto-hébergement, le transport e-mail (SMTP, Postmark ou Brevo) se règle dans la [configuration du serveur](/en/docs/reference/self-hosting/) (en anglais).
+- For email, check the spam folder on the first test.
+- A recovery email is sent only to the recipients who received the down alert.
+- When self-hosting, the email transport (SMTP, Postmark or Brevo) is set in the [server configuration](/docs/reference/self-hosting/).

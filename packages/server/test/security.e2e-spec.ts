@@ -315,6 +315,26 @@ describe('access control', () => {
       ).toBe(401);
     });
 
+    it('refuses a wrong current password with a 403, which leaves the session alone', async () => {
+      // A 401 means "your session expired" to the browser, which refreshes and
+      // sends the same request again before signing the user out. A wrong password
+      // from someone who is signed in is not that.
+      const user = await registerUser(context);
+
+      const changed = await context.app.inject({
+        method: 'POST',
+        url: '/api/auth/password',
+        headers: auth(user.token),
+        payload: { currentPassword: 'not-the-password-at-all', newPassword: 'an-even-longer-new-password' },
+      });
+      expect(changed.statusCode).toBe(403);
+
+      expect(
+        (await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(user.token) }))
+          .statusCode,
+      ).toBe(200);
+    });
+
     it('answers identically whether or not the email exists', async () => {
       await registerUser(context, 'known@example.test');
 

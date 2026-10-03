@@ -13,7 +13,7 @@ site               showcase site and documentation (Astro + Starlight), its own 
 ## The site
 
 `site/` is the public website: the showcase pages, the user documentation and the
-reference pages, in French (at the root) and English (under `/en/`). It is a
+reference pages, in English (at the root) and French (under `/fr/`). It is a
 separate project with its own lockfile, deliberately outside the pnpm workspace,
 so its toolchain does not enlarge the application's audit, install-script
 allowlist or Docker build.
@@ -39,6 +39,18 @@ pnpm run build && node scripts/check-seo.mjs
 - French and English pages share one path under their language prefix, so
   `hreflang`, the sitemap and the language picker line up with no further
   configuration. Add a page in both languages or the check will say so.
+- English is the default language. A browser whose first language is French is sent
+  to the matching `/fr/` page once by `site/public/lang-redirect.js`, unless the
+  visitor picked a language (remembered in the browser as `sw-lang`). It looks at
+  the browser's language, not the visitor's IP address: that would need a
+  geolocation database or a third party. Search engines and link previews send no
+  French preference and see the English pages.
+- The legal pages (`/legal/`, `/privacy/`, `/terms/`, and their `/fr/` twins) name
+  the publisher from one file, `site/src/legal.ts`. Left as the placeholder they
+  build and pass the pull-request checks, but `scripts/check-legal.mjs` — run by
+  the shipping workflow only — refuses to publish them. If you change what the
+  application stores or whom it sends data to, change the privacy policy in the
+  same pull request.
 - The site is shipped by `.github/workflows/site.yml` on `main`, independently
   of releases; see [self-hosting](self-hosting.md) for how Caddy serves it.
 

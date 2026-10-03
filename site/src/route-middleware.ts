@@ -18,7 +18,7 @@ export const onRequest = defineRouteMiddleware((context) => {
   const { lang, head, entry } = route;
   const path = context.url.pathname;
   const english = lang === 'en';
-  const home = english ? '/en/' : '/';
+  const home = english ? '/' : '/fr/';
   const url = (pathname: string) => `${SITE}${pathname}`;
   const title = entry.data.title;
   const description = entry.data.description;
@@ -104,7 +104,7 @@ export const onRequest = defineRouteMiddleware((context) => {
     if (path.includes('/docs/') && !/\/docs\/$/.test(path)) {
       trail.push({
         name: 'Documentation',
-        item: url(`${english ? '/en' : ''}/docs/getting-started/`),
+        item: url(`${english ? '' : '/fr'}/docs/getting-started/`),
       });
     }
     trail.push({ name: title, item: url(path) });

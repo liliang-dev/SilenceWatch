@@ -1,15 +1,15 @@
 ---
-title: "Monitoring Spring Boot : @Scheduled et Quartz"
-description: "Surveillez les @Scheduled et les jobs Quartz de Spring Boot : une dépendance, une clé d’API, découverte automatique, durée et échecs signalés."
+title: "Spring Boot monitoring: @Scheduled and Quartz"
+description: "Monitor Spring Boot @Scheduled tasks and Quartz jobs: one dependency, one API key, automatic discovery, duration and failures reported."
 template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
 import Faq from '../../components/Faq.astro';
 
-<p class="splash-lede">Dans une application Spring Boot, les tâches planifiées se multiplient et personne ne tient la liste à jour. Le <strong>starter SilenceWatch</strong> la tient à votre place : il découvre chaque <code>@Scheduled</code> et chaque job Quartz, les déclare avec leur vraie planification, et signale chaque exécution.</p>
+<p class="splash-lede">In a Spring Boot application, scheduled tasks multiply and nobody keeps the list up to date. The <strong>SilenceWatch starter</strong> keeps it for you: it discovers every <code>@Scheduled</code> method and every Quartz job, declares them with their real schedule, and reports every run.</p>
 
-## Une dépendance, une clé
+## One dependency, one key
 
 ```xml title="pom.xml"
 <dependency>
@@ -24,52 +24,52 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-Redémarrez l’application. Chaque méthode `@Scheduled` et chaque job Quartz apparaît dans SilenceWatch avec sa planification réelle, et envoie un signal autour de chaque exécution, avec sa durée et l’éventuelle exception. Aucun check à créer à la main, aucune URL de ping à copier, rien à resynchroniser quand le code change.
+Restart the application. Every `@Scheduled` method and every Quartz job appears in SilenceWatch with its real schedule, and sends a heartbeat around every run, with its duration and any exception. No check to create by hand, no ping URL to copy, nothing to keep in sync when the code changes.
 
-## Ce qui le distingue
+## What sets it apart
 
-- **Il lit les planifications résolues.** `@Scheduled(cron = "${backup.cron}")` est déclaré avec l’expression que la propriété contenait réellement, pas avec le texte du placeholder.
-- **Il donne à chaque job une identité stable** (`com.acme.jobs.BackupJob#run`, ou `groupe.job` pour Quartz) : l’historique survit aux redémarrages, aux redéploiements et aux renommages.
-- **Il ne supprime jamais rien.** Un job qui disparaît du code est marqué *orphelin* ; l’historique est conservé jusqu’à ce que vous décidiez de le supprimer.
-- **Il distingue les environnements** : la même application déclarée en préproduction et en production donne deux checks séparés.
+- **It reads the resolved schedules.** `@Scheduled(cron = "${backup.cron}")` is declared with the expression the property actually held, not with the placeholder's text.
+- **It gives each job a stable identity** (`com.acme.jobs.BackupJob#run`, or `group.job` for Quartz): history survives restarts, redeployments and renames.
+- **It never deletes anything.** A job that disappears from the code is flagged *orphaned*; the history is kept until you decide to delete it.
+- **It tells environments apart**: the same application declared in staging and in production yields two separate checks.
 
-## Il ne peut pas vous nuire
+## It cannot hurt you
 
-Un outil de monitoring qui perturbe la production est pire que pas d’outil. Le starter respecte des règles strictes :
+A monitoring tool that disturbs production is worse than none. The starter follows strict rules:
 
-- il **ne fait jamais échouer** votre job : toute erreur est avalée et journalisée en `WARN`, et votre méthode est appelée une fois, son résultat et son exception passent inchangés ;
-- il **ne bloque jamais** votre job : l’envoi passe par une file bornée et un thread daemon de basse priorité ;
-- il **se dégrade en silence** : sans clé, sans réseau ou sans serveur, l’application tourne exactement comme sans lui ;
-- `silencewatch.enabled: false` **supprime tout le mécanisme** ;
-- il n’ajoute **aucune dépendance lourde** : pas de bibliothèque JSON, donc pas de version de Jackson imposée.
+- it **never fails** your job: every error is swallowed and logged at `WARN`, and your method is called once, its result and its exception passing through unchanged;
+- it **never blocks** your job: sending goes through a bounded queue and a low-priority daemon thread;
+- it **degrades silently**: with no key, no network or no server, the application runs exactly as without it;
+- `silencewatch.enabled: false` **removes the whole mechanism**;
+- it adds **no heavy dependency**: no JSON library, so no Jackson version is forced on you.
 
-Toutes les propriétés et les limites sont dans la [documentation du starter](/docs/spring-boot/).
+All properties and limits are in the [starter documentation](/docs/spring-boot/).
 
-## Si votre job n’est pas Spring
+## If your job is not Spring
 
-Rien n’oblige à utiliser le starter : n’importe quel job qui peut faire une requête HTTP peut être surveillé avec l’[API de ping](/docs/ping-api/). Voir le [monitoring de cron](/cron-monitoring/) et les [exemples](/docs/cron-examples/).
+Nothing forces you to use the starter: any job that can make an HTTP request can be monitored with the [ping API](/docs/ping-api/). See [cron job monitoring](/cron-monitoring/) and the [examples](/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="/docs/spring-boot/" variant="primary" icon="right-arrow">Documentation du starter</LinkButton>
-  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/spring-boot-starter" variant="secondary" icon="github">Code du starter</LinkButton>
+  <LinkButton href="/docs/spring-boot/" variant="primary" icon="right-arrow">Starter documentation</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/spring-boot-starter" variant="secondary" icon="github">Starter source</LinkButton>
 </div>
 
-## Questions fréquentes
+## Frequently asked questions
 
 <Faq
-  title="Questions fréquentes sur le monitoring Spring Boot"
+  title="Frequently asked questions about Spring Boot monitoring"
   items={[
-    { q: 'Comment surveiller les tâches @Scheduled de Spring Boot ?', a: 'Ajoutez le starter SilenceWatch et une clé d’API. Au démarrage, il découvre les méthodes @Scheduled, les déclare avec leur planification résolue et envoie un signal autour de chaque exécution.' },
-    { q: 'Le starter surveille-t-il aussi Quartz ?', a: 'Oui. Si Quartz est présent, le starter parcourt les jobs et lit leurs déclencheurs ; un job avec plusieurs déclencheurs est déclaré d’après celui qui se déclenche le plus souvent.' },
-    { q: 'Le starter peut-il ralentir ou faire planter mon application ?', a: 'Non. Les erreurs réseau sont avalées, l’envoi passe par une file bornée traitée en arrière-plan, et sans clé ou sans réseau l’application tourne comme sans le starter. Il peut être désactivé entièrement avec silencewatch.enabled: false.' },
-    { q: 'Que deviennent les tâches planifiées par programme ?', a: 'Les tâches enregistrées par SchedulingConfigurer ou par des lambdas n’ont pas d’identité stable et sont ignorées par le starter : déclarez ces checks à la main ou donnez-leur une méthode @Scheduled.' },
+    { q: 'How do I monitor Spring Boot @Scheduled tasks?', a: 'Add the SilenceWatch starter and an API key. At startup it discovers @Scheduled methods, declares them with their resolved schedule and sends a heartbeat around every run.' },
+    { q: 'Does the starter also monitor Quartz?', a: 'Yes. If Quartz is present, the starter iterates the jobs and reads their triggers; a job with several triggers is declared from the one that fires most often.' },
+    { q: 'Can the starter slow down or crash my application?', a: 'No. Network errors are swallowed, sending goes through a bounded queue handled in the background, and with no key or no network the application runs as without the starter. It can be disabled entirely with silencewatch.enabled: false.' },
+    { q: 'What about tasks scheduled programmatically?', a: 'Tasks registered through SchedulingConfigurer or lambdas have no stable identity and are ignored by the starter: declare those checks by hand or give them a @Scheduled method.' },
   ]}
 />
 
-## Voir aussi
+## See also
 
 <ul class="sw-related">
-  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
-  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
-  <li><a href="/docs/spring-boot/">Documentation du starter</a></li>
+  <li><a href="/job-monitoring/">Job monitoring</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/docs/spring-boot/">Starter documentation</a></li>
 </ul>

@@ -1,0 +1,80 @@
+---
+import { LEGAL, HOST } from '../legal';
+
+/**
+ * The publisher and the host, as the legal notice lists them. Read from
+ * `src/legal.ts`, so the two languages and every page that mentions the
+ * publisher cannot disagree.
+ */
+const { lang = 'fr' } = Astro.props as { lang?: 'fr' | 'en' };
+const en = lang === 'en';
+
+const publisher: [string, string][] = [
+  [en ? 'Name' : 'Nom', LEGAL.name],
+  [en ? 'Legal form' : 'Statut', LEGAL.form],
+  [en ? 'Address' : 'Adresse', LEGAL.address],
+  ['E-mail', LEGAL.email],
+  ...(LEGAL.phone ? ([[en ? 'Phone' : 'Téléphone', LEGAL.phone]] as [string, string][]) : []),
+  ...(LEGAL.registration ? ([[en ? 'Registration' : 'Immatriculation', LEGAL.registration]] as [string, string][]) : []),
+  ...(LEGAL.capital ? ([[en ? 'Share capital' : 'Capital social', LEGAL.capital]] as [string, string][]) : []),
+  ...(LEGAL.vat ? ([[en ? 'VAT number' : 'TVA intracommunautaire', LEGAL.vat]] as [string, string][]) : []),
+  [en ? 'Publication director' : 'Directeur de la publication', LEGAL.director],
+];
+
+const host: [string, string][] = [
+  [en ? 'Name' : 'Nom', HOST.name],
+  [en ? 'Address' : 'Adresse', HOST.address],
+  [en ? 'Phone' : 'Téléphone', HOST.phone],
+  ['Site', HOST.url],
+];
+---
+
+<h2>{en ? 'Publisher' : 'Éditeur du site'}</h2>
+{LEGAL.anonymous ? (
+  <>
+    <p>
+      {en
+        ? 'The site is published by a private individual who is not acting in a professional capacity. In accordance with article 6, III, 2 of the French law n° 2004-575 of 21 June 2004 (LCEN), they have chosen to remain anonymous; their identity has been given to the host named below.'
+        : 'Le site est édité par une personne physique qui n’agit pas à titre professionnel. Conformément à l’article 6, III, 2 de la loi n° 2004-575 du 21 juin 2004 (LCEN), elle a choisi de rester anonyme ; son identité a été communiquée à l’hébergeur indiqué ci-dessous.'}
+    </p>
+    <dl class="sw-identity">
+      <dt>E-mail</dt><dd>{LEGAL.email}</dd>
+    </dl>
+  </>
+) : (
+  <dl class="sw-identity">
+    {publisher.map(([term, value]) => (<><dt>{term}</dt><dd>{value}</dd></>))}
+  </dl>
+)}
+
+<h2>{en ? 'Host' : 'Hébergeur'}</h2>
+<dl class="sw-identity">
+  {host.map(([term, value]) => (<><dt>{term}</dt><dd>{value}</dd></>))}
+</dl>
+
+<style>
+  .sw-identity {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1.25rem;
+    margin: 0.75rem 0 1.5rem;
+  }
+  /* Starlight puts a top margin on every element that follows another one in
+     the page body, which shifts each value below its label. */
+  .sw-identity dt,
+  .sw-identity dd {
+    margin: 0 !important;
+  }
+  .sw-identity dt {
+    color: var(--sl-color-gray-3);
+  }
+  @media (max-width: 30rem) {
+    .sw-identity {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .sw-identity dd {
+      margin-bottom: 0.6rem !important;
+    }
+  }
+</style>
