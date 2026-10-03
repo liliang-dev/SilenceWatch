@@ -24,100 +24,97 @@
         @if (resetSentTo(); as address) {
           <!-- Deliberately the same words whether or not the address has an
                account: the page must not become a membership oracle. -->
+          @let sentence = around('login.resetSent', 'address');
           <p class="tagline sw-muted">
-            If <strong class="address">{{ address }}</strong> has an account, a reset link is on
-            its way. It expires in an hour.
+            {{ sentence[0] }}<strong class="address">{{ address }}</strong
+            >{{ sentence[1] }}
           </p>
           <div class="after-send">
-            <p class="sw-subtle small">Check the spam folder before asking for another.</p>
+            <p class="sw-subtle small">{{ t('login.checkSpam') }}</p>
             <button mat-button type="button" class="switch-back" (click)="backToSignIn()">
-              Back to sign in
+              {{ t('login.backToSignIn') }}
             </button>
           </div>
         } @else if (sentTo(); as address) {
           <!-- The account exists but is unusable until the address answers.
                Saying so plainly beats a spinner that never resolves. -->
+          @let sentence = around('login.confirmationSent', 'address');
           <p class="tagline sw-muted">
-            We sent a confirmation link to <strong class="address">{{ address }}</strong
-            >. Open it and you are in.
+            {{ sentence[0] }}<strong class="address">{{ address }}</strong
+            >{{ sentence[1] }}
           </p>
           <div class="after-send">
             <p class="sw-subtle small">
-              Nothing arrived? Check the spam folder, then ask for another link — the previous
-              one stops working when a new one is sent.
+              {{ t('login.nothingArrived') }}
             </p>
             <button mat-stroked-button type="button" [disabled]="busy()" (click)="resend()">
-              Send another link
+              {{ t('login.sendAnother') }}
             </button>
             <button mat-button type="button" class="switch-back" (click)="backToSignIn()">
-              Back to sign in
+              {{ t('login.backToSignIn') }}
             </button>
           </div>
         } @else {
           <p class="tagline sw-muted">
-            {{
-              mode() === 'login'
-                ? 'Sign in to see which of your jobs are still checking in.'
-                : 'Create an account. The first one on a fresh instance is always allowed.'
-            }}
+            {{ mode() === 'login' ? t('login.taglineLogin') : t('login.taglineRegister') }}
           </p>
 
           <form [formGroup]="form" (ngSubmit)="submit()" class="sw-form">
-          @if (mode() === 'register') {
+            @if (mode() === 'register') {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ t('login.name') }}</mat-label>
+                <input matInput formControlName="name" autocomplete="name" />
+              </mat-form-field>
+            }
+
             <mat-form-field appearance="outline">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="name" autocomplete="name" />
+              <mat-label>{{ t('login.email') }}</mat-label>
+              <input matInput type="email" formControlName="email" autocomplete="email" required />
+              @if (form.controls.email.touched && form.controls.email.invalid) {
+                <mat-error>{{ t('login.emailInvalid') }}</mat-error>
+              }
             </mat-form-field>
-          }
 
-          <mat-form-field appearance="outline">
-            <mat-label>Email</mat-label>
-            <input matInput type="email" formControlName="email" autocomplete="email" required />
-            @if (form.controls.email.touched && form.controls.email.invalid) {
-              <mat-error>Enter a valid email address</mat-error>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ t('login.password') }}</mat-label>
+              <input
+                matInput
+                type="password"
+                formControlName="password"
+                [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+                required
+              />
+              <mat-hint>{{ t('login.passwordHint', { count: minLength }) }}</mat-hint>
+              @if (form.controls.password.touched && form.controls.password.invalid) {
+                <mat-error>{{ t('login.passwordInvalid', { count: minLength }) }}</mat-error>
+              }
+            </mat-form-field>
+
+            @if (error()) {
+              <p class="sw-error" role="alert">
+                <span>
+                  {{ error() }}
+                  @if (verificationPending()) {
+                    <button type="button" class="inline-link" (click)="resend()">
+                      {{ t('login.sendAgain') }}
+                    </button>
+                  }
+                </span>
+              </p>
             }
-          </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Password</mat-label>
-            <input
-              matInput
-              type="password"
-              formControlName="password"
-              [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
-              required
-            />
-            <mat-hint>{{ minLength }} characters minimum</mat-hint>
-            @if (form.controls.password.touched && form.controls.password.invalid) {
-              <mat-error>At least {{ minLength }} characters</mat-error>
-            }
-          </mat-form-field>
-
-          @if (error()) {
-            <p class="sw-error" role="alert">
-              <span>
-                {{ error() }}
-                @if (verificationPending()) {
-                  <button type="button" class="inline-link" (click)="resend()">
-                    Send the link again
-                  </button>
-                }
-              </span>
-            </p>
-          }
-
-          <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
-            @if (working()) {
-              {{ workingLabel() }}
-            } @else {
-              {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
-            }
-          </button>
+            <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
+              @if (working()) {
+                {{ workingLabel() }}
+              } @else {
+                {{ mode() === 'login' ? t('login.signIn') : t('login.createAccount') }}
+              }
+            </button>
           </form>
 
           @if (mode() === 'login') {
             <button type="button" class="forgot" [disabled]="busy()" (click)="forgotPassword()">
-              Forgot your password?
+              {{ t('login.forgot') }}
             </button>
           }
         }
@@ -126,15 +123,15 @@
       @if (sentTo() === null && resetSentTo() === null) {
         <div class="card-foot">
           <span class="sw-muted">{{
-            mode() === 'login' ? 'No account yet?' : 'Already registered?'
+            mode() === 'login' ? t('login.noAccount') : t('login.alreadyRegistered')
           }}</span>
           <button type="button" class="switch" (click)="toggleMode()">
-            {{ mode() === 'login' ? 'Create one' : 'Sign in' }}
+            {{ mode() === 'login' ? t('login.createOne') : t('login.signIn') }}
           </button>
         </div>
       }
     </div>
 
-    <p class="footnote sw-subtle">Dead man's switch monitoring for the jobs nobody watches.</p>
+    <p class="footnote sw-subtle">{{ t('login.footnote') }}</p>
   </div>
 </div>

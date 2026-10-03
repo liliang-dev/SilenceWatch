@@ -7,6 +7,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { LIMITS } from '@silencewatch/shared';
 import { AuthService } from '../../core/auth.service';
+import { I18n } from '../../core/i18n/i18n.service';
 import { errorMessage } from '../../core/error-message';
 
 /**
@@ -35,6 +36,7 @@ export class ResetPasswordComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
+  protected readonly t = inject(I18n).t;
 
   protected readonly minLength = LIMITS.passwordMin;
   protected readonly busy = signal(false);
@@ -55,7 +57,7 @@ export class ResetPasswordComponent {
       return;
     }
     if (this.token === '') {
-      this.error.set('That link is missing its reset code. Open the one from the email directly.');
+      this.error.set(this.t('reset.missingToken'));
       return;
     }
 
@@ -72,12 +74,7 @@ export class ResetPasswordComponent {
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(
-          errorMessage(
-            failure,
-            'This reset link is no longer valid. Request a new one from the sign-in page.',
-          ),
-        );
+        this.error.set(errorMessage(failure, this.t('reset.invalid'), this.t));
       },
     });
   }

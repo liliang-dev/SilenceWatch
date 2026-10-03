@@ -14,6 +14,7 @@ import {
 } from '@silencewatch/shared';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
+import { I18n } from '../../core/i18n/i18n.service';
 
 /** The same rules the server enforces, applied while the user is still typing. */
 function cronValidator(control: AbstractControl): ValidationErrors | null {
@@ -57,6 +58,7 @@ export class CheckFormDialog {
   protected readonly dialogRef = inject<MatDialogRef<CheckFormDialog, CheckDto>>(MatDialogRef);
 
   private readonly api = inject(ApiService);
+  protected readonly t = inject(I18n).t;
   private readonly formBuilder = inject(FormBuilder);
 
   protected readonly minPeriod = LIMITS.periodSecondsMin;
@@ -102,7 +104,10 @@ export class CheckFormDialog {
             cronExpression: value.cronExpression,
             timezone: value.timezone,
           }
-        : { scheduleType: 'interval' as const, periodSeconds: Number(value.periodSeconds) };
+        : {
+            scheduleType: 'interval' as const,
+            periodSeconds: Number(value.periodSeconds),
+          };
 
     const request: CreateCheckRequest = {
       name: value.name,
@@ -119,7 +124,7 @@ export class CheckFormDialog {
       next: (check) => this.dialogRef.close(check),
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Could not save the check.'));
+        this.error.set(errorMessage(failure, this.t('checkForm.saveFailed'), this.t));
       },
     });
   }

@@ -5,48 +5,51 @@ import { authGuard } from './core/auth.guard';
  * Every route is lazy: the login screen must not ship the rest of the
  * application, and a self-hosted instance on a small VPS should not serve a
  * megabyte to show a form.
+ *
+ * A route's `title` is a message key, not a sentence: `TranslatedTitleStrategy`
+ * turns it into the window title in the language that is current.
  */
 export const routes: Routes = [
   {
     path: 'login',
-    title: 'Sign in — SilenceWatch',
+    title: 'title.login',
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
   {
     path: 'verify-email',
-    title: 'Confirm your email — SilenceWatch',
+    title: 'title.verifyEmail',
     loadComponent: () =>
       import('./pages/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
   },
   {
     path: 'reset-password',
-    title: 'Choose a new password — SilenceWatch',
+    title: 'title.resetPassword',
     loadComponent: () =>
       import('./pages/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
   },
   {
     path: 'checks',
-    title: 'Checks — SilenceWatch',
+    title: 'title.checks',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/checks/checks.component').then((m) => m.ChecksComponent),
   },
   {
     path: 'checks/:id',
-    title: 'Check — SilenceWatch',
+    title: 'title.check',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/check-detail/check-detail.component').then((m) => m.CheckDetailComponent),
   },
   {
     path: 'channels',
-    title: 'Alerting — SilenceWatch',
+    title: 'title.channels',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/channels/channels.component').then((m) => m.ChannelsComponent),
   },
   {
     path: 'settings',
-    title: 'Settings — SilenceWatch',
+    title: 'title.settings',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/settings/settings.component').then((m) => m.SettingsComponent),

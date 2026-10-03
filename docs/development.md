@@ -221,6 +221,36 @@ To change the schema:
 Do not use `prisma migrate dev`: it would offer to drop the objects it does not
 know about.
 
+## Translating the interface
+
+The web interface speaks English and French, through
+[Transloco](https://jsverse.gitbook.io/transloco). The text is two flat JSON
+files, `packages/web/src/app/core/i18n/en.json` (the source) and `fr.json`; each
+is its own lazily loaded file, fetched only when that language is in use.
+
+- A component keeps `protected readonly t = inject(I18n).t` and writes
+  `{{ t('checks.title') }}`. `I18n` is a thin layer over Transloco: it types the
+  keys from `en.json` (a misspelt key does not compile) and exposes the language
+  as a signal, so a template follows a change of language without a reload. Do
+  not cache the result of `t` in a field.
+- Placeholders are `{name}`. A plural is two keys, `foo_one` and `foo_other` (and
+  `foo_zero` where a sentence needs one), read with `plural('foo', count)`; French
+  counts 0 as singular and English does not. Pass `count` in the parameters to
+  count by one number and show another.
+- **Do not add Transloco's ICU MessageFormat plugin.** It compiles messages with
+  `new Function`, and the served Content-Security-Policy (`script-src 'self'`,
+  no `unsafe-eval`) refuses that: the application renders no sentence at all.
+  Weakening the policy for plural syntax is not worth it.
+- `fr.json` must have the same keys as `en.json` and may not use a placeholder
+  English does not give it, and every message must format:
+  `i18n.service.spec.ts` checks all of it in both languages, so a slip fails the
+  suite rather than a user's screen.
+- Nothing user-facing is written as a literal in a template or a component. Error
+  messages go through `errorMessage(error, fallback, t)`; server sentences worth
+  translating are listed in `core/i18n/server-messages.ts`.
+- A new language is a new `xx.json`, an entry in `LANGUAGES` and in the loader's
+  file list, and a card in the Preferences tab.
+
 ## Conventions
 
 - The ingestion path stays bare. No ORM, no pipes, no guards, no interceptors, no

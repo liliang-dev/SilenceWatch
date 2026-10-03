@@ -10,6 +10,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CHANNEL_TYPES, type ChannelType, type NotificationChannelDto } from '@silencewatch/shared';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
+import type { MessageKey } from '../../core/i18n/messages';
+import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { confirmWith } from '../../shared/confirm.dialog';
 import { IconComponent } from '../../shared/icon.component';
@@ -42,6 +44,7 @@ export class ChannelsComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
   protected readonly projects = inject(ProjectStore);
+  protected readonly t = inject(I18n).t;
 
   protected readonly channelTypes = CHANNEL_TYPES;
   protected readonly channels = signal<NotificationChannelDto[]>([]);
@@ -65,7 +68,7 @@ export class ChannelsComponent {
   }
 
   protected label(type: ChannelType): string {
-    return type === 'teams' ? 'Microsoft Teams' : type[0]?.toUpperCase() + type.slice(1);
+    return this.t(`channels.type${type[0]?.toUpperCase()}${type.slice(1)}` as MessageKey);
   }
 
   /** Stands in for a logo: enough to tell the rows apart at a glance. */
@@ -76,7 +79,8 @@ export class ChannelsComponent {
   private load(projectId: string): void {
     this.api.listChannels(projectId).subscribe({
       next: (channels) => this.channels.set(channels),
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not load channels.')),
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, this.t('channels.loadFailed'), this.t)),
     });
   }
 
@@ -92,7 +96,10 @@ export class ChannelsComponent {
       type === 'email'
         ? { address: target }
         : type === 'webhook'
-          ? { url: target, ...(secret.trim() === '' ? {} : { secret: secret.trim() }) }
+          ? {
+              url: target,
+              ...(secret.trim() === '' ? {} : { secret: secret.trim() }),
+            }
           : { url: target };
 
     this.busy.set(true);
@@ -103,11 +110,13 @@ export class ChannelsComponent {
         this.channels.update((channels) => [...channels, channel]);
         this.form.reset({ type, name: '', target: '', secret: '' });
         this.busy.set(false);
-        this.snackBar.open('Channel added — send a test to make sure it works', 'OK', { duration: 5000 });
+        this.snackBar.open(this.t('channels.added'), this.t('common.ok'), {
+          duration: 5000,
+        });
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(errorMessage(failure, 'Could not add the channel.'));
+        this.error.set(errorMessage(failure, this.t('channels.addFailed'), this.t));
       },
     });
   }
@@ -118,7 +127,8 @@ export class ChannelsComponent {
         this.channels.update((channels) =>
           channels.map((existing) => (existing.id === updated.id ? updated : existing)),
         ),
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not update the channel.')),
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, this.t('channels.updateFailed'), this.t)),
     });
   }
 
@@ -127,25 +137,25 @@ export class ChannelsComponent {
     this.api.testChannel(channel.projectId, channel.id).subscribe({
       next: () => {
         this.testing.set(null);
-        this.snackBar.open('Test alert sent', 'OK', { duration: 4000 });
+        this.snackBar.open(this.t('channels.testSent'), this.t('common.ok'), {
+          duration: 4000,
+        });
       },
       error: (failure: unknown) => {
         this.testing.set(null);
         // The server returns the transport's own error, which is the useful part.
-        this.error.set(errorMessage(failure, 'The test alert could not be delivered.'));
+        this.error.set(errorMessage(failure, this.t('channels.testFailed'), this.t));
       },
     });
   }
 
   protected remove(channel: NotificationChannelDto): void {
     confirmWith(this.dialog, {
-      title: `Delete "${channel.name}"?`,
+      title: this.t('channels.deleteTitle', { name: channel.name }),
       // Worth spelling out: deleting the last channel leaves the project
       // watching everything and telling nobody.
-      message:
-        'Alerts stop going to it immediately. Checks carry on being watched — if this is the ' +
-        'only channel, nothing will be sent when one goes down.',
-      confirmLabel: 'Delete channel',
+      message: this.t('channels.deleteMessage'),
+      confirmLabel: this.t('channels.deleteConfirm'),
       destructive: true,
     }).subscribe(() => {
       this.api.deleteChannel(channel.projectId, channel.id).subscribe({
@@ -154,7 +164,7 @@ export class ChannelsComponent {
             channels.filter((existing) => existing.id !== channel.id),
           ),
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not delete the channel.')),
+          this.error.set(errorMessage(failure, this.t('channels.deleteFailed'), this.t)),
       });
     });
   }

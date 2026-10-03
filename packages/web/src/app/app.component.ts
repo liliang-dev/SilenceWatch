@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
+import { I18n } from './core/i18n/i18n.service';
 import { ProjectStore } from './core/project.store';
 import { IconComponent } from './shared/icon.component';
 
@@ -24,8 +25,13 @@ import { IconComponent } from './shared/icon.component';
 export class AppComponent {
   protected readonly auth = inject(AuthService);
   protected readonly projects = inject(ProjectStore);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
+  protected readonly plural = this.i18n.plural;
 
-  protected readonly selectedName = computed(() => this.projects.selected()?.name ?? 'Project');
+  protected readonly selectedName = computed(
+    () => this.projects.selected()?.name ?? this.t('shell.projectFallback'),
+  );
 
   protected readonly downCount = computed(() => this.projects.selected()?.downCount ?? 0);
 
