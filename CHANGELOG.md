@@ -54,6 +54,11 @@ called out under **Changed** with what to do about it.
 
 ### Fixed
 
+- **The security documentation no longer says authentication uses no cookies.** It
+  does: the refresh token is an HttpOnly, `SameSite=Strict` cookie limited to
+  `/api/auth` (a change made earlier, whose page was not updated). The page now
+  says so, and why that leaves no cross-site request to forge. It matters more now
+  that the same text is published on the site.
 - **The end of a page is no longer hidden under the tab bar on a phone.** The room
   for the bar was reserved as padding on `<body>`, which is `height: 100%`, so
   the content overflowed past that padding instead of being pushed up by it and

@@ -20,7 +20,7 @@ Une instance SilenceWatch connaît la planification de tout ce qu’une entrepri
 ## Ce qui est en place
 
 - **Mots de passe** hachés avec Argon2id aux paramètres recommandés par l’OWASP, chacun avec son sel. La connexion dépense le même temps de calcul pour une adresse inconnue que pour une adresse réelle : le temps de réponse ne révèle pas quels comptes existent. Dix échecs verrouillent un compte quinze minutes.
-- **Sessions** : jeton d’accès de courte durée et jeton de rafraîchissement opaque, stocké uniquement sous forme de SHA-256, à usage unique. Présenter un jeton déjà révoqué est traité comme un vol et révoque toutes les sessions de l’utilisateur.
+- **Sessions** : jeton d’accès de courte durée et jeton de rafraîchissement opaque, stocké uniquement sous forme de SHA-256, à usage unique. Présenter un jeton déjà révoqué est traité comme un vol et révoque toutes les sessions de l’utilisateur. Dans un navigateur, le jeton de rafraîchissement est dans un cookie `HttpOnly`, `SameSite=Strict` et limité à `/api/auth` : un script injecté dans la page ne peut pas le lire.
 - **Clés d’API** : seule la moitié « identifiant » est indexée ; le secret est stocké en SHA-256 et comparé en temps constant. Un vidage de base ne donne aucune clé utilisable.
 - **Clés de ping** : des UUID aléatoires, jamais écrits dans les journaux d’accès.
 - **Isolation entre projets** : toute opération passe par un seul service, et un projet inaccessible répond 404, pas 403.
