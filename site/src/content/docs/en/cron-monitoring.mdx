@@ -1,0 +1,72 @@
+---
+title: "Cron job monitoring: alert when a job stops"
+description: "Monitor your cron jobs with SilenceWatch: one curl call at the end of the job, an alert when the heartbeat is missing. Time zones, grace period, Slack, email."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">A cron job that fails sometimes leaves a trace. A cron job that <strong>stops starting</strong> leaves none. SilenceWatch's cron job monitoring detects that absence: every run sends a heartbeat, and you are alerted as soon as one is missing.</p>
+
+## Why monitor your cron jobs
+
+A cron task fails silently in many ways: the server rebooted without reloading the crontab, the crontab was overwritten by a deployment, the account that owns it was deleted, the disk is full, cron's `PATH` is not your shell's, or the script fails and its error goes to a local mailbox nobody reads. In all of these, **nothing tells you**, and the outage lasts until the day someone needs the result.
+
+Watching the logs is not enough: a job that does not run writes nothing. You have to watch for **the absence**, which is the principle of a [dead man's switch](/en/dead-mans-switch/).
+
+## How cron job monitoring works with SilenceWatch
+
+1. You create a **check** with the expected frequency (an interval or a cron expression) and a grace period.
+2. You add a call to the ping URL at the end of your cron command:
+
+```bash title="crontab"
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
+```
+
+3. If the ping does not arrive by the expected time plus the grace period, the check goes **down**, an incident opens and your alert channels are notified. The next ping closes the incident and sends a recovery alert.
+
+The `&&` means the heartbeat is sent only if the script succeeded. To report a failure explicitly, measure the duration or attach the job's output, see the [ping API](/en/docs/ping-api/) and the [examples](/en/docs/cron-examples/) (crontab, systemd, Docker, Kubernetes, GitHub Actions).
+
+## What cron monitoring should be able to do
+
+- **Understand a cron expression**, with 5 or 6 fields and the usual forms (`L`, `?`, `MON#2`), **in the right time zone**. `0 2 * * *` is not the same moment in Paris and in New York, nor before and after the clocks change.
+- **Tolerate reasonable lateness** with a grace period, to avoid false alerts on a backup that runs a little longer on a busy day.
+- **Tell a late job from a down job**: late, the grace period is still running and nothing is sent; down, the alert goes out. See [check states](/en/docs/schedules-and-states/).
+- **Measure duration** when the job calls `/start` then the result, to spot a job becoming abnormally long before it stops.
+- **Alert where you are**: email, signed webhook, Slack, Microsoft Teams, Discord, with a test for each channel. See [alert channels](/en/docs/alerting/).
+
+## Common mistakes
+
+- **Sending the ping at the start instead of the end.** The job may crash afterwards: the ping must prove the work is done.
+- **A grace period that is too short.** Size it to the job's normal duration, with margin.
+- **Forgetting the time zone** of a cron-expression check.
+- **Letting a failed ping fail the job.** Bound `curl` (`-m 10 --retry 3`) and, if needed, add `|| true`.
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my first cron job</LinkButton>
+  <LinkButton href="/en/docs/getting-started/" variant="secondary">Getting started</LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions about cron job monitoring"
+  items={[
+    { q: 'How do I know a cron job ran successfully?', a: 'Have it send an HTTP heartbeat at the end of every successful run, and watch for that heartbeat to arrive. SilenceWatch alerts you when it does not arrive within the expected window.' },
+    { q: 'Can I monitor a cron job with a simple curl request?', a: 'Yes. Add && curl -fsS -m 10 --retry 3 followed by the ping URL at the end of the crontab line. The ping is sent only if the script succeeds.' },
+    { q: 'Does cron monitoring handle time zones?', a: 'Yes. A cron-expression check has its IANA time zone, for example Europe/Paris, so the expected deadline follows clock changes.' },
+    { q: 'What happens when the cron job resumes?', a: 'The next ping sets the check back to UP, closes the incident and sends a recovery alert to the recipients who were told about the outage.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/en/job-monitoring/">Job monitoring</a></li>
+  <li><a href="/en/dead-mans-switch/">What is a dead man's switch?</a></li>
+  <li><a href="/en/guides/backup-monitoring/">Monitoring a cron backup</a></li>
+  <li><a href="/en/guides/cron-not-running/">Cron job not running</a></li>
+  <li><a href="/en/guides/kubernetes-cronjob-monitoring/">Monitor a Kubernetes CronJob</a></li>
+  <li><a href="/en/spring-boot/">Spring Boot monitoring</a></li>
+</ul>

@@ -8,6 +8,7 @@ clients/spring-boot-starter/target
 .git
 .github
 docs
+site
 *.md
 !README.md
 .env

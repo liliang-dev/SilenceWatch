@@ -12,6 +12,24 @@ called out under **Changed** with what to do about it.
 
 ### Added
 
+- **A showcase site and user documentation**, in French and English, in `site/`
+  (Astro and Starlight; a project of its own, outside the application's workspace,
+  lockfile and image). Pages for what people search for — cron monitoring, job
+  monitoring, Spring Boot `@Scheduled` and Quartz monitoring, what a dead man's
+  switch is, self-hosting, monitoring a backup — and a documentation section:
+  getting started, the ping API, copy-paste examples (crontab, systemd, Docker,
+  Kubernetes, GitHub Actions, Python, Node, PowerShell), schedules and states,
+  alert channels (with signature verification), the Spring Boot starter, and the
+  API, self-hosting and security reference generated from `docs/`. It is built to
+  be found: one canonical address per page, `hreflang` between the languages, a
+  sitemap, `robots.txt`, structured data (organisation, software, breadcrumbs,
+  FAQ), a social-sharing image per language, no third-party request and no
+  client-side framework. `scripts/check-seo.mjs` fails the build on a title over
+  65 characters, a bad description, a wrong canonical, a missing `hreflang`,
+  invalid structured data, a duplicate title or any internal link that leads
+  nowhere; CI runs it on every pull request. It ships on its own, from
+  `.github/workflows/site.yml`, whenever `site/` or `docs/` reaches `main`: built,
+  checked, and swapped into the `silencewatch_site` volume with one atomic rename.
 - **A Preferences section in Settings: the language, and light or dark.** The
   interface is now available in French as well as English, and the colour mode can
   be set to light, dark, or "System", which follows the device as it always did and
@@ -46,6 +64,19 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **The hosted application moves to `app.silencewatch.com`; the bare domain
+  becomes the showcase site.** Ping URLs the hosted service hands out now start
+  with `https://app.silencewatch.com/p/`, and so do the links in its emails.
+  `docker-stack.yml` serves a second name when `SILENCEWATCH_SITE_DOMAIN` is set
+  — the static site, `www.` redirected to it, and the addresses the application
+  used to answer on the bare domain (`/p/…`, `/api/…`, `/login`, …) redirected to
+  `SILENCEWATCH_DOMAIN` with a 308. Left unset, nothing changes for a
+  self-hoster. CI now validates the generated Caddyfile both ways, and checks the
+  site's redirect, root and headers. **To do on the server when upgrading:** point
+  `SILENCEWATCH_DOMAIN` and `BASE_URL` at the application's new name and set
+  `SILENCEWATCH_SITE_DOMAIN`; see the self-hosting guide.
+- **The Spring Boot starter's default `base-url` is `https://app.silencewatch.com`**
+  (it was the bare domain). Anyone who set it explicitly is unaffected.
 - **The tabs in Settings scroll sideways under a finger, a trackpad, the wheel or a
   dragged mouse.** Six tabs do not fit a phone, and Angular Material's answer was
   two small arrow buttons that move the strip a third at a time and nothing that

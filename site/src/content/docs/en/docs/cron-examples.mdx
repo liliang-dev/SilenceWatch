@@ -1,0 +1,167 @@
+---
+title: "Cron monitoring examples: crontab, Docker"
+description: "Monitor a scheduled job: copy-paste examples for crontab, systemd, Docker, Kubernetes, GitHub Actions, Bash, Python, Node and PowerShell."
+sidebar:
+  label: Examples (cron, systemd…)
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+The principle is the same everywhere: **make an HTTP request to the ping URL when the job succeeds** (and, better, to `/start` at the beginning and `/fail` on failure). Replace `<ping-key>` with your check's key. The `-fsS -m 10 --retry 3` options are explained in the [ping API](/en/docs/ping-api/).
+
+<Tabs syncKey="platform">
+<TabItem label="crontab">
+
+The simplest: the ping is sent only if the script succeeds (`&&`).
+
+```bash title="crontab -e"
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
+```
+
+To measure the duration and report failure explicitly, use a small wrapper script:
+
+```bash title="/usr/local/bin/backup-monitored.sh"
+#!/bin/sh
+URL=https://app.silencewatch.com/p/<ping-key>
+curl -fsS -m 10 --retry 3 "$URL/start"
+/usr/local/bin/backup.sh
+curl -fsS -m 10 --retry 3 "$URL/$?"
+```
+
+</TabItem>
+<TabItem label="systemd">
+
+In the service the timer starts:
+
+```ini title="/etc/systemd/system/backup.service"
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>'
+```
+
+```ini title="/etc/systemd/system/backup.timer"
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+</TabItem>
+<TabItem label="Docker">
+
+```bash
+docker run --rm my-image /app/job.sh \
+  && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
+```
+
+In a `docker-compose.yml` you can chain in the service's command: `command: sh -c "/app/job.sh && curl -fsS -m 10 --retry 3 $PING_URL"`, provided the image contains `curl`.
+
+</TabItem>
+<TabItem label="Kubernetes">
+
+```yaml title="cronjob.yaml"
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: my-image:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - /app/backup.sh && curl -fsS -m 10 --retry 3 "$PING_URL"
+              env:
+                - name: PING_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: silencewatch
+                      key: ping-url
+```
+
+The ping URL is a secret: put it in a `Secret`, not in the manifest.
+
+</TabItem>
+<TabItem label="GitHub Actions">
+
+```yaml title=".github/workflows/nightly.yml"
+on:
+  schedule:
+    - cron: "0 2 * * *"
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./scripts/nightly.sh
+      - name: Ping SilenceWatch
+        if: success()
+        run: curl -fsS -m 10 --retry 3 "${{ secrets.SILENCEWATCH_PING_URL }}"
+      - name: Report the failure
+        if: failure()
+        run: curl -fsS -m 10 --retry 3 "${{ secrets.SILENCEWATCH_PING_URL }}/fail"
+```
+
+GitHub's scheduled workflows can be delayed or skipped; that is exactly the kind of absence a dead man's switch catches.
+
+</TabItem>
+<TabItem label="Python">
+
+```python
+import requests
+
+URL = "https://app.silencewatch.com/p/<ping-key>"
+
+requests.get(f"{URL}/start", timeout=10)
+try:
+    run_job()
+except Exception:
+    requests.get(f"{URL}/fail", timeout=10)
+    raise
+else:
+    requests.get(URL, timeout=10)
+```
+
+</TabItem>
+<TabItem label="Node.js">
+
+```js
+const PING_URL = 'https://app.silencewatch.com/p/<ping-key>';
+
+await fetch(`${PING_URL}/start`, { signal: AbortSignal.timeout(10_000) });
+try {
+  await runJob();
+  await fetch(PING_URL, { signal: AbortSignal.timeout(10_000) });
+} catch (error) {
+  await fetch(`${PING_URL}/fail`, { signal: AbortSignal.timeout(10_000) });
+  throw error;
+}
+```
+
+</TabItem>
+<TabItem label="PowerShell">
+
+```powershell title="Windows Task Scheduler"
+$url = "https://app.silencewatch.com/p/<ping-key>"
+& "C:\Jobs\backup.ps1"
+if ($?) { Invoke-RestMethod -Uri $url -TimeoutSec 10 }
+else { Invoke-RestMethod -Uri "$url/fail" -TimeoutSec 10 }
+```
+
+</TabItem>
+</Tabs>
+
+<Aside type="caution" title="A failing ping must not fail your job">
+If SilenceWatch is unreachable, your job should not suffer: `--retry 3 -m 10` bounds the wait, and in a script you can add `|| true` after the `curl` if a failed ping must never change the exit code.
+</Aside>
+
+## For Spring Boot
+
+Write nothing: the [Spring Boot starter](/en/docs/spring-boot/) discovers `@Scheduled` methods and Quartz jobs and sends the pings for you.

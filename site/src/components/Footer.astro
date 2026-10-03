@@ -1,0 +1,53 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { APP, REPOSITORY } from '../site';
+
+const lang = Astro.locals.starlightRoute.lang;
+const prefix = lang === 'en' ? '/en' : '';
+const t = lang === 'en'
+  ? {
+      product: 'Product',
+      app: 'Open the app',
+      docs: 'Documentation',
+      cron: 'Cron job monitoring',
+      jobs: 'Job monitoring',
+      spring: 'Spring Boot',
+      self: 'Self-hosting',
+      licence: 'Apache-2.0 licence',
+      source: 'Source code',
+      security: 'Report a vulnerability',
+      note: 'SilenceWatch is open source under the Apache License 2.0. The name and the logo are not covered by it.',
+    }
+  : {
+      product: 'Produit',
+      app: 'Ouvrir l’application',
+      docs: 'Documentation',
+      cron: 'Monitoring de cron',
+      jobs: 'Monitoring de jobs',
+      spring: 'Spring Boot',
+      self: 'Auto-hébergement',
+      licence: 'Licence Apache-2.0',
+      source: 'Code source',
+      security: 'Signaler une faille',
+      note: 'SilenceWatch est open source sous licence Apache 2.0. Le nom et le logo n’en font pas partie.',
+    };
+---
+
+<Default />
+
+<footer class="sw-footer">
+  <nav aria-label={t.product}>
+    <a href={APP}>{t.app}</a>
+    <a href={`${prefix}/docs/getting-started/`}>{t.docs}</a>
+    <a href={`${prefix}/cron-monitoring/`}>{t.cron}</a>
+    <a href={`${prefix}/job-monitoring/`}>{t.jobs}</a>
+    <a href={`${prefix}/spring-boot/`}>{t.spring}</a>
+    <a href={`${prefix}/self-hosted/`}>{t.self}</a>
+  </nav>
+  <nav aria-label="Open source">
+    <a href={REPOSITORY}>{t.source}</a>
+    <a href={`${REPOSITORY}/blob/main/LICENSE`}>{t.licence}</a>
+    <a href={`${REPOSITORY}/blob/main/SECURITY.md`}>{t.security}</a>
+  </nav>
+  <p>{t.note}</p>
+</footer>

@@ -1,0 +1,97 @@
+---
+title: "Alert channels: email, webhook, Slack"
+description: "Configure SilenceWatch alerts: email, HMAC-SHA256 signed webhook, Slack, Microsoft Teams, Discord, testing channels and verifying the signature."
+sidebar:
+  label: Alerting
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When a check goes [down](/en/docs/schedules-and-states/), **every enabled channel** of the project is alerted, and again when the job resumes. Channels are managed in the *Alerting* tab.
+
+## Available channels
+
+| Channel | What to provide |
+| --- | --- |
+| **Email** | An address |
+| **Webhook** | A URL, and optionally a signing secret (16 characters minimum) |
+| **Slack** | The URL of a Slack *Incoming Webhook* |
+| **Microsoft Teams** | The URL of an incoming webhook of the Teams channel |
+| **Discord** | The URL of a webhook of the Discord channel |
+
+Each channel can be disabled without being deleted, and has a **Send test** button: it immediately sends a sample alert and reports the error verbatim if delivery fails. Test each channel when you create it: a channel nobody has ever exercised is a channel that fails during the incident it existed for.
+
+A failed alert is retried several times before it is abandoned. For safety, a webhook URL that points to a private address is refused, so a channel cannot be used to probe your internal network.
+
+## The generic webhook
+
+It sends stable JSON, as a `POST`, with these headers:
+
+```text
+X-SilenceWatch-Event: check.down        # or check.up
+X-SilenceWatch-Timestamp: 1769812345
+X-SilenceWatch-Incident: <incident id>
+X-SilenceWatch-Signature: sha256=<hex>  # when a secret is set
+```
+
+and a body of this shape:
+
+```json
+{
+  "event": "check.down",
+  "occurredAt": "2026-10-03T02:15:00.000Z",
+  "url": "https://app.silencewatch.com/checks/…",
+  "project": { "id": "…", "name": "Production" },
+  "check": {
+    "id": "…",
+    "name": "Nightly backup",
+    "state": "DOWN",
+    "environment": "production",
+    "tags": [],
+    "schedule": "0 2 * * * (Europe/Paris)",
+    "graceSeconds": 3600,
+    "lastPingAt": "2026-10-02T02:00:04.000Z",
+    "expectedBy": "2026-10-03T02:00:00.000Z"
+  },
+  "incident": {
+    "id": "…",
+    "startedAt": "2026-10-03T03:00:00.000Z",
+    "resolvedAt": null,
+    "cause": "…",
+    "durationSeconds": 900
+  }
+}
+```
+
+### Verifying the signature
+
+If the channel has a secret, the signature is `HMAC_SHA256(secret, "<timestamp>.<raw body>")`, hex-encoded and prefixed with `sha256=`. Verify it, and reject timestamps too old to be honest (against replay):
+
+```js title="Node.js"
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+function isFromSilenceWatch(rawBody, headers, secret) {
+  const timestamp = headers['x-silencewatch-timestamp'];
+  const received = headers['x-silencewatch-signature'] ?? '';
+
+  // Reject anything older than five minutes.
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+
+  const expected =
+    'sha256=' + createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
+
+  const a = Buffer.from(received);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+<Aside type="caution">
+Compute the signature over the **raw body** as received, before any JSON decoding: re-encoding it changes the bytes.
+</Aside>
+
+## Good to know
+
+- For email, check the spam folder on the first test.
+- A recovery email is sent only to the recipients who received the down alert.
+- When self-hosting, the email transport (SMTP, Postmark or Brevo) is set in the [server configuration](/en/docs/reference/self-hosting/).

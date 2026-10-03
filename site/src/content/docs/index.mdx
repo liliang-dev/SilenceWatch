@@ -1,0 +1,135 @@
+---
+title: "Monitoring de cron et de jobs planifiés"
+description: "SilenceWatch surveille vos crons et vos jobs : chaque tâche envoie un signal, et une alerte part s’il manque. Open source, auto-hébergeable, Spring Boot."
+template: splash
+hero:
+  title: "Soyez prévenu quand vos jobs s’arrêtent"
+  tagline: "SilenceWatch est un outil de monitoring de cron et de jobs planifiés. Chaque tâche envoie un signal quand elle s’exécute ; si le signal n’arrive pas à temps, vous recevez une alerte. Open source, auto-hébergeable ou hébergé."
+  actions:
+    - text: "Commencer avec SilenceWatch"
+      link: https://app.silencewatch.com/login
+      icon: right-arrow
+      variant: primary
+    - text: "Lire la documentation"
+      link: /docs/getting-started/
+      variant: minimal
+head:
+  - tag: title
+    content: "SilenceWatch — Monitoring de cron et de jobs planifiés"
+---
+
+import { Card, CardGrid, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import Faq from '../../components/Faq.astro';
+import ProductPreview from '../../components/ProductPreview.astro';
+
+<ProductPreview />
+
+## Une tâche qui s’arrête en silence ressemble à une tâche qui n’a rien à faire
+
+Une sauvegarde nocturne, un export, un renouvellement de certificat, une facturation, un worker : quand l’un de ces **jobs planifiés** cesse de tourner, aucune erreur n’est levée et personne n’est prévenu. On s’en aperçoit parfois des semaines plus tard, quand quelqu’un a besoin des données d’hier.
+
+Le **monitoring de job** classique surveille ce qui s’est mal passé. SilenceWatch surveille **ce qui ne s’est pas passé** : c’est un *dead man’s switch*. Vous déclarez à quelle fréquence une tâche doit s’exécuter et quel retard vous tolérez. Si elle ne donne pas signe de vie à temps, l’alerte part.
+
+## Le monitoring de cron en trois étapes
+
+<Steps>
+
+1. **Déclarez le job.** Créez un check avec sa fréquence (toutes les 15 minutes) ou son expression cron (`0 2 * * *`), son fuseau horaire et le retard toléré.
+
+2. **Appelez l’URL de ping à la fin du job.** Une simple requête HTTP, `curl` suffit :
+
+   ```bash title="crontab"
+   0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+   ```
+
+3. **Soyez alerté si elle n’arrive pas.** Le check passe en retard, puis en panne ; un incident s’ouvre et chaque canal activé est prévenu : e-mail, webhook, Slack, Microsoft Teams ou Discord. Un ping suivant résout l’incident et envoie une alerte de retour à la normale.
+
+</Steps>
+
+Le détail des points d’entrée (`/start`, `/fail`, code de sortie, durée) est dans la [documentation de l’API de ping](/docs/ping-api/). Des exemples prêts à copier pour crontab, systemd, Docker, Kubernetes et GitHub Actions sont dans les [exemples de monitoring de cron](/docs/cron-examples/).
+
+## Ce que fait SilenceWatch
+
+<CardGrid>
+  <Card title="Cron et intervalles" icon="seti:clock">
+    Une fréquence fixe ou une expression cron à 5 ou 6 champs, avec fuseau horaire, plus un délai de grâce. Voir le [monitoring de cron](/cron-monitoring/).
+  </Card>
+  <Card title="Détection toutes les 10 secondes" icon="rocket">
+    Un check en retard est repéré en quelques secondes, sans balayer toute la base : le coût dépend des checks en retard, pas du nombre total.
+  </Card>
+  <Card title="Alertes là où vous êtes" icon="warning">
+    E-mail, webhook signé (HMAC-SHA256), Slack, Microsoft Teams et Discord, avec un bouton de test pour vérifier chaque canal avant qu’un incident n’arrive.
+  </Card>
+  <Card title="Starter Spring Boot" icon="seti:java">
+    Une dépendance et une clé d’API : chaque `@Scheduled` et chaque job Quartz se déclare tout seul. Voir [Spring Boot](/spring-boot/).
+  </Card>
+  <Card title="Historique et incidents" icon="document">
+    Chaque ping (durée, code de sortie, sortie du job), chaque incident et chaque alerte envoyée, avec recherche, tri et filtres.
+  </Card>
+  <Card title="API REST et clés" icon="seti:json">
+    Créez et pilotez vos checks par API, avec des clés limitées à un projet, des environnements et des projets séparés.
+  </Card>
+</CardGrid>
+
+## Pour quels jobs ?
+
+Tout ce qui doit tourner à intervalle régulier et dont l’absence compte : le [monitoring d’une sauvegarde cron](/guides/backup-monitoring/), les imports et exports de données, les traitements de facturation, les purges, les renouvellements de certificats, les workers et les files de tâches. Si le job peut appeler une URL, il peut être surveillé. Voir aussi le [monitoring de jobs](/job-monitoring/) en général et [ce qu’est un dead man’s switch](/dead-mans-switch/).
+
+## Spring Boot : zéro déclaration à la main
+
+```xml title="pom.xml"
+<dependency>
+  <groupId>com.silencewatch</groupId>
+  <artifactId>silencewatch-spring-boot-starter</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+```yaml title="application.yml"
+silencewatch:
+  api-key: ${SILENCEWATCH_API_KEY}
+```
+
+Au démarrage, le starter lit les tâches **déjà planifiées par Spring** (avec les expressions cron réellement résolues) et les jobs Quartz, les déclare à SilenceWatch, puis envoie un signal autour de chaque exécution, en y joignant la durée et l’éventuelle exception. Il ne fait jamais échouer et ne bloque jamais votre job. [Tout sur le monitoring Spring Boot](/spring-boot/).
+
+## Hébergé ou auto-hébergé, sans version bridée
+
+SilenceWatch est publié sous licence **Apache 2.0**. Vous pouvez l’utiliser en service hébergé sur [app.silencewatch.com](https://app.silencewatch.com), ou l’[auto-héberger](/self-hosted/) : un conteneur et une base PostgreSQL, rien d’autre. Il n’y a ni édition « entreprise » ni fonction réservée : l’offre hébergée vend le fait de ne pas exploiter de serveur, pas des fonctionnalités.
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Ouvrir l’application</LinkButton>
+  <LinkButton href="/self-hosted/" variant="secondary">Auto-héberger</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch" variant="minimal" icon="github">Code source</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur SilenceWatch"
+  items={[
+    {
+      q: 'Qu’est-ce que le monitoring de cron ?',
+      a: 'C’est la surveillance de l’exécution de vos tâches planifiées. Plutôt que de chercher des erreurs, on vérifie que chaque tâche donne signe de vie à l’heure prévue, et on alerte quand elle ne le fait pas. SilenceWatch le fait avec un simple appel HTTP à la fin du job.',
+    },
+    {
+      q: 'Comment surveiller un job qui ne plante pas mais ne s’exécute plus ?',
+      a: 'Avec un dead man’s switch : le job envoie un signal (un ping) à chaque exécution, et SilenceWatch vous alerte si le signal n’arrive pas dans le délai prévu. C’est le seul moyen de détecter une absence, puisqu’un job qui ne tourne pas ne produit aucune erreur.',
+    },
+    {
+      q: 'SilenceWatch fonctionne-t-il avec crontab, systemd et Kubernetes ?',
+      a: 'Oui. Tout ce qui peut faire une requête HTTP convient : crontab, minuteurs systemd, CronJob Kubernetes, GitHub Actions, scripts Bash, Python, Node ou Java. Des exemples sont donnés dans la documentation.',
+    },
+    {
+      q: 'Peut-on surveiller les @Scheduled de Spring Boot automatiquement ?',
+      a: 'Oui. Le starter Spring Boot de SilenceWatch découvre les méthodes @Scheduled et les jobs Quartz au démarrage, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution, sans configuration par job.',
+    },
+    {
+      q: 'Peut-on auto-héberger SilenceWatch ?',
+      a: 'Oui. SilenceWatch est open source sous licence Apache 2.0 et s’installe avec Docker : un conteneur et une base PostgreSQL. L’édition auto-hébergée n’est jamais bridée.',
+    },
+    {
+      q: 'Quels canaux d’alerte sont disponibles ?',
+      a: 'E-mail, webhook (signé en HMAC-SHA256), Slack, Microsoft Teams et Discord. Chaque canal peut être testé depuis l’interface, et une alerte de retour à la normale est envoyée quand le job reprend.',
+    },
+  ]}
+/>

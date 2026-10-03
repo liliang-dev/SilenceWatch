@@ -276,6 +276,35 @@ Under Swarm there is no profile — Caddy is part of `docker-stack.yml` and alwa
 deployed, since a swarm reached over the internet wants TLS anyway. The subnet
 variable is `SWARM_SUBNET`, defaulting to `10.20.0.0/16`.
 
+#### A second name for a static site (the hosted service's layout)
+
+The hosted service runs the application on `app.silencewatch.com` and serves its
+showcase site and documentation (`site/`) from the bare domain. The stack does
+the same when it is given a second name, and does nothing about it when it is
+not:
+
+```bash
+SILENCEWATCH_DOMAIN=app.example.com      # the application — as above
+SILENCEWATCH_SITE_DOMAIN=example.com     # optional: a static site on this name
+BASE_URL=https://app.example.com         # still the application's address
+```
+
+With `SILENCEWATCH_SITE_DOMAIN` set, Caddy also serves the `site` volume on that
+name, redirects `www.` to it, and sends the addresses the application used to
+answer there (`/p/…`, `/api/…`, `/login` and the rest) to the application with a
+308, so a bookmark, a verification email sent before the move or an old crontab
+still lands. Unset, none of this exists: no second block, no redirect, and the
+volume is never read. Both names must resolve to the swarm (add `www.` too), with
+80 and 443 reachable.
+
+The volume is filled by `.github/workflows/site.yml` on every change to `site/`
+or `docs/` that reaches `main`: each build is unpacked beside the others and a
+symlink, `live`, is moved to it in one rename, so a visitor never sees half a
+site. The last three are kept; going back is `ln -sfn <older> live` inside the
+volume. That job connects to the same host as the release deploy, so it needs the
+swarm to be a single node, or the SSH host to be the node Caddy is pinned to —
+the volume is local to it, like Caddy's certificates.
+
 `BIND_ADDRESS` has no Swarm equivalent: the routing mesh publishes a port on
 every node and cannot be told to bind one address. The application's port is
 still published there, because the deployment check reads `/health` through it,

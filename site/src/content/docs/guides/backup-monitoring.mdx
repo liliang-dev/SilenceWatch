@@ -1,0 +1,89 @@
+---
+title: "Surveiller une sauvegarde cron pas à pas"
+description: "Guide pas à pas : surveillez une sauvegarde de base de données lancée par cron, et détectez une sauvegarde absente, en échec ou vide."
+template: splash
+---
+
+import { Steps, LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">Une sauvegarde dont personne ne sait si elle tourne n’est pas une sauvegarde. Ce guide montre comment <strong>surveiller une sauvegarde cron</strong> pour être prévenu si elle ne se lance pas, échoue ou produit un fichier vide.</p>
+
+## Les trois façons dont une sauvegarde échoue
+
+1. **Elle ne se lance plus** (crontab perdue, serveur redémarré, utilisateur supprimé). Rien n’est écrit nulle part : seul un [dead man’s switch](/dead-mans-switch/) le détecte.
+2. **Elle échoue** (base inaccessible, disque plein, mot de passe changé). Le script peut le dire explicitement.
+3. **Elle « réussit » mais produit un fichier vide ou tronqué.** Le code de sortie est bon, la sauvegarde est inutilisable. Seul le script peut le vérifier avant d’annoncer le succès.
+
+## Pas à pas
+
+<Steps>
+
+1. **Créez le check.** Dans SilenceWatch : nom « Sauvegarde PostgreSQL », planification cron `0 2 * * *` avec le fuseau `Europe/Paris`, délai de grâce d’une heure (plus que la durée normale de la sauvegarde), environnement `production`. Copiez l’URL de ping.
+
+2. **Écrivez un script qui vérifie son résultat.**
+
+   ```bash title="/usr/local/bin/backup-db.sh"
+   #!/bin/bash
+   set -uo pipefail
+
+   URL=https://app.silencewatch.com/p/<clé-de-ping>
+   DUMP="/backups/db-$(date +%F).sql.gz"
+   MIN_BYTES=1048576   # en dessous, la sauvegarde est suspecte
+
+   curl -fsS -m 10 --retry 3 "$URL/start" || true
+
+   if pg_dump -U app mabase | gzip > "$DUMP" \
+      && [ "$(stat -c %s "$DUMP")" -ge "$MIN_BYTES" ]; then
+     curl -fsS -m 10 --retry 3 --data-raw "OK $(basename "$DUMP") $(du -h "$DUMP" | cut -f1)" "$URL" || true
+   else
+     curl -fsS -m 10 --retry 3 --data-raw "Sauvegarde en échec ou trop petite : $DUMP" "$URL/fail" || true
+     exit 1
+   fi
+   ```
+
+   Le début (`/start`) permet à SilenceWatch de mesurer la durée ; le corps du ping garde la taille du fichier dans l’historique ; l’échec appelle `/fail` et le check passe **en panne tout de suite**, sans attendre l’échéance. Les `|| true` empêchent un ping raté de faire échouer la sauvegarde elle-même.
+
+3. **Planifiez-la avec cron.**
+
+   ```bash title="crontab -e"
+   0 2 * * *  /usr/local/bin/backup-db.sh
+   ```
+
+4. **Testez les trois cas.** Lancez le script à la main : le check passe à *OK*. Cassez l’accès à la base et relancez : il passe *en panne* et l’alerte part. Désactivez la ligne de crontab : à l’échéance suivante plus le délai de grâce, il passe aussi *en panne*. Voilà les trois pannes couvertes.
+
+5. **Ajoutez un canal d’alerte** si ce n’est pas fait, et testez-le : voir les [canaux d’alerte](/docs/alerting/).
+
+</Steps>
+
+## Aller plus loin
+
+- **Testez vos restaurations.** Surveiller la sauvegarde prouve qu’elle est faite, pas qu’elle se restaure. Prévoyez une restauration périodique, surveillée elle aussi par son propre check.
+- **Un check par sauvegarde.** Base de données, fichiers, objets : un check chacun, pour savoir laquelle manque.
+- **Suivez la durée.** Une sauvegarde qui double de durée annonce souvent un disque qui se remplit ou une base qui grossit trop vite.
+
+Pour d’autres environnements (systemd, Docker, Kubernetes, GitHub Actions), voir les [exemples de monitoring de cron](/docs/cron-examples/).
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller ma sauvegarde</LinkButton>
+  <LinkButton href="/docs/ping-api/" variant="secondary">API de ping</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur la surveillance des sauvegardes"
+  items={[
+    { q: 'Comment être alerté si une sauvegarde cron ne s’est pas exécutée ?', a: 'Faites envoyer un ping à SilenceWatch à la fin de chaque sauvegarde réussie. Si le ping n’arrive pas à l’heure prévue plus le délai de grâce, le check passe en panne et vos canaux d’alerte sont prévenus.' },
+    { q: 'Comment détecter une sauvegarde vide ?', a: 'Faites vérifier la taille du fichier par le script avant d’annoncer le succès, et appelez l’URL /fail quand elle est inférieure à un seuil raisonnable.' },
+    { q: 'Quel délai de grâce choisir pour une sauvegarde ?', a: 'Un peu plus que sa durée normale, avec de la marge : une à deux heures pour une sauvegarde de vingt minutes évite les fausses alertes sans retarder l’information inutilement.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/cron-monitoring/">Monitoring de cron</a></li>
+  <li><a href="/job-monitoring/">Monitoring de jobs</a></li>
+  <li><a href="/docs/ping-api/">API de ping</a></li>
+</ul>

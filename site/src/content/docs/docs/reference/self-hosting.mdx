@@ -1,0 +1,39 @@
+---
+title: "Auto-hébergement : configuration essentielle"
+description: "Réglages essentiels pour auto-héberger SilenceWatch avec Docker : variables obligatoires, e-mail, inscriptions, rétention. Guide complet en anglais."
+sidebar:
+  label: Auto-hébergement
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Cette page résume la configuration d’une instance auto-hébergée. Pour l’installation en quatre commandes, voir la [page Auto-hébergement](/self-hosted/) ; pour tout le reste (HTTPS avec Docker Swarm, sauvegardes, mises à jour, surveillance de l’instance), voir le **[guide complet, en anglais](/en/docs/reference/self-hosting/)**.
+
+## Les quatre valeurs à renseigner
+
+Tout se règle par variables d’environnement, dans le fichier `.env`. Le serveur **refuse de démarrer** sur une configuration dangereuse ou incohérente, et dit laquelle, plutôt que de tourner en mode dégradé.
+
+| Variable | À renseigner avec |
+| --- | --- |
+| `SECRET_KEY` | `openssl rand -hex 32`. Toutes les clés de signature en dérivent ; la changer déconnecte tout le monde. |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Le fichier Compose en construit `DATABASE_URL`. |
+| `SMTP_URL` | `smtp://utilisateur:motdepasse@relais.exemple.fr:587` (STARTTLS requis). Ou un `POSTMARK_TOKEN` / `BREVO_API_KEY` avec le `EMAIL_PROVIDER` correspondant. |
+| `BASE_URL` | L’adresse que vos utilisateurs tapent. Les URL de ping et les liens des alertes en sont construits : une mauvaise valeur distribue des liens que personne ne peut suivre. |
+
+Le fournisseur d’e-mail `console` (qui écrit les alertes dans le journal) n’est pas utilisable en production : le serveur refuse de démarrer avec.
+
+## Autres réglages courants
+
+| Variable | Défaut | Effet |
+| --- | --- | --- |
+| `SIGNUP_ENABLED` | `true` | À `false`, seul le premier compte peut être créé. À fixer une fois votre équipe inscrite. |
+| `EMAIL_VERIFICATION_REQUIRED` | `false` | Exige une adresse e-mail confirmée avant la connexion. |
+| `PING_RETENTION_DAYS` | `90` | Durée de conservation de l’historique des pings. |
+| `AUDIT_RETENTION_DAYS` | `365` | Durée de conservation de l’historique de sécurité. |
+| `ALLOW_PRIVATE_NOTIFICATION_TARGETS` | `false` | Autorise les alertes vers des adresses privées (protection contre le SSRF activée par défaut). |
+| `OUTBOUND_HEARTBEAT_URL` | — | Un ping envoyé par SilenceWatch lui-même, pour [surveiller le moniteur](/en/docs/reference/self-hosting/). |
+| `LOG_LEVEL` | `info` | Niveau de journalisation. |
+
+<Aside type="caution" title="N’hébergez pas le SMTP des alertes vous-même">
+La délivrabilité des e-mails est une affaire de réputation. Le jour où une alerte compte est celui où elle ne doit pas finir en courrier indésirable : passez par un fournisseur ou un relais de confiance.
+</Aside>

@@ -1,0 +1,35 @@
+---
+title: "Sécurité : modèle de menace et protections"
+description: "Ce contre quoi SilenceWatch se défend : authentification, isolation entre projets, SSRF, injection, durcissement web, déni de service. Texte complet en anglais."
+sidebar:
+  label: Sécurité
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Une instance SilenceWatch connaît la planification de tout ce qu’une entreprise exécute, les URL de ping qui peuvent faire taire ses alertes, et des identifiants qui atteignent des canaux de discussion et des webhooks. Cette page résume ce qui la protège ; le **[document complet, en anglais](/en/docs/reference/security/)**, est écrit pour qu’un relecteur puisse vérifier chaque affirmation dans le code.
+
+## Les attaques envisagées
+
+1. Un inconnu qui fait taire des alertes, ou en déclenche de fausses.
+2. Un locataire qui lit ou modifie les checks d’un autre.
+3. L’utilisation du mécanisme d’alerte pour atteindre le réseau interne de l’hébergeur (SSRF).
+4. Le vol d’identifiants : mots de passe, clés d’API, secrets de webhook.
+5. Le déni de service par la seule route qui ne doit jamais tomber.
+
+## Ce qui est en place
+
+- **Mots de passe** hachés avec Argon2id aux paramètres recommandés par l’OWASP, chacun avec son sel. La connexion dépense le même temps de calcul pour une adresse inconnue que pour une adresse réelle : le temps de réponse ne révèle pas quels comptes existent. Dix échecs verrouillent un compte quinze minutes.
+- **Sessions** : jeton d’accès de courte durée et jeton de rafraîchissement opaque, stocké uniquement sous forme de SHA-256, à usage unique. Présenter un jeton déjà révoqué est traité comme un vol et révoque toutes les sessions de l’utilisateur.
+- **Clés d’API** : seule la moitié « identifiant » est indexée ; le secret est stocké en SHA-256 et comparé en temps constant. Un vidage de base ne donne aucune clé utilisable.
+- **Clés de ping** : des UUID aléatoires, jamais écrits dans les journaux d’accès.
+- **Isolation entre projets** : toute opération passe par un seul service, et un projet inaccessible répond 404, pas 403.
+- **SSRF** : les adresses sont vérifiées dans la résolution DNS même qui sert à la connexion (ce qui neutralise le *DNS rebinding*), les plages privées, de boucle locale et de métadonnées cloud sont bloquées, et les redirections ne sont jamais suivies.
+- **Injection** : toutes les entrées sont validées par les mêmes schémas que l’interface et les clients ; toutes les requêtes SQL sont paramétrées.
+- **Web** : une Content-Security-Policy stricte (`default-src 'self'`), `nosniff`, `no-referrer` et HSTS en production. L’interface n’embarque aucune police, script ou feuille de style externe.
+- **Déni de service** : limites de débit par clé de ping, par adresse et par route d’authentification.
+- **Secrets** : la configuration d’un canal n’est jamais renvoyée par l’API, les clés d’API ne sont affichées qu’une fois, et `SECRET_KEY` est la seule clé racine : toutes les autres en sont dérivées.
+
+## Signaler une vulnérabilité
+
+N’ouvrez pas de ticket public. Écrivez à **contact@silencewatch.com** avec une description, les étapes pour reproduire et la version concernée. Vous recevrez un accusé de réception sous 72 heures et une évaluation sous une semaine, et vous serez crédité dans les notes de version sauf si vous préférez l’inverse.

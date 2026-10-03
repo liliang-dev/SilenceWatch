@@ -1,0 +1,47 @@
+---
+title: "Getting started: monitor a job in 5 minutes"
+description: "Monitor your first job in five minutes: create a check, call its ping URL, add an alert channel and verify everything works."
+sidebar:
+  label: Getting started
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+This page takes you from nothing to a first monitored job with a working alert. Allow five minutes.
+
+<Steps>
+
+1. **Create an account** at [app.silencewatch.com](https://app.silencewatch.com/login). A first project is created with the account. Checks, alert channels and history belong to a project: you can create more (one per customer or per team, say) in *Settings › Projects*.
+
+2. **Create a check.** In *Checks*, click *New check* and fill in:
+   - the **name** ("Nightly backup");
+   - the **schedule**, either "every N seconds" or a [cron expression](/en/docs/schedules-and-states/) with its time zone;
+   - the **grace period**: how late a run may be before you are alerted;
+   - an optional **environment** (`production`, `staging`) so jobs do not get mixed up.
+
+3. **Copy the ping URL.** It is shown at the top of the check's page, with a ready-to-paste `curl` command. It is the only credential your job needs: keep it secret.
+
+4. **Have your job call that URL** at the end of a successful run:
+
+   ```bash
+   /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
+   ```
+
+   For your environment (systemd, Docker, Kubernetes, GitHub Actions…), see the [examples](/en/docs/cron-examples/).
+
+5. **Add an alert channel.** In *Alerting*, add an email address, a webhook, Slack, Microsoft Teams or Discord, then click *Send test*. A channel nobody has ever tried is a channel that fails during the incident it was set up for.
+
+6. **Check it works.** The check is *waiting* until a first ping arrives, then goes *UP* on the first call. If a ping is missing it goes *late*, then *down* once the grace period has passed, and every enabled channel is alerted.
+
+</Steps>
+
+<Aside type="tip" title="Measuring duration">
+Also call `/start` at the beginning of the job: SilenceWatch then measures how long each run takes. See the [ping API](/en/docs/ping-api/).
+</Aside>
+
+## Next
+
+- Monitor a **Spring Boot** application without declaring anything by hand: the [Spring Boot starter](/en/docs/spring-boot/).
+- Understand [check states and schedules](/en/docs/schedules-and-states/).
+- Drive your checks programmatically with the [REST API](/en/docs/reference/api/).
+- Run SilenceWatch on your own server: [self-hosting](/en/docs/reference/self-hosting/).

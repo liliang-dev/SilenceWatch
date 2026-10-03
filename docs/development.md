@@ -7,7 +7,40 @@ packages/shared    validation schemas and DTO types, shared by server, UI and cl
 packages/server    NestJS + Fastify API, ingestion, detection, alerting
 packages/web       Angular UI, built into packages/server/public
 clients/spring-boot-starter   the Spring Boot starter
+site               showcase site and documentation (Astro + Starlight), its own project
 ```
+
+## The site
+
+`site/` is the public website: the showcase pages, the user documentation and the
+reference pages, in French (at the root) and English (under `/en/`). It is a
+separate project with its own lockfile, deliberately outside the pnpm workspace,
+so its toolchain does not enlarge the application's audit, install-script
+allowlist or Docker build.
+
+```bash
+cd site
+pnpm install
+pnpm run dev       # http://localhost:4321
+pnpm run build && node scripts/check-seo.mjs
+```
+
+- `scripts/prepare.mjs` runs before every build. It copies the logo from
+  `packages/web/public/` (one source for the artwork, which the licence leaves
+  out; the repository holds no second copy), generates the reference pages from
+  `docs/api.md`, `docs/self-hosting.md` and `docs/security.md`, and draws the two
+  social-sharing images. Everything it writes is ignored by git. Edit the
+  Markdown in `docs/`, not the generated copies.
+- `scripts/check-seo.mjs` fails the build on what would cost the site in search
+  or on a share: a title over 65 characters, a missing or badly sized
+  description, a wrong canonical, a missing `hreflang`, invalid structured data,
+  a missing sitemap entry, a duplicate title, or any internal link that leads
+  nowhere. CI runs it on every pull request (the `Site` job).
+- French and English pages share one path under their language prefix, so
+  `hreflang`, the sitemap and the language picker line up with no further
+  configuration. Add a page in both languages or the check will say so.
+- The site is shipped by `.github/workflows/site.yml` on `main`, independently
+  of releases; see [self-hosting](self-hosting.md) for how Caddy serves it.
 
 ## Node
 

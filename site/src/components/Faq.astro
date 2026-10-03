@@ -1,0 +1,35 @@
+---
+/**
+ * Questions and answers, shown on the page and handed to search engines as
+ * FAQPage structured data.
+ *
+ * One list feeds both on purpose: structured data that says something the page
+ * does not is worse than none, and two copies drift. Answers are plain text
+ * (they appear inside JSON), so no markup in them.
+ */
+interface Item {
+  q: string;
+  a: string;
+}
+const { items, title } = Astro.props as { items: Item[]; title: string };
+
+const data = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+---
+
+<section class="sw-faq" aria-label={title}>
+  {items.map(({ q, a }) => (
+    <details>
+      <summary>{q}</summary>
+      <p>{a}</p>
+    </details>
+  ))}
+  <script type="application/ld+json" set:html={JSON.stringify(data)} />
+</section>

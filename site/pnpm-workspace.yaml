@@ -1,0 +1,36 @@
+# This directory is its own pnpm project, deliberately outside the application's
+# workspace: the site's toolchain (Astro, an image library) must not enlarge the
+# application's lockfile, its audit, its install-script allowlist or its Docker
+# build. A workspace file here makes pnpm treat this directory as a root of its
+# own, so none of those are shared — which also means the supply-chain settings
+# the application's root file carries are repeated, and have to be.
+packages: []
+
+# Nothing a dependency ships runs at install time unless it is named here.
+allowBuilds:
+  # Astro's bundler fetches its platform binary this way.
+  esbuild: true
+  # The image library normally installs a prebuilt binary through optional
+  # dependencies, and its install script is only a fallback for platforms
+  # without one. Not needed on CI or on a developer machine.
+  sharp: false
+
+# An ignored build script is not a warning to scroll past: fail the install.
+strictDepBuilds: true
+
+# Do not install a version of anything published less than three days ago, for
+# the reason given in the application's own pnpm-workspace.yaml.
+minimumReleaseAge: 4320
+
+# An advisory that has no fix to install. Listed here, with the reason, rather than
+# left to fail CI for everyone or silenced by loosening the audit level.
+auditConfig:
+  ignoreGhsas:
+    # GHSA-ch52-4w7c-c8xp — http-cache-semantics up to 4.2.0 (the latest release):
+    # `max-stale` handling can disclose a cached response to another user. No
+    # patched version has been published, so there is nothing to override to.
+    # Reached only through astro, which uses it to cache remote image downloads
+    # at build time; this site fetches no remote image, builds on a CI runner that
+    # serves no one, and ships none of it — the output is static files. Revisit
+    # when 4.2.1 exists: the ignore should then become an override, and go.
+    - GHSA-ch52-4w7c-c8xp
