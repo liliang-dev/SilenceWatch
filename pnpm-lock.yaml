@@ -76,8 +76,8 @@ importers:
         specifier: ^5.9.6
         version: 5.10.0
       nodemailer:
-        specifier: ^10.0.11
-        version: 10.0.11
+        specifier: ^10.0.13
+        version: 10.0.13
       pg:
         specifier: ^8.23.0
         version: 8.23.0
@@ -117,7 +117,7 @@ importers:
         version: 30.5.2(@types/node@26.6.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.3)(typescript@6.0.3))
       ts-jest:
         specifier: ^29.4.13
-        version: 29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.3)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(typescript@6.0.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.6.3)(typescript@6.0.3)
@@ -142,7 +142,7 @@ importers:
         version: 30.5.2(@types/node@26.6.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.3)(typescript@6.0.3))
       ts-jest:
         specifier: ^29.4.13
-        version: 29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.3)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(typescript@6.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -4305,8 +4305,8 @@ packages:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
-  nodemailer@10.0.11:
-    resolution: {integrity: sha512-/c4P7U7aGpiNu2Rl08q525q2zECkUpSaf2zQPgIStCcAjHAkkQQKwD4sTyi3l91mGcLQrKzL1syXPHymo+Ogtw==}
+  nodemailer@10.0.13:
+    resolution: {integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -9787,7 +9787,7 @@ snapshots:
 
   node-releases@2.0.51: {}
 
-  nodemailer@10.0.11: {}
+  nodemailer@10.0.13: {}
 
   normalize-path@3.0.0: {}
 
@@ -10555,7 +10555,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  ts-jest@29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.3)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(typescript@6.0.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
