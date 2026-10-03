@@ -1,34 +1,40 @@
 import type { AuditEventDto } from '@silencewatch/shared';
+import type { MessageKey } from '../../core/i18n/messages';
+import type { Translate } from '../../core/i18n/i18n.service';
 import type { TableRules } from '../../shared/data-table';
 
-/** Human wording for the audit actions, so the table reads as prose. */
-const AUDIT_LABELS: Record<string, string> = {
-  'auth.login': 'Signed in',
-  'auth.login_failed': 'Sign-in failed',
-  'auth.logout': 'Signed out',
-  'auth.password_changed': 'Password changed',
-  'auth.password_reset_requested': 'Password reset requested',
-  'auth.password_reset_completed': 'Password reset',
-  'auth.email_verified': 'Email confirmed',
-  'account.registered': 'Account created',
-  'api_key.created': 'API key created',
-  'api_key.revoked': 'API key revoked',
-  'channel.created': 'Alert channel added',
-  'channel.updated': 'Alert channel changed',
-  'channel.deleted': 'Alert channel removed',
-  'channel.tested': 'Alert channel tested',
-  'check.created': 'Check created',
-  'check.deleted': 'Check deleted',
-  'check.ping_key_rotated': 'Ping URL rotated',
-  'project.created': 'Project created',
-  'project.updated': 'Project changed',
-  'project.deleted': 'Project deleted',
-  'quota.checks_paused': 'Checks paused by plan limit',
-};
+/**
+ * The audit actions that have wording of their own. Anything else — an action a
+ * newer server records that this build has never heard of — is shown as the raw
+ * action rather than hidden.
+ */
+const AUDIT_ACTIONS = new Set<string>([
+  'auth.login',
+  'auth.login_failed',
+  'auth.logout',
+  'auth.password_changed',
+  'auth.password_reset_requested',
+  'auth.password_reset_completed',
+  'auth.email_verified',
+  'account.registered',
+  'api_key.created',
+  'api_key.revoked',
+  'channel.created',
+  'channel.updated',
+  'channel.deleted',
+  'channel.tested',
+  'check.created',
+  'check.deleted',
+  'check.ping_key_rotated',
+  'project.created',
+  'project.updated',
+  'project.deleted',
+  'quota.checks_paused',
+]);
 
 /** "auth.login_failed" reads as noise; "Sign-in failed" reads as a sentence. */
-export function auditLabel(action: string): string {
-  return AUDIT_LABELS[action] ?? action;
+export function auditLabel(action: string, t: Translate): string {
+  return AUDIT_ACTIONS.has(action) ? t(`audit.${action}` as MessageKey) : action;
 }
 
 /**
@@ -53,37 +59,39 @@ export function auditScope(event: AuditEventDto): 'account' | 'project' {
     : 'project';
 }
 
-export const auditRules: TableRules<AuditEventDto> = {
-  /**
-   * The label rather than the raw action, because "Sign-in failed" is what is
-   * on the screen and therefore what someone will type. The raw action is in
-   * here too, so an operator who knows the API can search for `auth.login`.
-   */
-  text: (event) => [
-    event.occurredAt,
-    auditLabel(event.action),
-    event.action,
-    event.actorEmail,
-    event.actorIsApiKey ? 'api key' : '',
-    event.targetLabel,
-    event.ip,
-  ],
+export function auditRules(t: Translate): TableRules<AuditEventDto> {
+  return {
+    /**
+     * The label rather than the raw action, because "Sign-in failed" is what is
+     * on the screen and therefore what someone will type. The raw action is in
+     * here too, so an operator who knows the API can search for `auth.login`.
+     */
+    text: (event) => [
+      event.occurredAt,
+      auditLabel(event.action, t),
+      event.action,
+      event.actorEmail,
+      event.actorIsApiKey ? `api key ${t('settings.apiKeyTag')}` : '',
+      event.targetLabel,
+      event.ip,
+    ],
 
-  sortValue: (event, column) => {
-    switch (column) {
-      case 'action':
-        return auditLabel(event.action);
-      case 'actor':
-        return (event.actorEmail ?? '').toLowerCase();
-      case 'target':
-        return (event.targetLabel ?? '').toLowerCase();
-      case 'ip':
-        return event.ip ?? '';
-      default:
-        return Date.parse(event.occurredAt);
-    }
-  },
+    sortValue: (event, column) => {
+      switch (column) {
+        case 'action':
+          return auditLabel(event.action, t);
+        case 'actor':
+          return (event.actorEmail ?? '').toLowerCase();
+        case 'target':
+          return (event.targetLabel ?? '').toLowerCase();
+        case 'ip':
+          return event.ip ?? '';
+        default:
+          return Date.parse(event.occurredAt);
+      }
+    },
 
-  // Newest first. An audit trail is read from the end.
-  compare: (left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
-};
+    // Newest first. An audit trail is read from the end.
+    compare: (left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
+  };
+}

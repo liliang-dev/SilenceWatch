@@ -1,21 +1,35 @@
 SilenceWatch
 Copyright 2026 the SilenceWatch authors
 
-This product is distributed under two licences, and which one applies depends on
-where a file sits in the tree:
+This product is licensed under the Apache License, Version 2.0. See LICENSE. That
+covers the whole tree: the server, the web interface, the shared types, the
+client libraries, the Spring Boot starter and the examples.
 
-  - The server — everything under packages/server and packages/web — is licensed
-    under the GNU Affero General Public License v3.0. See LICENSE.
+NOT LICENSED: the name and the logo
+-----------------------------------
 
-  - The client libraries, the Spring Boot starter, the shared types package, the
-    CLI, the integrations and the examples are licensed under the Apache License
-    2.0. See LICENSE.Apache-2.0. Each of those subtrees carries its own LICENSE
-    file, which is what governs it:
+The name "SilenceWatch" and the SilenceWatch logo are not part of what the Apache
+License grants. The licence itself says so — section 6 gives no right to use a
+trade name, trademark or product name — and the logo artwork is reserved as well:
+it is in this repository because the application displays it, not because it is
+part of the work you may reuse. It is:
 
-        packages/shared/
-        clients/**
-        examples/**
+    packages/web/public/logo.svg
+    packages/web/public/favicon.svg
+    the heartbeat mark and the wordmark drawn in the application header and on
+    the sign-in page:
+        packages/web/src/app/app.component.html
+        packages/web/src/app/pages/login/login.component.html
 
-This file exists to satisfy section 4(d) of the Apache License for the subtrees
-above. It is not a grant of rights beyond those licences, and it does not cover
-the name "SilenceWatch" or the logo — see TRADEMARK.md.
+A fork or a redistribution keeps every right the licence gives over the code, and
+replaces these. See TRADEMARK.md for what can be done with the name and the logo
+without asking.
+
+Third-party software
+--------------------
+
+The container image includes third-party software under its own licences, listed
+by `pnpm licenses list --prod`. Nearly all of it is MIT, ISC, Apache-2.0 or BSD.
+One package is not: elkjs, under the Eclipse Public License 2.0, which Prisma's
+tooling depends on. It is included unmodified, and its source is available from
+https://github.com/kieler/elkjs.

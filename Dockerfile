@@ -147,7 +147,7 @@ ENV SILENCEWATCH_VERSION=${SILENCEWATCH_VERSION} \
 LABEL org.opencontainers.image.title="SilenceWatch" \
       org.opencontainers.image.description="Heartbeat monitoring for cron jobs, workers and scheduled tasks" \
       org.opencontainers.image.source="https://github.com/liliang-dev/SilenceWatch" \
-      org.opencontainers.image.licenses="AGPL-3.0-only"
+      org.opencontainers.image.licenses="Apache-2.0"
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "packages/server/dist/main.js"]

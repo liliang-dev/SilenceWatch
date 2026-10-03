@@ -1,5 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import type { ApiErrorBody } from '@silencewatch/shared';
+import type { Translate } from './i18n/i18n.service';
+import { translateServerMessage } from './i18n/server-messages';
 
 /**
  * Turns a failed request into something worth showing a person.
@@ -7,16 +9,19 @@ import type { ApiErrorBody } from '@silencewatch/shared';
  * The server sends a stable error envelope, including field-level details for
  * validation failures — those are the useful part, so they are surfaced rather
  * than replaced by a generic "something went wrong".
+ *
+ * The sentences written here are translated. The ones the server sends are
+ * translated when `server-messages.ts` recognises them — a wrong password, an
+ * expired link — and otherwise shown as sent: validation details carry field
+ * names and limits that make them useful, and the server speaks one language.
  */
-export function errorMessage(error: unknown, fallback = 'Something went wrong.'): string {
+export function errorMessage(error: unknown, fallback: string, t: Translate): string {
   if (!(error instanceof HttpErrorResponse)) return fallback;
 
-  if (error.status === 0) {
-    return 'Cannot reach the server. Check your connection and try again.';
-  }
+  if (error.status === 0) return t('error.offline');
 
   const body = error.error as Partial<ApiErrorBody> | string | null;
-  if (typeof body === 'string' && body.trim() !== '') return body;
+  if (typeof body === 'string' && body.trim() !== '') return translateServerMessage(body, t);
 
   if (body !== null && typeof body === 'object') {
     const details = body.details;
@@ -29,14 +34,16 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong.')
         .map((issue) => (issue.path === '' ? issue.message : `${issue.path}: ${issue.message}`));
       if (issues.length > 0) return issues.join(', ');
     }
-    if (typeof body.message === 'string' && body.message.trim() !== '') return body.message;
+    if (typeof body.message === 'string' && body.message.trim() !== '') {
+      return translateServerMessage(body.message, t);
+    }
   }
 
-  if (error.status === 429) return 'Too many attempts. Wait a moment and try again.';
+  if (error.status === 429) return t('error.tooManyAttempts');
   // The page's own timeout, or a proxy giving up on the application: either way
   // the answer is "slow", which is a different thing to tell someone than "down".
-  if (error.status === 504) return 'The server is taking too long to answer. Try again shortly.';
-  if (error.status >= 500) return 'The server is having trouble. Try again shortly.';
+  if (error.status === 504) return t('error.slow');
+  if (error.status >= 500) return t('error.server');
   return fallback;
 }
 

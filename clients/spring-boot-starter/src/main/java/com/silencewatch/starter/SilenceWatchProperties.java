@@ -14,7 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * silencewatch:
  *   enabled: true
  *   api-key: ${SILENCEWATCH_API_KEY}
- *   base-url: https://silencewatch.com   # override when self-hosting
+ *   base-url: https://app.silencewatch.com   # override when self-hosting
  *   environment: production
  *   default-grace: 5m
  *   auto-register: true
@@ -30,7 +30,7 @@ public class SilenceWatchProperties {
     private String apiKey;
 
     /** SilenceWatch base URL. Point this at your own instance when self-hosting. */
-    private String baseUrl = "https://silencewatch.com";
+    private String baseUrl = "https://app.silencewatch.com";
 
     /** Environment name reported with every declared job (production, staging…). */
     private String environment = "production";

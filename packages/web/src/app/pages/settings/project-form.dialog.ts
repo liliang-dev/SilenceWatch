@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { LIMITS, type ProjectDto } from '@silencewatch/shared';
+import { I18n } from '../../core/i18n/i18n.service';
 
 export interface ProjectFormData {
   /** Absent when creating. */
@@ -37,6 +38,9 @@ export class ProjectFormDialog {
   protected readonly dialogRef = inject<MatDialogRef<ProjectFormDialog, string>>(MatDialogRef);
 
   private readonly formBuilder = inject(FormBuilder);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
+  protected readonly around = this.i18n.around;
 
   protected readonly maxLength = LIMITS.nameMax;
   protected readonly form = this.formBuilder.nonNullable.group({

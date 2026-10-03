@@ -25,15 +25,17 @@ import { Router, RouterLink } from '@angular/router';
 import type { CheckDto, IncidentDto, PingDto } from '@silencewatch/shared';
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/error-message';
+import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { confirmWith } from '../../shared/confirm.dialog';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
+import { PAGINATOR_INTL } from '../../shared/paginator-intl';
 import { DurationPipe, RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { StateChipComponent } from '../../shared/state-chip.component';
 import { CheckFormDialog } from '../checks/check-form.dialog';
 import { IconComponent } from '../../shared/icon.component';
 import { describeSchedule } from '../../shared/schedule';
-import { incidentRules, outageMs, pingRules } from './history-tables';
+import { incidentRules, kindWord, outageMs, pingRules } from './history-tables';
 
 const REFRESH_INTERVAL_MS = 15_000;
 
@@ -72,6 +74,7 @@ const HISTORY_LIMIT = 200;
     RelativeTimePipe,
     DurationPipe,
   ],
+  providers: [PAGINATOR_INTL],
   templateUrl: './check-detail.component.html',
   styleUrl: './check-detail.component.scss',
 })
@@ -84,13 +87,15 @@ export class CheckDetailComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly projects = inject(ProjectStore);
+  private readonly i18n = inject(I18n);
+  protected readonly t = this.i18n.t;
 
   protected readonly check = signal<CheckDto | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly pings = new DataTable<PingDto>(pingRules);
-  protected readonly incidents = new DataTable<IncidentDto>(incidentRules);
+  protected readonly pings = new DataTable<PingDto>(pingRules(this.t));
+  protected readonly incidents = new DataTable<IncidentDto>(incidentRules(this.t));
 
   /** True when the log is longer than one request returns. */
   protected readonly pingsTruncated = signal(false);
@@ -130,7 +135,7 @@ export class CheckDetailComponent implements OnDestroy {
       },
       error: (failure: unknown) => {
         this.loading.set(false);
-        this.error.set(errorMessage(failure, 'Could not load this check.'));
+        this.error.set(errorMessage(failure, this.t('detail.loadFailed'), this.t));
       },
     });
 
@@ -177,9 +182,16 @@ export class CheckDetailComponent implements OnDestroy {
     this.api.updateCheck(check.id, { paused }).subscribe({
       next: (updated) => {
         this.check.set(updated);
-        this.snackBar.open(paused ? 'Check paused' : 'Check resumed', 'OK', { duration: 3000 });
+        this.snackBar.open(
+          this.t(paused ? 'detail.paused' : 'detail.resumed'),
+          this.t('common.ok'),
+          {
+            duration: 3000,
+          },
+        );
       },
-      error: (failure: unknown) => this.error.set(errorMessage(failure, 'Could not update the check.')),
+      error: (failure: unknown) =>
+        this.error.set(errorMessage(failure, this.t('detail.updateFailed'), this.t)),
     });
   }
 
@@ -192,19 +204,19 @@ export class CheckDetailComponent implements OnDestroy {
    */
   protected rotate(check: CheckDto): void {
     confirmWith(this.dialog, {
-      title: 'Issue a new ping URL?',
-      message:
-        `The URL for "${check.name}" stops working immediately. Any job still calling it will be ` +
-        'reported as down until you update it. History and incidents are kept.',
-      confirmLabel: 'Issue a new URL',
+      title: this.t('detail.rotateTitle'),
+      message: this.t('detail.rotateMessage', { name: check.name }),
+      confirmLabel: this.t('detail.rotateConfirm'),
     }).subscribe(() => {
       this.api.rotatePingKey(check.id).subscribe({
         next: (updated) => {
           this.check.set(updated);
-          this.snackBar.open('New ping URL issued — update your jobs', 'OK', { duration: 6000 });
+          this.snackBar.open(this.t('detail.rotated'), this.t('common.ok'), {
+            duration: 6000,
+          });
         },
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not rotate the ping URL.')),
+          this.error.set(errorMessage(failure, this.t('detail.rotateFailed'), this.t)),
       });
     });
   }
@@ -214,22 +226,25 @@ export class CheckDetailComponent implements OnDestroy {
     const incidents = this.incidents.rows().length;
 
     confirmWith(this.dialog, {
-      title: `Delete "${check.name}"?`,
+      title: this.t('detail.deleteTitle', { name: check.name }),
       // The counts are the point of asking: "are you sure" tells nobody what
       // they are about to lose.
-      message:
-        `${count(pings, 'ping')} and ${count(incidents, 'incident')} are destroyed with it. ` +
-        'This cannot be undone.',
-      confirmLabel: 'Delete check',
+      message: this.t('detail.deleteMessage', {
+        pings: this.i18n.plural('detail.pingCount', pings),
+        incidents: this.i18n.plural('detail.incidentCount', incidents),
+      }),
+      confirmLabel: this.t('detail.deleteConfirm'),
       destructive: true,
     }).subscribe(() => {
       this.api.deleteCheck(check.id).subscribe({
         next: () => {
-          this.snackBar.open('Check deleted', 'OK', { duration: 3000 });
+          this.snackBar.open(this.t('detail.deleted'), this.t('common.ok'), {
+            duration: 3000,
+          });
           void this.router.navigate(['/checks']);
         },
         error: (failure: unknown) =>
-          this.error.set(errorMessage(failure, 'Could not delete the check.')),
+          this.error.set(errorMessage(failure, this.t('detail.deleteFailed'), this.t)),
       });
     });
   }
@@ -237,14 +252,19 @@ export class CheckDetailComponent implements OnDestroy {
   protected copy(text: string): void {
     void navigator.clipboard
       .writeText(text)
-      .then(() => this.snackBar.open('Ping URL copied', 'OK', { duration: 2000 }))
-      .catch(() => this.snackBar.open('Could not copy — select the URL manually', 'OK', { duration: 4000 }));
+      .then(() =>
+        this.snackBar.open(this.t('detail.pingCopied'), this.t('common.ok'), {
+          duration: 2000,
+        }),
+      )
+      .catch(() =>
+        this.snackBar.open(this.t('detail.copyFailed'), this.t('common.ok'), {
+          duration: 4000,
+        }),
+      );
   }
 
-  protected readonly schedule = describeSchedule;
+  protected readonly schedule = (check: CheckDto): string => describeSchedule(check, this.t);
+  protected readonly kindLabel = (ping: PingDto): string => kindWord(ping, this.t);
   protected readonly outage = outageMs;
-}
-
-function count(value: number, noun: string): string {
-  return `${value === 0 ? 'No' : value} ${value === 1 ? noun : `${noun}s`}`;
 }

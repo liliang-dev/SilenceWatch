@@ -10,6 +10,125 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-03
+
+No database migration, so going back to 0.2.3 is safe, and nothing to do for an
+existing self-hosted instance: the new `SILENCEWATCH_SITE_DOMAIN` setting is
+optional and, left unset, changes nothing. The licence is now Apache-2.0 for the
+whole project (the name and the logo excepted).
+
+The reasons to take it are in the interface: it can be read in French, and be
+set to light or dark, from a new Preferences tab in Settings, and the end of
+every page is no longer hidden under the tab bar on a phone. The hosted service
+also moves to `app.silencewatch.com` with this release; a self-hoster is not
+concerned.
+
+### Added
+
+- **A showcase site and user documentation**, in French and English, in `site/`
+  (Astro and Starlight; a project of its own, outside the application's workspace,
+  lockfile and image). Its slogan is "Vos Jobs ne vous préviennent pas quand ils
+  s'arrêtent. Nous oui." ("Your jobs don't tell you when they stop. We do."), and
+  it is written around *job monitoring* — cron is one way of scheduling a job, so
+  "cron and job monitoring" would say the same thing twice; cron monitoring is a
+  page of its own beneath it. Pages for what people search for — job monitoring,
+  cron monitoring, Spring Boot `@Scheduled` and Quartz monitoring, what a dead
+  man's switch is, self-hosting, monitoring a backup or a Kubernetes CronJob, a
+  cron job that does not run — and a documentation section:
+  getting started, the ping API, copy-paste examples (crontab, systemd, Docker,
+  Kubernetes, GitHub Actions, Python, Node, PowerShell), schedules and states,
+  alert channels (with signature verification), the Spring Boot starter, and the
+  API, self-hosting and security reference generated from `docs/`. It is built to
+  be found: one canonical address per page, `hreflang` between the languages, a
+  sitemap, `robots.txt`, structured data (organisation, software, breadcrumbs,
+  FAQ), a social-sharing image per language, no third-party request and no
+  client-side framework. `scripts/check-seo.mjs` fails the build on a title over
+  65 characters, a bad description, a wrong canonical, a missing `hreflang`,
+  invalid structured data, a duplicate title or any internal link that leads
+  nowhere; CI runs it on every pull request. It ships on its own, from
+  `.github/workflows/site.yml`, whenever `site/` or `docs/` reaches `main`: built,
+  checked, and swapped into the `silencewatch_site` volume with one atomic rename.
+- **A Preferences section in Settings: the language, and light or dark.** The
+  interface is now available in French as well as English, and the colour mode can
+  be set to light, dark, or "System", which follows the device as it always did and
+  stays the default. Each choice is a card with a flag or an icon (the flags are
+  drawn, not typed: Windows does not render flag emoji). A French browser gets
+  French on the first visit; anything else gets English. The choice applies at once
+  without a reload — texts, dates ("il y a 3 minutes"), the window title, the
+  table footers and the `lang` attribute — and is kept in the browser, so it is
+  per device, not per account. A saved colour mode is applied before the first
+  paint by a small script, `theme-init.js`, so a dark choice does not flash white
+  on load. The messages the server sends are translated where they are the ones a
+  person meets (wrong password, expired link, last project…); a validation detail
+  or a sentence the table does not know stays as it arrives,
+  in English. The translations are two JSON files read with
+  [Transloco](https://jsverse.gitbook.io/transloco), each fetched only when its
+  language is in use. One dependency, `@jsverse/transloco` (MIT), which brings two
+  small packages of its own, one of them a pinned beta, `@jsverse/utils`; it adds
+  about 18 kB (raw) to the first load. Transloco's ICU MessageFormat plugin is
+  deliberately not used: it builds each message with `new Function`, which the
+  Content-Security-Policy (`script-src 'self'`) forbids, so plurals are separate
+  keys instead.
+
+### Fixed
+
+- **The security documentation no longer says authentication uses no cookies.** It
+  does: the refresh token is an HttpOnly, `SameSite=Strict` cookie limited to
+  `/api/auth` (a change made earlier, whose page was not updated). The page now
+  says so, and why that leaves no cross-site request to forge. It matters more now
+  that the same text is published on the site.
+- **The end of a page is no longer hidden under the tab bar on a phone.** The room
+  for the bar was reserved as padding on `<body>`, which is `height: 100%`, so
+  the content overflowed past that padding instead of being pushed up by it and
+  the last ~40px of every page stayed under the bar, out of reach however far you
+  scrolled. The room is now on the page itself. Measured after scrolling to the
+  very end, on every signed-in screen at 360 and 390 pixels wide: 13 of 18 views
+  had content hidden before (by 42px), none have now (24px of clearance).
+
+### Changed
+
+- **The hosted application moves to `app.silencewatch.com`; the bare domain
+  becomes the showcase site.** Ping URLs the hosted service hands out now start
+  with `https://app.silencewatch.com/p/`, and so do the links in its emails.
+  `docker-stack.yml` serves a second name when `SILENCEWATCH_SITE_DOMAIN` is set
+  — the static site, `www.` redirected to it, and the addresses the application
+  used to answer on the bare domain (`/p/…`, `/api/…`, `/login`, …) redirected to
+  `SILENCEWATCH_DOMAIN` with a 308. Left unset, nothing changes for a
+  self-hoster. CI now validates the generated Caddyfile both ways, and checks the
+  site's redirect, root and headers. **To do on the server when upgrading:** point
+  `SILENCEWATCH_DOMAIN` and `BASE_URL` at the application's new name and set
+  `SILENCEWATCH_SITE_DOMAIN`; see the self-hosting guide.
+- **The Spring Boot starter's default `base-url` is `https://app.silencewatch.com`**
+  (it was the bare domain). Anyone who set it explicitly is unaffected.
+- **The tabs in Settings scroll sideways under a finger, a trackpad, the wheel or a
+  dragged mouse.** Six tabs do not fit a phone, and Angular Material's answer was
+  two small arrow buttons that move the strip a third at a time and nothing that
+  moves it under your finger. The strip is now an ordinary scrolling row with its
+  scrollbar hidden: swipe it on a touchscreen; on a computer, turn the wheel over
+  it (it hands back to the page when it reaches an end) or drag it with the mouse
+  (letting go over a tab does not select it). The edge that has more behind it
+  fades. The arrow keys still move between tabs and now bring the tab into view.
+  On a screen wide enough for all six, nothing changes.
+- **The tab bar on a phone is slimmer.** It was 66px tall and sits over every
+  screen; it is now 58px, with a 20px icon in place of 22px, and the room reserved
+  for it at the foot of a page went from 90px to 82px so the last line still ends
+  24px clear of it.
+- **The whole project is licensed under Apache-2.0, except the name and the logo.**
+  The server and the web interface were AGPL-3.0 and everything else Apache-2.0;
+  there is now one licence over all of it. In practice: you can use, modify, host
+  and redistribute SilenceWatch, commercially and as a service included, without
+  publishing your changes. What stays outside the licence is the brand — the name
+  "SilenceWatch" and the logo — and a fork is expected to be renamed and given its
+  own logo. [TRADEMARK.md](TRADEMARK.md) says what can be done without asking and
+  lists exactly which files are excluded; [NOTICE](NOTICE) lists third-party
+  software, one package of which (elkjs, brought in by Prisma's tooling) is under
+  the Eclipse Public License 2.0, unmodified. There is a single `LICENSE` text now
+  (the official one, where the old copy had been reflowed) and no
+  `LICENSE.Apache-2.0`; the package manifests, the image label and the contributing
+  guide follow. A new CI check keeps the licence, the manifests and the brand
+  exclusion saying the same thing. Releases up to and including 0.2.3 stay under
+  the licences they were published with.
+
 ## [0.2.3] — 2026-10-02
 
 No database migration, so going back to 0.2.2 is safe. One new optional setting,
@@ -327,7 +446,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...0.2.2
 [0.2.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.2.0

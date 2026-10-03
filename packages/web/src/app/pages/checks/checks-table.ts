@@ -1,4 +1,5 @@
 import type { CheckDto, CheckState } from '@silencewatch/shared';
+import type { Translate } from '../../core/i18n/i18n.service';
 import type { TableRules } from '../../shared/data-table';
 
 /**
@@ -10,7 +11,13 @@ import type { TableRules } from '../../shared/data-table';
  */
 
 /** Broken first, then late, then everything else: the screen answers the question. */
-const STATE_ORDER: Record<CheckState, number> = { DOWN: 0, LATE: 1, NEW: 2, UP: 3, PAUSED: 4 };
+const STATE_ORDER: Record<CheckState, number> = {
+  DOWN: 0,
+  LATE: 1,
+  NEW: 2,
+  UP: 3,
+  PAUSED: 4,
+};
 
 /**
  * The default order, and the one to come back to.
@@ -27,40 +34,61 @@ export function byUrgency(left: CheckDto, right: CheckDto): number {
   return difference !== 0 ? difference : left.name.localeCompare(right.name, 'en');
 }
 
-/** What the Source column says, and therefore what "auto" or "orphaned" match. */
-export function sourceLabel(check: CheckDto): string {
-  return check.orphanedAt === null ? check.source : `${check.source} orphaned`;
+/** The words on a source tag, in the language on screen. */
+export function sourceWord(check: CheckDto, t: Translate): string {
+  return t(check.source === 'auto' ? 'checks.sourceAuto' : 'checks.sourceManual');
 }
 
-export const checkRules: TableRules<CheckDto> = {
-  // The four columns a person scans. Not the schedule: nobody searches for
-  // "0 2 * * *", and including it makes "5" match half the table.
-  text: (check) => [check.name, check.environment, sourceLabel(check), check.state],
+/**
+ * What the Source column says, and therefore what "auto" or "orphaned" match.
+ *
+ * The stored value is part of it as well as the translated word: someone who
+ * knows the API types `manual` whatever language the page is in, and someone
+ * reading a French page types `orphelin`.
+ */
+export function sourceLabel(check: CheckDto, t: Translate): string {
+  const words = `${check.source} ${sourceWord(check, t)}`;
+  return check.orphanedAt === null ? words : `${words} orphaned ${t('checks.sourceOrphaned')}`;
+}
 
-  /**
-   * `state` sorts by urgency rather than alphabetically — sorting states as text
-   * puts DOWN between an ordering nobody wants. Dates sort as numbers, and a
-   * check that has never reported sorts as the oldest possible, because "never"
-   * is the extreme of "long ago" and not a missing value to drop at one end.
-   */
-  sortValue: (check, column) => {
-    switch (column) {
-      case 'name':
-        return check.name.toLowerCase();
-      case 'environment':
-        return (check.environment ?? '').toLowerCase();
-      case 'source':
-        return sourceLabel(check);
-      case 'state':
-        return STATE_ORDER[check.state];
-      case 'lastPingAt':
-        return check.lastPingAt === null ? 0 : Date.parse(check.lastPingAt);
-      case 'nextDueAt':
-        return check.nextDueAt === null ? Number.MAX_SAFE_INTEGER : Date.parse(check.nextDueAt);
-      default:
-        return check.name.toLowerCase();
-    }
-  },
+export function checkRules(t: Translate): TableRules<CheckDto> {
+  return {
+    // The four columns a person scans. Not the schedule: nobody searches for
+    // "0 2 * * *", and including it makes "5" match half the table. The state is
+    // searchable by its stored name and by the word shown for it.
+    text: (check) => [
+      check.name,
+      check.environment,
+      sourceLabel(check, t),
+      check.state,
+      t(`state.${check.state}`),
+    ],
 
-  compare: byUrgency,
-};
+    /**
+     * `state` sorts by urgency rather than alphabetically — sorting states as text
+     * puts DOWN between an ordering nobody wants. Dates sort as numbers, and a
+     * check that has never reported sorts as the oldest possible, because "never"
+     * is the extreme of "long ago" and not a missing value to drop at one end.
+     */
+    sortValue: (check, column) => {
+      switch (column) {
+        case 'name':
+          return check.name.toLowerCase();
+        case 'environment':
+          return (check.environment ?? '').toLowerCase();
+        case 'source':
+          return sourceLabel(check, t);
+        case 'state':
+          return STATE_ORDER[check.state];
+        case 'lastPingAt':
+          return check.lastPingAt === null ? 0 : Date.parse(check.lastPingAt);
+        case 'nextDueAt':
+          return check.nextDueAt === null ? Number.MAX_SAFE_INTEGER : Date.parse(check.nextDueAt);
+        default:
+          return check.name.toLowerCase();
+      }
+    },
+
+    compare: byUrgency,
+  };
+}

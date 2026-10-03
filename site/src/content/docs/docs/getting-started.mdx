@@ -1,0 +1,47 @@
+---
+title: "Premiers pas : surveiller un job en 5 minutes"
+description: "Surveillez votre premier job en cinq minutes : créez un check, appelez son URL de ping, ajoutez un canal d’alerte et vérifiez que tout fonctionne."
+sidebar:
+  label: Premiers pas
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Cette page vous mène de zéro à un premier job surveillé, avec une alerte qui fonctionne. Comptez cinq minutes.
+
+<Steps>
+
+1. **Créez un compte** sur [app.silencewatch.com](https://app.silencewatch.com/login). Un premier projet est créé avec le compte. Les checks, les canaux d’alerte et l’historique appartiennent à un projet : vous pouvez en créer d’autres (par exemple un par client ou un par équipe) dans *Réglages › Projets*.
+
+2. **Créez un check.** Dans *Checks*, cliquez sur *Nouveau check* et renseignez :
+   - le **nom** (« Sauvegarde nocturne ») ;
+   - la **planification**, soit « toutes les N secondes », soit une [expression cron](/docs/schedules-and-states/) avec son fuseau horaire ;
+   - le **délai de grâce** : le retard toléré avant l’alerte ;
+   - un **environnement** facultatif (`production`, `staging`) pour ne pas mélanger les jobs.
+
+3. **Copiez l’URL de ping.** Elle s’affiche en haut de la page du check, avec une commande `curl` prête à coller. C’est le seul identifiant dont votre job a besoin : gardez-la secrète.
+
+4. **Faites appeler cette URL par votre job**, à la fin d’une exécution réussie :
+
+   ```bash
+   /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+   ```
+
+   Selon votre environnement (systemd, Docker, Kubernetes, GitHub Actions…), voir les [exemples](/docs/cron-examples/).
+
+5. **Ajoutez un canal d’alerte.** Dans *Alertes*, ajoutez une adresse e-mail, un webhook, Slack, Microsoft Teams ou Discord, puis cliquez sur *Envoyer un test*. Un canal jamais testé est un canal qui échoue pendant l’incident pour lequel on l’avait configuré.
+
+6. **Vérifiez.** Le check est *en attente* tant qu’aucun ping n’est arrivé, puis passe à *OK* au premier appel. Si le ping manque, il passe *en retard*, puis *en panne* une fois le délai de grâce écoulé, et chaque canal activé est alerté.
+
+</Steps>
+
+<Aside type="tip" title="Mesurer la durée">
+Appelez aussi `/start` au début du job : SilenceWatch mesure alors la durée de chaque exécution. Voir l’[API de ping](/docs/ping-api/).
+</Aside>
+
+## Et ensuite
+
+- Surveiller une application **Spring Boot** sans rien déclarer à la main : le [starter Spring Boot](/docs/spring-boot/).
+- Comprendre les [états d’un check et les planifications](/docs/schedules-and-states/).
+- Piloter vos checks par programme avec l’[API REST](/en/docs/reference/api/) (en anglais).
+- Installer SilenceWatch sur votre propre serveur : l’[auto-hébergement](/en/docs/reference/self-hosting/) (en anglais).

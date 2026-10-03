@@ -8,7 +8,6 @@
 # changed in a drive-by pull request is the kind of thing that is noticed years
 # later.
 /LICENSE                @liliang-dev
-/LICENSE.Apache-2.0     @liliang-dev
 /NOTICE                 @liliang-dev
 /TRADEMARK.md           @liliang-dev
 /packages/shared/LICENSE      @liliang-dev

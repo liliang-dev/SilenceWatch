@@ -1,0 +1,49 @@
+---
+title: "Planifications, délai de grâce et états"
+description: "Comment SilenceWatch décide qu’un job est en retard ou en panne : intervalle ou cron, fuseau horaire, délai de grâce, états et incidents."
+sidebar:
+  label: Planifications et états
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Un check a deux réglages qui décident de tout : **quand le prochain signal est attendu** (la planification) et **combien de retard vous tolérez** (le délai de grâce).
+
+## La planification
+
+Deux formes, jamais les deux à la fois :
+
+- **Un intervalle** : « toutes les N secondes ». Le minimum est de 30 secondes. Convient aux traitements réguliers (toutes les 5 minutes, toutes les heures).
+- **Une expression cron** : à 5 champs (Unix) ou à 6 champs (secondes en tête, comme l’écrivent Spring et Quartz), avec un **fuseau horaire** IANA (`Europe/Paris`). Les formes `?`, `L`, `5L` et `MON#2` sont acceptées. Le `W` de Quartz (jour ouvré le plus proche) est refusé : le serveur ne saurait pas calculer l’échéance, et un check dont l’échéance est incalculable est pire que pas de check.
+
+Le fuseau horaire compte pour les expressions cron : `0 2 * * *` ne tombe pas à la même heure à Paris et à New York, ni avant et après un changement d’heure.
+
+## Le délai de grâce
+
+C’est le retard accepté après l’échéance avant de vous alerter. Réglez-le à la mesure du job : une sauvegarde qui dure normalement vingt minutes mérite un délai de grâce de plus de vingt minutes. Trop court, vous aurez de fausses alertes ; trop long, vous serez prévenu tard.
+
+## Les états
+
+| État | Ce que cela veut dire |
+| --- | --- |
+| **En attente** | Aucun ping n’est encore arrivé. |
+| **OK** | Le dernier ping est arrivé dans les temps. |
+| **En retard** | L’échéance est dépassée, mais le délai de grâce court encore. Aucune alerte n’est envoyée. |
+| **En panne** | L’échéance et le délai de grâce sont dépassés, ou le job a signalé un échec (`/fail`, ou un code de sortie non nul). Un incident s’ouvre et chaque canal activé est alerté. |
+| **En pause** | Vous avez suspendu le check : il n’alerte pas et ses pings sont ignorés. |
+
+La couleur n’est jamais le seul signal : chaque état a aussi un libellé et une forme, pour rester lisible en niveaux de gris.
+
+## Incidents et retour à la normale
+
+Quand un check passe **en panne**, un **incident** s’ouvre et les canaux sont alertés. Le ping suivant le remet **OK**, ferme l’incident et envoie une **alerte de retour à la normale**, uniquement à ceux qui avaient été prévenus de la panne. L’historique garde la durée de chaque incident et le nombre d’alertes envoyées.
+
+La détection tourne toutes les 10 secondes ; chaque passage ne coûte que ce que coûtent les checks en retard, quel que soit le nombre total de checks.
+
+## Les checks déclarés automatiquement
+
+Les checks créés par un [starter](/docs/spring-boot/) sont marqués *auto*. Si l’application cesse de déclarer un job (renommé, supprimé), son check devient **orphelin** : il est signalé comme tel, jamais supprimé automatiquement, parce qu’une suppression automatique détruirait l’historique à la première refactorisation. La suppression est votre décision.
+
+<Aside type="tip">
+Pour un job quotidien, un délai de grâce d’une à quelques heures suffit presque toujours à éviter les fausses alertes sans retarder l’information de plus que nécessaire.
+</Aside>

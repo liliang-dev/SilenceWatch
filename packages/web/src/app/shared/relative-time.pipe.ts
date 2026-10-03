@@ -1,4 +1,5 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { I18n } from '../core/i18n/i18n.service';
 
 /**
  * "3 minutes ago" / "in 2 hours" — how people read a monitoring screen.
@@ -6,20 +7,18 @@ import { Pipe, PipeTransform } from '@angular/core';
  * The absolute timestamp always stays available as a tooltip; relative time is
  * for scanning, not for forensics.
  *
- * The locale is pinned rather than taken from the browser. The application is
- * written in English throughout — every label, every state, every error the
- * server returns — so a machine set to French produced "il y a 3 minutes" in a
- * column headed "Last ping", next to "never" and "just now" in English. It also
- * made the test suite pass or fail depending on whose laptop it ran on, which
- * is the more expensive half of the same bug.
+ * The locale is the application's own, not the browser's. A machine set to
+ * French used to produce "il y a 3 minutes" in a column headed "Last ping",
+ * next to "never" and "just now" in English — and a test suite that passed or
+ * failed depending on whose laptop ran it. Now the words around the number and
+ * the number's own phrasing both follow the language chosen in the preferences.
  *
- * This is the place to change when SilenceWatch is translated: the pipe would
- * take the active locale, and so would everything else at once.
+ * Impure on purpose: a pure pipe is only re-run when its input changes, and the
+ * input here is a timestamp, which does not change when the language does.
  */
-const LOCALE = 'en';
-@Pipe({ name: 'swRelativeTime' })
+@Pipe({ name: 'swRelativeTime', pure: false })
 export class RelativeTimePipe implements PipeTransform {
-  private static readonly formatter = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+  private readonly i18n = inject(I18n);
 
   private static readonly units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
     ['year', 31_536_000],
@@ -30,22 +29,36 @@ export class RelativeTimePipe implements PipeTransform {
     ['second', 1],
   ];
 
+  private formatter: Intl.RelativeTimeFormat | null = null;
+  private formatterLanguage: string | null = null;
+
   transform(value: string | Date | null | undefined): string {
-    if (value === null || value === undefined) return 'never';
+    if (value === null || value === undefined) return this.i18n.t('time.never');
 
     const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
     if (Number.isNaN(timestamp)) return '—';
 
     const deltaSeconds = (timestamp - Date.now()) / 1000;
     const magnitude = Math.abs(deltaSeconds);
-    if (magnitude < 10) return 'just now';
+    if (magnitude < 10) return this.i18n.t('time.justNow');
 
     for (const [unit, seconds] of RelativeTimePipe.units) {
       if (magnitude >= seconds) {
-        return RelativeTimePipe.formatter.format(Math.round(deltaSeconds / seconds), unit);
+        return this.format().format(Math.round(deltaSeconds / seconds), unit);
       }
     }
-    return 'just now';
+    return this.i18n.t('time.justNow');
+  }
+
+  private format(): Intl.RelativeTimeFormat {
+    const language = this.i18n.language();
+    if (this.formatter === null || this.formatterLanguage !== language) {
+      this.formatter = new Intl.RelativeTimeFormat(language, {
+        numeric: 'auto',
+      });
+      this.formatterLanguage = language;
+    }
+    return this.formatter;
   }
 }
 

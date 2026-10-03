@@ -1,7 +1,7 @@
 <div class="sw-page">
   <a routerLink="/checks" class="back">
     <sw-icon name="back" />
-    All checks
+    {{ t('detail.back') }}
   </a>
 
   @if (error()) {
@@ -18,28 +18,28 @@
       <div class="actions">
         <button mat-stroked-button (click)="edit(current)">
           <sw-icon name="edit" />
-          Edit
+          {{ t('detail.edit') }}
         </button>
         <button mat-stroked-button (click)="togglePause(current)">
           <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" />
-          {{ current.state === 'PAUSED' ? 'Resume' : 'Pause' }}
+          {{ current.state === 'PAUSED' ? t('detail.resume') : t('detail.pause') }}
         </button>
         <button
           mat-icon-button
           class="sw-icon-button"
           [matMenuTriggerFor]="menu"
-          aria-label="More actions"
+          [attr.aria-label]="t('detail.moreActions')"
         >
           <sw-icon name="more" />
         </button>
         <mat-menu #menu="matMenu">
           <button mat-menu-item (click)="rotate(current)">
             <sw-icon name="copy" />
-            Rotate ping URL
+            {{ t('detail.rotate') }}
           </button>
           <button mat-menu-item (click)="remove(current)">
             <sw-icon name="delete" />
-            Delete check
+            {{ t('detail.delete') }}
           </button>
         </mat-menu>
       </div>
@@ -49,10 +49,14 @@
          this into a crontab is the entire setup. -->
     <section class="sw-card ping">
       <div class="ping-head">
-        <span class="sw-label">Ping URL</span>
-        <span class="sw-muted ping-hint">call it when the job finishes</span>
+        <span class="sw-label">{{ t('detail.pingUrl') }}</span>
+        <span class="sw-muted ping-hint">{{ t('detail.pingHint') }}</span>
         @if (current.pingKeyRotatedAt) {
-          <span class="sw-tag rotated">rotated {{ current.pingKeyRotatedAt | swRelativeTime }}</span>
+          <span class="sw-tag rotated">{{
+            t('detail.rotatedAgo', {
+              when: current.pingKeyRotatedAt | swRelativeTime,
+            })
+          }}</span>
         }
       </div>
       <div class="ping-row">
@@ -61,59 +65,65 @@
           mat-flat-button
           class="copy"
           (click)="copy(current.pingUrl)"
-          matTooltip="Copy to clipboard"
-          aria-label="Copy ping URL"
+          [matTooltip]="t('detail.copyTip')"
+          [attr.aria-label]="t('detail.copyAria')"
         >
           <sw-icon name="copy" [size]="18" />
-          Copy
+          {{ t('common.copy') }}
         </button>
       </div>
-      <pre class="sw-mono snippet"><span class="prompt">$</span> curl -fsS -m 10 --retry 3 {{ current.pingUrl }}</pre>
+      <pre
+        class="sw-mono snippet"
+      ><span class="prompt">$</span> curl -fsS -m 10 --retry 3 {{ current.pingUrl }}</pre>
     </section>
 
     <div class="facts">
       <div class="fact">
-        <span class="sw-label">Schedule</span>
+        <span class="sw-label">{{ t('detail.factSchedule') }}</span>
         <strong class="sw-mono">{{ schedule(current) }}</strong>
       </div>
       <div class="fact">
-        <span class="sw-label">Grace period</span>
+        <span class="sw-label">{{ t('detail.factGrace') }}</span>
         <strong>{{ current.graceSeconds }}s</strong>
       </div>
       <div class="fact">
-        <span class="sw-label">Last ping</span>
-        <strong [matTooltip]="current.lastPingAt ?? ''">{{ current.lastPingAt | swRelativeTime }}</strong>
+        <span class="sw-label">{{ t('detail.factLastPing') }}</span>
+        <strong [matTooltip]="current.lastPingAt ?? ''">{{
+          current.lastPingAt | swRelativeTime
+        }}</strong>
       </div>
       <div class="fact">
-        <span class="sw-label">Expected by</span>
-        <strong [matTooltip]="current.nextDueAt ?? ''">{{ current.nextDueAt | swRelativeTime }}</strong>
+        <span class="sw-label">{{ t('detail.factExpected') }}</span>
+        <strong [matTooltip]="current.nextDueAt ?? ''">{{
+          current.nextDueAt | swRelativeTime
+        }}</strong>
       </div>
       <div class="fact">
-        <span class="sw-label">Last duration</span>
+        <span class="sw-label">{{ t('detail.factDuration') }}</span>
         <strong>{{ current.lastDurationMs | swDuration }}</strong>
       </div>
       <div class="fact">
-        <span class="sw-label">Environment</span>
+        <span class="sw-label">{{ t('detail.factEnvironment') }}</span>
         <strong>{{ current.environment ?? '—' }}</strong>
       </div>
     </div>
 
     @if (current.key) {
       <p class="key sw-muted">
-        Declared automatically as <code class="sw-mono">{{ current.key }}</code>
+        {{ t('detail.declaredAs') }}
+        <code class="sw-mono">{{ current.key }}</code>
         @if (current.orphanedAt) {
-          — the client stopped reporting it {{ current.orphanedAt | swRelativeTime }}. History is kept
-          until you delete it.
+          {{ t('detail.orphaned', { when: current.orphanedAt | swRelativeTime }) }}
         }
       </p>
     }
 
     <mat-tab-group class="tabs" animationDuration="120ms" [mat-stretch-tabs]="false">
-      <mat-tab label="Recent pings">
+      <mat-tab [label]="t('detail.tabPings')">
         @if (pings.rows().length === 0) {
           <div class="sw-empty">
-            <h2>No ping received yet</h2>
-            <p>The first call to the ping URL above will appear here within seconds.</p>
+            <h2>{{ t('detail.noPingTitle') }}</h2>
+            <p>{{ t('detail.noPingBody') }}</p>
           </div>
         } @else {
           <div class="sw-table-card panel">
@@ -124,10 +134,10 @@
                 hideSingleSelectionIndicator
                 class="sw-filters"
               >
-                <mat-button-toggle value="">All</mat-button-toggle>
-                <mat-button-toggle value="success">Success</mat-button-toggle>
-                <mat-button-toggle value="fail">Fail</mat-button-toggle>
-                <mat-button-toggle value="start">Start</mat-button-toggle>
+                <mat-button-toggle value="">{{ t('common.all') }}</mat-button-toggle>
+                <mat-button-toggle value="success">{{ t('detail.kindSuccess') }}</mat-button-toggle>
+                <mat-button-toggle value="fail">{{ t('detail.kindFail') }}</mat-button-toggle>
+                <mat-button-toggle value="start">{{ t('detail.kindStart') }}</mat-button-toggle>
               </mat-button-toggle-group>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
@@ -135,7 +145,7 @@
                 <input
                   matInput
                   type="search"
-                  placeholder="Search pings"
+                  [placeholder]="t('detail.searchPings')"
                   [ngModel]="pings.search()"
                   (ngModelChange)="pings.onSearch($event)"
                 />
@@ -144,15 +154,14 @@
 
             @if (pingsTruncated()) {
               <p class="sw-table-note">
-                Showing the most recent {{ pings.rows().length }} pings. Older ones are still in the
-                database and the REST API returns them.
+                {{ t('detail.pingsTruncated', { count: pings.rows().length }) }}
               </p>
             }
 
             @if (pings.matching().length === 0) {
               <div class="sw-empty">
-                <h2>No ping matches</h2>
-                <p>Nothing in this log says that. Clear the search to see them all.</p>
+                <h2>{{ t('detail.noPingMatchTitle') }}</h2>
+                <p>{{ t('detail.noPingMatchBody') }}</p>
               </div>
             } @else {
               <div class="sw-scroll-x">
@@ -166,34 +175,66 @@
                   (matSortChange)="pings.onSort($event)"
                 >
                   <ng-container matColumnDef="receivedAt">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>When</th>
-                    <td mat-cell *matCellDef="let ping" class="sw-cell-main" [matTooltip]="ping.receivedAt">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colWhen') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let ping"
+                      class="sw-cell-main"
+                      [matTooltip]="ping.receivedAt"
+                    >
                       {{ ping.receivedAt | swRelativeTime }}
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="kind">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Kind</th>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colKind') }}
+                    </th>
                     <td mat-cell *matCellDef="let ping" class="sw-cell-aside">
-                      <span class="kind" [class]="'kind-' + ping.kind">{{ ping.kind }}</span>
+                      <span class="kind" [class]="'kind-' + ping.kind">{{ kindLabel(ping) }}</span>
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="durationMs">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration</th>
-                    <td mat-cell *matCellDef="let ping" class="sw-num sw-cell-third" data-label="Duration">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colDuration') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let ping"
+                      class="sw-num sw-cell-third"
+                      [attr.data-label]="t('detail.colDuration')"
+                    >
                       {{ ping.durationMs | swDuration }}
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="exitCode">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Exit</th>
-                    <td mat-cell *matCellDef="let ping" class="sw-num sw-cell-third" data-label="Exit code">{{ ping.exitCode ?? '—' }}</td>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colExit') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let ping"
+                      class="sw-num sw-cell-third"
+                      [attr.data-label]="t('detail.colExitCode')"
+                    >
+                      {{ ping.exitCode ?? '—' }}
+                    </td>
                   </ng-container>
 
                   <ng-container matColumnDef="sourceIp">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
-                    <td mat-cell *matCellDef="let ping" class="sw-mono sw-muted sw-cell-third" data-label="Source">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colSource') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let ping"
+                      class="sw-mono sw-muted sw-cell-third"
+                      [attr.data-label]="t('detail.colSource')"
+                    >
                       {{ ping.sourceIp ?? '—' }}
                     </td>
                   </ng-container>
@@ -201,8 +242,16 @@
                   <!-- Not sortable: ordering free-form output alphabetically
                        answers no question anyone has. -->
                   <ng-container matColumnDef="body">
-                    <th mat-header-cell *matHeaderCellDef>Body</th>
-                    <td mat-cell *matCellDef="let ping" class="body sw-mono sw-muted" data-label="Output" [class.sw-hide-mobile]="!ping.body">
+                    <th mat-header-cell *matHeaderCellDef>
+                      {{ t('detail.colBody') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let ping"
+                      class="body sw-mono sw-muted"
+                      [attr.data-label]="t('detail.colOutput')"
+                      [class.sw-hide-mobile]="!ping.body"
+                    >
                       {{ ping.body ?? '' }}
                     </td>
                   </ng-container>
@@ -218,18 +267,18 @@
                 [pageIndex]="pings.page().pageIndex"
                 [pageSizeOptions]="pageSizes"
                 (page)="pings.onPage($event)"
-                aria-label="Pages of pings"
+                [attr.aria-label]="t('detail.pagesPingsAria')"
               />
             }
           </div>
         }
       </mat-tab>
 
-      <mat-tab label="Incidents">
+      <mat-tab [label]="t('detail.tabIncidents')">
         @if (incidents.rows().length === 0) {
           <div class="sw-empty">
-            <h2>No incident</h2>
-            <p>This job has never gone quiet.</p>
+            <h2>{{ t('detail.noIncidentTitle') }}</h2>
+            <p>{{ t('detail.noIncidentBody') }}</p>
           </div>
         } @else {
           <div class="sw-table-card panel">
@@ -240,9 +289,13 @@
                 hideSingleSelectionIndicator
                 class="sw-filters"
               >
-                <mat-button-toggle value="">All</mat-button-toggle>
-                <mat-button-toggle value="ongoing">Ongoing</mat-button-toggle>
-                <mat-button-toggle value="resolved">Resolved</mat-button-toggle>
+                <mat-button-toggle value="">{{ t('common.all') }}</mat-button-toggle>
+                <mat-button-toggle value="ongoing">{{
+                  t('detail.filterOngoing')
+                }}</mat-button-toggle>
+                <mat-button-toggle value="resolved">{{
+                  t('detail.filterResolved')
+                }}</mat-button-toggle>
               </mat-button-toggle-group>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
@@ -250,7 +303,7 @@
                 <input
                   matInput
                   type="search"
-                  placeholder="Search incidents"
+                  [placeholder]="t('detail.searchIncidents')"
                   [ngModel]="incidents.search()"
                   (ngModelChange)="incidents.onSearch($event)"
                 />
@@ -259,14 +312,18 @@
 
             @if (incidentsTruncated()) {
               <p class="sw-table-note">
-                Showing the most recent {{ incidents.rows().length }} incidents.
+                {{
+                  t('detail.incidentsTruncated', {
+                    count: incidents.rows().length,
+                  })
+                }}
               </p>
             }
 
             @if (incidents.matching().length === 0) {
               <div class="sw-empty">
-                <h2>No incident matches</h2>
-                <p>Nothing here is in that state. Clear the search to see them all.</p>
+                <h2>{{ t('detail.noIncidentMatchTitle') }}</h2>
+                <p>{{ t('detail.noIncidentMatchBody') }}</p>
               </div>
             } @else {
               <div class="sw-scroll-x">
@@ -280,33 +337,63 @@
                   (matSortChange)="incidents.onSort($event)"
                 >
                   <ng-container matColumnDef="startedAt">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Started</th>
-                    <td mat-cell *matCellDef="let incident" class="sw-cell-main" data-label="Started" [matTooltip]="incident.startedAt">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colStarted') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let incident"
+                      class="sw-cell-main"
+                      [attr.data-label]="t('detail.colStarted')"
+                      [matTooltip]="incident.startedAt"
+                    >
                       {{ incident.startedAt | swRelativeTime }}
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="resolvedAt">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Resolved</th>
-                    <td mat-cell *matCellDef="let incident" class="sw-cell-half" data-label="Resolved" [matTooltip]="incident.resolvedAt ?? ''">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colResolved') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let incident"
+                      class="sw-cell-half"
+                      [attr.data-label]="t('detail.colResolved')"
+                      [matTooltip]="incident.resolvedAt ?? ''"
+                    >
                       @if (incident.resolvedAt) {
                         {{ incident.resolvedAt | swRelativeTime }}
                       } @else {
-                        <span class="ongoing-tag">ongoing</span>
+                        <span class="ongoing-tag">{{ t('detail.ongoing') }}</span>
                       }
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="duration">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration</th>
-                    <td mat-cell *matCellDef="let incident" class="sw-num sw-cell-half" data-label="Duration">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colDuration') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let incident"
+                      class="sw-num sw-cell-half"
+                      [attr.data-label]="t('detail.colDuration')"
+                    >
                       {{ outage(incident) | swDuration }}
                     </td>
                   </ng-container>
 
                   <ng-container matColumnDef="notificationsSent">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Alerts sent</th>
-                    <td mat-cell *matCellDef="let incident" class="sw-num sw-cell-half" data-label="Alerts sent">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                      {{ t('detail.colAlerts') }}
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let incident"
+                      class="sw-num sw-cell-half"
+                      [attr.data-label]="t('detail.colAlerts')"
+                    >
                       {{ incident.notificationsSent }}
                     </td>
                   </ng-container>
@@ -326,7 +413,7 @@
                 [pageIndex]="incidents.page().pageIndex"
                 [pageSizeOptions]="pageSizes"
                 (page)="incidents.onPage($event)"
-                aria-label="Pages of incidents"
+                [attr.aria-label]="t('detail.pagesIncidentsAria')"
               />
             }
           </div>

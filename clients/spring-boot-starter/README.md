@@ -69,7 +69,7 @@ POST /p/<key>/fail?duration_ms=1234     when it throws
 silencewatch:
   enabled: true                          # false removes everything, see below
   api-key: ${SILENCEWATCH_API_KEY}
-  base-url: https://silencewatch.com     # your own instance when self-hosting
+  base-url: https://app.silencewatch.com # your own instance when self-hosting
   environment: production                # part of a check's identity
   default-grace: 5m                      # for jobs that declare none
   auto-register: true                    # false to manage checks by hand

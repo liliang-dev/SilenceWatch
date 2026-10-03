@@ -1,0 +1,56 @@
+---
+title: "Cron job not running: causes and alerting"
+description: "A cron job does not start, or stopped? The most common causes (PATH, permissions, syntax, stopped service, time zone) and how to be alerted automatically next time."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../../components/Faq.astro';
+
+<p class="splash-lede">You have just found out that a <strong>cron job has not been running</strong> for days. Here are the most common causes, how to check them, and above all how to make monitoring, not a user, tell you the next time.</p>
+
+## The most common causes
+
+1. **The cron service is stopped.** Check `systemctl status cron` (or `crond`, depending on the distribution). Inside a container there is often no cron daemon at all: you have to run one, or use an external scheduler.
+2. **The line's syntax is wrong.** Five fields then the command; a `%` in the command must be escaped (`\%`), or cron takes it for a newline. In `/etc/cron.d/`, a sixth column names the user.
+3. **The crontab file does not end with a newline.** A last line without a trailing newline may be ignored.
+4. **Cron's environment is not your shell's.** `PATH` is minimal, your profile's variables do not exist, the working directory is not what you think. Use absolute paths and set variables inside the script.
+5. **The permissions are wrong.** The script is not executable (`chmod +x`), or the cron user cannot reach it. A user listed in `cron.deny`, or missing from `cron.allow`, cannot schedule tasks.
+6. **The file name is ignored.** In `/etc/cron.daily/` and its siblings, `run-parts` ignores files whose names contain a dot.
+7. **The time zone or daylight saving time** shifts or skips the run. A task at 02:30 may never start on the day the clocks go forward.
+8. **The job fails, and the error goes to local mail.** Cron mails a command's output to the user's local mailbox, which nobody reads. Redirect the output to a file, or set `MAILTO`.
+
+To diagnose: look at cron's logs (`journalctl -u cron` or `/var/log/syslog`), run the command by hand under `env -i` to simulate an empty environment, and add a redirection `>> /var/log/my-job.log 2>&1`.
+
+## The real question: how to have known sooner
+
+All these failures share a signature: **nothing happens**. No log is written, no error surfaces. Only a [dead man's switch](/en/dead-mans-switch/) sees them: the job sends a heartbeat on every successful run, and a service alerts you when it is missing.
+
+```bash title="crontab"
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
+```
+
+With that single line, each of the eight causes above raises an alert at the next deadline plus the grace period. See [cron job monitoring](/en/cron-monitoring/) and the [examples](/en/docs/cron-examples/).
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Get alerted when a cron job stops</LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions: cron job not running"
+  items={[
+    { q: 'Why does my cron job not run when the command works by hand?', a: 'Almost always because of the environment: cron runs the command with a minimal PATH and without your profile’s variables. Use absolute paths and set the variables you need inside the script.' },
+    { q: 'How can I see whether cron ran my job?', a: 'Look at cron’s logs: journalctl -u cron, or /var/log/syslog depending on the distribution. To be alerted automatically when a job does not start, add a heartbeat call at the end of the command and monitor it.' },
+    { q: 'Why does a cron job not run at the daylight saving change?', a: 'A time that does not exist on the day the clocks go forward (02:30, for example) can make the run be skipped. Schedule important jobs outside that window, or in UTC.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/en/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/en/guides/backup-monitoring/">Monitoring a cron backup</a></li>
+  <li><a href="/en/dead-mans-switch/">Dead man's switch</a></li>
+</ul>

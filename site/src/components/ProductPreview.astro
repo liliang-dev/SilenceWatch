@@ -1,0 +1,153 @@
+---
+/**
+ * A picture of the product's central screen, drawn in HTML and CSS: a list of
+ * checks, the broken one first, each state with its own word and shape (colour is
+ * never the only signal, here as in the application).
+ *
+ * Decorative and hidden from assistive technology: what it shows is said in the
+ * text around it. It is markup rather than a screenshot so it is sharp at any
+ * size, follows the light and dark theme, and weighs nothing.
+ */
+const lang = Astro.locals.starlightRoute.lang;
+const fr = lang !== 'en';
+const rows = fr
+  ? [
+      { name: 'Paiements : rapprochement', state: 'down', label: 'EN PANNE', when: 'dernier ping il y a 3 h' },
+      { name: 'Export de facturation', state: 'late', label: 'EN RETARD', when: 'attendu il y a 4 min' },
+      { name: 'Sauvegarde nocturne', state: 'up', label: 'OK', when: 'il y a 6 h · 1 min 12 s' },
+      { name: 'Renouvellement du certificat', state: 'up', label: 'OK', when: 'il y a 2 j' },
+    ]
+  : [
+      { name: 'Payments reconciliation', state: 'down', label: 'DOWN', when: 'last ping 3 hours ago' },
+      { name: 'Billing export', state: 'late', label: 'LATE', when: 'expected 4 minutes ago' },
+      { name: 'Nightly backup', state: 'up', label: 'UP', when: '6 hours ago · 1 min 12 s' },
+      { name: 'Certificate renewal', state: 'up', label: 'UP', when: '2 days ago' },
+    ];
+---
+
+<div class="preview" aria-hidden="true" data-pagefind-ignore>
+  <div class="bar"><span></span><span></span><span></span></div>
+  <ul>
+    {rows.map((row) => (
+      <li class={`row is-${row.state}`}>
+        <span class="name">{row.name}</span>
+        <span class="chip"><i></i>{row.label}</span>
+        <span class="when">{row.when}</span>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .preview {
+    --up: #067647;
+    --up-soft: #ecfdf3;
+    --late: #b54708;
+    --late-soft: #fffaeb;
+    --down: #d92d20;
+    --down-soft: #fef3f2;
+    max-width: 38rem;
+    margin: 2.5rem auto 0;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.9rem;
+    background: var(--sl-color-bg-nav);
+    box-shadow: 0 24px 48px -24px color-mix(in srgb, var(--sl-color-accent) 45%, transparent);
+    overflow: hidden;
+    text-align: left;
+  }
+
+  :global(:root[data-theme='dark']) .preview {
+    --up: #47cd89;
+    --up-soft: #0c1f18;
+    --late: #fdb022;
+    --late-soft: #241a09;
+    --down: #f97066;
+    --down-soft: #2a1211;
+  }
+
+  .bar {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .bar span {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--sl-color-gray-5);
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.15rem 1rem;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    border-left: 3px solid transparent;
+  }
+
+  .row:last-child {
+    border-bottom: 0;
+  }
+
+  .row.is-down {
+    border-left-color: var(--down);
+  }
+
+  .row.is-late {
+    border-left-color: var(--late);
+  }
+
+  .name {
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .when {
+    grid-column: 1 / -1;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .chip i {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .is-up .chip {
+    color: var(--up);
+    background: var(--up-soft);
+  }
+
+  .is-late .chip {
+    color: var(--late);
+    background: var(--late-soft);
+  }
+
+  .is-down .chip {
+    color: var(--down);
+    background: var(--down-soft);
+  }
+</style>

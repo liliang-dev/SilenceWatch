@@ -44,7 +44,7 @@ may be. If the heartbeat does not arrive in time, you get told.
 
 ```bash
 # in a crontab
-0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://silencewatch.com/p/<ping-key>
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
 ```
 
 That is the entire integration for a shell script. For Java, there is something
@@ -89,7 +89,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.2.3`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.3.0`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account — on an empty instance
 it is always allowed, and it becomes the owner. Schema migrations run
@@ -101,7 +101,8 @@ Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 **The self-hosted edition is never crippled.** There is no reserved feature, no
 "enterprise edition", no seat limit. The hosted service at
 [silencewatch.com](https://silencewatch.com) sells not running a server, not
-features.
+features. The site there also carries the user documentation; the hosted
+application itself is at [app.silencewatch.com](https://app.silencewatch.com).
 
 ## How it works
 
@@ -153,24 +154,21 @@ rotations, SMS and phone calls, fine-grained performance metrics.
 
 ## Licensing
 
-| Component                                                          | Licence        |
-| ------------------------------------------------------------------ | -------------- |
-| Server (backend + frontend)                                         | **AGPL-3.0**   |
-| Client libraries, Spring Boot starter, integrations, CLI, examples   | **Apache-2.0** |
+SilenceWatch is licensed under the **[Apache License 2.0](LICENSE)** — the server,
+the web interface, the shared types, the client libraries, the Spring Boot starter
+and the examples alike. You may use, modify, host and redistribute it, commercially
+included, and nothing in it asks you to publish your own code.
 
-> The server is licensed under AGPL-3.0. Client libraries and integrations are
-> licensed under Apache-2.0.
+The **name "SilenceWatch" and the logo are not covered** by that licence: they are
+the project's brand, and the code does not carry them with it. In short — run it,
+modify it, say that you use it, freely; if you fork and distribute it, give it its
+own name and logo. [TRADEMARK.md](TRADEMARK.md) has the detail and lists exactly
+which files are excluded; [NOTICE](NOTICE) lists third-party software.
 
-This split is deliberate and non-negotiable: an AGPL client library would
-contaminate the applications that embed it, no company would ship it, and the
-project's whole differentiator would die with it.
-
-Which licence applies is readable from the tree: the root `LICENSE` is AGPL-3.0
-and governs by default, and every Apache-2.0 subtree carries its own `LICENSE`
-file — `packages/shared`, `clients/**` and `examples/**`.
-
-The name "SilenceWatch" and the logo are not covered by these licences — see
-[TRADEMARK.md](TRADEMARK.md).
+Releases up to and including 0.2.3 were published with the server and the web
+interface under AGPL-3.0 and the rest under Apache-2.0. Those releases stay
+available under the licence they were published with; the Apache License 2.0
+applies to what is released after them.
 
 ## Contributing
 
