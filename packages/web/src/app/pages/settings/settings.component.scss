@@ -177,6 +177,33 @@ tr.revoked {
   font-weight: 500;
 }
 
+/* The one irreversible thing on the page: set apart by its border and by a
+   button that is red before it is touched, not only when it is hovered. */
+.danger {
+  border-color: color-mix(in srgb, var(--sw-down) 45%, var(--sw-border));
+}
+
+.danger-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.danger-body p {
+  flex: 1 1 280px;
+  max-width: 56ch;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.danger-button {
+  --mat-button-outlined-label-text-color: var(--sw-down);
+  --mat-button-outlined-outline-color: var(--sw-down);
+  --mat-button-outlined-state-layer-color: var(--sw-down);
+}
+
 /* Failed sign-ins are the line somebody is scanning for. */
 .danger-text {
   color: var(--sw-down);

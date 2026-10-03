@@ -170,6 +170,16 @@ export const changePasswordRequestSchema = z.object({
 });
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 
+/**
+ * Deleting an account asks for the password again, not just a signed-in session:
+ * an unattended browser or a stolen access token should not be enough to destroy
+ * everything an account holds, instantly and for good.
+ */
+export const deleteAccountRequestSchema = z.object({
+  password: z.string().min(1).max(LIMITS.passwordMax),
+});
+export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -527,6 +537,7 @@ export const AUDIT_ACTIONS = [
   'auth.password_reset_completed',
   'auth.email_verified',
   'account.registered',
+  'account.deleted',
   'api_key.created',
   'api_key.revoked',
   'channel.created',

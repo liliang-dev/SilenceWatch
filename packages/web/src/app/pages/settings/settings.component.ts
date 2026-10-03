@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
@@ -40,6 +41,7 @@ import { FlagComponent } from '../../shared/flag.component';
 import { ScrollTabsDirective } from '../../shared/scroll-tabs.directive';
 import { IconComponent } from '../../shared/icon.component';
 import { confirmWith } from '../../shared/confirm.dialog';
+import { DeleteAccountDialog, type DeleteAccountData } from './delete-account.dialog';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
 import { auditLabel, auditRules, auditScope, isFailure } from './audit-table';
 import { ProjectFormDialog, type ProjectFormData } from './project-form.dialog';
@@ -80,6 +82,7 @@ export class SettingsComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly formBuilder = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
   protected readonly projects = inject(ProjectStore);
   private readonly i18n = inject(I18n);
@@ -358,6 +361,27 @@ export class SettingsComponent {
         this.error.set(errorMessage(failure, this.t('settings.passwordChangeFailed'), this.t));
       },
     });
+  }
+
+  /**
+   * Opens the confirmation. The dialog makes the request itself, so it closes
+   * with `true` only once the account is gone, and this just says so and leaves.
+   */
+  protected deleteAccount(): void {
+    const projects = this.projects.all();
+    const data: DeleteAccountData = {
+      projects: projects.length,
+      checks: projects.reduce((total, project) => total + (project.checkCount ?? 0), 0),
+    };
+
+    this.dialog
+      .open(DeleteAccountDialog, { data, autoFocus: false, panelClass: 'sw-confirm' })
+      .afterClosed()
+      .subscribe((deleted) => {
+        if (deleted !== true) return;
+        this.snackBar.open(this.t('deleteAccount.done'), this.t('common.ok'), { duration: 6000 });
+        void this.router.navigate(['/login']);
+      });
   }
 
   protected copy(text: string): void {

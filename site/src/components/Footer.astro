@@ -3,16 +3,19 @@ import Default from '@astrojs/starlight/components/Footer.astro';
 import { APP, REPOSITORY } from '../site';
 
 const lang = Astro.locals.starlightRoute.lang;
-const prefix = lang === 'en' ? '/en' : '';
+const prefix = lang === 'fr' ? '/fr' : '';
 const t = lang === 'en'
   ? {
       product: 'Product',
       app: 'Open the app',
       docs: 'Documentation',
       jobs: 'Job monitoring',
-      cron: 'Cron job monitoring',
       spring: 'Spring Boot',
       self: 'Self-hosting',
+      legal: 'Legal notice',
+      privacy: 'Privacy',
+      terms: 'Terms of use',
+      legalNav: 'Legal',
       licence: 'Apache-2.0 licence',
       source: 'Source code',
       security: 'Report a vulnerability',
@@ -23,9 +26,12 @@ const t = lang === 'en'
       app: 'Ouvrir l’application',
       docs: 'Documentation',
       jobs: 'Monitoring de jobs',
-      cron: 'Monitoring de cron',
       spring: 'Spring Boot',
       self: 'Auto-hébergement',
+      legal: 'Mentions légales',
+      privacy: 'Confidentialité',
+      terms: 'Conditions d’utilisation',
+      legalNav: 'Informations légales',
       licence: 'Licence Apache-2.0',
       source: 'Code source',
       security: 'Signaler une faille',
@@ -40,7 +46,6 @@ const t = lang === 'en'
     <a href={APP}>{t.app}</a>
     <a href={`${prefix}/docs/getting-started/`}>{t.docs}</a>
     <a href={`${prefix}/job-monitoring/`}>{t.jobs}</a>
-    <a href={`${prefix}/cron-monitoring/`}>{t.cron}</a>
     <a href={`${prefix}/spring-boot/`}>{t.spring}</a>
     <a href={`${prefix}/self-hosted/`}>{t.self}</a>
   </nav>
@@ -48,6 +53,11 @@ const t = lang === 'en'
     <a href={REPOSITORY}>{t.source}</a>
     <a href={`${REPOSITORY}/blob/main/LICENSE`}>{t.licence}</a>
     <a href={`${REPOSITORY}/blob/main/SECURITY.md`}>{t.security}</a>
+  </nav>
+  <nav aria-label={t.legalNav}>
+    <a href={`${prefix}/legal/`}>{t.legal}</a>
+    <a href={`${prefix}/privacy/`}>{t.privacy}</a>
+    <a href={`${prefix}/terms/`}>{t.terms}</a>
   </nav>
   <p>{t.note}</p>
 </footer>

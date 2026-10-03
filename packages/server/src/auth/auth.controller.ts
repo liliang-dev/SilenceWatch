@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   changePasswordRequestSchema,
+  deleteAccountRequestSchema,
   forgotPasswordRequestSchema,
   loginRequestSchema,
   refreshRequestSchema,
@@ -214,6 +215,26 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     await this.auth.changePassword(assertUser(principal).userId, body);
+    clearRefreshCookie(reply, this.config);
+  }
+
+  /**
+   * Deletes the signed-in account and its data, at once. See AuthService.
+   *
+   * A POST rather than a DELETE with a body: some proxies drop a body on DELETE,
+   * and this one carries the password. Rate-limited like the other routes that
+   * take a password, since it is one more place to guess it.
+   */
+  @StrictRateLimit()
+  @Post('delete-account')
+  @HttpCode(204)
+  async deleteAccount(
+    @CurrentPrincipal() principal: Principal,
+    @Body(zodPipe(deleteAccountRequestSchema)) body: { password: string },
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<void> {
+    await this.auth.deleteAccount(assertUser(principal).userId, body, sessionContext(request));
     clearRefreshCookie(reply, this.config);
   }
 }

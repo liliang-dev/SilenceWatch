@@ -7,7 +7,7 @@ sidebar:
 
 import { Aside } from '@astrojs/starlight/components';
 
-Cette page résume la configuration d’une instance auto-hébergée. Pour l’installation en quatre commandes, voir la [page Auto-hébergement](/self-hosted/) ; pour tout le reste (HTTPS avec Docker Swarm, sauvegardes, mises à jour, surveillance de l’instance), voir le **[guide complet, en anglais](/en/docs/reference/self-hosting/)**.
+Cette page résume la configuration d’une instance auto-hébergée. Pour l’installation en quatre commandes, voir la [page Auto-hébergement](/fr/self-hosted/) ; pour tout le reste (HTTPS avec Docker Swarm, sauvegardes, mises à jour, surveillance de l’instance), voir le **[guide complet, en anglais](/docs/reference/self-hosting/)**.
 
 ## Les quatre valeurs à renseigner
 
@@ -31,7 +31,7 @@ Le fournisseur d’e-mail `console` (qui écrit les alertes dans le journal) n�
 | `PING_RETENTION_DAYS` | `90` | Durée de conservation de l’historique des pings. |
 | `AUDIT_RETENTION_DAYS` | `365` | Durée de conservation de l’historique de sécurité. |
 | `ALLOW_PRIVATE_NOTIFICATION_TARGETS` | `false` | Autorise les alertes vers des adresses privées (protection contre le SSRF activée par défaut). |
-| `OUTBOUND_HEARTBEAT_URL` | — | Un ping envoyé par SilenceWatch lui-même, pour [surveiller le moniteur](/en/docs/reference/self-hosting/). |
+| `OUTBOUND_HEARTBEAT_URL` | — | Un ping envoyé par SilenceWatch lui-même, pour [surveiller le moniteur](/docs/reference/self-hosting/). |
 | `LOG_LEVEL` | `info` | Niveau de journalisation. |
 
 <Aside type="caution" title="N’hébergez pas le SMTP des alertes vous-même">

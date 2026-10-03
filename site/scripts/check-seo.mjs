@@ -76,6 +76,11 @@ for (const [url, file] of pages) {
       const path = href.replace(SITE, '');
       if (!pages.has(path)) fail(url, `hreflang points at a page that does not exist: ${href}`);
     }
+    // English is the site's default language: x-default is its page, not the French one.
+    const hrefOf = (lang) => alternates.find((m) => m[1] === lang)?.[2];
+    if (hrefOf('x-default') !== hrefOf('en')) {
+      fail(url, `hreflang x-default (${hrefOf('x-default')}) is not the English page (${hrefOf('en')})`);
+    }
   }
 
   // Structured data has to be JSON, or it is silently ignored.
@@ -120,7 +125,7 @@ if (!existsSync(join(dist, 'robots.txt'))) fail('robots', 'robots.txt is missing
 else if (!readFileSync(join(dist, 'robots.txt'), 'utf8').includes(`${SITE}/sitemap-index.xml`)) {
   fail('robots', 'robots.txt does not name the sitemap');
 }
-for (const image of ['og/fr.png', 'og/en.png', 'favicon.svg']) {
+for (const image of ['og/fr.png', 'og/en.png', 'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'lang-redirect.js']) {
   if (!existsSync(join(dist, image))) fail('assets', `${image} is missing`);
 }
 

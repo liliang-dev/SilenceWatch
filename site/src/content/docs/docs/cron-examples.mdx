@@ -1,28 +1,28 @@
 ---
-title: "Monitoring de cron : exemples crontab, Docker"
-description: "Surveiller un job planifié : exemples prêts à copier pour crontab, systemd, Docker, Kubernetes, GitHub Actions, Bash, Python, Node et PowerShell."
+title: "Cron monitoring examples: crontab, Docker"
+description: "Monitor a scheduled job: copy-paste examples for crontab, systemd, Docker, Kubernetes, GitHub Actions, Bash, Python, Node and PowerShell."
 sidebar:
-  label: Exemples (cron, systemd…)
+  label: Examples (cron, systemd…)
 ---
 
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-Partout, le principe est le même : **faire une requête HTTP sur l’URL de ping quand le job réussit** (et, mieux, sur `/start` au début et sur `/fail` en cas d’échec). Remplacez `<clé-de-ping>` par la clé de votre check. Les options `-fsS -m 10 --retry 3` sont expliquées dans l’[API de ping](/docs/ping-api/).
+The principle is the same everywhere: **make an HTTP request to the ping URL when the job succeeds** (and, better, to `/start` at the beginning and `/fail` on failure). Replace `<ping-key>` with your check's key. The `-fsS -m 10 --retry 3` options are explained in the [ping API](/docs/ping-api/).
 
 <Tabs syncKey="platform">
 <TabItem label="crontab">
 
-Le plus simple : le ping part uniquement si le script réussit (`&&`).
+The simplest: the ping is sent only if the script succeeds (`&&`).
 
 ```bash title="crontab -e"
-0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
 ```
 
-Pour mesurer la durée et signaler l’échec explicitement, passez par un petit script :
+To measure the duration and report failure explicitly, use a small wrapper script:
 
 ```bash title="/usr/local/bin/backup-monitored.sh"
 #!/bin/sh
-URL=https://app.silencewatch.com/p/<clé-de-ping>
+URL=https://app.silencewatch.com/p/<ping-key>
 curl -fsS -m 10 --retry 3 "$URL/start"
 /usr/local/bin/backup.sh
 curl -fsS -m 10 --retry 3 "$URL/$?"
@@ -31,12 +31,12 @@ curl -fsS -m 10 --retry 3 "$URL/$?"
 </TabItem>
 <TabItem label="systemd">
 
-Dans le service lancé par le minuteur (*timer*) :
+In the service the timer starts:
 
 ```ini title="/etc/systemd/system/backup.service"
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c '/usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>'
+ExecStart=/bin/sh -c '/usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>'
 ```
 
 ```ini title="/etc/systemd/system/backup.timer"
@@ -52,11 +52,11 @@ WantedBy=timers.target
 <TabItem label="Docker">
 
 ```bash
-docker run --rm mon-image /app/job.sh \
-  && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+docker run --rm my-image /app/job.sh \
+  && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
 ```
 
-Dans un `docker-compose.yml`, vous pouvez enchaîner dans la commande du service : `command: sh -c "/app/job.sh && curl -fsS -m 10 --retry 3 $PING_URL"`, à condition que l’image contienne `curl`.
+In a `docker-compose.yml` you can chain in the service's command: `command: sh -c "/app/job.sh && curl -fsS -m 10 --retry 3 $PING_URL"`, provided the image contains `curl`.
 
 </TabItem>
 <TabItem label="Kubernetes">
@@ -75,7 +75,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: backup
-              image: mon-image:latest
+              image: my-image:latest
               command: ["/bin/sh", "-c"]
               args:
                 - /app/backup.sh && curl -fsS -m 10 --retry 3 "$PING_URL"
@@ -87,7 +87,7 @@ spec:
                       key: ping-url
 ```
 
-L’URL de ping est un secret : placez-la dans un `Secret`, pas dans le manifeste.
+The ping URL is a secret: put it in a `Secret`, not in the manifest.
 
 </TabItem>
 <TabItem label="GitHub Actions">
@@ -104,12 +104,12 @@ jobs:
       - name: Ping SilenceWatch
         if: success()
         run: curl -fsS -m 10 --retry 3 "${{ secrets.SILENCEWATCH_PING_URL }}"
-      - name: Signaler l’échec
+      - name: Report the failure
         if: failure()
         run: curl -fsS -m 10 --retry 3 "${{ secrets.SILENCEWATCH_PING_URL }}/fail"
 ```
 
-Les workflows planifiés de GitHub peuvent être retardés ou sautés ; c’est précisément le genre d’absence qu’un dead man’s switch détecte.
+GitHub's scheduled workflows can be delayed or skipped; that is exactly the kind of absence a dead man's switch catches.
 
 </TabItem>
 <TabItem label="Python">
@@ -117,7 +117,7 @@ Les workflows planifiés de GitHub peuvent être retardés ou sautés ; c’est 
 ```python
 import requests
 
-URL = "https://app.silencewatch.com/p/<clé-de-ping>"
+URL = "https://app.silencewatch.com/p/<ping-key>"
 
 requests.get(f"{URL}/start", timeout=10)
 try:
@@ -133,14 +133,14 @@ else:
 <TabItem label="Node.js">
 
 ```js
-const URL_PING = 'https://app.silencewatch.com/p/<clé-de-ping>';
+const PING_URL = 'https://app.silencewatch.com/p/<ping-key>';
 
-await fetch(`${URL_PING}/start`, { signal: AbortSignal.timeout(10_000) });
+await fetch(`${PING_URL}/start`, { signal: AbortSignal.timeout(10_000) });
 try {
   await runJob();
-  await fetch(URL_PING, { signal: AbortSignal.timeout(10_000) });
+  await fetch(PING_URL, { signal: AbortSignal.timeout(10_000) });
 } catch (error) {
-  await fetch(`${URL_PING}/fail`, { signal: AbortSignal.timeout(10_000) });
+  await fetch(`${PING_URL}/fail`, { signal: AbortSignal.timeout(10_000) });
   throw error;
 }
 ```
@@ -148,8 +148,8 @@ try {
 </TabItem>
 <TabItem label="PowerShell">
 
-```powershell title="Planificateur de tâches Windows"
-$url = "https://app.silencewatch.com/p/<clé-de-ping>"
+```powershell title="Windows Task Scheduler"
+$url = "https://app.silencewatch.com/p/<ping-key>"
 & "C:\Jobs\backup.ps1"
 if ($?) { Invoke-RestMethod -Uri $url -TimeoutSec 10 }
 else { Invoke-RestMethod -Uri "$url/fail" -TimeoutSec 10 }
@@ -158,10 +158,10 @@ else { Invoke-RestMethod -Uri "$url/fail" -TimeoutSec 10 }
 </TabItem>
 </Tabs>
 
-<Aside type="caution" title="Un ping qui échoue ne doit pas faire échouer votre job">
-Si SilenceWatch est injoignable, votre job ne doit pas en souffrir : `--retry 3 -m 10` borne l’attente, et dans un script vous pouvez ajouter `|| true` après le `curl` si l’échec du ping ne doit jamais changer le code de sortie.
+<Aside type="caution" title="A failing ping must not fail your job">
+If SilenceWatch is unreachable, your job should not suffer: `--retry 3 -m 10` bounds the wait, and in a script you can add `|| true` after the `curl` if a failed ping must never change the exit code.
 </Aside>
 
-## Pour Spring Boot
+## For Spring Boot
 
-N’écrivez rien : le [starter Spring Boot](/docs/spring-boot/) découvre les `@Scheduled` et les jobs Quartz et envoie les pings à votre place.
+Write nothing: the [Spring Boot starter](/docs/spring-boot/) discovers `@Scheduled` methods and Quartz jobs and sends the pings for you.

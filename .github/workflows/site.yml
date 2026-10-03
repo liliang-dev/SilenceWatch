@@ -17,6 +17,8 @@ on:
       - 'docs/**'
       - 'packages/web/public/logo.svg'
       - 'packages/web/public/favicon.svg'
+      - 'packages/web/public/favicon.ico'
+      - 'packages/web/public/apple-touch-icon.png'
       - '.github/workflows/site.yml'
   workflow_dispatch:
 
@@ -71,6 +73,13 @@ jobs:
         env:
           SITE_URL: https://silencewatch.com
         run: node scripts/check-seo.mjs
+
+      # The legal pages name the publisher from `site/src/legal.ts`. Until that
+      # is filled in the placeholder is in the page, and nothing is published:
+      # a legal notice that says "to be completed" is worse than the old one.
+      - name: Check the publisher is identified
+        working-directory: site
+        run: node scripts/check-legal.mjs
 
       - name: Prepare the SSH client
         env:

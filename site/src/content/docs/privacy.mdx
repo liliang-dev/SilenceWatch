@@ -1,0 +1,71 @@
+---
+title: "Privacy policy"
+description: "What personal data SilenceWatch processes, why, for how long, with which providers, and how to exercise your rights under the GDPR."
+template: splash
+---
+
+import { LEGAL } from '../../legal';
+
+This page describes how the hosted service at **app.silencewatch.com** handles your personal data, in line with the General Data Protection Regulation (GDPR) and the French data-protection law. It does not apply to an instance you host yourself: in that case the publisher has access to nothing.
+
+## Who is responsible
+
+The controller is the publisher of the service, whose details are in the [legal notice](/legal/). For any question or request: <strong>{LEGAL.email}</strong>.
+
+## The data, and why
+
+| Data | Why | How long it is kept |
+| --- | --- | --- |
+| **Account**: email address, password hash (Argon2id, never the password itself), whether the address has been verified | To create and run your account | As long as the account exists. Where address verification is required, an account that is never verified is deleted after 7 days |
+| **Sessions**: refresh token (stored only as a hash), and the IP address and browser of the sign-in | To keep you signed in and to detect a stolen session | The life of the session, 30 days at most |
+| **Security log**: sensitive actions (sign-in, password change, API keys, deletions…), with the email, IP address and browser | Security of the service and investigation after an incident | 1 year. It keeps the email of whoever acted even after the account is deleted |
+| **Password reset**: IP address of the request, token (hash only) | To secure the reset | Until it is used or expires |
+| **Sign-up**: the network the request came from, truncated (IPv4 /24, IPv6 /48) | To slow automated sign-ups | 7 days |
+| **Your configuration**: projects, checks (names, schedules, environments, tags), alert channels (email addresses, webhook addresses, Slack, Teams, Discord), API keys (as a hash) | To provide the service | As long as you keep them |
+| **Heartbeat history**: time, result, duration, the caller’s IP address and browser, and any text attached (10,000 bytes at most) | To detect that a job has stopped and to show the history | 90 days by default, adjustable per project |
+| **Alerts sent**: recipient, time, outcome | To tell you, and to know whether the alert went out | 30 days |
+
+Do not send third parties’ personal data in the text attached to a heartbeat: it is stored as it is with the history.
+
+The service uses **no audience-measurement tool, no advertising and no tracker**, and neither sells nor rents any data.
+
+## Legal bases
+
+- **Performance of the contract** (GDPR article 6.1.b) for everything that makes the account and the service work.
+- **Legitimate interest** (article 6.1.f) for security: rate limiting, the security log, and fighting automated sign-ups.
+- **A legal obligation** (article 6.1.c) where the law requires information to be kept or disclosed.
+
+## Who the data is shared with
+
+Data is shared only with the providers the service needs, as processors:
+
+- **OVH SAS** (France): hosting of the servers and the database.
+- **Mailjet**: sending the service’s emails (address verification, password reset, alerts).
+
+Both are established in the European Union. They receive only what their task requires. The alerts you configure towards Slack, Microsoft Teams, Discord or a webhook of your choosing are sent to the service you designated yourself, under your responsibility.
+
+## Your rights
+
+You may ask for **access** to your data, its **rectification**, its **erasure**, the **restriction** of its processing, its **portability**, and you may **object** to processing based on legitimate interest. Write to <strong>{LEGAL.email}</strong> giving your account’s address; you will get an answer within one month.
+
+You can delete your account yourself, in **Settings → Account → Delete account**: deletion is immediate and permanent, and takes your projects, checks, their history, API keys and alert channels with it. Only the entries in the security log are kept, for the period given above.
+
+If you think your rights are not respected, you may complain to the [CNIL](https://www.cnil.fr/en/complaints), the French data-protection authority, or to the authority of your own country.
+
+## Cookies and browser storage
+
+The application sets **one cookie**, `sw_refresh`: the token that keeps you signed in. It is `HttpOnly`, `SameSite=Strict`, limited to the authentication routes, and essential to the service. As such it does not need your consent.
+
+It also stores your display preferences (language, light or dark mode) and the selected project in your browser’s local storage. These values stay on your device and are never sent to the server.
+
+The silencewatch.com site sets no cookie; its display theme is also kept locally.
+
+## Security
+
+Passwords are stored as Argon2id hashes, and session tokens and API keys as SHA-256 hashes, and traffic is encrypted (HTTPS). The measures are detailed on the [Security](/docs/reference/security/) page. A vulnerability is reported through the procedure in [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+
+## Changes
+
+This policy may change; the date of the last update is at the foot of the page, and a significant change is brought to the attention of account holders.
+
+*Last updated: 3 October 2026.*

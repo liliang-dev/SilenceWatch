@@ -27,11 +27,14 @@ const copy = (from, to) => {
 // --- 1. the brand artwork ----------------------------------------------------
 copy(join(repo, 'packages/web/public/logo.svg'), join(root, 'src/assets/logo.svg'));
 copy(join(repo, 'packages/web/public/favicon.svg'), join(root, 'public/favicon.svg'));
+copy(join(repo, 'packages/web/public/favicon.ico'), join(root, 'public/favicon.ico'));
+copy(join(repo, 'packages/web/public/apple-touch-icon.png'), join(root, 'public/apple-touch-icon.png'));
 
 // --- 2. the reference pages --------------------------------------------------
 //
-// English only, because the Markdown is. They are served under /en/ and the
-// French sidebar links to them there, rather than pretending to a translation.
+// English only, because the Markdown is. English is the site's language, so they
+// are served at /docs/reference/ and the French summaries link to them there,
+// rather than pretending to a translation.
 const REFERENCE = {
   api: {
     file: 'api.md',
@@ -50,7 +53,7 @@ const REFERENCE = {
   },
 };
 
-const outDir = join(root, 'src/content/docs/en/docs/reference');
+const outDir = join(root, 'src/content/docs/docs/reference');
 rmSync(outDir, { recursive: true, force: true });
 
 /** Links in /docs are written for the repository; on the site they go to the site or to GitHub. */
@@ -59,7 +62,7 @@ function rewriteLinks(markdown, fromFile) {
   return markdown.replace(/\]\(([^)#\s]+)(#[^)\s]*)?\)/g, (whole, target, hash = '') => {
     if (/^(https?:|mailto:)/.test(target)) return whole;
     const name = target.replace(/^\.\//, '');
-    if (pages[name]) return `](/en/docs/reference/${pages[name]}/${hash})`;
+    if (pages[name]) return `](/docs/reference/${pages[name]}/${hash})`;
     const absolute = resolve(dirname(join(repo, 'docs', fromFile)), target);
     const inRepo = absolute.slice(repo.length + 1);
     return `](${REPOSITORY}/blob/dev/${inRepo}${hash})`;
@@ -124,8 +127,7 @@ for (const [lang, card] of Object.entries(CARDS)) {
     </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
-  <clipPath id="round"><rect width="256" height="256" rx="48"/></clipPath>
-  <g transform="translate(88 96) scale(0.5)"><g clip-path="url(#round)">${mark}</g></g>
+  <g transform="translate(88 96) scale(0.5)">${mark}</g>
   <text x="248" y="188" font-family="${FONT}" font-size="46" font-weight="700" fill="#ffffff">Silence<tspan fill="#bc95fc" font-weight="500">Watch</tspan></text>
   <text x="88" y="340" font-family="${FONT}" font-size="56" font-weight="700" fill="#ffffff">${escape(card.title)}</text>
   <text x="88" y="418" font-family="${FONT}" font-size="36" fill="#d3bafe">${escape(card.lines[0])}</text>

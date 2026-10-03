@@ -16,8 +16,11 @@ part of the work you may reuse. It is:
 
     packages/web/public/logo.svg
     packages/web/public/favicon.svg
-    the heartbeat mark and the wordmark drawn in the application header and on
-    the sign-in page:
+    packages/web/public/favicon.ico
+    packages/web/public/apple-touch-icon.png
+    packages/web/public/logo-96.png
+    the logo and the wordmark shown in the application header and on the
+    sign-in page:
         packages/web/src/app/app.component.html
         packages/web/src/app/pages/login/login.component.html
 

@@ -1,0 +1,72 @@
+---
+title: "Monitoring de cron : alerte si un job s’arrête"
+description: "Surveillez vos crons avec SilenceWatch : un appel curl à la fin du job, une alerte si le signal manque. Fuseaux horaires, délai de grâce, Slack, e-mail."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">Un cron qui plante laisse parfois une trace. Un cron qui <strong>ne se lance plus</strong> n’en laisse aucune. Le monitoring de cron de SilenceWatch détecte cette absence : chaque exécution envoie un signal, et vous êtes alerté dès qu’il manque. C’est le cas particulier le plus courant du <a href="/fr/job-monitoring/">monitoring de jobs</a>.</p>
+
+## Pourquoi surveiller ses crons
+
+Une tâche cron échoue en silence de bien des façons : le serveur a redémarré sans recharger la crontab, la crontab a été écrasée par un déploiement, le compte qui la porte a été supprimé, le disque est plein, le `PATH` de cron n’est pas celui de votre shell, ou le script échoue et son erreur part dans un courrier local que personne ne lit. Dans tous ces cas, **rien ne vous prévient**, et la panne dure jusqu’au jour où quelqu’un a besoin du résultat.
+
+Surveiller les journaux ne suffit pas : un job qui ne tourne pas n’écrit rien. Il faut surveiller **l’absence** — c’est le principe du [dead man’s switch](/fr/dead-mans-switch/).
+
+## Comment fonctionne le monitoring de cron avec SilenceWatch
+
+1. Vous créez un **check** avec la fréquence attendue (un intervalle ou une expression cron) et un délai de grâce.
+2. Vous ajoutez à la fin de votre commande cron un appel à l’URL de ping :
+
+```bash title="crontab"
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+```
+
+3. Si le ping n’arrive pas à l’heure prévue, plus le délai de grâce, le check passe **en panne**, un incident s’ouvre et vos canaux d’alerte sont prévenus. Le ping suivant ferme l’incident et envoie une alerte de retour à la normale.
+
+Le `&&` fait que le signal ne part que si le script a réussi. Pour signaler explicitement un échec, mesurer la durée ou joindre la sortie du job, voir l’[API de ping](/fr/docs/ping-api/) et les [exemples](/fr/docs/cron-examples/) (crontab, systemd, Docker, Kubernetes, GitHub Actions).
+
+## Ce que le monitoring de cron doit savoir faire
+
+- **Comprendre une expression cron**, avec 5 ou 6 champs et les formes courantes (`L`, `?`, `MON#2`), **dans le bon fuseau horaire**. `0 2 * * *` n’est pas la même heure à Paris et à New York, ni avant et après le passage à l’heure d’été.
+- **Tolérer un retard raisonnable** avec un délai de grâce, pour éviter les fausses alertes sur une sauvegarde qui dure un peu plus longtemps un jour de forte charge.
+- **Distinguer un job en retard d’un job en panne** : en retard, le délai de grâce court encore et rien n’est envoyé ; en panne, l’alerte part. Voir les [états d’un check](/fr/docs/schedules-and-states/).
+- **Mesurer la durée** quand le job appelle `/start` puis le résultat, pour repérer un job qui devient anormalement long avant qu’il ne s’arrête.
+- **Alerter où vous êtes** : e-mail, webhook signé, Slack, Microsoft Teams, Discord, avec un test de chaque canal. Voir les [canaux d’alerte](/fr/docs/alerting/).
+
+## Les erreurs classiques
+
+- **Envoyer le ping au début au lieu de la fin.** Le job peut planter ensuite : le ping doit prouver que le travail est terminé.
+- **Un délai de grâce trop court.** Réglez-le à la mesure de la durée normale du job, avec de la marge.
+- **Oublier le fuseau horaire** d’un check à expression cron.
+- **Laisser un échec de ping faire échouer le job.** Bornez `curl` (`-m 10 --retry 3`) et, si besoin, ajoutez `|| true`.
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller mon premier cron</LinkButton>
+  <LinkButton href="/fr/docs/getting-started/" variant="secondary">Premiers pas</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur le monitoring de cron"
+  items={[
+    { q: 'Comment savoir si un cron s’est bien exécuté ?', a: 'Faites-lui envoyer un signal HTTP à la fin de chaque exécution réussie, et surveillez l’arrivée de ce signal. SilenceWatch vous alerte quand le signal n’arrive pas dans le délai prévu.' },
+    { q: 'Peut-on surveiller un cron avec une simple requête curl ?', a: 'Oui. Ajoutez && curl -fsS -m 10 --retry 3 suivi de l’URL de ping à la fin de la ligne de la crontab. Le ping ne part que si le script réussit.' },
+    { q: 'Le monitoring de cron gère-t-il les fuseaux horaires ?', a: 'Oui. Un check à expression cron a son fuseau horaire IANA, par exemple Europe/Paris, de sorte que l’échéance attendue suive les changements d’heure.' },
+    { q: 'Que se passe-t-il quand le cron reprend ?', a: 'Le ping suivant remet le check à OK, ferme l’incident et envoie une alerte de retour à la normale aux destinataires qui avaient été prévenus de la panne.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/job-monitoring/">Monitoring de jobs</a></li>
+  <li><a href="/fr/dead-mans-switch/">Qu’est-ce qu’un dead man’s switch ?</a></li>
+  <li><a href="/fr/guides/backup-monitoring/">Surveiller une sauvegarde cron</a></li>
+  <li><a href="/fr/guides/cron-not-running/">Cron qui ne s’exécute pas</a></li>
+  <li><a href="/fr/guides/kubernetes-cronjob-monitoring/">Surveiller un CronJob Kubernetes</a></li>
+  <li><a href="/fr/spring-boot/">Monitoring Spring Boot</a></li>
+</ul>

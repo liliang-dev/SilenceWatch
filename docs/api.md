@@ -31,6 +31,19 @@ user.
 | `POST /api/auth/logout` | Revoke the presented refresh token |
 | `GET /api/auth/me` | The current user |
 | `POST /api/auth/password` | Change the password (revokes all sessions) |
+| `POST /api/auth/delete-account` | Delete the account and its data, at once and for good |
+
+**Deleting an account.** `POST /api/auth/delete-account` with `{"password": "…"}`
+requires a user session (an API key is refused) and the account's password again,
+and answers 204. It removes the user, its sessions, and every project it is the
+only member of, with those projects' checks, ping and incident history, API keys
+and channels. A project shared with other members only loses this member; if the
+account is the project's only owner while other members remain, the request is
+refused with 409 and nothing is deleted. A wrong password, or an account locked by
+too many wrong ones, answers **403** rather than 401, because the caller *is*
+signed in and a 401 means "your session expired". Wrong passwords count towards
+the same lockout as login. The security log keeps a record, with the account's
+address, for its retention period.
 
 ## Heartbeats
 

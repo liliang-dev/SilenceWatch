@@ -4,5 +4,7 @@ dist
 # Written by scripts/prepare.mjs
 src/assets/logo.svg
 public/favicon.svg
+public/favicon.ico
+public/apple-touch-icon.png
 public/og/
-src/content/docs/en/docs/reference/
+src/content/docs/docs/reference/

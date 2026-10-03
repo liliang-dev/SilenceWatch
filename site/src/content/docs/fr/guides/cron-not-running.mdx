@@ -1,0 +1,56 @@
+---
+title: "Cron qui ne s’exécute pas : causes et alerte"
+description: "Un cron ne se lance pas ou plus ? Les causes fréquentes (PATH, droits, syntaxe, service arrêté, fuseau horaire) et comment être alerté automatiquement."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../../components/Faq.astro';
+
+<p class="splash-lede">Vous venez de découvrir qu’un <strong>cron ne s’exécute pas</strong> depuis des jours. Voici les causes les plus fréquentes, comment les vérifier, et surtout comment faire pour que ce soit le monitoring, et pas un utilisateur, qui vous le dise la prochaine fois.</p>
+
+## Les causes les plus fréquentes
+
+1. **Le service cron est arrêté.** Vérifiez `systemctl status cron` (ou `crond` selon la distribution). Dans un conteneur, il n’y a souvent aucun démon cron : il faut le lancer, ou utiliser un ordonnanceur externe.
+2. **La syntaxe de la ligne est fausse.** Cinq champs puis la commande ; un `%` dans la commande doit être échappé (`\%`), sinon cron le prend pour un saut de ligne. Dans `/etc/cron.d/`, une sixième colonne indique l’utilisateur.
+3. **Le fichier crontab ne se termine pas par un retour à la ligne.** Une dernière ligne sans saut de ligne peut être ignorée.
+4. **L’environnement de cron n’est pas celui de votre shell.** Le `PATH` est minimal, les variables de votre profil n’existent pas, le répertoire courant n’est pas celui que vous croyez. Utilisez des chemins absolus et définissez les variables dans le script.
+5. **Les droits sont mauvais.** Le script n’est pas exécutable (`chmod +x`), ou l’utilisateur du cron n’y a pas accès. Un utilisateur listé dans `cron.deny`, ou absent de `cron.allow`, ne peut pas planifier de tâche.
+6. **Le nom du fichier est ignoré.** Dans `/etc/cron.daily/` et ses voisins, `run-parts` ignore les fichiers dont le nom contient un point.
+7. **Le fuseau horaire ou l’heure d’été** décalent ou font sauter l’exécution. Une tâche à 2 h 30 peut ne jamais se lancer le jour du passage à l’heure d’été.
+8. **Le job échoue, et l’erreur part dans le courrier local.** Cron envoie la sortie des commandes à l’utilisateur par e-mail local, que personne ne lit. Redirigez la sortie vers un fichier, ou renseignez `MAILTO`.
+
+Pour diagnostiquer : regardez les journaux de cron (`journalctl -u cron` ou `/var/log/syslog`), lancez la commande à la main avec `env -i` pour simuler un environnement vide, et ajoutez une redirection `>> /var/log/mon-job.log 2>&1`.
+
+## La vraie question : comment l’avoir su plus tôt ?
+
+Toutes ces pannes ont la même signature : **il ne se passe rien**. Aucun journal ne s’écrit, aucune erreur ne remonte. Seul un [dead man’s switch](/fr/dead-mans-switch/) les voit : le job envoie un signal à chaque exécution réussie, et un service vous alerte quand le signal manque.
+
+```bash title="crontab"
+0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<clé-de-ping>
+```
+
+Avec cette seule ligne, chacune des huit causes ci-dessus déclenche une alerte à l’échéance suivante plus le délai de grâce. Voir le [monitoring de cron](/fr/cron-monitoring/) et les [exemples](/fr/docs/cron-examples/).
+
+<div class="sw-cta">
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Être alerté quand un cron s’arrête</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes : cron qui ne s’exécute pas"
+  items={[
+    { q: 'Pourquoi mon cron ne s’exécute pas alors que la commande marche à la main ?', a: 'Presque toujours à cause de l’environnement : cron lance la commande avec un PATH minimal et sans les variables de votre profil. Utilisez des chemins absolus et définissez les variables nécessaires dans le script.' },
+    { q: 'Comment voir si cron a lancé mon job ?', a: 'Consultez les journaux de cron : journalctl -u cron, ou /var/log/syslog selon la distribution. Pour être alerté automatiquement quand un job ne se lance pas, ajoutez un appel de heartbeat à la fin de la commande et surveillez-le.' },
+    { q: 'Pourquoi un cron ne se lance pas lors du changement d’heure ?', a: 'Une heure qui n’existe pas le jour du passage à l’heure d’été (par exemple 2 h 30) peut faire sauter l’exécution. Planifiez les jobs importants hors de cette plage, ou en UTC.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/cron-monitoring/">Monitoring de cron</a></li>
+  <li><a href="/fr/guides/backup-monitoring/">Surveiller une sauvegarde cron</a></li>
+  <li><a href="/fr/dead-mans-switch/">Dead man’s switch</a></li>
+</ul>
