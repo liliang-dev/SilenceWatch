@@ -17,6 +17,8 @@ on:
       - 'docs/**'
       - 'packages/web/public/logo.svg'
       - 'packages/web/public/favicon.svg'
+      - 'packages/web/public/favicon.ico'
+      - 'packages/web/public/apple-touch-icon.png'
       - '.github/workflows/site.yml'
   workflow_dispatch:
 

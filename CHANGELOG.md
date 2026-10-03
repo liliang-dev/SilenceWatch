@@ -47,6 +47,14 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **A new logo, everywhere the application and the site show one.** The pale
+  rounded tile with a monitor and a heartbeat replaces the purple square with a
+  white trace: in the application header and on the sign-in page (an image now, not
+  a drawing in the page's colours), as the favicon (`favicon.svg`, plus a
+  `favicon.ico` for browsers that ignore an SVG one, and an `apple-touch-icon.png`
+  for an iPhone's home screen), on the site, and on the sharing cards. It is cut out
+  of its white margin, with transparent corners rather than white ones. The new
+  files are listed among the brand files that are not under the licence.
 - **The site is in English by default; French is under `/fr/`.** It was the other
   way round. A browser whose first language is French is taken to the matching
   French page once, unless the visitor picked a language with the picker (the
