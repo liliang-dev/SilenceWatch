@@ -13,7 +13,7 @@
   <!-- Four unrelated concerns used to sit stacked on one page, so finding
        the audit trail meant scrolling past the key you had just created.
        Tabs are lazy: the panel is built when it is first opened. -->
-  <mat-tab-group animationDuration="0ms" class="tabs">
+  <mat-tab-group animationDuration="0ms" class="tabs" disablePagination swScrollTabs>
     <mat-tab [label]="t('settings.tabProjects')">
       <ng-template matTabContent>
         <section class="sw-card section">

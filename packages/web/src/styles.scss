@@ -633,6 +633,53 @@ time,
   border-bottom: 1px solid var(--sw-border);
 }
 
+/* A tab strip wider than its screen scrolls sideways, under a finger, a
+ * trackpad, the wheel or a dragged mouse, instead of Material's two arrow
+ * buttons (see ScrollTabsDirective, used with `disablePagination`). The strip is
+ * an ordinary scroll box with its scrollbar hidden; the edge that has more behind
+ * it fades, so it is clear there is more. */
+mat-tab-group[swScrollTabs] {
+  .mat-mdc-tab-label-container {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .mat-mdc-tab-list {
+    transform: none !important;
+  }
+
+  .mat-mdc-tab {
+    flex-shrink: 0;
+  }
+
+  &.is-scrollable .mat-mdc-tab-label-container {
+    cursor: grab;
+  }
+
+  &.is-dragging .mat-mdc-tab-label-container {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  &.can-scroll-start .mat-mdc-tab-label-container {
+    mask-image: linear-gradient(to right, transparent, #000 28px);
+  }
+
+  &.can-scroll-end .mat-mdc-tab-label-container {
+    mask-image: linear-gradient(to left, transparent, #000 28px);
+  }
+
+  &.can-scroll-start.can-scroll-end .mat-mdc-tab-label-container {
+    mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  }
+}
+
 /* A hint that runs to two lines used to be drawn underneath the next field: the
  * form field reserves exactly one line for it and positions the hint absolutely
  * inside that line, and on a phone almost every hint is two. These are the two

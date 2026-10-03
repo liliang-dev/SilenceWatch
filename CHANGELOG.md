@@ -46,6 +46,15 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **The tabs in Settings scroll sideways under a finger, a trackpad, the wheel or a
+  dragged mouse.** Six tabs do not fit a phone, and Angular Material's answer was
+  two small arrow buttons that move the strip a third at a time and nothing that
+  moves it under your finger. The strip is now an ordinary scrolling row with its
+  scrollbar hidden: swipe it on a touchscreen; on a computer, turn the wheel over
+  it (it hands back to the page when it reaches an end) or drag it with the mouse
+  (letting go over a tab does not select it). The edge that has more behind it
+  fades. The arrow keys still move between tabs and now bring the tab into view.
+  On a screen wide enough for all six, nothing changes.
 - **The tab bar on a phone is slimmer.** It was 66px tall and sits over every
   screen; it is now 58px, with a 20px icon in place of 22px, and the room reserved
   for it at the foot of a page went from 90px to 82px so the last line still ends

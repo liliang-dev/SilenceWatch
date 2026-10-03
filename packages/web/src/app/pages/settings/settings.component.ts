@@ -37,6 +37,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { PAGINATOR_INTL } from '../../shared/paginator-intl';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { FlagComponent } from '../../shared/flag.component';
+import { ScrollTabsDirective } from '../../shared/scroll-tabs.directive';
 import { IconComponent } from '../../shared/icon.component';
 import { confirmWith } from '../../shared/confirm.dialog';
 import { DataTable, PAGE_SIZES } from '../../shared/data-table';
@@ -68,6 +69,7 @@ const AUDIT_LIMIT = 200;
     MatTabsModule,
     MatTooltipModule,
     RelativeTimePipe,
+    ScrollTabsDirective,
   ],
   providers: [PAGINATOR_INTL],
   templateUrl: './settings.component.html',
