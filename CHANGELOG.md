@@ -10,6 +10,19 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-03
+
+No database migration, so going back to 0.2.3 is safe, and nothing to do for an
+existing self-hosted instance: the new `SILENCEWATCH_SITE_DOMAIN` setting is
+optional and, left unset, changes nothing. The licence is now Apache-2.0 for the
+whole project (the name and the logo excepted).
+
+The reasons to take it are in the interface: it can be read in French, and be
+set to light or dark, from a new Preferences tab in Settings, and the end of
+every page is no longer hidden under the tab bar on a phone. The hosted service
+also moves to `app.silencewatch.com` with this release; a self-hoster is not
+concerned.
+
 ### Added
 
 - **A showcase site and user documentation**, in French and English, in `site/`
@@ -433,7 +446,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.0...0.2.2
 [0.2.0]: https://github.com/liliang-dev/SilenceWatch/releases/tag/0.2.0
