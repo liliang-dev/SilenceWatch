@@ -1,0 +1,71 @@
+---
+title: "Politique de confidentialité"
+description: "Quelles données personnelles SilenceWatch traite, pourquoi, combien de temps, avec quels prestataires, et comment exercer vos droits (RGPD)."
+template: splash
+---
+
+import { LEGAL } from '../../legal';
+
+Cette page décrit comment le service hébergé **app.silencewatch.com** traite vos données personnelles, conformément au règlement général sur la protection des données (RGPD) et à la loi Informatique et Libertés. Elle ne concerne pas une instance que vous auto-hébergez : dans ce cas, l’éditeur n’a accès à rien.
+
+## Qui est responsable
+
+Le responsable du traitement est l’éditeur du service, identifié dans les [mentions légales](/legal/). Pour toute question ou demande : <strong>{LEGAL.email}</strong>.
+
+## Les données traitées, et pourquoi
+
+| Donnée | Pourquoi | Durée de conservation |
+| --- | --- | --- |
+| **Compte** : adresse e-mail, empreinte du mot de passe (Argon2id, jamais le mot de passe lui-même), état de la vérification de l’adresse | Créer et faire fonctionner votre compte | Tant que le compte existe. Lorsque la vérification de l’adresse est exigée, un compte jamais vérifié est supprimé au bout de 7 jours |
+| **Sessions** : jeton de rafraîchissement (conservé uniquement sous forme d’empreinte), adresse IP et navigateur de la connexion | Vous garder connecté, détecter le vol d’une session | Durée de la session, 30 jours au plus |
+| **Journal de sécurité** : actions sensibles (connexion, changement de mot de passe, clés d’API, suppression…), avec l’e-mail, l’adresse IP et le navigateur | Sécurité du service et enquête en cas d’incident | 1 an. Il garde l’e-mail de l’auteur de l’action même après la suppression du compte |
+| **Réinitialisation du mot de passe** : adresse IP de la demande, jeton (empreinte uniquement) | Sécuriser la réinitialisation | Jusqu’à son utilisation ou son expiration |
+| **Inscription** : le réseau de provenance, tronqué (IPv4 /24, IPv6 /48) | Freiner les inscriptions automatisées | 7 jours |
+| **Votre configuration** : projets, checks (noms, planifications, environnements, étiquettes), canaux d’alerte (adresses e-mail, adresses de webhook, Slack, Teams, Discord), clés d’API (sous forme d’empreinte) | Fournir le service | Tant que vous les gardez |
+| **Historique des signaux** : date, résultat, durée, adresse IP et navigateur de l’appelant, et le texte éventuellement joint (10 000 octets au plus) | Détecter qu’un job s’est arrêté, afficher l’historique | 90 jours par défaut, réglable par projet |
+| **Alertes envoyées** : destinataire, date, résultat | Vous prévenir, savoir si l’alerte est partie | 30 jours |
+
+N’envoyez pas de données personnelles de tiers dans le texte joint à un signal : il est conservé tel quel avec l’historique.
+
+Le service n’utilise **aucun outil de mesure d’audience, aucune publicité et aucun traceur**, et ne revend ni ne loue aucune donnée.
+
+## Fondements juridiques
+
+- **L’exécution du contrat** (article 6.1.b du RGPD) pour tout ce qui fait fonctionner le compte et le service.
+- **L’intérêt légitime** (article 6.1.f) pour la sécurité : limitation du débit, journal de sécurité, lutte contre les inscriptions automatisées.
+- **Une obligation légale** (article 6.1.c) lorsque la loi impose de conserver ou de communiquer une information.
+
+## Avec qui les données sont partagées
+
+Les données ne sont communiquées qu’aux prestataires nécessaires au service, en tant que sous-traitants :
+
+- **OVH SAS** (France) : hébergement des serveurs et de la base de données.
+- **Mailjet** : envoi des e-mails du service (vérification de l’adresse, réinitialisation du mot de passe, alertes).
+
+Ces deux prestataires sont établis dans l’Union européenne. Ils ne reçoivent que ce qui est nécessaire à leur mission. Les alertes que vous configurez vers Slack, Microsoft Teams, Discord ou un webhook de votre choix sont envoyées au service que vous avez vous-même désigné, sous votre responsabilité.
+
+## Vos droits
+
+Vous pouvez demander l’**accès** à vos données, leur **rectification**, leur **effacement**, la **limitation** de leur traitement, leur **portabilité**, et vous pouvez vous **opposer** à un traitement fondé sur l’intérêt légitime. Écrivez à <strong>{LEGAL.email}</strong> en indiquant l’adresse de votre compte ; une réponse est apportée dans un délai d’un mois.
+
+La suppression de votre compte et des données qui lui sont liées se demande par ce même moyen. Les entrées du journal de sécurité sont conservées pour la durée indiquée plus haut.
+
+Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la [CNIL](https://www.cnil.fr/fr/plaintes).
+
+## Cookies et stockage dans le navigateur
+
+L’application dépose **un seul cookie**, `sw_refresh` : le jeton qui vous garde connecté. Il est `HttpOnly`, `SameSite=Strict`, réservé aux routes d’authentification, et indispensable au fonctionnement du service. À ce titre il n’est pas soumis à votre consentement.
+
+Elle enregistre aussi dans le stockage local de votre navigateur vos préférences d’affichage (langue, mode clair ou sombre) et le projet sélectionné. Ces valeurs restent sur votre appareil et ne sont jamais envoyées au serveur.
+
+Le site silencewatch.com ne dépose aucun cookie ; son thème d’affichage est lui aussi gardé localement.
+
+## Sécurité
+
+Les mots de passe sont stockés sous forme d’empreinte Argon2id, les jetons de session et les clés d’API sous forme d’empreinte SHA-256, et les échanges sont chiffrés (HTTPS). Le détail des mesures est publié dans la page [Sécurité](/docs/reference/security/). Une faille se signale selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+
+## Modifications
+
+Cette politique peut évoluer ; la date de la dernière mise à jour figure en bas de page, et un changement important est porté à la connaissance des titulaires de compte.
+
+*Dernière mise à jour : 3 octobre 2026.*

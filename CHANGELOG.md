@@ -10,6 +10,24 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **Legal pages on the site, in French and English: legal notice, privacy policy
+  and terms of use**, linked from the footer. The privacy policy is written from
+  what the application actually stores (accounts, sessions, the security log,
+  heartbeat history, alert deliveries, and how long each is kept), names the
+  processors (OVH, Mailjet) and lists the one cookie, `sw_refresh`, which is
+  strictly necessary. The publisher's identity, which French law requires the
+  legal notice to give, is filled in once in `site/src/legal.ts`; until it is,
+  `scripts/check-legal.mjs` makes the site's publishing workflow stop rather than
+  put a placeholder on silencewatch.com.
+
+### Changed
+
+- **The footer no longer lists "Cron job monitoring"** beside "Job monitoring": it
+  said the same thing twice. The page itself stays, linked from the pages that
+  discuss cron.
+
 ## [0.3.0] — 2026-10-03
 
 No database migration, so going back to 0.2.3 is safe, and nothing to do for an

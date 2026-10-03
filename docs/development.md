@@ -39,6 +39,12 @@ pnpm run build && node scripts/check-seo.mjs
 - French and English pages share one path under their language prefix, so
   `hreflang`, the sitemap and the language picker line up with no further
   configuration. Add a page in both languages or the check will say so.
+- The legal pages (`/legal/`, `/privacy/`, `/terms/`, and their `/en/` twins) name
+  the publisher from one file, `site/src/legal.ts`. Left as the placeholder they
+  build and pass the pull-request checks, but `scripts/check-legal.mjs` — run by
+  the shipping workflow only — refuses to publish them. If you change what the
+  application stores or whom it sends data to, change the privacy policy in the
+  same pull request.
 - The site is shipped by `.github/workflows/site.yml` on `main`, independently
   of releases; see [self-hosting](self-hosting.md) for how Caddy serves it.
 

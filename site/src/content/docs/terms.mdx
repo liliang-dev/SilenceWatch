@@ -1,0 +1,65 @@
+---
+title: "Conditions d’utilisation"
+description: "Les règles d’utilisation du service hébergé SilenceWatch : compte, usage acceptable, disponibilité, données, responsabilité et résiliation."
+template: splash
+---
+
+import { LEGAL } from '../../legal';
+
+Ces conditions encadrent l’utilisation du service hébergé **app.silencewatch.com**. En créant un compte ou en utilisant le service, vous les acceptez. Elles ne concernent pas le logiciel que vous installez vous-même : celui-ci est régi par sa licence [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+L’éditeur est identifié dans les [mentions légales](/legal/), et vous pouvez le joindre à <strong>{LEGAL.email}</strong>.
+
+## 1. Le service
+
+SilenceWatch surveille des tâches planifiées (cron, workers, jobs) à partir de signaux, des appels HTTP qu’elles envoient quand elles s’exécutent. Quand un signal n’arrive pas à temps, le service ouvre un incident et envoie une alerte sur les canaux que vous avez configurés (e-mail, webhook, Slack, Microsoft Teams, Discord).
+
+## 2. Votre compte
+
+- Vous fournissez une adresse e-mail valide, que vous contrôlez.
+- Vous gardez vos identifiants, vos clés d’API et vos adresses de signal confidentiels. Ce qui est fait avec vos clés est fait en votre nom : si vous soupçonnez une fuite, révoquez la clé et changez votre mot de passe.
+- Un compte est personnel. Vous êtes responsable des personnes que vous invitez dans vos projets.
+
+## 3. Usage acceptable
+
+Vous vous engagez à ne pas :
+
+- chercher à accéder aux données d’un autre utilisateur, ni à contourner l’isolation entre les comptes ;
+- explorer ou deviner des adresses de signal, ni envoyer un volume de requêtes qui dégrade le service pour les autres ;
+- faire passer par le service un contenu illicite, ou des données personnelles de tiers que vous n’avez pas le droit de traiter ;
+- utiliser les alertes pour harceler ou pour atteindre un système qui n’est pas le vôtre ;
+- tester la sécurité du service autrement que selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+
+En cas de manquement, l’éditeur peut limiter ou suspendre le compte, sans préavis lorsque la sécurité du service ou des autres utilisateurs l’exige.
+
+## 4. Disponibilité et limites du service
+
+Le service est fourni avec le soin que l’on doit à un outil dont le métier est de rester en ligne, mais **sans garantie de disponibilité continue** : il peut être interrompu pour une maintenance ou par un incident, et l’éditeur ne s’engage sur aucun niveau de service qui ne serait pas convenu par écrit.
+
+Une alerte dépend de services que l’éditeur ne maîtrise pas : votre messagerie, le fournisseur d’e-mail, Slack, Teams, Discord, ou l’adresse de votre webhook. Elle peut être retardée, filtrée ou perdue. **Ne faites pas de SilenceWatch la seule protection d’une activité critique** ; prévoyez au moins un second moyen d’être prévenu.
+
+## 5. Vos données
+
+Vous restez propriétaire de vos données. Elles sont traitées comme l’explique la [politique de confidentialité](/privacy/), et vous pouvez demander leur suppression à tout moment. Vous êtes responsable de ce que vous envoyez au service, y compris dans le texte joint à un signal.
+
+## 6. Tarifs
+
+Les conditions financières, le cas échéant, sont indiquées au moment où vous souscrivez une offre payante, et complétées par des conditions de vente. Aucune somme n’est due sans que vous l’ayez acceptée.
+
+## 7. Responsabilité
+
+Dans les limites permises par la loi, l’éditeur ne répond pas des dommages indirects (perte d’exploitation, perte de données, perte de chance) liés à l’usage du service ou à l’absence d’une alerte, et sa responsabilité, quel que soit le fondement, est limitée au montant que vous avez payé pour le service au cours des douze derniers mois. Rien dans ces conditions n’exclut ce que la loi ne permet pas d’exclure, ni les droits que vous reconnaît le droit de la consommation si vous agissez en tant que consommateur.
+
+## 8. Fin de l’utilisation
+
+Vous pouvez cesser d’utiliser le service et demander la suppression de votre compte à tout moment, à l’adresse ci-dessus. L’éditeur peut mettre fin à un compte qui manque à ces conditions, ou arrêter le service en prévenant les titulaires de compte dans un délai raisonnable.
+
+## 9. Propriété intellectuelle
+
+Le logiciel est sous licence Apache 2.0. Le nom « SilenceWatch » et le logo n’en font pas partie ; voir les [mentions légales](/legal/#propriété-intellectuelle).
+
+## 10. Modifications et droit applicable
+
+L’éditeur peut modifier ces conditions ; la nouvelle version s’applique à partir de sa publication, et un changement important est porté à la connaissance des titulaires de compte. Elles sont régies par le droit français. En cas de litige, et sous réserve des règles protectrices du consommateur, les tribunaux français sont compétents.
+
+*Dernière mise à jour : 3 octobre 2026.*

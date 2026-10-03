@@ -1,0 +1,65 @@
+---
+title: "Terms of use"
+description: "The rules for using the hosted SilenceWatch service: account, acceptable use, availability, data, liability and ending your use."
+template: splash
+---
+
+import { LEGAL } from '../../../legal';
+
+These terms govern the use of the hosted service at **app.silencewatch.com**. By creating an account or using the service you accept them. They do not apply to software you install yourself, which is governed by its [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) licence.
+
+The publisher is identified in the [legal notice](/en/legal/), and can be reached at <strong>{LEGAL.email}</strong>.
+
+## 1. The service
+
+SilenceWatch monitors scheduled tasks (cron, workers, jobs) through heartbeats: HTTP calls they send when they run. When a heartbeat does not arrive in time, the service opens an incident and sends an alert to the channels you configured (email, webhook, Slack, Microsoft Teams, Discord).
+
+## 2. Your account
+
+- You provide a valid email address that you control.
+- You keep your credentials, API keys and heartbeat addresses confidential. What is done with your keys is done in your name: if you suspect a leak, revoke the key and change your password.
+- An account is personal. You are responsible for the people you invite to your projects.
+
+## 3. Acceptable use
+
+You agree not to:
+
+- try to reach another user’s data, or get around the isolation between accounts;
+- probe or guess heartbeat addresses, or send a volume of requests that degrades the service for others;
+- pass unlawful content through the service, or third parties’ personal data that you have no right to process;
+- use alerts to harass anyone or to reach a system that is not yours;
+- test the service’s security other than through the procedure in [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+
+In case of a breach, the publisher may limit or suspend the account, without notice where the security of the service or of other users requires it.
+
+## 4. Availability and limits
+
+The service is provided with the care owed to a tool whose job is to stay up, but **without a guarantee of continuous availability**: it may be interrupted for maintenance or by an incident, and the publisher commits to no service level that is not agreed in writing.
+
+An alert depends on services the publisher does not control: your mailbox, the email provider, Slack, Teams, Discord, or your webhook’s address. It may be delayed, filtered or lost. **Do not make SilenceWatch the only safeguard for a critical activity**; keep at least a second way of being told.
+
+## 5. Your data
+
+You remain the owner of your data. It is handled as the [privacy policy](/en/privacy/) explains, and you may ask for it to be deleted at any time. You are responsible for what you send to the service, including the text attached to a heartbeat.
+
+## 6. Prices
+
+Any financial terms are shown when you subscribe to a paid plan, and completed by terms of sale. No amount is due unless you have accepted it.
+
+## 7. Liability
+
+Within the limits the law allows, the publisher is not liable for indirect damages (loss of business, loss of data, loss of opportunity) arising from the use of the service or from a missing alert, and its liability, whatever the legal ground, is limited to the amount you paid for the service in the last twelve months. Nothing in these terms excludes what the law does not allow to be excluded, nor the rights consumer law gives you if you are acting as a consumer.
+
+## 8. Ending your use
+
+You may stop using the service and ask for your account to be deleted at any time, at the address above. The publisher may end an account that breaches these terms, or stop the service, giving account holders reasonable notice.
+
+## 9. Intellectual property
+
+The software is under the Apache 2.0 licence. The name “SilenceWatch” and the logo are not part of it; see the [legal notice](/en/legal/#intellectual-property).
+
+## 10. Changes and governing law
+
+The publisher may change these terms; the new version applies from its publication, and a significant change is brought to the attention of account holders. They are governed by French law. In case of a dispute, and subject to the protective rules for consumers, the French courts have jurisdiction.
+
+*Last updated: 3 October 2026.*
