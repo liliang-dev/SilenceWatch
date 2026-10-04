@@ -33,6 +33,7 @@ export interface HomeCopy {
     note: string;
     codeLabel: string;
   };
+  /** `icon` is the name of an icon in `src/icons.ts`. */
   features: { title: string; items: { icon: string; title: string; text: string }[] };
   stats: { value: string; label: string }[];
   which: { title: string; text: string; chips: { text: string; href: string }[] };
@@ -93,11 +94,11 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     features: {
       title: 'What SilenceWatch does',
       items: [
-        { icon: 'clock', title: 'Cron and intervals', text: 'A fixed period or a 5- or 6-field cron expression, with a time zone, plus a grace period. See also [cron job monitoring](/cron-monitoring/).' },
+        { icon: 'schedule', title: 'Cron and intervals', text: 'A fixed period or a 5- or 6-field cron expression, with a time zone, plus a grace period. See also [cron job monitoring](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Detection every 10 seconds', text: 'A late check is spotted within seconds, without scanning the whole database: the cost follows the late checks, not the total.' },
-        { icon: 'bell', title: 'Alerts where you are', text: 'Email, signed webhook (HMAC-SHA256), Slack, Microsoft Teams and Discord, with a test button to verify each channel before an incident does.' },
+        { icon: 'notifications', title: 'Alerts where you are', text: 'Email, signed webhook (HMAC-SHA256), Slack, Microsoft Teams and Discord, with a test button to verify each channel before an incident does.' },
         { icon: 'leaf', title: 'Spring Boot starter', text: 'One dependency and an API key: every `@Scheduled` method and every Quartz job declares itself. See [Spring Boot](/spring-boot/).' },
-        { icon: 'list', title: 'History and incidents', text: 'Every ping (duration, exit code, job output), every incident and every alert sent, with search, sorting and filters.' },
+        { icon: 'history', title: 'History and incidents', text: 'Every ping (duration, exit code, job output), every incident and every alert sent, with search, sorting and filters.' },
         { icon: 'key', title: 'REST API and keys', text: 'Create and manage checks through the API, with project-scoped keys, environments and separate projects.' },
       ],
     },
@@ -229,11 +230,11 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     features: {
       title: 'Ce que fait SilenceWatch',
       items: [
-        { icon: 'clock', title: 'Cron et intervalles', text: 'Une fréquence fixe ou une expression cron à 5 ou 6 champs, avec fuseau horaire, plus un délai de grâce. Voir aussi le [monitoring de cron](/cron-monitoring/).' },
+        { icon: 'schedule', title: 'Cron et intervalles', text: 'Une fréquence fixe ou une expression cron à 5 ou 6 champs, avec fuseau horaire, plus un délai de grâce. Voir aussi le [monitoring de cron](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Détection toutes les 10 secondes', text: 'Un check en retard est repéré en quelques secondes, sans balayer toute la base : le coût dépend des checks en retard, pas du nombre total.' },
-        { icon: 'bell', title: 'Alertes là où vous êtes', text: 'E-mail, webhook signé (HMAC-SHA256), Slack, Microsoft Teams et Discord, avec un bouton de test pour vérifier chaque canal avant qu’un incident n’arrive.' },
+        { icon: 'notifications', title: 'Alertes là où vous êtes', text: 'E-mail, webhook signé (HMAC-SHA256), Slack, Microsoft Teams et Discord, avec un bouton de test pour vérifier chaque canal avant qu’un incident n’arrive.' },
         { icon: 'leaf', title: 'Starter Spring Boot', text: 'Une dépendance et une clé d’API : chaque `@Scheduled` et chaque job Quartz se déclare tout seul. Voir [Spring Boot](/spring-boot/).' },
-        { icon: 'list', title: 'Historique et incidents', text: 'Chaque ping (durée, code de sortie, sortie du job), chaque incident et chaque alerte envoyée, avec recherche, tri et filtres.' },
+        { icon: 'history', title: 'Historique et incidents', text: 'Chaque ping (durée, code de sortie, sortie du job), chaque incident et chaque alerte envoyée, avec recherche, tri et filtres.' },
         { icon: 'key', title: 'API REST et clés', text: 'Créez et pilotez vos checks par API, avec des clés limitées à un projet, des environnements et des projets séparés.' },
       ],
     },

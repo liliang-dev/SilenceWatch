@@ -2,6 +2,7 @@
 import { home } from '../content/home';
 import { APP, REPOSITORY } from '../site';
 import Faq from './Faq.astro';
+import { iconBody, type IconName } from '../icons';
 import Illustration from './Illustration.astro';
 import LiveDemo from './LiveDemo.astro';
 
@@ -32,15 +33,6 @@ const md = (text: string): string =>
 
 const url = (path: string) => `${prefix}${path}`;
 const login = `${APP}/login`;
-
-const icons: Record<string, string> = {
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
-  bell: '<path d="M6 9a6 6 0 1 1 12 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
-  leaf: '<path d="M5 19c0-9 5-14 15-14 0 10-5 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/>',
-  list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
-  key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>',
-};
 ---
 
 <div class="sw-home not-content">
@@ -104,7 +96,7 @@ const icons: Record<string, string> = {
     <div class="grid">
       {copy.features.items.map((item) => (
         <article class="card feature" data-spot>
-          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" set:html={icons[item.icon]} />
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" set:html={iconBody(item.icon as IconName)} />
           <h3>{item.title}</h3>
           <p set:html={md(item.text)} />
         </article>
@@ -505,11 +497,7 @@ const icons: Record<string, string> = {
     padding: 0.5rem;
     border-radius: 0.7rem;
     background: color-mix(in srgb, var(--sl-color-accent) 16%, transparent);
-    fill: none;
-    stroke: var(--sl-color-accent-high);
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    fill: var(--sl-color-accent-high);
   }
 
   /* --- a command, in a window of its own -------------------------------- */

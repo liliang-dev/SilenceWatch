@@ -20,5 +20,8 @@
     "@astrojs/starlight": "^0.42.4",
     "astro": "^7.3.5",
     "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@material-design-icons/svg": "^0.14.15"
   }
 }
