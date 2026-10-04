@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-10-04
+
+No database migration, so going back to 0.3.1 is safe, and no new setting: upgrading
+is a change of image tag.
+
+What changes for the application: it shows the second logo on a dark page, and the
+last two hand-drawn icons of the interface (the email confirmation and password
+reset pages) are Material Icons like the others. Nothing in the API changed. The
+rest of this release is the showcase site, which a self-hosted instance does not run.
+
 ### Changed
 
 - **A reworked home page for the site, with motion.** A flat page (no gradient
@@ -547,7 +557,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...HEAD
+[0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3
