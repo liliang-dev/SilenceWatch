@@ -1,0 +1,533 @@
+---
+import { home } from '../content/home';
+
+/**
+ * The product's central screen, drawn in HTML and CSS and set in motion: every few
+ * seconds one job stops answering, goes late, then down, an alert slides in, and
+ * the next ping brings it back. It is what SilenceWatch does, shown rather than
+ * described.
+ *
+ * Pure CSS, one 14-second loop shared by every moving part, so they cannot drift.
+ * Decorative and hidden from assistive technology (the text around it says the
+ * same); with reduced motion requested it stops on its most telling frame — the
+ * job down, the alert sent — instead of looping. Markup rather than a screenshot,
+ * so it is sharp at any size, follows the light and dark theme, and weighs nothing.
+ */
+const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
+const { demo } = home[lang];
+---
+
+<figure class="demo" data-pagefind-ignore>
+  <div class="frame" aria-hidden="true">
+    <div class="bar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title">{demo.window}</span>
+      <svg class="beat" viewBox="0 0 120 24" preserveAspectRatio="none">
+        <path pathLength="1" d="M0 12H34L40 4L48 20L55 8L60 12H120" />
+      </svg>
+    </div>
+
+    <ul class="rows">
+      {demo.rows.map((row) => (
+        <li class="row is-up">
+          <span class="name">{row.name}</span>
+          <span class="chip"><i class="pulse"></i>{demo.states.up}</span>
+          <span class="when">{row.meta}</span>
+        </li>
+      ))}
+
+      <li class="row flaky">
+        <span class="name">{demo.flaky}</span>
+        <span class="states">
+          <span class="chip s-up"><i class="pulse"></i>{demo.states.up}</span>
+          <span class="chip s-late"><i></i>{demo.states.late}</span>
+          <span class="chip s-down"><i></i>{demo.states.down}</span>
+        </span>
+        <span class="whens">
+          <span class="when s-up">{demo.whens.up}</span>
+          <span class="when s-late">{demo.whens.late}</span>
+          <span class="when s-down">{demo.whens.down}</span>
+        </span>
+      </li>
+    </ul>
+
+    <div class="toasts">
+      <div class="toast t-down">
+        <span class="icon">!</span>
+        <span><strong>{demo.toastDown.title}</strong><small>{demo.toastDown.text}</small></span>
+      </div>
+      <div class="toast t-up">
+        <span class="icon">✓</span>
+        <span><strong>{demo.toastUp.title}</strong><small>{demo.toastUp.text}</small></span>
+      </div>
+    </div>
+  </div>
+  <figcaption>{demo.caption}</figcaption>
+</figure>
+
+<style>
+  .demo {
+    --up: #067647;
+    --up-soft: #ecfdf3;
+    --late: #b54708;
+    --late-soft: #fffaeb;
+    --down: #d92d20;
+    --down-soft: #fef3f2;
+    --cycle: 14s;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding-inline: 1rem;
+  }
+
+  :global(:root[data-theme='dark']) .demo {
+    --up: #47cd89;
+    --up-soft: #0c1f18;
+    --late: #fdb022;
+    --late-soft: #241a09;
+    --down: #f97066;
+    --down-soft: #2a1211;
+  }
+
+  .frame {
+    position: relative;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 88%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 24px 48px -28px rgb(0 0 0 / 55%);
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .dots {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .dots i {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--sl-color-gray-5);
+  }
+
+  .title {
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  .beat {
+    margin-left: auto;
+    width: 4.5rem;
+    height: 1.2rem;
+    fill: none;
+    stroke: var(--sl-color-accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 0.3 0.7;
+    stroke-dashoffset: 0;
+    animation: beat 2.4s linear infinite;
+  }
+
+  .rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.2rem 1rem;
+    align-items: center;
+    padding: 0.9rem 1rem 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .row:last-child {
+    border-bottom: 0;
+  }
+
+  .row::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--up);
+  }
+
+  .name {
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .when {
+    grid-column: 1 / -1;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: var(--up);
+    background: var(--up-soft);
+  }
+
+  .chip i {
+    position: relative;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* A heartbeat: the dot of a healthy job sends a ring outwards now and then. */
+  .chip i.pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: ring 2.8s ease-out infinite;
+  }
+
+  /* The job that stops: three states stacked in one place, one shown at a time. */
+  .flaky .states,
+  .flaky .whens {
+    display: grid;
+  }
+
+  .flaky .whens {
+    grid-column: 1 / -1;
+  }
+
+  .flaky .states > *,
+  .flaky .whens > * {
+    grid-area: 1 / 1;
+    justify-self: end;
+  }
+
+  .flaky .whens > * {
+    justify-self: start;
+  }
+
+  .flaky::before {
+    animation: edge var(--cycle) infinite;
+  }
+
+  .flaky .s-up {
+    animation: show-up var(--cycle) infinite;
+  }
+
+  .flaky .s-late {
+    color: var(--late);
+    background: var(--late-soft);
+    opacity: 0;
+    animation: show-late var(--cycle) infinite;
+  }
+
+  .flaky .s-down {
+    color: var(--down);
+    background: var(--down-soft);
+    opacity: 0;
+    animation: show-down var(--cycle) infinite;
+  }
+
+  .flaky .when.s-late,
+  .flaky .when.s-down {
+    background: none;
+  }
+
+  .flaky .when.s-late {
+    color: var(--late);
+  }
+
+  .flaky .when.s-down {
+    color: var(--down);
+  }
+
+  .flaky {
+    animation: wash var(--cycle) infinite;
+  }
+
+  /* The alerts slide in over the bottom of the window. */
+  .toasts {
+    position: absolute;
+    inset: auto 0.75rem 0.75rem auto;
+    display: grid;
+    width: min(20rem, calc(100% - 1.5rem));
+  }
+
+  .toast {
+    grid-area: 1 / 1;
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.8rem;
+    background: var(--sl-color-bg);
+    box-shadow: 0 14px 30px -12px rgb(0 0 0 / 45%);
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  .toast strong,
+  .toast small {
+    display: block;
+  }
+
+  .toast strong {
+    font-size: var(--sl-text-sm);
+    line-height: 1.3;
+    color: var(--sl-color-white);
+  }
+
+  .toast small {
+    margin-top: 0.1rem;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+
+  .toast .icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .t-down .icon {
+    background: var(--down);
+  }
+
+  .t-up .icon {
+    background: var(--up);
+  }
+
+  .t-down {
+    animation: toast-down var(--cycle) infinite;
+  }
+
+  .t-up {
+    animation: toast-up var(--cycle) infinite;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  @keyframes beat {
+    to {
+      stroke-dashoffset: -1;
+    }
+  }
+
+  @keyframes ring {
+    0%,
+    55% {
+      opacity: 0;
+      transform: scale(1);
+    }
+    60% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(3.2);
+    }
+  }
+
+  /* 0-28% healthy, 28-44% late, 44-84% down, 84-100% back */
+  @keyframes show-up {
+    0%,
+    27% {
+      opacity: 1;
+    }
+    29%,
+    83% {
+      opacity: 0;
+    }
+    85%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes show-late {
+    0%,
+    27% {
+      opacity: 0;
+    }
+    29%,
+    43% {
+      opacity: 1;
+    }
+    45%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes show-down {
+    0%,
+    43% {
+      opacity: 0;
+    }
+    45%,
+    83% {
+      opacity: 1;
+    }
+    85%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes edge {
+    0%,
+    27% {
+      background: var(--up);
+    }
+    29%,
+    43% {
+      background: var(--late);
+    }
+    45%,
+    83% {
+      background: var(--down);
+    }
+    85%,
+    100% {
+      background: var(--up);
+    }
+  }
+
+  @keyframes wash {
+    0%,
+    43% {
+      background: transparent;
+    }
+    48%,
+    80% {
+      background: color-mix(in srgb, var(--down) 7%, transparent);
+    }
+    85%,
+    100% {
+      background: transparent;
+    }
+  }
+
+  @keyframes toast-down {
+    0%,
+    46% {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.98);
+    }
+    50%,
+    72% {
+      opacity: 1;
+      transform: none;
+    }
+    76%,
+    100% {
+      opacity: 0;
+      transform: translateY(-0.5rem) scale(0.98);
+    }
+  }
+
+  @keyframes toast-up {
+    0%,
+    85% {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.98);
+    }
+    89%,
+    98% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-0.5rem) scale(0.98);
+    }
+  }
+
+  /* Reduced motion: no loop. The most telling frame, standing still. */
+  @media (prefers-reduced-motion: reduce) {
+    .beat,
+    .chip i.pulse::after,
+    .flaky::before,
+    .flaky .s-up,
+    .flaky .s-late,
+    .flaky .s-down,
+    .flaky,
+    .t-down,
+    .t-up {
+      animation: none;
+    }
+
+    .flaky::before {
+      background: var(--down);
+    }
+
+    .flaky .s-up,
+    .flaky .s-late {
+      opacity: 0;
+    }
+
+    .flaky .s-down {
+      opacity: 1;
+    }
+
+    .flaky {
+      background: color-mix(in srgb, var(--down) 7%, transparent);
+    }
+
+    .t-down {
+      opacity: 1;
+      transform: none;
+    }
+
+    .beat {
+      stroke-dasharray: none;
+    }
+  }
+
+  @media (max-width: 34rem) {
+    .toasts {
+      position: static;
+      width: auto;
+      margin: 0 0.75rem 0.75rem;
+      min-height: 3.6rem;
+    }
+  }
+</style>

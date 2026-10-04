@@ -11,7 +11,8 @@ import { inject } from '@angular/core';
  * than shipping the dozen glyphs, so that is what happens here — no network, no
  * flash of unstyled text, and crisp at any size.
  *
- * Paths are from Material Symbols (Apache-2.0), traced on a 24×24 grid.
+ * Paths are the filled glyphs of Google's Material Icons (Apache-2.0) — the set Angular
+ * Material's `<mat-icon>` shows — copied from `@material-design-icons/svg` on its 24×24 grid.
  */
 const ICONS: Record<string, string> = {
   add: 'M11 13H5v-2h6V5h2v6h6v2h-6v6h-2z',
@@ -28,8 +29,10 @@ const ICONS: Record<string, string> = {
   account:
     'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6m0 14.2a7.2 7.2 0 0 1-6-3.22c.03-1.99 4-3.08 6-3.08s5.97 1.09 6 3.08a7.2 7.2 0 0 1-6 3.22',
   expand: 'm7 10 5 5 5-5z',
+  error:
+    'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z',
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
-  // Navigation. Material Symbols again, same grid as the rest.
+  // Navigation, same set and grid as the rest.
   // Appearance: the sun, the moon and a screen, for light, dark and "follow the device".
   sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10M2 13h2a1 1 0 0 0 0-2H2a1 1 0 0 0 0 2m18 0h2a1 1 0 0 0 0-2h-2a1 1 0 0 0 0 2M11 2v2a1 1 0 0 0 2 0V2a1 1 0 0 0-2 0m0 18v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-2 0M5.99 4.58a1 1 0 0 0-1.41 1.41l1.06 1.06a1 1 0 0 0 1.41-1.41zm12.37 12.37a1 1 0 0 0-1.41 1.41l1.06 1.06a1 1 0 0 0 1.41-1.41zm1.06-10.96a1 1 0 0 0-1.41-1.41l-1.06 1.06a1 1 0 0 0 1.41 1.41zM7.05 18.36a1 1 0 0 0-1.41-1.41l-1.06 1.06a1 1 0 0 0 1.41 1.41z',
   moon: 'M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z',

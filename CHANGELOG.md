@@ -10,6 +10,47 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-10-04
+
+No database migration, so going back to 0.3.1 is safe, and no new setting: upgrading
+is a change of image tag.
+
+What changes for the application: it shows the second logo on a dark page, and the
+last two hand-drawn icons of the interface (the email confirmation and password
+reset pages) are Material Icons like the others. Nothing in the API changed. The
+rest of this release is the showcase site, which a self-hosted instance does not run.
+
+### Changed
+
+- **A reworked home page for the site, with motion.** A flat page (no gradient
+  backgrounds) in which the slogan's second half is underlined by a drawn
+  heartbeat; a live demo loops through a job going late, then down, an alert
+  arriving and the next ping bringing it back (the same screen as the application,
+  in CSS only); a strip of everything that can call a URL scrolls past; sections
+  rise in as they come into view and the cards light up under the pointer. Text
+  blocks that had nothing beside them now have an illustration (the logo sits at the
+  centre of the one about what can be monitored), the copy is kept short, and the
+  icons come from Google's Material Icons (Apache-2.0, the set Angular Material
+  uses), inlined at build time. The calls to action read "Try it out" ("Essayer"),
+  next to the "Login" button of the header, and the page says the service is free
+  without describing a plan or a subscription: there is none. With reduced motion
+  requested, or without script, nothing moves and nothing is hidden; the demo then
+  stands still on its most telling frame. No library and no request to another site
+  were added at run time. The text lives in `site/src/content/home.ts`, once for
+  both languages, and an "Is SilenceWatch free?" question joins the FAQ.
+- **The application's last two hand-drawn icons (the tick and the error mark of the
+  email confirmation and password reset pages) are now Material Icons too**, like
+  every other icon of the interface, through the same inline `sw-icon` component.
+- **The site's header shows a "Login" button ("Connexion" in French) on every page**, phones
+  included (on the narrowest ones the site name makes way for it, the logo stays).
+- **A second logo for dark mode.** The application and the site show the pale tile
+  on a light page and the purple one on a dark page, following the theme — the
+  device's, or the one chosen in Settings → Preferences, which wins. The favicon
+  follows the browser's own theme instead, since a tab is drawn on the browser's
+  chrome rather than on the page; `favicon.ico` and the iPhone icon stay the light
+  tile. The new files, `logo-dark.svg` and `logo-dark-96.png`, are listed among the
+  brand files that are not under the licence.
+
 ## [0.3.1] — 2026-10-03
 
 No database migration, so going back to 0.3.0 is safe, and no new setting: upgrading
@@ -516,7 +557,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...HEAD
+[0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.2...0.2.3

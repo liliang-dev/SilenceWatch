@@ -1,15 +1,18 @@
 ---
 title: "Job monitoring: get alerted when a job stops"
-description: "Your jobs don’t tell you when they stop. SilenceWatch does: heartbeat job monitoring with email, Slack and webhook alerts. Open source, self-hostable."
+description: "Your jobs don’t tell you when they stop. SilenceWatch does: free heartbeat job monitoring with email, Slack and webhook alerts. Open source, self-hostable."
 template: splash
 hero:
   title: "Your jobs don’t tell you when they stop. <span class='sw-answer'>We do.</span>"
-  tagline: "SilenceWatch is a job monitoring tool: each job sends a heartbeat when it runs, and you get an alert as soon as one is missing. Open source, self-hostable or hosted."
+  tagline: "SilenceWatch is job monitoring built on one idea: each job sends a heartbeat when it runs, and you are alerted the moment one goes missing. Free to use, open source, self-hostable."
   actions:
-    - text: "Get started with SilenceWatch"
+    - text: "Try it out"
       link: https://app.silencewatch.com/login
       icon: right-arrow
       variant: primary
+    - text: "See how it works"
+      link: "#how-it-works"
+      variant: secondary
     - text: "Read the documentation"
       link: /docs/getting-started/
       variant: minimal
@@ -18,118 +21,6 @@ head:
     content: "SilenceWatch — Job monitoring for scheduled tasks"
 ---
 
-import { Card, CardGrid, LinkButton, Steps } from '@astrojs/starlight/components';
-import Faq from '../../components/Faq.astro';
-import ProductPreview from '../../components/ProductPreview.astro';
+import Home from '../../components/Home.astro';
 
-<ProductPreview />
-
-## A job that silently stops looks exactly like a job with nothing to do
-
-A nightly backup, an export, a certificate renewal, a billing run, a worker: when one of these **scheduled jobs** stops running, no error is raised and nobody is told. It is sometimes noticed weeks later, by whoever needed yesterday's data.
-
-Ordinary **job monitoring** watches for what went wrong. SilenceWatch watches for **what did not happen**: it is a *dead man's switch*. You declare how often a task should run and how late it may be. If it does not check in on time, the alert goes out.
-
-## Job monitoring in three steps
-
-<Steps>
-
-1. **Declare the job.** Create a check with its frequency (every 15 minutes) or its cron expression (`0 2 * * *`), its time zone and the lateness you tolerate. See [job monitoring](/job-monitoring/).
-
-2. **Call the ping URL when the job finishes.** A plain HTTP request; `curl` is enough:
-
-   ```bash title="crontab"
-   0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
-   ```
-
-3. **Get alerted if it does not arrive.** The check goes late, then down; an incident opens and every enabled channel is notified: email, webhook, Slack, Microsoft Teams or Discord. The next ping resolves the incident and sends a recovery alert.
-
-</Steps>
-
-The details of the endpoints (`/start`, `/fail`, exit code, duration) are in the [ping API documentation](/docs/ping-api/). Copy-paste examples for crontab, systemd, Docker, Kubernetes and GitHub Actions are in the [examples](/docs/cron-examples/).
-
-## What SilenceWatch does
-
-<CardGrid>
-  <Card title="Cron and intervals" icon="seti:clock">
-    A fixed period or a 5- or 6-field cron expression, with a time zone, plus a grace period. See also [cron job monitoring](/cron-monitoring/).
-  </Card>
-  <Card title="Detection every 10 seconds" icon="rocket">
-    A late check is spotted within seconds, without scanning the whole database: the cost follows the late checks, not the total.
-  </Card>
-  <Card title="Alerts where you are" icon="warning">
-    Email, signed webhook (HMAC-SHA256), Slack, Microsoft Teams and Discord, with a test button to verify each channel before an incident does.
-  </Card>
-  <Card title="Spring Boot starter" icon="seti:java">
-    One dependency and an API key: every `@Scheduled` method and every Quartz job declares itself. See [Spring Boot](/spring-boot/).
-  </Card>
-  <Card title="History and incidents" icon="document">
-    Every ping (duration, exit code, job output), every incident and every alert sent, with search, sorting and filters.
-  </Card>
-  <Card title="REST API and keys" icon="seti:json">
-    Create and manage checks through the API, with project-scoped keys, environments and separate projects.
-  </Card>
-</CardGrid>
-
-## Which jobs?
-
-Anything that must run at regular intervals and whose absence matters: [backups](/guides/backup-monitoring/), data imports and exports, billing runs, purges, certificate renewals, workers and [Kubernetes CronJobs](/guides/kubernetes-cronjob-monitoring/). If the job can call a URL, it can be monitored. The [job monitoring guide](/job-monitoring/) covers what to watch, and [what a dead man's switch is](/dead-mans-switch/) explains the principle.
-
-## Spring Boot: nothing to declare by hand
-
-```xml title="pom.xml"
-<dependency>
-  <groupId>com.silencewatch</groupId>
-  <artifactId>silencewatch-spring-boot-starter</artifactId>
-  <version>0.1.0</version>
-</dependency>
-```
-
-```yaml title="application.yml"
-silencewatch:
-  api-key: ${SILENCEWATCH_API_KEY}
-```
-
-At startup the starter reads the tasks **Spring itself scheduled** (with the cron expressions as they actually resolved) and the Quartz jobs, declares them to SilenceWatch, then sends a heartbeat around every run, with its duration and any exception. It never fails and never blocks your job. [All about Spring Boot monitoring](/spring-boot/).
-
-## Hosted or self-hosted, never crippled
-
-SilenceWatch is released under the **Apache 2.0** licence. Use it as the hosted service at [app.silencewatch.com](https://app.silencewatch.com), or [self-host it](/self-hosted/): one container and one PostgreSQL database, nothing else. There is no "enterprise edition" and no reserved feature: the hosted offer sells not running a server, not features.
-
-<div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Open the app</LinkButton>
-  <LinkButton href="/self-hosted/" variant="secondary">Self-host</LinkButton>
-  <LinkButton href="https://github.com/liliang-dev/SilenceWatch" variant="minimal" icon="github">Source code</LinkButton>
-</div>
-
-## Frequently asked questions
-
-<Faq
-  title="Frequently asked questions about SilenceWatch"
-  items={[
-    {
-      q: 'What is job monitoring?',
-      a: 'It is watching that your jobs and scheduled tasks, cron jobs included, actually run. Rather than looking for errors, it checks that each job checks in at its expected time, and alerts when it does not. SilenceWatch does it with one HTTP call at the end of the job.',
-    },
-    {
-      q: 'How do I monitor a job that does not crash but stops running?',
-      a: 'With a dead man’s switch: the job sends a heartbeat (a ping) on every run, and SilenceWatch alerts you if it does not arrive within the expected window. It is the only way to detect an absence, because a job that does not run produces no error.',
-    },
-    {
-      q: 'Does SilenceWatch work with crontab, systemd and Kubernetes?',
-      a: 'Yes. Anything that can make an HTTP request works: crontab, systemd timers, Kubernetes CronJobs, GitHub Actions, and Bash, Python, Node or Java scripts. Examples are in the documentation.',
-    },
-    {
-      q: 'Can Spring Boot @Scheduled tasks be monitored automatically?',
-      a: 'Yes. The SilenceWatch Spring Boot starter discovers @Scheduled methods and Quartz jobs at startup, declares them with their real schedule, and sends a heartbeat around every run, with no per-job configuration.',
-    },
-    {
-      q: 'Can I self-host SilenceWatch?',
-      a: 'Yes. SilenceWatch is open source under the Apache 2.0 licence and installs with Docker: one container and one PostgreSQL database. The self-hosted edition is never crippled.',
-    },
-    {
-      q: 'Which alert channels are available?',
-      a: 'Email, webhook (signed with HMAC-SHA256), Slack, Microsoft Teams and Discord. Each channel can be tested from the interface, and a recovery alert is sent when the job resumes.',
-    },
-  ]}
-/>
+<Home />
