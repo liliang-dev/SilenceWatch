@@ -38,7 +38,7 @@ export interface HomeCopy {
   which: { title: string; text: string; chips: { text: string; href: string }[] };
   spring: { title: string; text: string; discovered: string; jobs: { name: string; schedule: string }[] };
   hosted: { title: string; text: string; secondary: string; source: string };
-  cta: { title: string; text: string; primary: string; secondary: string; note: string };
+  cta: { title: string; text: string };
   faq: { title: string; heading: string; items: { q: string; a: string }[] };
 }
 
@@ -132,10 +132,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     cta: {
       title: 'Your next silent failure shouldn’t be silent',
-      text: 'Create an account, add a check, paste one line in your crontab.',
-      primary: 'Try it out',
-      secondary: 'Read the quickstart',
-      note: 'Prefer your own server?',
+      text: 'Get alerted by email or on any webhook.',
     },
     faq: {
       title: 'Frequently asked questions about SilenceWatch',
@@ -262,10 +259,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     cta: {
       title: 'Votre prochaine panne silencieuse ne le sera plus',
-      text: 'Créez un compte, ajoutez un check, collez une ligne dans votre crontab.',
-      primary: 'Essayer',
-      secondary: 'Lire le démarrage rapide',
-      note: 'Vous préférez votre propre serveur ?',
+      text: 'Soyez alerté par mail ou sur n’importe quel webhook.',
     },
     faq: {
       title: 'Questions fréquentes sur SilenceWatch',
