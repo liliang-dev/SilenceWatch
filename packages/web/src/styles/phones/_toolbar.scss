@@ -1,0 +1,47 @@
+@media (max-width: 820px) {
+  /* --- the bar above a table --------------------------------------------- */
+
+  .sw-toolbar,
+  .sw-table-card .sw-toolbar,
+  .section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  /* The segments share the row but each keeps the width of its own word: equal
+     fifths clipped "En panne" and "En retard" in French, which are longer than
+     "Down" and "Late". If a language ever needs more than the row has, the
+     group scrolls sideways instead of cutting a label. */
+  .sw-toolbar .sw-filters {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle {
+    flex: 1 0 auto;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle-button {
+    height: 44px;
+  }
+
+  .sw-toolbar .sw-filters .mat-button-toggle-label-content {
+    padding: 0 10px;
+    font-size: 0.8125rem;
+    line-height: 42px;
+    white-space: nowrap;
+  }
+
+  .sw-toolbar .sw-search {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .sw-table-card .sw-table-note {
+    padding: 10px 12px;
+  }
+}

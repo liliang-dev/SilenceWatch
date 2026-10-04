@@ -1,0 +1,50 @@
+/* One project per row: name and slug on the left, what it costs to delete
+   in the middle, the actions on the right. */
+.rows {
+  border-top: 1px solid var(--sw-border);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--sw-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--sw-surface-2);
+}
+
+.row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* A project puts its name on a line of its own on a phone, so a long one has
+   somewhere to go. */
+@media (max-width: 820px) {
+  .row {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .row-main {
+    flex-basis: 100%;
+  }
+}

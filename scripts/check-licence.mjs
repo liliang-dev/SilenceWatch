@@ -67,7 +67,7 @@ const excluded = [
   'packages/web/public/logo-96.png',
   'packages/web/public/logo-dark-96.png',
   'packages/web/src/app/app.component.html',
-  'packages/web/src/app/pages/login/login.component.html',
+  'packages/web/src/app/features/auth/login/login.component.html',
 ];
 for (const file of excluded) {
   expect(existsSync(file), `${file} is listed as excluded from the licence but does not exist`);

@@ -1,0 +1,42 @@
+<div class="sw-page">
+  <header class="sw-page-header">
+    <div>
+      <h1>{{ t('settings.title') }}</h1>
+      <p class="sw-muted">{{ t('settings.subtitle') }}</p>
+    </div>
+  </header>
+
+  @if (feedback.error()) {
+    <p class="sw-error" role="alert">{{ feedback.error() }}</p>
+  }
+
+  <!-- Unrelated concerns used to sit stacked on one page, so finding the audit
+       trail meant scrolling past the key you had just created. Each tab is its
+       own component, built when it is first opened and then kept: the new key's
+       secret is shown once, and must still be there after a look at another tab. -->
+  <mat-tab-group animationDuration="0ms" class="tabs" disablePagination preserveContent swScrollTabs>
+    <mat-tab [label]="t('settings.tabProjects')">
+      <ng-template matTabContent><sw-projects-tab /></ng-template>
+    </mat-tab>
+
+    <mat-tab [label]="t('settings.tabKeys')">
+      <ng-template matTabContent><sw-api-keys-tab /></ng-template>
+    </mat-tab>
+
+    <mat-tab [label]="t('settings.tabPassword')">
+      <ng-template matTabContent><sw-password-tab /></ng-template>
+    </mat-tab>
+
+    <mat-tab [label]="t('settings.tabSecurity')">
+      <ng-template matTabContent><sw-security-tab /></ng-template>
+    </mat-tab>
+
+    <mat-tab [label]="t('settings.tabPreferences')">
+      <ng-template matTabContent><sw-preferences-tab /></ng-template>
+    </mat-tab>
+
+    <mat-tab [label]="t('settings.tabAccount')">
+      <ng-template matTabContent><sw-account-tab /></ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</div>

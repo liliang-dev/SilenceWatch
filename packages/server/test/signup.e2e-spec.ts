@@ -5,7 +5,7 @@ import {
   type SignupChallengeDto,
 } from '@silencewatch/shared';
 import { createHash } from 'node:crypto';
-import { EmailVerificationService } from '../src/auth/email-verification.service';
+import { EmailVerificationService } from '../src/auth/registration/email-verification/email-verification.service';
 import { createTestApp, type TestApp } from './utils/test-app';
 
 /**

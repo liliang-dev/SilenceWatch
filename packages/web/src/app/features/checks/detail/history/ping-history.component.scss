@@ -1,0 +1,25 @@
+.kind {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kind-success {
+  color: var(--sw-up);
+}
+
+.kind-fail {
+  color: var(--sw-down);
+}
+
+.kind-start {
+  color: var(--sw-new);
+}
+
+.body {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

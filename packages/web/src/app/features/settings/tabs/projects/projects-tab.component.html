@@ -1,0 +1,59 @@
+<section class="sw-card section">
+  <div class="section-head">
+    <h2>{{ t('settings.projectsTitle') }}</h2>
+    <p class="sw-muted">{{ t('settings.projectsBody') }}</p>
+  </div>
+
+  <div class="section-body">
+    <button
+      mat-flat-button
+      type="button"
+      [disabled]="projectBusy()"
+      (click)="createProject()"
+    >
+      <sw-icon name="add" /> {{ t('settings.newProject') }}
+    </button>
+  </div>
+
+  <div class="rows">
+    @for (project of projects.all(); track project.id) {
+      <div class="row">
+        <div class="row-main">
+          <strong>{{ project.name }}</strong>
+          <span class="sw-mono sw-subtle">{{ project.slug }}</span>
+        </div>
+        <span class="sw-tag">{{
+          plural('settings.checkCount', project.checkCount ?? 0)
+        }}</span>
+        <div class="row-actions">
+          <button
+            mat-icon-button
+            type="button"
+            class="sw-icon-button"
+            [attr.aria-label]="t('settings.renameAria')"
+            [matTooltip]="t('settings.renameTip')"
+            (click)="renameProject(project)"
+          >
+            <sw-icon name="edit" />
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            class="sw-icon-button danger"
+            [attr.aria-label]="t('settings.deleteProjectAria')"
+            [disabled]="projects.all().length < 2"
+            [matTooltip]="
+              projects.all().length < 2
+                ? t('settings.lastProjectTip')
+                : t('settings.deleteProjectTip')
+            "
+            matTooltipPosition="left"
+            (click)="deleteProject(project)"
+          >
+            <sw-icon name="delete" />
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</section>

@@ -1,7 +1,7 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { Public } from '../auth/auth.guard';
-import { CurrentPrincipal, type Principal } from '../auth/principal';
+import { Public } from '../access/auth.guard';
+import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
 import { DetectionService } from '../detection/detection.service';
 import { PgService } from '../database/pg.service';
 import { PrismaService } from '../database/prisma.service';
@@ -47,9 +47,10 @@ export class HealthController {
     });
   }
 
-  /** Full internals. Any authenticated principal may read this. */
+  /** Full internals: for a user session only, an API key (one project's) has no business here. */
   @Get('v1/status')
   async status(@CurrentPrincipal() principal: Principal): Promise<Record<string, unknown>> {
+    assertUser(principal);
     return {
       version: SILENCEWATCH_VERSION,
       time: new Date().toISOString(),

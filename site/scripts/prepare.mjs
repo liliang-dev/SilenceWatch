@@ -79,7 +79,6 @@ for (const [slug, page] of Object.entries(REFERENCE)) {
     '---',
     `title: ${JSON.stringify(heading[1])}`,
     `description: ${JSON.stringify(page.description)}`,
-    `editUrl: ${REPOSITORY}/edit/dev/docs/${page.file}`,
     '---',
     '',
     '',

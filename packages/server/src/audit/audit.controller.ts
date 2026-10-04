@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import type { AuditEventDto, PageDto } from '@silencewatch/shared';
-import { assertUser, CurrentPrincipal, type Principal } from '../auth/principal';
-import { ProjectAccessService } from '../auth/project-access.service';
+import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
+import { ProjectAccessService } from '../access/project-access.service';
 import { AuditService } from './audit.service';
 
 const DEFAULT_LIMIT = 50;

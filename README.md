@@ -7,6 +7,7 @@ Self-host it, or use the hosted service.**
 [![CI](https://github.com/liliang-dev/SilenceWatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/liliang-dev/SilenceWatch/actions/workflows/ci.yml?query=branch%3Amain)
 [![CodeQL](https://github.com/liliang-dev/SilenceWatch/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/liliang-dev/SilenceWatch/actions/workflows/codeql.yml?query=branch%3Amain)
 [![Latest release](https://img.shields.io/github/v/release/liliang-dev/SilenceWatch?include_prereleases&sort=semver&label=release)](https://github.com/liliang-dev/SilenceWatch/releases)
+[![Uptime](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fliliang-dev%2FSilenceWatch%2Fuptime%2Fbadge.json&cacheSeconds=300)](https://app.silencewatch.com)
 
 <!--
   The first two badges are served by GitHub itself and report the workflows in
@@ -24,9 +25,13 @@ Self-host it, or use the hosted service.**
   absent. Its colour is chosen by shields.io from the version itself, not set
   here — orange while the version is below 1.0 or a prerelease, blue from 1.0 —
   so it is not a status and is deliberately not forced to green, which beside
-  the CI badges would read as one. It is the one badge served by a third party
-  (shields.io), which sees the IP of everyone who loads this page; drop it if
-  that matters more than showing the version.
+  the CI badges would read as one. It is served by shields.io.
+
+  The uptime badge is served by shields.io too. It shows the share of
+  the last 30 days' probes (one every five minutes, by .github/workflows/uptime.yml)
+  in which app.silencewatch.com/health answered. It reads `badge.json` on the
+  `uptime` branch, which that workflow creates on its first run — until then the
+  badge shows an error.
 -->
 
 ---
@@ -89,7 +94,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.3.2`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.4.0`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account — on an empty instance
 it is always allowed, and it becomes the owner. Schema migrations run

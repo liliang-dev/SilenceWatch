@@ -1,0 +1,69 @@
+name: Uptime
+
+# Probes the hosted service every five minutes and keeps the result for the README's
+# uptime badge. No account with a third party: the history is a text file on the
+# `uptime` branch, one character per probe, and the badge reads `badge.json` from it
+# through shields.io's endpoint badge.
+#
+# GitHub runs scheduled workflows from the default branch only, and may delay a run
+# by several minutes when it is busy, so a missed probe is not counted as down: the
+# figure is "of the probes that ran". The branch is rewritten as a single commit each
+# time, so it does not grow.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  URL: https://app.silencewatch.com/health
+
+jobs:
+  probe:
+    name: Probe the hosted service
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Up when /health answers 2xx, tried three times so one dropped packet on the
+      # runner's side is not an outage of ours. /health is 503 when the database is
+      # down or detection has stalled, so it says more than "the proxy answers".
+      - name: Probe
+        id: probe
+        run: |
+          result=down
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --max-time 10 --output /dev/null "$URL"; then
+              result=up
+              break
+            fi
+            sleep 5
+          done
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Record it on the uptime branch
+        env:
+          RESULT: ${{ steps.probe.outputs.result }}
+        run: |
+          set -eu
+          mkdir /tmp/uptime
+          if git fetch --depth 1 origin uptime; then
+            git show FETCH_HEAD:history.txt > /tmp/uptime/history.txt || true
+          fi
+          node scripts/uptime.mjs /tmp/uptime "$RESULT"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan uptime-next
+          git rm -rf --quiet .
+          cp /tmp/uptime/history.txt /tmp/uptime/badge.json .
+          git add history.txt badge.json
+          git commit --quiet -m "Uptime: $RESULT"
+          git push --force origin uptime-next:uptime

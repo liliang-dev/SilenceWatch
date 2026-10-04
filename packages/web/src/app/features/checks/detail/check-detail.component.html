@@ -1,0 +1,133 @@
+<div class="sw-page">
+  <a routerLink="/checks" class="back">
+    <sw-icon name="back" />
+    {{ t('detail.back') }}
+  </a>
+
+  @if (error()) {
+    <p class="sw-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (check(); as current) {
+    <header class="sw-page-header">
+      <div class="title">
+        <sw-state-chip [state]="current.state" size="lg" />
+        <h1>{{ current.name }}</h1>
+      </div>
+
+      <div class="actions">
+        <button mat-stroked-button (click)="edit(current)">
+          <sw-icon name="edit" />
+          {{ t('detail.edit') }}
+        </button>
+        <button mat-stroked-button (click)="togglePause(current)">
+          <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" />
+          {{ current.state === 'PAUSED' ? t('detail.resume') : t('detail.pause') }}
+        </button>
+        <button
+          mat-icon-button
+          class="sw-icon-button"
+          [matMenuTriggerFor]="menu"
+          [attr.aria-label]="t('detail.moreActions')"
+        >
+          <sw-icon name="more" />
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="rotate(current)">
+            <sw-icon name="copy" />
+            {{ t('detail.rotate') }}
+          </button>
+          <button mat-menu-item (click)="remove(current)">
+            <sw-icon name="delete" />
+            {{ t('detail.delete') }}
+          </button>
+        </mat-menu>
+      </div>
+    </header>
+
+    <!-- First on the page because it is the first thing anyone needs: pasting
+         this into a crontab is the entire setup. -->
+    <section class="sw-card ping">
+      <div class="ping-head">
+        <span class="sw-label">{{ t('detail.pingUrl') }}</span>
+        <span class="sw-muted ping-hint">{{ t('detail.pingHint') }}</span>
+        @if (current.pingKeyRotatedAt) {
+          <span class="sw-tag rotated">{{
+            t('detail.rotatedAgo', {
+              when: current.pingKeyRotatedAt | swRelativeTime,
+            })
+          }}</span>
+        }
+      </div>
+      <div class="ping-row">
+        <code class="sw-mono url">{{ current.pingUrl }}</code>
+        <button
+          mat-flat-button
+          class="copy"
+          (click)="copy(current.pingUrl)"
+          [matTooltip]="t('detail.copyTip')"
+          [attr.aria-label]="t('detail.copyAria')"
+        >
+          <sw-icon name="copy" [size]="18" />
+          {{ t('common.copy') }}
+        </button>
+      </div>
+      <pre
+        class="sw-mono snippet"
+      ><span class="prompt">$</span> curl -fsS -m 10 --retry 3 {{ current.pingUrl }}</pre>
+    </section>
+
+    <div class="facts">
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factSchedule') }}</span>
+        <strong class="sw-mono">{{ schedule(current) }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factGrace') }}</span>
+        <strong>{{ current.graceSeconds }}s</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factLastPing') }}</span>
+        <strong [matTooltip]="current.lastPingAt ?? ''">{{
+          current.lastPingAt | swRelativeTime
+        }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factExpected') }}</span>
+        <strong [matTooltip]="current.nextDueAt ?? ''">{{
+          current.nextDueAt | swRelativeTime
+        }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factDuration') }}</span>
+        <strong>{{ current.lastDurationMs | swDuration }}</strong>
+      </div>
+      <div class="fact">
+        <span class="sw-label">{{ t('detail.factEnvironment') }}</span>
+        <strong>{{ current.environment ?? '—' }}</strong>
+      </div>
+    </div>
+
+    @if (current.key) {
+      <p class="key sw-muted">
+        {{ t('detail.declaredAs') }}
+        <code class="sw-mono">{{ current.key }}</code>
+        @if (current.orphanedAt) {
+          {{ t('detail.orphaned', { when: current.orphanedAt | swRelativeTime }) }}
+        }
+      </p>
+    }
+
+    <mat-tab-group class="tabs" animationDuration="120ms" [mat-stretch-tabs]="false">
+      <mat-tab [label]="t('detail.tabPings')">
+        <sw-ping-history [rows]="pingRows()" [truncated]="pingsTruncated()" />
+      </mat-tab>
+
+      <mat-tab [label]="t('detail.tabIncidents')">
+        <sw-incident-history [rows]="incidentRows()" [truncated]="incidentsTruncated()" />
+      </mat-tab>
+    </mat-tab-group>
+  } @else if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</div>

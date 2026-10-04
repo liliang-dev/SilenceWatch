@@ -1,5 +1,5 @@
 import type { FastifyRequest } from 'fastify';
-import type { Principal } from '../auth/principal';
+import type { Principal } from '../access/principal';
 import type { AuditActor } from './audit.service';
 
 /**

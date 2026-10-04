@@ -31,5 +31,5 @@ const data = {
       <p>{a}</p>
     </details>
   ))}
-  <script type="application/ld+json" set:html={JSON.stringify(data)} />
+  <script type="application/ld+json" set:html={JSON.stringify(data).replace(/</g, "\\u003c")} />
 </section>

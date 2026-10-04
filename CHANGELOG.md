@@ -10,6 +10,60 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-04
+
+No database migration, so going back to 0.3.2 is safe, and no new setting: upgrading is a
+change of image tag.
+
+The reasons to take it: two security fixes (the sign-in, registration and password-reset
+rate limit could be dodged by adding a query string to the address, and a page left open
+past its access token's lifetime could sign the user out everywhere), and a server and
+web application reorganised into smaller modules, which changes nothing a user can see.
+
+One behaviour changed, which is why this is a minor version: `GET /api/v1/status` (the
+server's internals: process, pools, caches) now answers only a user session, where it used
+to answer an API key too. A script that read it with a key should use `/health`, or a
+session. Everything else a key could reach is unchanged, and a new test now tries every
+route with one project's key against another account's objects.
+
+
+### Added
+
+- **An uptime badge in the README.** A scheduled workflow (`.github/workflows/uptime.yml`)
+  asks the hosted service's `/health` every five minutes and keeps the results on an
+  `uptime` branch; the badge shows the share that answered over the last 30 days. No
+  account with a monitoring service is involved. It starts working after the first
+  scheduled run on `main`.
+
+### Changed
+
+- **Internal reorganisation, no change in behaviour, API or appearance.** The shared
+  schemas and the server configuration are split into one file per domain or concern;
+  the server's authentication code is split into sessions, registration, password and
+  account modules, and the CRUD modules (projects, checks, channels, access) keep their
+  queries in repositories; the web application is organised in `features/` with their
+  own routes, one API class per resource, a Settings page made of six tab components,
+  and the global stylesheet in parts. Every screen was compared before and after.
+- **The site's language can be changed on a phone from the home page too**: the header
+  keeps the language picker there (the other pages have it in the menu). The menu no
+  longer repeats the "Login" button the header already shows.
+- **The site no longer shows an "Edit page" link** under its pages.
+
+### Fixed
+
+- **A tab left open past its access token's lifetime could sign the user out everywhere.**
+  Refresh tokens rotate, and the server treats the reuse of a spent one as theft. When
+  a page made several requests at the moment the access token expired (the Settings
+  page makes four), each one asked for its own refresh and the second presented a
+  token the first had already spent. Refreshes are now made one at a time and shared.
+- **The login, registration and password-reset rate limit could be dodged by adding a
+  query string** (`/api/auth/login?1`, `?2`, …): each variant had its own budget. The
+  limit now counts the path alone.
+- **`GET /api/v1/status` (server internals) answered an API key.** It is now reserved
+  to a user session. An API key reaches only the checks of its own project, as before:
+  a test now tries every route with one project's key against another account's
+  objects.
+
 ## [0.3.2] — 2026-10-04
 
 No database migration, so going back to 0.3.1 is safe, and no new setting: upgrading
@@ -557,7 +611,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0

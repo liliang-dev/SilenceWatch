@@ -21,7 +21,7 @@ It is these files and these two places in the interface code:
   `packages/web/public/favicon.ico`, `packages/web/public/apple-touch-icon.png`,
   `packages/web/public/logo-96.png` and `packages/web/public/logo-dark-96.png`
 - the logo and the wordmark in `packages/web/src/app/app.component.html`
-  (the application header) and `packages/web/src/app/pages/login/login.component.html`
+  (the application header) and `packages/web/src/app/features/auth/login/login.component.html`
   (the sign-in page)
 
 Everything else in the repository is Apache-2.0, including the rest of those two
