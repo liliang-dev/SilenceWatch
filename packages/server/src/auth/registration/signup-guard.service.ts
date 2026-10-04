@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { AppConfig, CONFIG } from '../config/config';
-import { PrismaService } from '../database/prisma.service';
+import { AppConfig, CONFIG } from '../../config/config';
 import { DISPOSABLE_EMAIL_DOMAINS, domainSuffixes } from './disposable-domains';
+import { SignupAttemptsRepository } from './signup-attempts.repository';
 
 export type SignupRejection = 'disposable_email' | 'network_quota';
 
@@ -26,7 +26,7 @@ export class SignupGuardService {
 
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
-    private readonly prisma: PrismaService,
+    private readonly attempts: SignupAttemptsRepository,
   ) {
     this.extraBlocked = new Set(
       config.SIGNUP_BLOCKED_EMAIL_DOMAINS.map((domain) => domain.trim().toLowerCase()).filter(
@@ -68,9 +68,7 @@ export class SignupGuardService {
     // precisely the property an attacker would go looking for.
 
     const since = new Date(Date.now() - 3_600_000);
-    const used = await this.prisma.signupAttempt.count({
-      where: { network, accepted: true, createdAt: { gte: since } },
-    });
+    const used = await this.attempts.countAcceptedSince(network, since);
 
     if (used >= ceiling) {
       this.logger.warn(`Sign-up quota reached for ${network}: ${used} accounts in the last hour`);
@@ -86,8 +84,8 @@ export class SignupGuardService {
   async record(network: string, accepted: boolean): Promise<void> {
     if (this.config.SIGNUP_MAX_PER_NETWORK_PER_HOUR === 0) return;
 
-    await this.prisma.signupAttempt
-      .create({ data: { network, accepted } })
+    await this.attempts
+      .record(network, accepted)
       .catch((error: unknown) =>
         this.logger.warn(`Could not record the sign-up attempt: ${String(error)}`),
       );
@@ -95,9 +93,6 @@ export class SignupGuardService {
 
   /** Drops attempt rows past the window they inform. Called by the retention job. */
   async purgeOldAttempts(): Promise<number> {
-    const { count } = await this.prisma.signupAttempt.deleteMany({
-      where: { createdAt: { lt: new Date(Date.now() - 7 * 86_400_000) } },
-    });
-    return count;
+    return this.attempts.deleteOlderThan(new Date(Date.now() - 7 * 86_400_000));
   }
 }

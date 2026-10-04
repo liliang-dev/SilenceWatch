@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AuthGuard } from './auth/auth.guard';
+import { AccessModule } from './access/access.module';
+import { AuthGuard } from './access/auth.guard';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 import { AuthModule } from './auth/auth.module';
+import { SessionsModule } from './auth/sessions/sessions.module';
 import { ChannelsModule } from './channels/channels.module';
 import { ChecksModule } from './checks/checks.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
@@ -24,6 +27,9 @@ import { RetentionModule } from './retention/retention.module';
     DatabaseModule,
     ScheduleModule.forRoot(),
     AuditModule,
+    AccessModule,
+    ApiKeysModule,
+    SessionsModule,
     AuthModule,
     IngestModule,
     NotificationsModule,

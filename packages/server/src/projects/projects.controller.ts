@@ -22,9 +22,9 @@ import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import { auditActor } from '../audit/audit-actor';
 import { AuditService } from '../audit/audit.service';
-import { ApiKeyService } from '../auth/api-key.service';
-import { assertUser, CurrentPrincipal, type Principal } from '../auth/principal';
-import { ProjectAccessService } from '../auth/project-access.service';
+import { ApiKeyService } from '../api-keys/api-key.service';
+import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
+import { ProjectAccessService } from '../access/project-access.service';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { ProjectsService } from './projects.service';
 

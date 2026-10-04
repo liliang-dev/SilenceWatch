@@ -24,11 +24,11 @@ import {
   type SyncResultDto,
 } from '@silencewatch/shared';
 import { z } from 'zod';
-import { ProjectAccessService } from '../auth/project-access.service';
+import { ProjectAccessService } from '../access/project-access.service';
 import type { FastifyRequest } from 'fastify';
 import { auditActor } from '../audit/audit-actor';
 import { AuditService } from '../audit/audit.service';
-import { CurrentPrincipal, type Principal } from '../auth/principal';
+import { CurrentPrincipal, type Principal } from '../access/principal';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { CheckSyncService } from './check-sync.service';
 import { ChecksService } from './checks.service';

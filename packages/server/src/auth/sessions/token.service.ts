@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { jwtVerify, SignJWT } from 'jose';
-import { AppConfig, CONFIG } from '../config/config';
-import { deriveKey, randomToken, sha256Hex } from '../common/crypto.util';
+import { AppConfig, CONFIG } from '../../config/config';
+import { deriveKey, randomToken, sha256Hex } from '../../common/crypto.util';
 
 const ISSUER = 'silencewatch';
 const AUDIENCE = 'silencewatch-api';

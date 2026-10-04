@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { AppConfig } from '../config/config';
+import type { AppConfig } from '../../config/config';
 
 export const REFRESH_COOKIE = 'sw_refresh';
 

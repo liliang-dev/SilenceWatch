@@ -6,10 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ApiKeyService } from './api-key.service';
-import { AuthService } from './auth.service';
+import { ApiKeyService } from '../api-keys/api-key.service';
+import { SessionService } from '../auth/sessions/session.service';
+import { TokenService } from '../auth/sessions/token.service';
 import type { AuthenticatedRequest, Principal } from './principal';
-import { TokenService } from './token.service';
 
 const IS_PUBLIC = 'silencewatch:public';
 
@@ -35,7 +35,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly tokens: TokenService,
-    private readonly auth: AuthService,
+    private readonly sessions: SessionService,
     private readonly apiKeys: ApiKeyService,
   ) {}
 
@@ -67,7 +67,7 @@ export class AuthGuard implements CanActivate {
     // The token is signed and unexpired, but the session may have been revoked
     // (logout, password change, token theft). One primary-key lookup buys
     // immediate revocation, which is worth more here than saving a round trip.
-    if (!(await this.auth.isSessionActive(claims.sessionId))) {
+    if (!(await this.sessions.isActive(claims.sessionId))) {
       throw new UnauthorizedException('Session is no longer active');
     }
 

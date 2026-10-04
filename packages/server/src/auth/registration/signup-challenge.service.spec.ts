@@ -5,7 +5,7 @@ import {
   powInput,
 } from '@silencewatch/shared';
 import { createHash } from 'node:crypto';
-import { loadConfig, type AppConfig } from '../config/config';
+import { loadConfig, type AppConfig } from '../../config/config';
 import { SignupChallengeService } from './signup-challenge.service';
 
 const BASE_ENV = {

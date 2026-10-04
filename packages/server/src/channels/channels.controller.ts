@@ -19,8 +19,8 @@ import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import { auditActor } from '../audit/audit-actor';
 import { AuditService } from '../audit/audit.service';
-import { CurrentPrincipal, type Principal } from '../auth/principal';
-import { ProjectAccessService } from '../auth/project-access.service';
+import { CurrentPrincipal, type Principal } from '../access/principal';
+import { ProjectAccessService } from '../access/project-access.service';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { ChannelsService } from './channels.service';
 

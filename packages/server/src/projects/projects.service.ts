@@ -3,7 +3,7 @@ import type { CreateProjectRequest, ProjectDto, UpdateProjectRequest } from '@si
 import { uniqueSlug } from '../common/slug.util';
 import { PrismaService } from '../database/prisma.service';
 import { QuotaService } from '../quotas/quota.service';
-import type { Principal } from '../auth/principal';
+import type { Principal } from '../access/principal';
 
 @Injectable()
 export class ProjectsService {
