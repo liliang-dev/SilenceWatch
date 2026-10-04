@@ -3,6 +3,7 @@ dist
 .astro
 # Written by scripts/prepare.mjs
 src/assets/logo.svg
+src/assets/logo-dark.svg
 public/favicon.svg
 public/favicon.ico
 public/apple-touch-icon.png

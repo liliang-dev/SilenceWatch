@@ -30,7 +30,8 @@ export default defineConfig({
         fr: { label: 'Français', lang: 'fr' },
       },
       favicon: '/favicon.svg',
-      logo: { src: './src/assets/logo.svg', alt: 'SilenceWatch' },
+      // The light tile on a light page, the purple one on a dark page.
+      logo: { light: './src/assets/logo.svg', dark: './src/assets/logo-dark.svg', alt: 'SilenceWatch' },
       social: [{ icon: 'github', label: 'GitHub', href: REPOSITORY }],
       customCss: ['./src/styles/brand.css'],
       lastUpdated: false,

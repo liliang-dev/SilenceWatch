@@ -33,16 +33,23 @@
   text-decoration: none;
 }
 
-/* The logo: its own rounded tile, the same in both themes. It is not a themed
-   element and should be the same object everywhere it appears, so it is an
-   image rather than something drawn in the page's colours. The shadow follows
+/* The logo: its own rounded tile, an image rather than something drawn in the
+   page's colours. There are two, a light tile for a light page and a purple one
+   for a dark page; the theme's tokens say which is shown. The shadow follows
    the tile's shape, which a box-shadow would not. */
 .mark {
-  display: block;
   width: 28px;
   height: 28px;
   flex: none;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
+}
+
+.mark-light {
+  display: var(--sw-logo-light);
+}
+
+.mark-dark {
+  display: var(--sw-logo-dark);
 }
 
 .wordmark {

@@ -76,6 +76,12 @@
 
   --sw-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --sw-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Which of the two logos is shown (see the `.mark` images): the light tile on
+     a light page, the purple one on a dark page. `display` values, so that one
+     token in each theme is all a template needs. */
+  --sw-logo-light: block;
+  --sw-logo-dark: none;
 }
 
 /* The dark palette, written once and applied two ways below: when the device
@@ -94,9 +100,11 @@
   --sw-text-muted: #98a2b3;
   --sw-text-subtle: #6c7689;
 
+  --sw-logo-light: none;
+  --sw-logo-dark: block;
+
   /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
-     surface it sits on. The mark stays #8b4bf1 in both themes — a logo is
-     one object, not a themed one — and only the interface lightens. */
+     surface it sits on. */
   --sw-brand: #8b4bf1;
   --sw-accent: #bc95fc;
   --sw-accent-hover: #d3bafe;
