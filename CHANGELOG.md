@@ -10,6 +10,14 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **An uptime badge in the README.** A scheduled workflow (`.github/workflows/uptime.yml`)
+  asks the hosted service's `/health` every five minutes and keeps the results on an
+  `uptime` branch; the badge shows the share that answered over the last 30 days. No
+  account with a monitoring service is involved. It starts working after the first
+  scheduled run on `main`.
+
 ### Fixed
 
 - **The login, registration and password-reset rate limit could be dodged by adding a
