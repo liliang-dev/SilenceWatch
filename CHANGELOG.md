@@ -10,6 +10,12 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The site's language can be changed on a phone from the home page too**: the header
+  keeps the language picker there (the other pages have it in the menu). The menu no
+  longer repeats the "Login" button the header already shows.
+
 ## [0.3.2] — 2026-10-04
 
 No database migration, so going back to 0.3.1 is safe, and no new setting: upgrading

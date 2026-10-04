@@ -315,7 +315,9 @@
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language
-   pickers move into the menu). Keep that group, with the sign-in button alone in it. */
+   pickers move into the menu). Keep that group, with the sign-in button in it, and the
+   language picker too on a page that has no menu (the home page), so the language can
+   always be changed. */
 @media (max-width: 49.99rem) {
   .header .right-group {
     display: flex !important;
@@ -326,8 +328,18 @@
     display: none !important;
   }
 
+  :root:not([data-has-sidebar]) .header .right-group > starlight-lang-select {
+    display: block !important;
+    order: -1;
+  }
+
   .sw-login {
     padding: 0.3rem 0.8rem;
+  }
+
+  /* The menu repeats the header's icons; the button is already one tap away above it. */
+  #starlight__sidebar .sw-login {
+    display: none;
   }
 
   /* Search sits next to the logo, on the left, not in the middle of the bar. */
