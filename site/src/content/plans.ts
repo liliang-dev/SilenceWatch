@@ -56,7 +56,7 @@ export const pricing: Record<'en' | 'fr', PricingCopy> = {
       retention: (n) => `${n} days of history`,
     },
     cta: { free: 'Start free', pro: 'Choose Pro', business: 'Choose Business' },
-    note: 'Prices are in euros, per month. Taxes that apply are shown before you pay. You subscribe from Settings, once signed in with your free account.',
+    note: 'Prices are in euros, per month, taxes included. You subscribe from Settings, once signed in with your free account.',
     same: {
       title: 'On every plan',
       items: [
@@ -111,7 +111,7 @@ export const pricing: Record<'en' | 'fr', PricingCopy> = {
       retention: (n) => `${n} jours d’historique`,
     },
     cta: { free: 'Commencer', pro: 'Choisir Pro', business: 'Choisir Business' },
-    note: 'Les prix sont en euros, par mois. Les taxes applicables sont affichées avant le paiement. Vous vous abonnez depuis les paramètres, une fois connecté avec votre compte gratuit.',
+    note: 'Les prix sont en euros TTC, par mois. Vous vous abonnez depuis les paramètres, une fois connecté avec votre compte gratuit.',
     same: {
       title: 'Dans toutes les offres',
       items: [
