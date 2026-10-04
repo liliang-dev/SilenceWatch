@@ -1,7 +1,7 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { Public } from '../auth/auth.guard';
-import { assertUser, CurrentPrincipal, type Principal } from '../auth/principal';
+import { Public } from '../access/auth.guard';
+import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
 import { DetectionService } from '../detection/detection.service';
 import { PgService } from '../database/pg.service';
 import { PrismaService } from '../database/prisma.service';

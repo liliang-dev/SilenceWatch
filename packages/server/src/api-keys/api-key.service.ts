@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ApiKeyDto, CreatedApiKeyDto } from '@silencewatch/shared';
 import { generateApiKey, parseApiKey, timingSafeEqualHex } from '../common/crypto.util';
-import { PrismaService } from '../database/prisma.service';
+import { ApiKeysRepository, type ApiKeyRecord } from './api-keys.repository';
 
 export interface ResolvedApiKey {
   apiKeyId: string;
@@ -22,25 +22,23 @@ export class ApiKeyService {
   private readonly lastUsedThrottleMs = 60_000;
   private readonly lastUsedWrites = new Map<string, number>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly keys: ApiKeysRepository) {}
 
   async create(
     projectId: string,
     input: { name: string; expiresInDays?: number },
   ): Promise<CreatedApiKeyDto> {
     const generated = generateApiKey();
-    const record = await this.prisma.apiKey.create({
-      data: {
-        projectId,
-        name: input.name,
-        lookupId: generated.lookupId,
-        secretHash: generated.secretHash,
-        prefix: generated.prefix,
-        expiresAt:
-          input.expiresInDays === undefined
-            ? null
-            : new Date(Date.now() + input.expiresInDays * 86_400_000),
-      },
+    const record = await this.keys.create({
+      projectId,
+      name: input.name,
+      lookupId: generated.lookupId,
+      secretHash: generated.secretHash,
+      prefix: generated.prefix,
+      expiresAt:
+        input.expiresInDays === undefined
+          ? null
+          : new Date(Date.now() + input.expiresInDays * 86_400_000),
     });
 
     // The only moment the full token exists outside the caller's memory.
@@ -48,18 +46,11 @@ export class ApiKeyService {
   }
 
   async list(projectId: string): Promise<ApiKeyDto[]> {
-    const records = await this.prisma.apiKey.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
-    });
-    return records.map(toDto);
+    return (await this.keys.listForProject(projectId)).map(toDto);
   }
 
   async revoke(projectId: string, apiKeyId: string): Promise<void> {
-    await this.prisma.apiKey.updateMany({
-      where: { id: apiKeyId, projectId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.keys.revoke(projectId, apiKeyId);
   }
 
   /** Resolves a presented token, or null when it is unknown, revoked or expired. */
@@ -67,10 +58,7 @@ export class ApiKeyService {
     const parsed = parseApiKey(token);
     if (parsed === null) return null;
 
-    const record = await this.prisma.apiKey.findUnique({
-      where: { lookupId: parsed.lookupId },
-      select: { id: true, projectId: true, secretHash: true, revokedAt: true, expiresAt: true },
-    });
+    const record = await this.keys.findByLookupId(parsed.lookupId);
     if (record === null) return null;
     if (!timingSafeEqualHex(record.secretHash, parsed.secretHash)) return null;
     if (record.revokedAt !== null) return null;
@@ -92,22 +80,13 @@ export class ApiKeyService {
     this.lastUsedWrites.set(apiKeyId, now);
     if (this.lastUsedWrites.size > 10_000) this.lastUsedWrites.clear();
 
-    void this.prisma.apiKey
-      .update({ where: { id: apiKeyId }, data: { lastUsedAt: new Date() } })
+    void this.keys
+      .touch(apiKeyId)
       .catch((error: Error) => this.logger.debug(`Could not record key usage: ${error.message}`));
   }
 }
 
-function toDto(record: {
-  id: string;
-  projectId: string;
-  name: string;
-  prefix: string;
-  lastUsedAt: Date | null;
-  expiresAt: Date | null;
-  createdAt: Date;
-  revokedAt: Date | null;
-}): ApiKeyDto {
+function toDto(record: ApiKeyRecord): ApiKeyDto {
   return {
     id: record.id,
     projectId: record.projectId,

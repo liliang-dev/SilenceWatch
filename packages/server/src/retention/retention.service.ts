@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { AuthService } from '../auth/auth.service';
-import { EmailVerificationService } from '../auth/email-verification.service';
-import { PasswordResetService } from '../auth/password-reset.service';
-import { SignupGuardService } from '../auth/signup-guard.service';
+import { PasswordResetService } from '../auth/password/password-reset.service';
+import { EmailVerificationService } from '../auth/registration/email-verification/email-verification.service';
+import { SignupGuardService } from '../auth/registration/signup-guard.service';
+import { SessionService } from '../auth/sessions/session.service';
 import { AuditService } from '../audit/audit.service';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
@@ -65,7 +65,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
-    private readonly auth: AuthService,
+    private readonly sessions: SessionService,
     private readonly verification: EmailVerificationService,
     private readonly signupGuard: SignupGuardService,
     private readonly passwordResets: PasswordResetService,
@@ -131,7 +131,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         name: 'retention_purge_deliveries',
         text: PURGE_DELIVERIES_SQL,
       });
-      const sessions = await this.auth.purgeStaleSessions();
+      const sessions = await this.sessions.purgeStale();
       // Spent verification tokens, accounts that never proved their address,
       // and the sign-up attempt log past the window it informs. Left alone,
       // abandoned rows keep holding real addresses hostage against the unique

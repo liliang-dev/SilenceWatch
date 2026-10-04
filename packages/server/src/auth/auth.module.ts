@@ -1,45 +1,17 @@
-import { Global, Module } from '@nestjs/common';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { QuotasModule } from '../quotas/quotas.module';
-import { ApiKeyService } from './api-key.service';
-import { AuthController } from './auth.controller';
-import { AuthGuard } from './auth.guard';
-import { AuthService } from './auth.service';
-import { EmailVerificationService } from './email-verification.service';
-import { PasswordResetService } from './password-reset.service';
-import { ProjectAccessService } from './project-access.service';
-import { SignupChallengeService } from './signup-challenge.service';
-import { SignupGuardService } from './signup-guard.service';
-import { TokenService } from './token.service';
+import { Module } from '@nestjs/common';
+import { AccountModule } from './account/account.module';
+import { PasswordModule } from './password/password.module';
+import { RegistrationModule } from './registration/registration.module';
+import { SessionsModule } from './sessions/sessions.module';
 
 /**
- * Global because authorisation is not a feature: every project-scoped module
- * needs ProjectAccessService, and the guard is registered application-wide.
+ * Who a user is: registering, signing in and out, passwords, and the account
+ * itself. Each part is its own module; this one only gathers them, and re-exports
+ * what other parts of the application need (the retention job purges what they
+ * leave behind).
  */
-@Global()
 @Module({
-  imports: [NotificationsModule, QuotasModule],
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    TokenService,
-    ApiKeyService,
-    ProjectAccessService,
-    AuthGuard,
-    EmailVerificationService,
-    PasswordResetService,
-    SignupChallengeService,
-    SignupGuardService,
-  ],
-  exports: [
-    AuthService,
-    TokenService,
-    ApiKeyService,
-    ProjectAccessService,
-    EmailVerificationService,
-    PasswordResetService,
-    SignupChallengeService,
-    SignupGuardService,
-  ],
+  imports: [SessionsModule, RegistrationModule, PasswordModule, AccountModule],
+  exports: [SessionsModule, RegistrationModule, PasswordModule],
 })
 export class AuthModule {}
