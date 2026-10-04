@@ -9,6 +9,7 @@ import { LIMITS } from '@silencewatch/shared';
 import { AuthService } from '../../core/auth.service';
 import { I18n } from '../../core/i18n/i18n.service';
 import { errorMessage } from '../../core/error-message';
+import { IconComponent } from '../../shared/icon.component';
 
 /**
  * Where the emailed reset link lands.
@@ -28,6 +29,7 @@ import { errorMessage } from '../../core/error-message';
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    IconComponent,
   ],
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss',

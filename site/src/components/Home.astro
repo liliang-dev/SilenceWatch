@@ -104,15 +104,6 @@ const login = `${APP}/login`;
     </div>
   </section>
 
-  <section class="stats" data-reveal aria-label="SilenceWatch">
-    {copy.stats.map((stat) => (
-      <div>
-        <strong>{stat.value}</strong>
-        <span>{stat.label}</span>
-      </div>
-    ))}
-  </section>
-
   <section class="band split flip" data-reveal>
     <div class="copy">
       <h2>{copy.which.title}</h2>
@@ -558,36 +549,6 @@ const login = `${APP}/login`;
     50% {
       opacity: 0;
     }
-  }
-
-  /* --- figures ----------------------------------------------------------- */
-  .sw-home .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    margin-top: var(--gap);
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 1rem;
-    background: var(--sl-color-bg-nav);
-  }
-
-  .sw-home .stats div {
-    padding: 1.4rem 1rem;
-    text-align: center;
-  }
-
-  .sw-home .stats strong {
-    display: block;
-    font-size: clamp(var(--sl-text-2xl), 1rem + 2vw, var(--sl-text-4xl));
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    color: var(--sl-color-accent-high);
-  }
-
-  .sw-home .stats span {
-    display: block;
-    margin-top: 0.4rem;
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-3);
   }
 
   /* --- chips ------------------------------------------------------------- */

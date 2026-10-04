@@ -12,9 +12,7 @@
         }
         @case ('done') {
           <span class="glyph ok" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-              <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-            </svg>
+            <sw-icon name="check" [size]="26" />
           </span>
           <h1>{{ t('verify.doneTitle') }}</h1>
           <p class="sw-muted">{{ t('verify.doneBody') }}</p>
@@ -22,9 +20,7 @@
         }
         @case ('failed') {
           <span class="glyph bad" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m1 15h-2v-2h2zm0-4h-2V7h2z" />
-            </svg>
+            <sw-icon name="error" [size]="26" />
           </span>
           <h1>{{ t('verify.failedTitle') }}</h1>
           <p class="sw-muted">{{ error() }}</p>

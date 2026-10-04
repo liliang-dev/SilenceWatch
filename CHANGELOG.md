@@ -17,17 +17,20 @@ called out under **Changed** with what to do about it.
   heartbeat; a live demo loops through a job going late, then down, an alert
   arriving and the next ping bringing it back (the same screen as the application,
   in CSS only); a strip of everything that can call a URL scrolls past; sections
-  rise in as they come into view and the cards light up under the pointer. Every
-  text block that had nothing beside it now has an illustration, and the icons come
-  from Google's Material Icons (Apache-2.0, the set Angular Material uses), inlined
-  at build time. The way into the application is offered four times (the header,
-  the hero, the hosted-or-self-hosted section and a closing block), and the page
-  says the service is free without describing a plan or a subscription: there is
-  none. With reduced motion requested, or without script, nothing moves and nothing
-  is hidden; the demo then stands still on its most telling frame. No library and
-  no request to another site were added at run time. The text lives in
-  `site/src/content/home.ts`, once for both languages, and an "Is SilenceWatch
-  free?" question joins the FAQ.
+  rise in as they come into view and the cards light up under the pointer. Text
+  blocks that had nothing beside them now have an illustration (the logo sits at the
+  centre of the one about what can be monitored), the copy is kept short, and the
+  icons come from Google's Material Icons (Apache-2.0, the set Angular Material
+  uses), inlined at build time. The calls to action read "Try it out" ("Essayer"),
+  next to the "Login" button of the header, and the page says the service is free
+  without describing a plan or a subscription: there is none. With reduced motion
+  requested, or without script, nothing moves and nothing is hidden; the demo then
+  stands still on its most telling frame. No library and no request to another site
+  were added at run time. The text lives in `site/src/content/home.ts`, once for
+  both languages, and an "Is SilenceWatch free?" question joins the FAQ.
+- **The application's last two hand-drawn icons (the tick and the error mark of the
+  email confirmation and password reset pages) are now Material Icons too**, like
+  every other icon of the interface, through the same inline `sw-icon` component.
 - **The site's header shows a "Login" button ("Connexion" in French) on every page** (on a screen
   wide enough to have room for it).
 - **A second logo for dark mode.** The application and the site show the pale tile

@@ -1,5 +1,7 @@
 ---
 import { iconBody, type IconName } from '../icons';
+import logoLight from '../assets/logo.svg';
+import logoDark from '../assets/logo-dark.svg';
 
 /**
  * Illustrations for the home page: shapes drawn here, in SVG, in the site's own
@@ -8,7 +10,7 @@ import { iconBody, type IconName } from '../icons';
  * They are original work, so there is nothing to attribute and no licence to
  * check, they follow the light and dark theme through the same variables as the
  * rest of the page, they weigh a few kilobytes each, and they can move: a pulse,
- * a flowing dashed line, a sleeping bell. Decorative, hence hidden from assistive
+ * a flowing dashed line, a message arriving. Decorative, hence hidden from assistive
  * technology; the text beside each one says what it says. With reduced motion
  * requested the page's own rule stops them all (see Home.astro).
  */
@@ -27,11 +29,7 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
 
 <div class={`ill ill-${name}`} aria-hidden="true">
   {name === 'silence' && (
-    <svg viewBox="0 0 480 330">
-      <svg class="gl moon float-slow" {...glyph('bedtime', 46, 18, 52)} set:html={iconBody('bedtime')} />
-      <circle class="star s1" cx="132" cy="38" r="2.5" />
-      <circle class="star s2" cx="168" cy="64" r="2" />
-      <circle class="star s3" cx="40" cy="96" r="2" />
+    <svg viewBox="0 92 480 210">
       <rect class="ic-card" x="40" y="108" width="400" height="176" rx="22" />
       <circle class="dot" cx="68" cy="134" r="5" />
       <circle class="dot" cx="84" cy="134" r="5" />
@@ -53,9 +51,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
       <circle class="gap" cx="340" cy="214" r="18" />
       <circle class="gap" cx="390" cy="214" r="18" />
       {[0, 1, 2, 3, 4, 5, 6].map((i) => <rect class="bar" x={78 + i * 50} y="250" width="24" height="6" rx="3" />)}
-      <svg class="gl bell float-slow" {...glyph('notificationsOff', 366, 34, 60)} set:html={iconBody('notificationsOff')} />
-      <text class="zz z1" x="436" y="52">z</text>
-      <text class="zz z2" x="450" y="32">z</text>
     </svg>
   )}
 
@@ -71,8 +66,8 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
       ].map(([x, y], i) => <line class="flow" style={`--i:${i}`} x1={x} y1={y} x2="240" y2="180" />)}
       <circle class="pulse" cx="240" cy="180" r="44" />
       <circle class="pulse p2" cx="240" cy="180" r="44" />
-      <rect class="core" x="196" y="136" width="88" height="88" rx="24" />
-      <path class="beat" d="M214 182h14l8-20l12 40l9-24l5 4h18" />
+      <image class="logo logo-light" href={logoLight.src} x="190" y="130" width="100" height="100" />
+      <image class="logo logo-dark" href={logoDark.src} x="190" y="130" width="100" height="100" />
       {[
         ['storage', 90, 90],
         ['verified', 240, 48],
@@ -125,11 +120,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
         <rect class="bar-w" x="224" y="206" width="150" height="9" rx="4.5" />
         <rect class="bar-w" x="224" y="228" width="110" height="9" rx="4.5" />
         <rect class="bar-w" x="224" y="250" width="130" height="9" rx="4.5" />
-      </g>
-      <g class="bulb">
-        <circle class="glow" cx="404" cy="74" r="30" />
-        <circle class="glow g2" cx="404" cy="74" r="30" />
-        <svg class="gl lamp" {...glyph('lightbulb', 378, 48, 52)} set:html={iconBody('lightbulb')} />
       </g>
     </svg>
   )}
@@ -249,28 +239,7 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     fill: var(--acc);
   }
 
-  .ill .gl.lamp {
-    fill: var(--warn);
-  }
-
   /* --- silence ------------------------------------------------------------- */
-  .ill .moon {
-    opacity: 0.9;
-  }
-
-  .ill .star {
-    fill: var(--acc-hi);
-    animation: ill-twinkle 3.2s ease-in-out infinite;
-  }
-
-  .ill .s2 {
-    animation-delay: 0.9s;
-  }
-
-  .ill .s3 {
-    animation-delay: 1.8s;
-  }
-
   .ill .done .ok {
     transform-box: fill-box;
     transform-origin: center;
@@ -305,21 +274,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     fill: var(--bad);
   }
 
-  .ill .gl.bell {
-    fill: var(--sl-color-gray-4);
-  }
-
-  .ill .zz {
-    font: 700 18px system-ui, sans-serif;
-    fill: var(--acc-hi);
-    animation: ill-zzz 4s ease-in-out infinite;
-  }
-
-  .ill .z2 {
-    font-size: 13px;
-    animation-delay: 1.2s;
-  }
-
   /* --- hub ------------------------------------------------------------------ */
   .ill .flow {
     stroke: var(--acc);
@@ -330,14 +284,14 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     animation-delay: calc(var(--i) * -0.27s);
   }
 
-  .ill .core {
-    fill: var(--acc);
+  /* The logo at the heart of the diagram: the pale tile on a light page, the other one on a dark page. */
+  .ill .logo-dark,
+  :root[data-theme='dark'] .ill .logo-light {
+    display: none;
   }
 
-  .ill .beat {
-    fill: none;
-    stroke: #fff;
-    stroke-width: 4;
+  :root[data-theme='dark'] .ill .logo-dark {
+    display: inline;
   }
 
   .ill .pulse {
@@ -417,19 +371,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     animation-delay: -2s;
   }
 
-  .ill .glow {
-    fill: none;
-    stroke: var(--warn);
-    stroke-width: 2;
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: ill-ring 3s ease-out infinite;
-  }
-
-  .ill .g2 {
-    animation-delay: 1.5s;
-  }
-
   /* --- alerts --------------------------------------------------------------- */
   .ill .toast {
     animation: ill-toast 7s ease-out infinite;
@@ -463,12 +404,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     }
   }
 
-  @keyframes ill-twinkle {
-    50% {
-      opacity: 0.2;
-    }
-  }
-
   @keyframes ill-pop {
     0%,
     4% {
@@ -489,21 +424,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     100% {
       opacity: 0;
       transform: scale(1.9);
-    }
-  }
-
-  @keyframes ill-zzz {
-    0% {
-      opacity: 0;
-      transform: translate(0, 8px);
-    }
-    35%,
-    65% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-      transform: translate(8px, -10px);
     }
   }
 
