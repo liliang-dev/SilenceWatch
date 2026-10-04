@@ -10,6 +10,23 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-04
+
+No database migration, so going back to 0.3.2 is safe, and no new setting: upgrading is a
+change of image tag.
+
+The reasons to take it: two security fixes (the sign-in, registration and password-reset
+rate limit could be dodged by adding a query string to the address, and a page left open
+past its access token's lifetime could sign the user out everywhere), and a server and
+web application reorganised into smaller modules, which changes nothing a user can see.
+
+One behaviour changed, which is why this is a minor version: `GET /api/v1/status` (the
+server's internals: process, pools, caches) now answers only a user session, where it used
+to answer an API key too. A script that read it with a key should use `/health`, or a
+session. Everything else a key could reach is unchanged, and a new test now tries every
+route with one project's key against another account's objects.
+
+
 ### Added
 
 - **An uptime badge in the README.** A scheduled workflow (`.github/workflows/uptime.yml`)
@@ -594,7 +611,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.2.3...0.3.0
