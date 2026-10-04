@@ -330,10 +330,10 @@
     padding: 0.3rem 0.8rem;
   }
 
-  /* Search sits beside the sign-in button, on the right, not in the middle of the bar. */
+  /* Search sits next to the logo, on the left, not in the middle of the bar. */
   div.header > .title-wrapper + div {
-    margin-inline-start: auto;
-    margin-inline-end: 0.5rem;
+    margin-inline-end: auto;
+    margin-inline-start: 0.25rem;
   }
 
   /* The divider that precedes the menu button: on a page without a menu, it points at nothing. */
