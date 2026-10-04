@@ -7,17 +7,12 @@
  * for an icon font or a file and each icon takes its colour from the text around
  * it. Only the icons listed here end up in the page.
  */
-import bedtime from '@material-design-icons/svg/outlined/bedtime.svg?raw';
 import bolt from '@material-design-icons/svg/outlined/bolt.svg?raw';
-import cloudDone from '@material-design-icons/svg/outlined/cloud_done.svg?raw';
-import dns from '@material-design-icons/svg/outlined/dns.svg?raw';
 import help from '@material-design-icons/svg/outlined/help.svg?raw';
 import leaf from '@material-design-icons/svg/outlined/energy_savings_leaf.svg?raw';
-import lightbulb from '@material-design-icons/svg/outlined/lightbulb.svg?raw';
 import history from '@material-design-icons/svg/outlined/manage_history.svg?raw';
 import mail from '@material-design-icons/svg/outlined/mail.svg?raw';
 import notifications from '@material-design-icons/svg/outlined/notifications.svg?raw';
-import notificationsOff from '@material-design-icons/svg/outlined/notifications_off.svg?raw';
 import receipt from '@material-design-icons/svg/outlined/receipt_long.svg?raw';
 import schedule from '@material-design-icons/svg/outlined/schedule.svg?raw';
 import settings from '@material-design-icons/svg/outlined/settings.svg?raw';
@@ -30,19 +25,14 @@ import key from '@material-design-icons/svg/outlined/vpn_key.svg?raw';
 import webhook from '@material-design-icons/svg/outlined/webhook.svg?raw';
 
 const icons = {
-  bedtime,
   bolt,
-  cloudDone,
   cube,
-  dns,
   help,
   history,
   key,
   leaf,
-  lightbulb,
   mail,
   notifications,
-  notificationsOff,
   receipt,
   schedule,
   settings,

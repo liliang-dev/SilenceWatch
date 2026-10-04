@@ -134,17 +134,14 @@ const login = `${APP}/login`;
     </div>
   </section>
 
-  <section class="band split" data-reveal>
-    <div class="copy">
-      <h2>{copy.hosted.title}</h2>
-      <p set:html={md(copy.hosted.text)} />
-      <div class="actions">
-        <a class="btn primary" href={login}>{copy.app}<span aria-hidden="true">→</span></a>
-        <a class="btn" href={url('/self-hosted/')}>{copy.hosted.secondary}</a>
-        <a class="btn ghost" href={REPOSITORY}>{copy.hosted.source}</a>
-      </div>
+  <section class="band" data-reveal>
+    <h2>{copy.hosted.title}</h2>
+    <p set:html={md(copy.hosted.text)} />
+    <div class="actions">
+      <a class="btn primary" href={login}>{copy.app}<span aria-hidden="true">→</span></a>
+      <a class="btn" href={url('/self-hosted/')}>{copy.hosted.secondary}</a>
+      <a class="btn ghost" href={REPOSITORY}>{copy.hosted.source}</a>
     </div>
-    <Illustration name="hosting" />
   </section>
 
   <section class="cta split" data-reveal>
@@ -377,6 +374,10 @@ const login = `${APP}/login`;
     font-size: var(--sl-text-lg);
     line-height: 1.6;
     color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .band > p {
+    text-wrap: pretty;
   }
 
   .sw-home .band > p + p,

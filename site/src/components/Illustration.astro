@@ -14,7 +14,7 @@ import logoDark from '../assets/logo-dark.svg';
  * technology; the text beside each one says what it says. With reduced motion
  * requested the page's own rule stops them all (see Home.astro).
  */
-type Name = 'silence' | 'hub' | 'hosting' | 'faq' | 'alerts';
+type Name = 'silence' | 'hub' | 'faq' | 'alerts';
 const { name } = Astro.props as { name: Name };
 
 /** A Material icon nested in the drawing: its top-left corner and its size. */
@@ -83,26 +83,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
           </g>
         </g>
       ))}
-    </svg>
-  )}
-
-  {name === 'hosting' && (
-    <svg viewBox="0 0 480 340">
-      <svg class="gl cloud float-slow" {...glyph('cloudDone', 91, 62, 110)} set:html={iconBody('cloudDone')} />
-      <rect class="pill" x="66" y="176" width="170" height="30" rx="15" />
-      <text class="mono" x="151" y="196" text-anchor="middle">app.silencewatch.com</text>
-      <rect class="ic-card" x="290" y="62" width="150" height="70" rx="16" />
-      <svg class="gl" {...glyph('dns', 308, 77, 32)} set:html={iconBody('dns')} />
-      <text class="mono" x="352" y="103">Docker</text>
-      <rect class="ic-card" x="290" y="146" width="150" height="70" rx="16" />
-      <svg class="gl" {...glyph('storage', 308, 163, 32)} set:html={iconBody('storage')} />
-      <text class="mono" x="352" y="189">PostgreSQL</text>
-      <path class="link" d="M151 206v36q0 12 12 12h60" />
-      <path class="link" d="M365 216v26q0 12-12 12h-60" />
-      <rect class="badge" x="170" y="238" width="140" height="44" rx="22" />
-      <text class="badge-text" x="240" y="266" text-anchor="middle">Apache 2.0</text>
-      <circle class="packet pk1" r="4" cx="151" cy="214" />
-      <circle class="packet pk2" r="4" cx="365" cy="224" />
     </svg>
   )}
 
@@ -234,8 +214,7 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     fill: var(--bad);
   }
 
-  .ill .gl.help,
-  .ill .gl.cloud {
+  .ill .gl.help {
     fill: var(--acc);
   }
 
@@ -323,39 +302,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     transform-box: fill-box;
     transform-origin: center;
     animation: ill-spin 14s linear infinite;
-  }
-
-  /* --- hosting -------------------------------------------------------------- */
-  .ill .pill {
-    fill: var(--card);
-    stroke: var(--line);
-    stroke-width: 1.5;
-  }
-
-  .ill .link {
-    fill: none;
-    stroke: var(--acc);
-    stroke-width: 2;
-    stroke-dasharray: 3 8;
-    animation: ill-flow 1.6s linear infinite;
-  }
-
-  .ill .badge {
-    fill: var(--acc);
-  }
-
-  .ill .badge-text {
-    font: 700 16px system-ui, sans-serif;
-    fill: #fff;
-  }
-
-  .ill .packet {
-    fill: var(--acc-hi);
-    animation: ill-packet 3.2s ease-in infinite;
-  }
-
-  .ill .pk2 {
-    animation-delay: 1.6s;
   }
 
   /* --- faq ------------------------------------------------------------------ */
@@ -447,23 +393,6 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
   @keyframes ill-spin {
     to {
       transform: rotate(360deg);
-    }
-  }
-
-  @keyframes ill-packet {
-    0% {
-      opacity: 0;
-      transform: translateY(0);
-    }
-    15% {
-      opacity: 1;
-    }
-    85% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(40px);
     }
   }
 
