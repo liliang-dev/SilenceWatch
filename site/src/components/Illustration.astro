@@ -1,0 +1,568 @@
+---
+/**
+ * Illustrations for the home page, drawn here, in SVG, in the site's own colours.
+ *
+ * They are original work, so there is nothing to attribute and no licence to
+ * check, they follow the light and dark theme through the same variables as the
+ * rest of the page, they weigh a few kilobytes each, and they can move: a pulse,
+ * a flowing dashed line, a sleeping bell. Decorative, hence hidden from assistive
+ * technology; the text beside each one says what it says. With reduced motion
+ * requested the page's own rule stops them all (see Home.astro).
+ */
+type Name = 'silence' | 'hub' | 'hosting' | 'faq' | 'alerts';
+const { name } = Astro.props as { name: Name };
+---
+
+<div class={`ill ill-${name}`} aria-hidden="true">
+  {name === 'silence' && (
+    <svg viewBox="0 0 480 330">
+      <path class="moon float-slow" d="M70 42a24 24 0 1 0 24 30a20 20 0 1 1-24-30z" />
+      <circle class="star s1" cx="132" cy="38" r="2.5" />
+      <circle class="star s2" cx="168" cy="64" r="2" />
+      <circle class="star s3" cx="40" cy="96" r="2" />
+      <rect class="ic-card" x="40" y="108" width="400" height="176" rx="22" />
+      <circle class="dot" cx="68" cy="134" r="5" />
+      <circle class="dot" cx="84" cy="134" r="5" />
+      <circle class="dot" cx="100" cy="134" r="5" />
+      <text class="mono" x="130" y="139">0 2 * * *</text>
+      {[0, 1, 2, 3].map((i) => (
+        <g class="done" style={`--i:${i}`}>
+          <circle class="ok" cx={90 + i * 50} cy="214" r="18" />
+          <path class="tick" d={`M${90 + i * 50 - 7} 214l5 5l9-10`} />
+        </g>
+      ))}
+      <g class="missed">
+        <circle class="ring" cx="290" cy="214" r="18" />
+        <circle class="gap" cx="290" cy="214" r="18" />
+        <text class="q" x="290" y="221" text-anchor="middle">?</text>
+        <rect class="chip-bad" x="252" y="164" width="76" height="24" rx="12" />
+        <text class="chip-text" x="290" y="180" text-anchor="middle">no ping</text>
+      </g>
+      <circle class="gap" cx="340" cy="214" r="18" />
+      <circle class="gap" cx="390" cy="214" r="18" />
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => <rect class="bar" x={78 + i * 50} y="250" width="24" height="6" rx="3" />)}
+      <g class="bell float-slow">
+        <path d="M395 46c-14 0-20 10-20 24c0 12-6 15-8 18h56c-2-3-8-6-8-18c0-14-6-24-20-24z" />
+        <path class="clapper" d="M388 94a7 7 0 0 0 14 0z" />
+      </g>
+      <text class="zz z1" x="436" y="52">z</text>
+      <text class="zz z2" x="450" y="32">z</text>
+    </svg>
+  )}
+
+  {name === 'hub' && (
+    <svg viewBox="0 0 480 360">
+      {[
+        [90, 90],
+        [240, 48],
+        [390, 90],
+        [390, 270],
+        [240, 312],
+        [90, 270],
+      ].map(([x, y], i) => <line class="flow" style={`--i:${i}`} x1={x} y1={y} x2="240" y2="180" />)}
+      <circle class="pulse" cx="240" cy="180" r="44" />
+      <circle class="pulse p2" cx="240" cy="180" r="44" />
+      <rect class="core" x="196" y="136" width="88" height="88" rx="24" />
+      <path class="beat" d="M214 182h14l8-20l12 40l9-24l5 4h18" />
+      <g class="sat" style="--i:0"><circle cx="90" cy="90" r="32" /><ellipse class="g" cx="90" cy="80" rx="13" ry="5" /><path class="g" d="M77 80v20c0 3 6 5 13 5s13-2 13-5V80M77 90c0 3 6 5 13 5s13-2 13-5" /></g>
+      <g class="sat" style="--i:1"><circle cx="240" cy="48" r="32" /><rect class="g" x="228" y="50" width="24" height="17" rx="3" /><path class="g" d="M232 50v-5a8 8 0 0 1 16 0v5" /></g>
+      <g class="sat" style="--i:2"><circle cx="390" cy="90" r="32" /><path class="g" d="M379 72h22v36l-4-3l-3.5 3l-3.5-3l-3.5 3l-3.5-3l-4 3z" /><path class="g" d="M385 82h10M385 91h10" /></g>
+      <g class="sat" style="--i:3"><circle cx="390" cy="270" r="32" /><circle class="g" cx="390" cy="270" r="7" /><circle class="g gear" cx="390" cy="270" r="14" /></g>
+      <g class="sat" style="--i:4"><circle cx="240" cy="312" r="32" /><path class="g" d="M240 296l14 8v16l-14 8l-14-8v-16z" /><path class="g" d="M240 312l14-8M240 312v16M240 312l-14-8" /></g>
+      <g class="sat" style="--i:5"><circle cx="90" cy="270" r="32" /><path class="g" d="M79 262h22m-7-7l7 7l-7 7M101 278H79m7-7l-7 7l7 7" /></g>
+    </svg>
+  )}
+
+  {name === 'hosting' && (
+    <svg viewBox="0 0 480 340">
+      <path class="ic-card cloud" d="M96 156a32 32 0 0 1 3-64a44 44 0 0 1 84-8a34 34 0 0 1 17 72z" />
+      <circle class="ok" cx="146" cy="122" r="20" />
+      <path class="tick" d="M137 122l7 7l13-14" />
+      <rect class="pill" x="66" y="176" width="170" height="30" rx="15" />
+      <text class="mono" x="151" y="196" text-anchor="middle">app.silencewatch.com</text>
+      <rect class="ic-card" x="290" y="62" width="150" height="70" rx="16" />
+      <circle class="dot ok-dot" cx="312" cy="86" r="5" />
+      <rect class="bar" x="326" y="82" width="86" height="8" rx="4" />
+      <rect class="bar" x="306" y="106" width="108" height="8" rx="4" />
+      <rect class="ic-card" x="290" y="146" width="150" height="70" rx="16" />
+      <ellipse class="g" cx="326" cy="172" rx="14" ry="6" />
+      <path class="g" d="M312 172v22c0 3 6 6 14 6s14-3 14-6v-22M312 183c0 3 6 6 14 6s14-3 14-6" />
+      <text class="mono" x="352" y="190">PostgreSQL</text>
+      <path class="link" d="M151 206v36q0 12 12 12h60" />
+      <path class="link" d="M365 216v26q0 12-12 12h-60" />
+      <rect class="badge" x="170" y="238" width="140" height="44" rx="22" />
+      <text class="badge-text" x="240" y="266" text-anchor="middle">Apache 2.0</text>
+      <circle class="packet pk1" r="4" cx="151" cy="214" />
+      <circle class="packet pk2" r="4" cx="365" cy="224" />
+    </svg>
+  )}
+
+  {name === 'faq' && (
+    <svg viewBox="0 0 480 320">
+      <g class="float-slow">
+        <path class="ic-card" d="M92 40h226a24 24 0 0 1 24 24v62a24 24 0 0 1-24 24H168l-44 34v-34H92a24 24 0 0 1-24-24V64a24 24 0 0 1 24-24z" />
+        <circle class="ok" cx="112" cy="95" r="22" />
+        <text class="q big" x="112" y="106" text-anchor="middle">?</text>
+        <rect class="bar" x="150" y="76" width="140" height="9" rx="4.5" />
+        <rect class="bar" x="150" y="98" width="100" height="9" rx="4.5" />
+      </g>
+      <g class="float-slow late">
+        <path class="answer" d="M170 176h226a24 24 0 0 1 24 24v62a24 24 0 0 1-24 24h-30v34l-44-34H170a24 24 0 0 1-24-24v-62a24 24 0 0 1 24-24z" />
+        <path class="tick white" d="M180 229l9 9l16-18" />
+        <rect class="bar-w" x="224" y="206" width="150" height="9" rx="4.5" />
+        <rect class="bar-w" x="224" y="228" width="110" height="9" rx="4.5" />
+        <rect class="bar-w" x="224" y="250" width="130" height="9" rx="4.5" />
+      </g>
+      <g class="bulb">
+        <circle class="glow" cx="404" cy="74" r="30" />
+        <circle class="glow g2" cx="404" cy="74" r="30" />
+        <path class="lamp" d="M404 52a18 18 0 0 0-10 33v8h20v-8a18 18 0 0 0-10-33z" />
+        <path class="stem" d="M396 99h16M399 105h10" />
+      </g>
+    </svg>
+  )}
+
+  {name === 'alerts' && (
+    <svg viewBox="0 0 480 320">
+      <g class="toast t1">
+        <rect class="ic-card" x="40" y="50" width="330" height="70" rx="18" />
+        <circle class="ok" cx="78" cy="85" r="18" />
+        <text class="ic" x="78" y="91" text-anchor="middle">#</text>
+        <text class="label" x="108" y="80">Slack</text>
+        <rect class="bar" x="108" y="92" width="190" height="8" rx="4" />
+        <path class="tick ok-t" d="M334 86l7 7l13-14" />
+      </g>
+      <g class="toast t2">
+        <rect class="ic-card" x="90" y="136" width="330" height="70" rx="18" />
+        <circle class="ok" cx="128" cy="171" r="18" />
+        <text class="ic" x="128" y="177" text-anchor="middle">@</text>
+        <text class="label" x="158" y="166">Email</text>
+        <rect class="bar" x="158" y="178" width="170" height="8" rx="4" />
+        <path class="tick ok-t" d="M384 172l7 7l13-14" />
+      </g>
+      <g class="toast t3">
+        <rect class="ic-card" x="60" y="222" width="330" height="70" rx="18" />
+        <circle class="ok" cx="98" cy="257" r="18" />
+        <text class="ic" x="98" y="263" text-anchor="middle">&lt;/&gt;</text>
+        <text class="label" x="128" y="252">Webhook</text>
+        <rect class="bar" x="128" y="264" width="150" height="8" rx="4" />
+        <path class="tick ok-t" d="M354 258l7 7l13-14" />
+      </g>
+    </svg>
+  )}
+</div>
+
+<style is:global>
+  .ill {
+    --ink: var(--sl-color-white);
+    --muted: var(--sl-color-gray-3);
+    --line: var(--sl-color-hairline);
+    --card: var(--sl-color-bg-nav);
+    --acc: var(--sl-color-accent);
+    --acc-hi: var(--sl-color-accent-high);
+    --ok: #47cd89;
+    --bad: #f97066;
+    --bad-soft: #2a1211;
+    --warn: #fdb022;
+    width: 100%;
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+
+  :root[data-theme='light'] .ill {
+    --ok: #12a05e;
+    --bad: #d92d20;
+    --bad-soft: #fef3f2;
+    --warn: #b54708;
+  }
+
+  .ill svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .ill .ic-card {
+    fill: var(--card);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .ill .mono {
+    font: 600 13px var(--sl-font-mono);
+    fill: var(--muted);
+  }
+
+  .ill .dot {
+    fill: var(--sl-color-gray-5);
+  }
+
+  .ill .ok {
+    fill: var(--ok);
+  }
+
+  .ill .tick {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 3.5;
+  }
+
+  .ill .bar {
+    fill: var(--sl-color-gray-5);
+  }
+
+  .ill .bar-w {
+    fill: rgb(255 255 255 / 55%);
+  }
+
+  .ill .g {
+    fill: none;
+    stroke: var(--acc-hi);
+    stroke-width: 2.4;
+  }
+
+  /* --- silence ------------------------------------------------------------- */
+  .ill .moon {
+    fill: var(--acc-hi);
+    opacity: 0.85;
+  }
+
+  .ill .star {
+    fill: var(--acc-hi);
+    animation: ill-twinkle 3.2s ease-in-out infinite;
+  }
+
+  .ill .s2 {
+    animation-delay: 0.9s;
+  }
+
+  .ill .s3 {
+    animation-delay: 1.8s;
+  }
+
+  .ill .done .ok {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ill-pop 6s ease-out infinite;
+    animation-delay: calc(var(--i) * 0.25s);
+  }
+
+  .ill .gap {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 2;
+    stroke-dasharray: 5 6;
+  }
+
+  .ill .missed .ring {
+    fill: none;
+    stroke: var(--bad);
+    stroke-width: 2.5;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ill-alarm 2.4s ease-out infinite;
+  }
+
+  .ill .q {
+    font: 700 20px system-ui, sans-serif;
+    fill: var(--bad);
+  }
+
+  .ill .q.big {
+    font-size: 28px;
+    fill: #fff;
+  }
+
+  .ill .chip-bad {
+    fill: var(--bad-soft);
+    stroke: var(--bad);
+    stroke-width: 1.2;
+  }
+
+  .ill .chip-text {
+    font: 700 12px system-ui, sans-serif;
+    fill: var(--bad);
+  }
+
+  .ill .bell {
+    fill: var(--sl-color-gray-4);
+  }
+
+  .ill .zz {
+    font: 700 18px system-ui, sans-serif;
+    fill: var(--acc-hi);
+    animation: ill-zzz 4s ease-in-out infinite;
+  }
+
+  .ill .z2 {
+    font-size: 13px;
+    animation-delay: 1.2s;
+  }
+
+  /* --- hub ------------------------------------------------------------------ */
+  .ill .flow {
+    stroke: var(--acc);
+    stroke-width: 2;
+    stroke-dasharray: 3 9;
+    opacity: 0.7;
+    animation: ill-flow 1.6s linear infinite;
+    animation-delay: calc(var(--i) * -0.27s);
+  }
+
+  .ill .core {
+    fill: var(--acc);
+  }
+
+  .ill .beat {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 4;
+  }
+
+  .ill .pulse {
+    fill: none;
+    stroke: var(--acc);
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ill-ring 3s ease-out infinite;
+  }
+
+  .ill .p2 {
+    animation-delay: 1.5s;
+  }
+
+  .ill .sat circle:first-child {
+    fill: var(--card);
+    stroke: var(--line);
+    stroke-width: 1.5;
+    transition: stroke 150ms ease;
+  }
+
+  .ill .sat {
+    animation: ill-bob 5s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.8s);
+  }
+
+  .ill .gear {
+    stroke-dasharray: 4 4.5;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ill-spin 14s linear infinite;
+  }
+
+  /* --- hosting -------------------------------------------------------------- */
+  .ill .pill {
+    fill: var(--card);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .ill .ok-dot {
+    fill: var(--ok);
+  }
+
+  .ill .link {
+    fill: none;
+    stroke: var(--acc);
+    stroke-width: 2;
+    stroke-dasharray: 3 8;
+    animation: ill-flow 1.6s linear infinite;
+  }
+
+  .ill .badge {
+    fill: var(--acc);
+  }
+
+  .ill .badge-text {
+    font: 700 16px system-ui, sans-serif;
+    fill: #fff;
+  }
+
+  .ill .packet {
+    fill: var(--acc-hi);
+    animation: ill-packet 3.2s ease-in infinite;
+  }
+
+  .ill .pk2 {
+    animation-delay: 1.6s;
+  }
+
+  /* --- faq ------------------------------------------------------------------ */
+  .ill .answer {
+    fill: var(--acc);
+  }
+
+  .ill .tick.white {
+    stroke: #fff;
+  }
+
+  .ill .late {
+    animation-delay: -2s;
+  }
+
+  .ill .lamp {
+    fill: var(--warn);
+  }
+
+  .ill .stem {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 3;
+  }
+
+  .ill .glow {
+    fill: none;
+    stroke: var(--warn);
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ill-ring 3s ease-out infinite;
+  }
+
+  .ill .g2 {
+    animation-delay: 1.5s;
+  }
+
+  /* --- alerts --------------------------------------------------------------- */
+  .ill .toast {
+    animation: ill-toast 7s ease-out infinite;
+  }
+
+  .ill .t2 {
+    animation-delay: 0.6s;
+  }
+
+  .ill .t3 {
+    animation-delay: 1.2s;
+  }
+
+  .ill .label {
+    font: 700 15px system-ui, sans-serif;
+    fill: var(--ink);
+  }
+
+  .ill .ic {
+    font: 700 16px var(--sl-font-mono);
+    fill: #fff;
+  }
+
+  .ill .tick.ok-t {
+    stroke: var(--ok);
+  }
+
+  /* --- motion --------------------------------------------------------------- */
+  .ill .float-slow {
+    animation: ill-bob 6s ease-in-out infinite;
+  }
+
+  @keyframes ill-bob {
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes ill-twinkle {
+    50% {
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes ill-pop {
+    0%,
+    4% {
+      transform: scale(0.6);
+    }
+    10%,
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes ill-alarm {
+    0% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    80%,
+    100% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+  }
+
+  @keyframes ill-zzz {
+    0% {
+      opacity: 0;
+      transform: translate(0, 8px);
+    }
+    35%,
+    65% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(8px, -10px);
+    }
+  }
+
+  @keyframes ill-flow {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
+
+  @keyframes ill-ring {
+    0% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2);
+    }
+  }
+
+  @keyframes ill-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes ill-packet {
+    0% {
+      opacity: 0;
+      transform: translateY(0);
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+  }
+
+  @keyframes ill-toast {
+    0% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    8%,
+    80% {
+      opacity: 1;
+      transform: none;
+    }
+    92%,
+    100% {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+</style>

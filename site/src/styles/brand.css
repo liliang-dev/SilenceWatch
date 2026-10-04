@@ -29,37 +29,12 @@
 
 .hero h1 {
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--sl-color-white), var(--sl-color-accent-high));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-:root[data-theme='light'] .hero h1 {
-  background: linear-gradient(135deg, #1d1030, #7a35e8);
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: var(--sl-color-white);
 }
 
 .hero .tagline {
   max-width: 44rem;
   margin-inline: auto;
-}
-
-/* A soft glow behind the hero, which is the only decoration on the page. */
-.sl-markdown-content .sw-glow,
-.hero {
-  position: relative;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: -20% 0 auto;
-  height: 28rem;
-  z-index: -1;
-  background: radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--sl-color-accent) 22%, transparent), transparent 70%);
-  pointer-events: none;
 }
 
 /* Sections on the splash pages breathe a little more than documentation does. */
@@ -209,116 +184,40 @@
   text-wrap: balance;
 }
 
-.hero h1 .sw-answer {
-  display: block;
-  margin-top: 0.25em;
-  background: linear-gradient(90deg, var(--sl-color-accent), var(--sl-color-accent-high));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+/* The answer sits on a line of its own, set apart. */
 
-:root[data-theme='light'] .hero h1 .sw-answer {
-  background: linear-gradient(90deg, #7a35e8, #4a14a8);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
+/* --- the home page hero ---------------------------------------------------- */
 
-
-/* --- the home page hero, in motion ---------------------------------------- */
-
-/* Two slow blobs of light and a faint grid behind the slogan. The page's only
-   decoration, and it stands still when motion is not wanted. */
+/* A flat page: no glow, no grid. The life is in the content. */
 [data-has-hero] .hero {
-  isolation: isolate;
   padding-block: clamp(3rem, 9vw, 6.5rem) clamp(1.5rem, 4vw, 3rem);
 }
 
-[data-has-hero] .hero::before,
-[data-has-hero] .hero::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  border-radius: 50%;
-  filter: blur(70px);
-  pointer-events: none;
-}
-
 [data-has-hero] .hero::before {
-  inset: -30% auto auto 8%;
-  width: min(34rem, 70vw);
-  height: min(26rem, 60vw);
-  background: color-mix(in srgb, #8b4bf1 38%, transparent);
-  animation: sw-drift-a 16s ease-in-out infinite alternate;
-}
-
-[data-has-hero] .hero::after {
-  inset: 10% 6% auto auto;
-  width: min(30rem, 62vw);
-  height: min(24rem, 54vw);
-  background: color-mix(in srgb, #3b82f6 26%, transparent);
-  animation: sw-drift-b 19s ease-in-out infinite alternate;
-}
-
-:root[data-theme='light'] [data-has-hero] .hero::before {
-  background: color-mix(in srgb, #8b4bf1 24%, transparent);
-}
-
-:root[data-theme='light'] [data-has-hero] .hero::after {
-  background: color-mix(in srgb, #3b82f6 16%, transparent);
-}
-
-[data-has-hero] .hero .stack {
-  position: relative;
+  content: none;
 }
 
 [data-has-hero] .hero .tagline {
   text-align: center;
 }
 
-[data-has-hero] .hero .stack::before {
-  content: '';
-  position: absolute;
-  inset: -4rem -8vw;
-  z-index: -1;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--sl-color-gray-5) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--sl-color-gray-5) 55%, transparent) 1px, transparent 1px);
-  background-size: 3rem 3rem;
-  mask-image: radial-gradient(60% 70% at 50% 40%, #000, transparent 75%);
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-/* The answer, with light running through it. */
+/* The answer, in the accent colour, underlined by a heartbeat that draws itself. */
 .hero h1 .sw-answer {
-  background-size: 200% 100%;
-  animation: sw-shine 6s linear infinite;
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
+  padding-bottom: 0.3em;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M0 7h62l6-5l8 10l7-8l5 3h112' fill='none' stroke='%238b4bf1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    left bottom / 100% 0.28em no-repeat;
+  color: var(--sl-color-accent-high);
+  -webkit-text-fill-color: currentColor;
+  animation: sw-draw 1.4s 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.hero h1 .sw-answer,
-:root[data-theme='light'] .hero h1 .sw-answer {
-  background-image: linear-gradient(90deg, #8b4bf1, #3b82f6, #bc95fc, #8b4bf1);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-@keyframes sw-shine {
-  to {
-    background-position: -300% 0;
-  }
-}
-
-@keyframes sw-drift-a {
-  to {
-    transform: translate(10vw, 3rem) scale(1.15);
-  }
-}
-
-@keyframes sw-drift-b {
-  to {
-    transform: translate(-8vw, 2rem) scale(1.1);
+@keyframes sw-draw {
+  from {
+    background-size: 0 0.28em;
   }
 }
 
@@ -365,12 +264,13 @@
 
 [data-has-hero] .hero .sl-link-button.primary {
   border-color: transparent;
-  background: linear-gradient(135deg, #8b4bf1, #6c1bee);
+  background: #7a35e8;
   color: #fff;
   box-shadow: 0 14px 34px -12px color-mix(in srgb, #8b4bf1 85%, transparent);
 }
 
 [data-has-hero] .hero .sl-link-button.primary:hover {
+  background: #6c1bee;
   transform: translateY(-2px);
   box-shadow: 0 18px 40px -10px color-mix(in srgb, #8b4bf1 95%, transparent);
 }
@@ -393,7 +293,7 @@
   align-items: center;
   padding: 0.4rem 0.95rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #8b4bf1, #6c1bee);
+  background: #7a35e8;
   font-size: var(--sl-text-sm);
   font-weight: 600;
   text-decoration: none;
@@ -405,6 +305,7 @@
 }
 
 .sw-login:hover {
+  background: #6c1bee;
   transform: translateY(-1px);
   box-shadow: 0 8px 20px -8px #8b4bf1;
   color: #fff;

@@ -2,6 +2,7 @@
 import { home } from '../content/home';
 import { APP, REPOSITORY } from '../site';
 import Faq from './Faq.astro';
+import Illustration from './Illustration.astro';
 import LiveDemo from './LiveDemo.astro';
 
 /**
@@ -65,9 +66,12 @@ const icons: Record<string, string> = {
     <p class="sr-only">{copy.works.items.join(', ')}</p>
   </section>
 
-  <section class="band narrow" data-reveal>
-    <h2>{copy.problem.title}</h2>
-    {copy.problem.paragraphs.map((p) => <p set:html={md(p)} />)}
+  <section class="band split" data-reveal>
+    <div class="copy">
+      <h2>{copy.problem.title}</h2>
+      {copy.problem.paragraphs.map((p) => <p set:html={md(p)} />)}
+    </div>
+    <Illustration name="silence" />
   </section>
 
   <section class="band" id="how-it-works" data-reveal>
@@ -117,12 +121,15 @@ const icons: Record<string, string> = {
     ))}
   </section>
 
-  <section class="band narrow" data-reveal>
-    <h2>{copy.which.title}</h2>
-    <p set:html={md(copy.which.text)} />
-    <ul class="chips">
-      {copy.which.chips.map((chip) => <li><a href={url(chip.href)}>{chip.text}</a></li>)}
-    </ul>
+  <section class="band split flip" data-reveal>
+    <div class="copy">
+      <h2>{copy.which.title}</h2>
+      <p set:html={md(copy.which.text)} />
+      <ul class="chips">
+        {copy.which.chips.map((chip) => <li><a href={url(chip.href)}>{chip.text}</a></li>)}
+      </ul>
+    </div>
+    <Illustration name="hub" />
   </section>
 
   <section class="band spring" data-reveal>
@@ -144,18 +151,21 @@ const icons: Record<string, string> = {
     </div>
   </section>
 
-  <section class="band narrow" data-reveal>
-    <h2>{copy.hosted.title}</h2>
-    <p set:html={md(copy.hosted.text)} />
-    <div class="actions">
-      <a class="btn primary" href={login}>{copy.app}<span aria-hidden="true">→</span></a>
-      <a class="btn" href={url('/self-hosted/')}>{copy.hosted.secondary}</a>
-      <a class="btn ghost" href={REPOSITORY}>{copy.hosted.source}</a>
+  <section class="band split" data-reveal>
+    <div class="copy">
+      <h2>{copy.hosted.title}</h2>
+      <p set:html={md(copy.hosted.text)} />
+      <div class="actions">
+        <a class="btn primary" href={login}>{copy.app}<span aria-hidden="true">→</span></a>
+        <a class="btn" href={url('/self-hosted/')}>{copy.hosted.secondary}</a>
+        <a class="btn ghost" href={REPOSITORY}>{copy.hosted.source}</a>
+      </div>
     </div>
+    <Illustration name="hosting" />
   </section>
 
-  <section class="cta" data-reveal>
-    <div class="cta-inner">
+  <section class="cta split" data-reveal>
+    <div class="copy">
       <h2>{copy.cta.title}</h2>
       <p>{copy.cta.text}</p>
       <div class="actions">
@@ -164,11 +174,15 @@ const icons: Record<string, string> = {
       </div>
       <p class="small">{copy.cta.note} <a href={url('/self-hosted/')}>{copy.hosted.secondary}</a></p>
     </div>
+    <Illustration name="alerts" />
   </section>
 
-  <section class="band narrow" data-reveal>
-    <h2>{copy.faq.heading}</h2>
-    <Faq title={copy.faq.title} items={copy.faq.items} />
+  <section class="band split" data-reveal>
+    <div class="copy">
+      <h2>{copy.faq.heading}</h2>
+      <Faq title={copy.faq.title} items={copy.faq.items} />
+    </div>
+    <Illustration name="faq" />
   </section>
 </div>
 
@@ -329,8 +343,40 @@ const icons: Record<string, string> = {
     margin-top: var(--gap);
   }
 
-  .sw-home .narrow {
-    max-width: 46rem;
+  /* Text on one side, a picture on the other: nothing is left empty beside a
+     paragraph. The picture goes under the text on a narrow screen. */
+  .sw-home .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .sw-home .split.flip {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+
+  .sw-home .split.flip .copy {
+    order: 2;
+  }
+
+  .sw-home .split .ill {
+    max-width: 28rem;
+  }
+
+  @media (max-width: 52rem) {
+    .sw-home .split,
+    .sw-home .split.flip {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sw-home .split.flip .copy {
+      order: 0;
+    }
+
+    .sw-home .split .ill {
+      max-width: 20rem;
+    }
   }
 
   .sw-home h2 {
@@ -342,6 +388,7 @@ const icons: Record<string, string> = {
   }
 
   .sw-home .band > p,
+  .sw-home .copy > p,
   .sw-home .head p {
     margin-top: 1rem;
     font-size: var(--sl-text-lg);
@@ -349,7 +396,8 @@ const icons: Record<string, string> = {
     color: var(--sl-color-gray-2);
   }
 
-  .sw-home .band > p + p {
+  .sw-home .band > p + p,
+  .sw-home .copy > p + p {
     margin-top: 0.9rem;
   }
 
@@ -385,7 +433,7 @@ const icons: Record<string, string> = {
     inset: 0;
     background: radial-gradient(
       22rem circle at var(--mx, 50%) var(--my, 0%),
-      color-mix(in srgb, var(--sl-color-accent) 20%, transparent),
+      color-mix(in srgb, var(--sl-color-accent) 10%, transparent),
       transparent 60%
     );
     opacity: 0;
@@ -433,7 +481,7 @@ const icons: Record<string, string> = {
     height: 2rem;
     margin-bottom: 0.9rem;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--sl-color-accent), var(--sl-color-accent-high));
+    background: var(--sl-color-accent);
     font-weight: 700;
     color: #fff;
   }
@@ -531,11 +579,7 @@ const icons: Record<string, string> = {
     margin-top: var(--gap);
     border: 1px solid var(--sl-color-hairline);
     border-radius: 1rem;
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--sl-color-accent) 12%, var(--sl-color-bg-nav)),
-      var(--sl-color-bg-nav)
-    );
+    background: var(--sl-color-bg-nav);
   }
 
   .sw-home .stats div {
@@ -548,16 +592,7 @@ const icons: Record<string, string> = {
     font-size: clamp(var(--sl-text-2xl), 1rem + 2vw, var(--sl-text-4xl));
     line-height: 1.1;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--sl-color-white), var(--sl-color-accent-high));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  :root[data-theme='light'] .sw-home .stats strong {
-    background: linear-gradient(135deg, #1d1030, #7a35e8);
-    -webkit-background-clip: text;
-    background-clip: text;
+    color: var(--sl-color-accent-high);
   }
 
   .sw-home .stats span {
@@ -706,13 +741,14 @@ const icons: Record<string, string> = {
 
   .sw-home .btn.primary {
     border-color: transparent;
-    background: linear-gradient(135deg, #8b4bf1, #6c1bee);
+    background: #7a35e8;
     color: #fff;
-    box-shadow: 0 10px 30px -10px color-mix(in srgb, #8b4bf1 80%, transparent);
+    box-shadow: 0 10px 24px -12px #7a35e8;
   }
 
   .sw-home .btn.primary:hover {
-    box-shadow: 0 14px 36px -8px color-mix(in srgb, #8b4bf1 90%, transparent);
+    background: #6c1bee;
+    box-shadow: 0 14px 30px -12px #7a35e8;
   }
 
   .sw-home .btn.primary span {
@@ -728,35 +764,29 @@ const icons: Record<string, string> = {
     font-size: var(--sl-text-lg);
   }
 
-  /* --- the closing call to action --------------------------------------- */
+  /* --- the closing call to action: a flat panel, text and picture ------- */
   .sw-home .cta {
-    position: relative;
     margin-top: var(--gap);
-    padding: clamp(2.2rem, 6vw, 4rem) 1.5rem;
-    border: 1px solid color-mix(in srgb, var(--sl-color-accent) 40%, var(--sl-color-hairline));
+    padding: clamp(1.8rem, 5vw, 3.2rem);
+    border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
     border-radius: 1.4rem;
-    text-align: center;
-    background:
-      radial-gradient(60% 90% at 20% 0%, color-mix(in srgb, #8b4bf1 38%, transparent), transparent 70%),
-      radial-gradient(50% 80% at 90% 100%, color-mix(in srgb, #3b82f6 26%, transparent), transparent 70%),
-      var(--sl-color-bg-nav);
-    overflow: hidden;
+    background: var(--sl-color-bg-nav);
   }
 
-  .sw-home .cta-inner {
-    position: relative;
-    max-width: 38rem;
-    margin-inline: auto;
+  /* On the panel, cards and secondary buttons take the page's own colour so that
+     they read as objects on it rather than as part of it. */
+  .sw-home .cta .ill {
+    --card: var(--sl-color-bg);
+  }
+
+  .sw-home .cta .btn:not(.primary) {
+    background: var(--sl-color-bg);
   }
 
   .sw-home .cta p {
     margin-top: 1rem;
     font-size: var(--sl-text-lg);
     color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .cta .actions {
-    justify-content: center;
   }
 
   .sw-home .cta .small {
