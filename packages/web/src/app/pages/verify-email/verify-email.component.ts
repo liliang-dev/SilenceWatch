@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { I18n } from '../../core/i18n/i18n.service';
 import { errorMessage } from '../../core/error-message';
+import { IconComponent } from '../../shared/icon.component';
 
 /**
  * The page the emailed confirmation link lands on.
@@ -18,7 +19,7 @@ import { errorMessage } from '../../core/error-message';
 @Component({
   selector: 'sw-verify-email',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, MatButtonModule, MatProgressBarModule],
+  imports: [RouterLink, MatButtonModule, MatProgressBarModule, IconComponent],
   templateUrl: './verify-email.component.html',
   styleUrl: './verify-email.component.scss',
 })

@@ -39,6 +39,7 @@ export default defineConfig({
       editLink: { baseUrl: `${REPOSITORY}/edit/dev/site/` },
       components: {
         Footer: './src/components/Footer.astro',
+        SocialIcons: './src/components/SocialIcons.astro',
       },
       routeMiddleware: './src/route-middleware.ts',
       head: [

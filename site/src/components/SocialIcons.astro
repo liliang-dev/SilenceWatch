@@ -1,0 +1,14 @@
+---
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { APP } from '../site';
+
+/**
+ * The header's right-hand side: Starlight's own icons, and beside them the way
+ * into the application — a sign-in button, on every page and not only on the home
+ * page, phones included (see brand.css).
+ */
+const french = Astro.locals.starlightRoute.lang === 'fr';
+---
+
+<a class="sw-login" href={`${APP}/login`}>{french ? 'Connexion' : 'Login'}</a>
+<Default {...Astro.props}><slot /></Default>
