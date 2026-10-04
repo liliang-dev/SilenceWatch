@@ -1,0 +1,152 @@
+@if (pings.rows().length === 0) {
+  <div class="sw-empty">
+    <h2>{{ t('detail.noPingTitle') }}</h2>
+    <p>{{ t('detail.noPingBody') }}</p>
+  </div>
+} @else {
+  <div class="sw-table-card panel">
+    <div class="sw-toolbar">
+      <mat-button-toggle-group
+        [ngModel]="kindFilter()"
+        (ngModelChange)="filterPingsBy($event)"
+        hideSingleSelectionIndicator
+        class="sw-filters"
+      >
+        <mat-button-toggle value="">{{ t('common.all') }}</mat-button-toggle>
+        <mat-button-toggle value="success">{{ t('detail.kindSuccess') }}</mat-button-toggle>
+        <mat-button-toggle value="fail">{{ t('detail.kindFail') }}</mat-button-toggle>
+        <mat-button-toggle value="start">{{ t('detail.kindStart') }}</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+        <sw-icon name="search" matPrefix class="sw-search-icon" />
+        <input
+          matInput
+          type="search"
+          [placeholder]="t('detail.searchPings')"
+          [ngModel]="pings.search()"
+          (ngModelChange)="pings.onSearch($event)"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (truncated()) {
+      <p class="sw-table-note">
+        {{ t('detail.pingsTruncated', { count: pings.rows().length }) }}
+      </p>
+    }
+
+    @if (pings.matching().length === 0) {
+      <div class="sw-empty">
+        <h2>{{ t('detail.noPingMatchTitle') }}</h2>
+        <p>{{ t('detail.noPingMatchBody') }}</p>
+      </div>
+    } @else {
+      <div class="sw-scroll-x">
+        <table
+          mat-table
+          class="sw-datatable"
+          [dataSource]="pings.visible()"
+          matSort
+          [matSortActive]="pings.sort().active"
+          [matSortDirection]="pings.sort().direction"
+          (matSortChange)="pings.onSort($event)"
+        >
+          <ng-container matColumnDef="receivedAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              {{ t('detail.colWhen') }}
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let ping"
+              class="sw-cell-main"
+              [matTooltip]="ping.receivedAt"
+            >
+              {{ ping.receivedAt | swRelativeTime }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="kind">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              {{ t('detail.colKind') }}
+            </th>
+            <td mat-cell *matCellDef="let ping" class="sw-cell-aside">
+              <span class="kind" [class]="'kind-' + ping.kind">{{ kindLabel(ping) }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="durationMs">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              {{ t('detail.colDuration') }}
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let ping"
+              class="sw-num sw-cell-third"
+              [attr.data-label]="t('detail.colDuration')"
+            >
+              {{ ping.durationMs | swDuration }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="exitCode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              {{ t('detail.colExit') }}
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let ping"
+              class="sw-num sw-cell-third"
+              [attr.data-label]="t('detail.colExitCode')"
+            >
+              {{ ping.exitCode ?? '—' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="sourceIp">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              {{ t('detail.colSource') }}
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let ping"
+              class="sw-mono sw-muted sw-cell-third"
+              [attr.data-label]="t('detail.colSource')"
+            >
+              {{ ping.sourceIp ?? '—' }}
+            </td>
+          </ng-container>
+
+          <!-- Not sortable: ordering free-form output alphabetically
+               answers no question anyone has. -->
+          <ng-container matColumnDef="body">
+            <th mat-header-cell *matHeaderCellDef>
+              {{ t('detail.colBody') }}
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let ping"
+              class="body sw-mono sw-muted"
+              [attr.data-label]="t('detail.colOutput')"
+              [class.sw-hide-mobile]="!ping.body"
+            >
+              {{ ping.body ?? '' }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="pingColumns"></tr>
+          <tr mat-row *matRowDef="let ping; columns: pingColumns"></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="pings.matching().length"
+        [pageSize]="pings.page().pageSize"
+        [pageIndex]="pings.page().pageIndex"
+        [pageSizeOptions]="pageSizes"
+        (page)="pings.onPage($event)"
+        [attr.aria-label]="t('detail.pagesPingsAria')"
+      />
+    }
+  </div>
+}

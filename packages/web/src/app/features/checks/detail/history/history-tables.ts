@@ -1,6 +1,6 @@
 import type { IncidentDto, PingDto } from '@silencewatch/shared';
-import type { Translate } from '../../../core/i18n/i18n.service';
-import type { TableRules } from '../../../shared/data-table';
+import type { Translate } from '../../../../core/i18n/i18n.service';
+import type { TableRules } from '../../../../shared/data-table';
 
 /**
  * How the two history tables on a check sort and search.

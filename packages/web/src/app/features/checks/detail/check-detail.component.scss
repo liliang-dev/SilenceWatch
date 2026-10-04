@@ -141,45 +141,6 @@
   margin-top: 4px;
 }
 
-/* The card, its header band and the note row are `.sw-table-card` in
-   styles.scss — the checks page and Settings wear the same thing. */
-.panel {
-  margin-top: 16px;
-}
-
-/* Six columns, two of them free text. Narrower than this and the body column
-   has nothing left to show. */
-.panel .sw-datatable {
-  min-width: 720px;
-}
-
-.kind {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.kind-success { color: var(--sw-up); }
-.kind-fail { color: var(--sw-down); }
-.kind-start { color: var(--sw-new); }
-
-.ongoing-tag {
-  color: var(--sw-down);
-  font-weight: 600;
-}
-
-.mat-mdc-row.ongoing .mat-mdc-cell:first-child {
-  box-shadow: inset 3px 0 0 var(--sw-down);
-}
-
-.body {
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* --- phones ---------------------------------------------------------------
    The shared rules (cards instead of columns, 44px controls) are in
    styles.scss. What is left is this page's own shape: the ping URL is the

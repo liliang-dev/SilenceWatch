@@ -1,0 +1,18 @@
+/* What both history tables wear. */
+
+/* The host adds no box of its own: the tab shows the table card directly. */
+:host {
+  display: contents;
+}
+
+/* The card, its header band and the note row are `.sw-table-card` in
+   styles.scss — the checks page and Settings wear the same thing. */
+.panel {
+  margin-top: 16px;
+}
+
+/* Six columns, two of them free text. Narrower than this and the body column
+   has nothing left to show. */
+.panel .sw-datatable {
+  min-width: 720px;
+}

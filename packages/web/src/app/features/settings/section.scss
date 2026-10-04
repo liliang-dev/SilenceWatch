@@ -1,6 +1,11 @@
 /* What every tab of the settings page shares: the card and its parts. A tab
    component lists this first, then its own file. */
 
+/* A tab's host adds no box of its own: the tab shows its card directly. */
+:host {
+  display: contents;
+}
+
 /* The tab body supplies the page's own top spacing, so the first card is
    not welded to the tab strip. */
 .section:first-child {

@@ -7,20 +7,13 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import type { CheckDto, IncidentDto, PingDto } from '@silencewatch/shared';
 import { ChecksApi } from '../../../core/api/checks.api';
@@ -28,14 +21,13 @@ import { errorMessage } from '../../../core/http/error-message';
 import { I18n } from '../../../core/i18n/i18n.service';
 import { ProjectStore } from '../../../core/project.store';
 import { confirmWith } from '../../../shared/confirm.dialog';
-import { DataTable, PAGE_SIZES } from '../../../shared/data-table';
-import { PAGINATOR_INTL } from '../../../shared/paginator-intl';
 import { DurationPipe, RelativeTimePipe } from '../../../shared/relative-time.pipe';
 import { StateChipComponent } from '../../../shared/state-chip.component';
 import { CheckFormDialog } from '../form/check-form.dialog';
 import { IconComponent } from '../../../shared/icon.component';
 import { describeSchedule } from '../../../shared/schedule';
-import { incidentRules, kindWord, outageMs, pingRules } from './history-tables';
+import { IncidentHistoryComponent } from './history/incident-history.component';
+import { PingHistoryComponent } from './history/ping-history.component';
 
 const REFRESH_INTERVAL_MS = 15_000;
 
@@ -58,23 +50,17 @@ const HISTORY_LIMIT = 200;
   imports: [
     IconComponent,
     RouterLink,
-    FormsModule,
     MatButtonModule,
-    MatButtonToggleModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatMenuModule,
-    MatPaginatorModule,
     MatProgressBarModule,
-    MatSortModule,
-    MatTableModule,
     MatTabsModule,
     MatTooltipModule,
     StateChipComponent,
     RelativeTimePipe,
     DurationPipe,
+    PingHistoryComponent,
+    IncidentHistoryComponent,
   ],
-  providers: [PAGINATOR_INTL],
   templateUrl: './check-detail.component.html',
   styleUrl: './check-detail.component.scss',
 })
@@ -94,19 +80,12 @@ export class CheckDetailComponent implements OnDestroy {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly pings = new DataTable<PingDto>(pingRules(this.t));
-  protected readonly incidents = new DataTable<IncidentDto>(incidentRules(this.t));
+  protected readonly pingRows = signal<PingDto[]>([]);
+  protected readonly incidentRows = signal<IncidentDto[]>([]);
 
-  /** True when the log is longer than one request returns. */
+  /** True when a log is longer than one request returns. */
   protected readonly pingsTruncated = signal(false);
   protected readonly incidentsTruncated = signal(false);
-
-  protected readonly kindFilter = signal('');
-  protected readonly incidentFilter = signal('');
-
-  protected readonly pingColumns = ['receivedAt', 'kind', 'durationMs', 'exitCode', 'sourceIp', 'body'];
-  protected readonly incidentColumns = ['startedAt', 'resolvedAt', 'duration', 'notificationsSent'];
-  protected readonly pageSizes = PAGE_SIZES;
 
   private readonly timer = setInterval(() => this.load(true), REFRESH_INTERVAL_MS);
 
@@ -141,30 +120,16 @@ export class CheckDetailComponent implements OnDestroy {
 
     this.checksApi.listPings(checkId, HISTORY_LIMIT).subscribe({
       next: (page) => {
-        this.pings.setRows(page.items);
+        this.pingRows.set(page.items);
         this.pingsTruncated.set(page.nextCursor !== null);
       },
     });
 
     this.checksApi.listIncidents(checkId, HISTORY_LIMIT).subscribe({
       next: (page) => {
-        this.incidents.setRows(page.items);
+        this.incidentRows.set(page.items);
         this.incidentsTruncated.set(page.nextCursor !== null);
       },
-    });
-  }
-
-  protected filterPingsBy(kind: string): void {
-    this.kindFilter.set(kind);
-    this.pings.setFilter((ping) => kind === '' || ping.kind === kind);
-  }
-
-  protected filterIncidentsBy(status: string): void {
-    this.incidentFilter.set(status);
-    this.incidents.setFilter((incident) => {
-      if (status === 'ongoing') return incident.resolvedAt === null;
-      if (status === 'resolved') return incident.resolvedAt !== null;
-      return true;
     });
   }
 
@@ -222,8 +187,8 @@ export class CheckDetailComponent implements OnDestroy {
   }
 
   protected remove(check: CheckDto): void {
-    const pings = this.pings.rows().length;
-    const incidents = this.incidents.rows().length;
+    const pings = this.pingRows().length;
+    const incidents = this.incidentRows().length;
 
     confirmWith(this.dialog, {
       title: this.t('detail.deleteTitle', { name: check.name }),
@@ -265,6 +230,4 @@ export class CheckDetailComponent implements OnDestroy {
   }
 
   protected readonly schedule = (check: CheckDto): string => describeSchedule(check, this.t);
-  protected readonly kindLabel = (ping: PingDto): string => kindWord(ping, this.t);
-  protected readonly outage = outageMs;
 }
