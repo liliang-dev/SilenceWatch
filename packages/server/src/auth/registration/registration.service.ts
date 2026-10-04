@@ -12,6 +12,7 @@ import { AuditService } from '../../audit/audit.service';
 import { hashPassword } from '../../common/crypto.util';
 import { uniqueSlug } from '../../common/slug.util';
 import { AppConfig, CONFIG } from '../../config/config';
+import { ProjectsRepository } from '../../projects/projects.repository';
 import { QuotaService } from '../../quotas/quota.service';
 import { maskEmail } from '../masking';
 import { auditActorOf, type SessionContext } from '../session-context';
@@ -30,6 +31,7 @@ export class RegistrationService {
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly users: UsersRepository,
+    private readonly projects: ProjectsRepository,
     private readonly sessions: SessionService,
     private readonly verification: EmailVerificationService,
     private readonly notice: AlreadyRegisteredNoticeService,
@@ -166,7 +168,7 @@ export class RegistrationService {
     const passwordHash = await hashPassword(input.password);
     const projectName = input.name === undefined ? 'My project' : `${input.name}'s project`;
     const projectSlug = await uniqueSlug(projectName, (candidate) =>
-      this.users.isProjectSlugTaken(candidate),
+      this.projects.isSlugTaken(candidate),
     );
 
     return this.users
