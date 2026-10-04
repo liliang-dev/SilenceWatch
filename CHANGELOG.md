@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The login, registration and password-reset rate limit could be dodged by adding a
+  query string** (`/api/auth/login?1`, `?2`, …): each variant had its own budget. The
+  limit now counts the path alone.
+- **`GET /api/v1/status` (server internals) answered an API key.** It is now reserved
+  to a user session. An API key reaches only the checks of its own project, as before:
+  a test now tries every route with one project's key against another account's
+  objects.
+
 ### Changed
 
 - **The site's language can be changed on a phone from the home page too**: the header
