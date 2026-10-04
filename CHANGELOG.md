@@ -12,6 +12,21 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **A reworked home page for the site, with motion.** The slogan has light running
+  through its second half over two slowly drifting glows; a heartbeat line runs
+  under the hero; a live demo loops through a job going late, then down, an alert
+  arriving and the next ping bringing it back (the same screen as the application,
+  in CSS only); a strip of everything that can call a URL scrolls past; sections
+  rise in as they come into view and the cards light up under the pointer. The way
+  into the application is offered four times (the header, the hero, the
+  hosted-or-self-hosted section and a closing block), and the page says the
+  service is free without describing a plan or a subscription: there is none. With
+  reduced motion requested, or without script, nothing moves and nothing is hidden;
+  the demo then stands still on its most telling frame. No library and no request
+  to another site were added. The text lives in `site/src/content/home.ts`, once
+  for both languages, and an "Is SilenceWatch free?" question joins the FAQ.
+- **The site's header shows an "Open the app" button on every page** (on a screen
+  wide enough to have room for it).
 - **A second logo for dark mode.** The application and the site show the pale tile
   on a light page and the purple one on a dark page, following the theme — the
   device's, or the one chosen in Settings → Preferences, which wins. The favicon
