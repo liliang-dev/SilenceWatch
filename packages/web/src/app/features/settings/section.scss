@@ -1,0 +1,71 @@
+/* What every tab of the settings page shares: the card and its parts. A tab
+   component lists this first, then its own file. */
+
+/* The tab body supplies the page's own top spacing, so the first card is
+   not welded to the tab strip. */
+.section:first-child {
+  margin-top: 20px;
+}
+
+.section {
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.section-head {
+  padding: 18px 20px 10px;
+}
+
+.section-head p {
+  max-width: 64ch;
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+}
+
+.section-body {
+  padding: 16px 20px 20px;
+}
+
+.section-note {
+  padding: 0 20px 20px;
+  font-size: 0.875rem;
+}
+
+.bordered {
+  border-top: 1px solid var(--sw-border);
+}
+
+/* Material sets the label colour from its own token, so a plain "color"
+   declaration here would lose to it. */
+.danger {
+  --mat-text-button-label-text-color: var(--sw-down);
+}
+
+/* The one irreversible thing on the page: set apart by its border and by a
+   button that is red before it is touched, not only when it is hovered. */
+.danger {
+  border-color: color-mix(in srgb, var(--sw-down) 45%, var(--sw-border));
+}
+
+/* Sections keep their card; the padding comes in with the page's. */
+@media (max-width: 820px) {
+  .section:first-child {
+    margin-top: 16px;
+  }
+
+  .section {
+    margin-bottom: 16px;
+  }
+
+  .section-head {
+    padding: 16px 16px 8px;
+  }
+
+  .section-body {
+    padding: 12px 16px 16px;
+  }
+
+  .section-note {
+    padding: 0 16px 16px;
+  }
+}

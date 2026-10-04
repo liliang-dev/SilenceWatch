@@ -1,0 +1,39 @@
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.facts dd {
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.danger-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.danger-body p {
+  flex: 1 1 280px;
+  max-width: 56ch;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.danger-button {
+  --mat-button-outlined-label-text-color: var(--sw-down);
+  --mat-button-outlined-outline-color: var(--sw-down);
+  --mat-button-outlined-state-layer-color: var(--sw-down);
+}
+
+@media (max-width: 820px) {
+  .facts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

@@ -1,0 +1,13 @@
+.tabs {
+  --mat-tab-header-divider-color: var(--sw-border);
+}
+
+/* A tab's own component brings its card; it does not add a box of its own. */
+sw-projects-tab,
+sw-api-keys-tab,
+sw-password-tab,
+sw-security-tab,
+sw-preferences-tab,
+sw-account-tab {
+  display: contents;
+}

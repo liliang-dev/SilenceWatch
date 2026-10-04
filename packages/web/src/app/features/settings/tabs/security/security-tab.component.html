@@ -1,0 +1,148 @@
+<section class="sw-card section">
+  <div class="section-head">
+    <h2>{{ t('settings.securityTitle') }}</h2>
+    <p class="sw-muted">{{ t('settings.securityBody') }}</p>
+  </div>
+
+  @if (audit.rows().length === 0) {
+    <p class="section-note sw-muted">
+      {{ t('settings.securityEmpty') }}
+    </p>
+  } @else {
+    <!-- The controls are a band across the card, directly above the rows they
+   narrow — the same object as the table, as on the other three. -->
+    <div class="sw-toolbar section-toolbar bordered">
+      <mat-button-toggle-group
+        [ngModel]="auditFilter()"
+        (ngModelChange)="filterAuditBy($event)"
+        hideSingleSelectionIndicator
+        class="sw-filters"
+      >
+        <mat-button-toggle value="">{{ t('common.all') }}</mat-button-toggle>
+        <mat-button-toggle value="account">{{
+          t('settings.filterAccount')
+        }}</mat-button-toggle>
+        <mat-button-toggle value="project">{{
+          t('settings.filterProject')
+        }}</mat-button-toggle>
+        <mat-button-toggle value="failures">{{
+          t('settings.filterFailures')
+        }}</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+        <sw-icon name="search" matPrefix class="sw-search-icon" />
+        <input
+          matInput
+          type="search"
+          [placeholder]="t('settings.searchActivity')"
+          [ngModel]="audit.search()"
+          (ngModelChange)="audit.onSearch($event)"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (audit.matching().length === 0) {
+      <div class="sw-empty bordered audit-empty">
+        <h2>{{ t('settings.noMatchTitle') }}</h2>
+        <p>{{ t('settings.noMatchBody') }}</p>
+      </div>
+    } @else {
+      <div class="bordered">
+        <div class="sw-scroll-x">
+          <table
+            mat-table
+            class="sw-datatable audit"
+            [dataSource]="audit.visible()"
+            matSort
+            [matSortActive]="audit.sort().active"
+            [matSortDirection]="audit.sort().direction"
+            (matSortChange)="audit.onSort($event)"
+          >
+            <ng-container matColumnDef="occurredAt">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('settings.colWhen') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let event"
+                class="sw-cell-aside sw-muted"
+                [matTooltip]="event.occurredAt"
+              >
+                {{ event.occurredAt | swRelativeTime }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="action">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('settings.colAction') }}
+              </th>
+              <td mat-cell *matCellDef="let event" class="sw-cell-main">
+                <span class="action" [class.danger-text]="isFailure(event.action)">
+                  {{ label(event.action) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actor">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('settings.colWho') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let event"
+                class="sw-muted"
+                [attr.data-label]="t('settings.colWho')"
+              >
+                {{ event.actorEmail ?? '—' }}
+                @if (event.actorIsApiKey) {
+                  <span class="sw-tag">{{ t('settings.apiKeyTag') }}</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="target">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('settings.colTarget') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let event"
+                class="sw-muted sw-cell-half"
+                [attr.data-label]="t('settings.colTarget')"
+              >
+                {{ event.targetLabel ?? '—' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="ip">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ t('settings.colFrom') }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let event"
+                class="sw-mono sw-muted sw-cell-half"
+                [attr.data-label]="t('settings.colFrom')"
+              >
+                {{ event.ip ?? '—' }}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="auditColumns"></tr>
+            <tr mat-row *matRowDef="let event; columns: auditColumns"></tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [length]="audit.matching().length"
+          [pageSize]="audit.page().pageSize"
+          [pageIndex]="audit.page().pageIndex"
+          [pageSizeOptions]="pageSizes"
+          (page)="audit.onPage($event)"
+          [attr.aria-label]="t('settings.pagesActivityAria')"
+        />
+      </div>
+    }
+  }
+</section>

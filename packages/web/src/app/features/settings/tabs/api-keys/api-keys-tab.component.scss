@@ -1,0 +1,81 @@
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.inline-form mat-form-field {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.new-key {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--sw-accent) 32%, transparent);
+  border-radius: var(--sw-radius);
+  background: var(--sw-accent-soft);
+}
+
+.new-key-title {
+  margin: 0 0 8px;
+  color: var(--sw-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key-row code {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+td.right {
+  text-align: right;
+}
+
+tr.revoked {
+  opacity: 0.5;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The form stacks one field to a line with the button under it at full width. */
+@media (max-width: 820px) {
+  .inline-form mat-form-field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .inline-form button {
+    width: 100%;
+  }
+
+  .key-row {
+    flex-wrap: wrap;
+  }
+
+  .key-row code {
+    flex-basis: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
