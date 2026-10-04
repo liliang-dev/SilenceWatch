@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { ProjectRole } from '@silencewatch/shared';
-import { PrismaService } from '../database/prisma.service';
 import type { Principal } from './principal';
+import { ProjectAccessRepository } from './project-access.repository';
 
 /** owner > admin > member. A higher rank satisfies any lower requirement. */
 const RANK: Record<ProjectRole, number> = { member: 1, admin: 2, owner: 3 };
@@ -15,7 +15,7 @@ const RANK: Record<ProjectRole, number> = { member: 1, admin: 2, owner: 3 };
  */
 @Injectable()
 export class ProjectAccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly access: ProjectAccessRepository) {}
 
   async assertAccess(
     principal: Principal,
@@ -32,13 +32,10 @@ export class ProjectAccessService {
       return;
     }
 
-    const membership = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: principal.userId } },
-      select: { role: true },
-    });
+    const role = await this.access.findRole(projectId, principal.userId);
 
-    if (membership === null) throw new NotFoundException('Project not found');
-    if (RANK[membership.role] < RANK[minimumRole]) {
+    if (role === null) throw new NotFoundException('Project not found');
+    if (RANK[role] < RANK[minimumRole]) {
       throw new ForbiddenException(`This operation requires the ${minimumRole} role`);
     }
   }
@@ -47,11 +44,7 @@ export class ProjectAccessService {
   async visibleProjectIds(principal: Principal): Promise<string[]> {
     if (principal.kind === 'apiKey') return [principal.projectId];
 
-    const memberships = await this.prisma.projectMember.findMany({
-      where: { userId: principal.userId },
-      select: { projectId: true },
-    });
-    return memberships.map((membership) => membership.projectId);
+    return this.access.listProjectIds(principal.userId);
   }
 
   /**
@@ -63,13 +56,10 @@ export class ProjectAccessService {
     checkId: string,
     minimumRole: ProjectRole = 'member',
   ): Promise<{ projectId: string }> {
-    const check = await this.prisma.check.findUnique({
-      where: { id: checkId },
-      select: { projectId: true },
-    });
-    if (check === null) throw new NotFoundException('Check not found');
+    const projectId = await this.access.findCheckProjectId(checkId);
+    if (projectId === null) throw new NotFoundException('Check not found');
 
-    await this.assertAccess(principal, check.projectId, minimumRole);
-    return check;
+    await this.assertAccess(principal, projectId, minimumRole);
+    return { projectId };
   }
 }

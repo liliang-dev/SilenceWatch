@@ -62,10 +62,6 @@ export class UsersRepository {
     return this.prisma.user.findUniqueOrThrow({ where: { id } });
   }
 
-  isProjectSlugTaken(slug: string): Promise<boolean> {
-    return this.prisma.project.count({ where: { slug } }).then((count) => count > 0);
-  }
-
   /** The account and the owner membership of its first project, in one write. */
   createWithFirstProject(input: NewUser) {
     return this.prisma.user.create({

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../../notifications/notifications.module';
+import { ProjectsModule } from '../../projects/projects.module';
 import { QuotasModule } from '../../quotas/quotas.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
@@ -13,7 +14,7 @@ import { SignupChallengeService } from './signup-challenge.service';
 import { SignupGuardService } from './signup-guard.service';
 
 @Module({
-  imports: [UsersModule, SessionsModule, NotificationsModule, QuotasModule],
+  imports: [UsersModule, ProjectsModule, SessionsModule, NotificationsModule, QuotasModule],
   controllers: [RegistrationController],
   providers: [
     EmailVerificationsRepository,
