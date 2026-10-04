@@ -148,11 +148,6 @@ const login = `${APP}/login`;
     <div class="copy">
       <h2>{copy.cta.title}</h2>
       <p>{copy.cta.text}</p>
-      <div class="actions">
-        <a class="btn primary big" href={login}>{copy.cta.primary}<span aria-hidden="true">→</span></a>
-        <a class="btn big" href={url('/docs/getting-started/')}>{copy.cta.secondary}</a>
-      </div>
-      <p class="small">{copy.cta.note} <a href={url('/self-hosted/')}>{copy.hosted.secondary}</a></p>
     </div>
     <Illustration name="alerts" />
   </section>
@@ -216,7 +211,7 @@ const login = `${APP}/login`;
   .sw-home .ecg .live {
     stroke: var(--sl-color-accent-high);
     stroke-width: 2.5;
-    stroke-dasharray: 0.12 0.88;
+    stroke-dasharray: 0.12 1;
     filter: drop-shadow(0 0 6px var(--sl-color-accent));
     animation: sw-travel 4.2s linear infinite;
   }
@@ -709,11 +704,6 @@ const login = `${APP}/login`;
     transform: translateX(4px);
   }
 
-  .sw-home .btn.big {
-    padding: 0.85rem 1.6rem;
-    font-size: var(--sl-text-lg);
-  }
-
   /* --- the closing call to action: a flat panel, text and picture ------- */
   .sw-home .cta {
     margin-top: var(--gap);
@@ -729,20 +719,10 @@ const login = `${APP}/login`;
     --card: var(--sl-color-bg);
   }
 
-  .sw-home .cta .btn:not(.primary) {
-    background: var(--sl-color-bg);
-  }
-
   .sw-home .cta p {
     margin-top: 1rem;
     font-size: var(--sl-text-lg);
     color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .cta .small {
-    margin-top: 1.4rem;
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-3);
   }
 
   /* --- scroll reveal: only when the script has marked the section ------- */
