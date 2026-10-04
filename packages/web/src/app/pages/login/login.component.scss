@@ -36,11 +36,19 @@
 }
 
 .mark {
-  display: block;
   width: 34px;
   height: 34px;
   flex: none;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
+}
+
+/* Two logos, a light tile and a purple one; the theme's tokens pick which. */
+.mark-light {
+  display: var(--sw-logo-light);
+}
+
+.mark-dark {
+  display: var(--sw-logo-dark);
 }
 
 h1 {

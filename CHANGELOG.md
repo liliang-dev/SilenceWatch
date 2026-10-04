@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **A second logo for dark mode.** The application and the site show the pale tile
+  on a light page and the purple one on a dark page, following the theme — the
+  device's, or the one chosen in Settings → Preferences, which wins. The favicon
+  follows the browser's own theme instead, since a tab is drawn on the browser's
+  chrome rather than on the page; `favicon.ico` and the iPhone icon stay the light
+  tile. The new files, `logo-dark.svg` and `logo-dark-96.png`, are listed among the
+  brand files that are not under the licence.
+
 ## [0.3.1] — 2026-10-03
 
 No database migration, so going back to 0.3.0 is safe, and no new setting: upgrading

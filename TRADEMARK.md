@@ -16,9 +16,10 @@ Beyond that, the logo artwork is reserved: it is in the repository because the
 application displays it, and it is not part of the work the licence lets you reuse.
 It is these files and these two places in the interface code:
 
-- `packages/web/public/logo.svg`, `packages/web/public/favicon.svg`,
-  `packages/web/public/favicon.ico`, `packages/web/public/apple-touch-icon.png`
-  and `packages/web/public/logo-96.png`
+- `packages/web/public/logo.svg`, `packages/web/public/logo-dark.svg`,
+  `packages/web/public/favicon.svg`,
+  `packages/web/public/favicon.ico`, `packages/web/public/apple-touch-icon.png`,
+  `packages/web/public/logo-96.png` and `packages/web/public/logo-dark-96.png`
 - the logo and the wordmark in `packages/web/src/app/app.component.html`
   (the application header) and `packages/web/src/app/pages/login/login.component.html`
   (the sign-in page)

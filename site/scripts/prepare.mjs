@@ -26,6 +26,7 @@ const copy = (from, to) => {
 
 // --- 1. the brand artwork ----------------------------------------------------
 copy(join(repo, 'packages/web/public/logo.svg'), join(root, 'src/assets/logo.svg'));
+copy(join(repo, 'packages/web/public/logo-dark.svg'), join(root, 'src/assets/logo-dark.svg'));
 copy(join(repo, 'packages/web/public/favicon.svg'), join(root, 'public/favicon.svg'));
 copy(join(repo, 'packages/web/public/favicon.ico'), join(root, 'public/favicon.ico'));
 copy(join(repo, 'packages/web/public/apple-touch-icon.png'), join(root, 'public/apple-touch-icon.png'));
