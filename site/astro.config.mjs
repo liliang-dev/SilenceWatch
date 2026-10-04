@@ -36,7 +36,6 @@ export default defineConfig({
       customCss: ['./src/styles/brand.css'],
       lastUpdated: false,
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
-      editLink: { baseUrl: `${REPOSITORY}/edit/dev/site/` },
       components: {
         Footer: './src/components/Footer.astro',
         SocialIcons: './src/components/SocialIcons.astro',

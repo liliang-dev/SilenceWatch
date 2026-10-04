@@ -10,6 +10,31 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **An uptime badge in the README.** A scheduled workflow (`.github/workflows/uptime.yml`)
+  asks the hosted service's `/health` every five minutes and keeps the results on an
+  `uptime` branch; the badge shows the share that answered over the last 30 days. No
+  account with a monitoring service is involved. It starts working after the first
+  scheduled run on `main`.
+
+### Fixed
+
+- **The login, registration and password-reset rate limit could be dodged by adding a
+  query string** (`/api/auth/login?1`, `?2`, …): each variant had its own budget. The
+  limit now counts the path alone.
+- **`GET /api/v1/status` (server internals) answered an API key.** It is now reserved
+  to a user session. An API key reaches only the checks of its own project, as before:
+  a test now tries every route with one project's key against another account's
+  objects.
+
+### Changed
+
+- **The site's language can be changed on a phone from the home page too**: the header
+  keeps the language picker there (the other pages have it in the menu). The menu no
+  longer repeats the "Login" button the header already shows.
+- **The site no longer shows an "Edit page" link** under its pages.
+
 ## [0.3.2] — 2026-10-04
 
 No database migration, so going back to 0.3.1 is safe, and no new setting: upgrading
