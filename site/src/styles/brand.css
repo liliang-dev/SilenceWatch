@@ -387,8 +387,8 @@
   }
 }
 
-/* The header's own way in: visible on every page, not only the home page. */
-.sw-open-app {
+/* The header's sign-in button: visible on every page, not only the home page. */
+.sw-login {
   display: none;
   align-items: center;
   padding: 0.4rem 0.95rem;
@@ -404,14 +404,14 @@
     box-shadow 150ms ease;
 }
 
-.sw-open-app:hover {
+.sw-login:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px -8px #8b4bf1;
   color: #fff;
 }
 
 @media (min-width: 50rem) {
-  .sw-open-app {
+  .sw-login {
     display: inline-flex;
   }
 }

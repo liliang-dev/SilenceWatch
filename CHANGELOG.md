@@ -25,7 +25,7 @@ called out under **Changed** with what to do about it.
   the demo then stands still on its most telling frame. No library and no request
   to another site were added. The text lives in `site/src/content/home.ts`, once
   for both languages, and an "Is SilenceWatch free?" question joins the FAQ.
-- **The site's header shows an "Open the app" button on every page** (on a screen
+- **The site's header shows a "Login" button ("Connexion" in French) on every page** (on a screen
   wide enough to have room for it).
 - **A second logo for dark mode.** The application and the site show the pale tile
   on a light page and the purple one on a dark page, following the theme — the
