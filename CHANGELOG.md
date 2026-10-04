@@ -10,6 +10,21 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-10-04
+
+Nothing changes for the application or the server: no database migration and no new
+setting, only the project site.
+
+### Fixed
+
+- The heartbeat under the home page's hero no longer jumps back at the end of each cycle;
+  it now runs round without a seam.
+
+### Changed
+
+- The home page's closing section reads "Get alerted by email or on any webhook." and no
+  longer carries buttons or the self-hosting line.
+
 ## [0.4.0] — 2026-10-04
 
 No database migration, so going back to 0.3.2 is safe, and no new setting: upgrading is a
@@ -611,7 +626,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...HEAD
+[0.4.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.0...0.3.1
