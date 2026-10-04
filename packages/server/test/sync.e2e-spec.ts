@@ -115,15 +115,19 @@ describe('POST /api/v1/checks/sync', () => {
     const created = await sync({ environment: 'production', checks: [backupJob] });
     const before = await context.prisma.check.findFirstOrThrow({ where: { key: backupJob.key } });
 
+    // 03:00 where the original is 02:00, in the same zone: whatever the time of day
+    // the test runs at, the next 03:00 is never the next 02:00. The schedule that was
+    // here, every 30 minutes, fell on the original's deadline whenever the test ran in
+    // the half hour before it (23:30–00:00 UTC in summer) and failed the build then.
     await sync({
       environment: 'production',
-      checks: [{ ...backupJob, cron: '*/30 * * * *', name: 'BackupJob.run (faster)' }],
+      checks: [{ ...backupJob, cron: '0 3 * * *', name: 'BackupJob.run (later)' }],
     });
     const after = await context.prisma.check.findFirstOrThrow({ where: { key: backupJob.key } });
 
     expect(after.id).toBe(created.checks[0]?.id);
-    expect(after.cronExpression).toBe('*/30 * * * *');
-    expect(after.name).toBe('BackupJob.run (faster)');
+    expect(after.cronExpression).toBe('0 3 * * *');
+    expect(after.name).toBe('BackupJob.run (later)');
     expect(after.nextDueAt?.getTime()).not.toBe(before.nextDueAt?.getTime());
   });
 
