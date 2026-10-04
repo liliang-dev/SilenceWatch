@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import type { AuditService } from '../../audit/audit.service';
+import type { BillingService } from '../../billing/billing.service';
 import { hashPassword } from '../../common/crypto.util';
 import type { LoginLockoutService } from '../sessions/login-lockout.service';
 import type { MembershipWithPeers, UsersRepository } from '../users/users.repository';
@@ -27,6 +28,7 @@ describe('AccountService.delete', () => {
       } as unknown as UsersRepository,
       { isLocked: () => false, recordFailure: jest.fn() } as unknown as LoginLockoutService,
       { record } as unknown as AuditService,
+      { cancelForAccount: jest.fn() } as unknown as BillingService,
     );
   }
 

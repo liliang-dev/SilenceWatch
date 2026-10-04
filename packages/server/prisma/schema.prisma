@@ -118,8 +118,42 @@ model User {
   sessions       Session[]
   verifications  EmailVerification[]
   passwordResets PasswordReset[]
+  subscription   Subscription?
 
   @@map("user")
+}
+
+/// What Stripe says about an account's subscription, as of the newest event
+/// applied. One row per account that ever started to pay; `user.plan` is what
+/// the application obeys, and this is where it came from.
+model Subscription {
+  userId               String    @id @map("user_id") @db.Uuid
+  stripeCustomerId     String    @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  /// The paid plan the subscription grants, or null when it grants none.
+  plan                 String?
+  /// Stripe's own status word: active, past_due, canceled…
+  status               String    @default("none")
+  currentPeriodEnd     DateTime? @map("current_period_end") @db.Timestamptz(3)
+  cancelAtPeriodEnd    Boolean   @default(false) @map("cancel_at_period_end")
+  /// Creation time of the newest event applied, so a late one cannot undo a later one.
+  lastEventAt          DateTime? @map("last_event_at") @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscription")
+}
+
+/// Stripe events already handled. Stripe delivers at least once, so the id is
+/// what makes a repeat harmless.
+model StripeEvent {
+  id         String   @id
+  type       String
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@map("stripe_event")
 }
 
 /// Single-use email verification token. Only the SHA-256 is stored.

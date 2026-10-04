@@ -10,6 +10,29 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- Subscriptions for the hosted service, through Stripe: a **Subscription** tab in Settings
+  to see the plan and what the account uses, choose a plan on Stripe's payment page, and
+  manage it (card, invoices, plan change, cancellation) in Stripe's customer portal. A payment
+  moves the account to the plan it bought, a cancellation moves it back to the plan everyone
+  starts on, and the quota reconciler pauses or resumes checks to match. Events from Stripe
+  are verified by signature, applied once however many times they are delivered, and an older
+  one never undoes a newer one. Deleting an account ends its subscription first.
+  **Off, and invisible, unless `BILLING_ENABLED` is set** (it also needs `QUOTAS_ENABLED`):
+  a self-hosted instance has no route, no tab and no contact with Stripe. Stripe is reached
+  with `fetch`, so there is no new dependency. New settings: `BILLING_ENABLED`,
+  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PLANS`, `BILLING_CURRENCY`,
+  `BILLING_AUTOMATIC_TAX`, `STRIPE_API_URL`; two new tables (`subscription`, `stripe_event`)
+  that nothing writes to without billing.
+- A pricing page on the site, in both languages, built from one list of plans.
+- A plan limit that blocks an action is now explained in the language of the page, with the
+  numbers, instead of in the server's English.
+
+### Changed
+
+- The site no longer says the hosted service *is* free: it has a free plan, and paid plans.
+
 ## [0.4.1] — 2026-10-04
 
 Nothing changes for the application or the server: no database migration and no new

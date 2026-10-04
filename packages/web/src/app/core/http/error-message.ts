@@ -23,6 +23,11 @@ export function errorMessage(error: unknown, fallback: string, t: Translate): st
   const body = error.error as Partial<ApiErrorBody> | string | null;
   if (typeof body === 'string' && body.trim() !== '') return translateServerMessage(body, t);
 
+  if (error.status === 402 && body !== null && typeof body === 'object') {
+    const message = quotaMessage(body.details, t);
+    if (message !== null) return message;
+  }
+
   if (body !== null && typeof body === 'object') {
     const details = body.details;
     if (Array.isArray(details) && details.length > 0) {
@@ -63,4 +68,26 @@ export function isVerificationPending(error: unknown): boolean {
     typeof details === 'object' &&
     (details as { emailVerificationPending?: unknown }).emailVerificationPending === true
   );
+}
+
+const QUOTA_MESSAGES = {
+  checks: 'error.quota.checks',
+  projects: 'error.quota.projects',
+  channels: 'error.quota.channels',
+} as const;
+
+/**
+ * A plan limit, in the page's language. The server says which limit and the
+ * numbers (it answers 402, not 403: "not on this plan" rather than "never"), so
+ * the sentence is built here from those instead of showing its English one.
+ */
+function quotaMessage(details: unknown, t: Translate): string | null {
+  const quota = (details as { quota?: { resource?: unknown; used?: unknown; limit?: unknown } } | null)
+    ?.quota;
+  if (quota === undefined || quota === null) return null;
+
+  const { resource, used, limit } = quota;
+  if (typeof used !== 'number' || typeof limit !== 'number') return null;
+  if (resource !== 'checks' && resource !== 'projects' && resource !== 'channels') return null;
+  return t(QUOTA_MESSAGES[resource], { used, limit });
 }

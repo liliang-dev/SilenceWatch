@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import type { DeleteAccountRequest, UserDto } from '@silencewatch/shared';
 import { AuditService } from '../../audit/audit.service';
+import { BillingService } from '../../billing/billing.service';
 import { verifyPassword } from '../../common/crypto.util';
 import { maskEmail } from '../masking';
 import { auditActorOf, type SessionContext } from '../session-context';
@@ -23,6 +24,7 @@ export class AccountService {
     private readonly users: UsersRepository,
     private readonly lockout: LoginLockoutService,
     private readonly audit: AuditService,
+    private readonly billing: BillingService,
   ) {}
 
   async get(userId: string): Promise<UserDto> {
@@ -48,6 +50,9 @@ export class AccountService {
    * unattended browser or a stolen access token must not be enough to destroy an
    * account. It counts against the lockout like a login does, for the same
    * reason: it is a password guess against the same account.
+ *
+ * A subscription is ended first, and if it cannot be the account stays: see
+ * BillingService.cancelForAccount.
    */
   async delete(userId: string, input: DeleteAccountRequest, context: SessionContext): Promise<void> {
     const user = await this.users.findByIdOrThrow(userId);
@@ -63,6 +68,10 @@ export class AccountService {
       await this.lockout.recordFailure(user);
       throw new ForbiddenException('Current password is incorrect');
     }
+
+    // Before anything is deleted: an account that is gone while its card is
+    // still charged is worse than an account that could not be deleted yet.
+    await this.billing.cancelForAccount(userId);
 
     const soleProjects = await this.projectsToDelete(userId);
     await this.users.deleteWithProjects(userId, soleProjects);

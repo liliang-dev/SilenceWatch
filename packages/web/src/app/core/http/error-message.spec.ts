@@ -103,4 +103,29 @@ describe('errorMessage', () => {
     );
     expect(errorMessage(null)).toBe('Something went wrong.');
   });
+
+  it('says which plan limit was reached, with the numbers, in the language of the page', async () => {
+    const error = new HttpErrorResponse({
+      status: 402,
+      error: {
+        statusCode: 402,
+        message: 'Your plan includes 10 checks, and 10 are in use.',
+        details: { quota: { resource: 'checks', used: 10, limit: 10, plan: 'free' } },
+      },
+    });
+
+    expect(errorMessage(error)).toBe('Check limit reached: your plan allows 10, and 10 are in use.');
+    await i18n.set('fr');
+    expect(errorMessage(error)).toBe(
+      'Limite de checks atteinte : votre forfait en autorise 10, et 10 sont utilisés.',
+    );
+  });
+
+  it('falls back to the server message for a 402 it does not recognise', () => {
+    const error = new HttpErrorResponse({
+      status: 402,
+      error: { statusCode: 402, message: 'Payment required', details: { quota: { resource: 'seats' } } },
+    });
+    expect(errorMessage(error)).toBe('Payment required');
+  });
 });
