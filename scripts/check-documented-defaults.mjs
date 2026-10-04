@@ -10,17 +10,19 @@
  * The schema is parsed as text rather than imported: this runs before anything
  * is built, and it must not need a Prisma client or a database.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
-const CONFIG = 'packages/server/src/config/config.ts';
+const GROUPS = 'packages/server/src/config/groups';
 const DOC = 'docs/self-hosting.md';
 
-const source = readFileSync(CONFIG, 'utf8');
-const body = source.slice(source.indexOf('const envSchema'));
+const body = readdirSync(GROUPS)
+  .filter((file) => file.endsWith('.ts'))
+  .map((file) => readFileSync(`${GROUPS}/${file}`, 'utf8'))
+  .join('\n');
 
 /** name -> declared default, '—' when optional, null when required. */
 const schema = new Map();
-for (const m of body.matchAll(/^ {4}([A-Z][A-Z0-9_]*): (.+?),?\s*$/gm)) {
+for (const m of body.matchAll(/^ {2}([A-Z][A-Z0-9_]*): (.+?),?\s*$/gm)) {
   const [, name, expr] = m;
   // `prefault` is `default` that parses its argument; both declare the value an
   // operator sees when the variable is unset, which is what the table promises.
@@ -58,7 +60,7 @@ for (const m of readFileSync(DOC, 'utf8').matchAll(
 }
 
 if (problems.length > 0) {
-  console.error(`${DOC} disagrees with ${CONFIG}:\n`);
+  console.error(`${DOC} disagrees with ${GROUPS}:\n`);
   for (const problem of problems) console.error(`  ${problem}`);
   console.error(`\nFix the table, or the schema — but they have to say the same thing.`);
   process.exit(1);
