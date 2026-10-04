@@ -9,7 +9,7 @@ import type {
   SessionDto,
   UserDto,
 } from '@silencewatch/shared';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap } from 'rxjs';
 
 /**
  * Session handling.
@@ -29,6 +29,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
+  private refreshing: Observable<SessionDto> | null = null;
   private readonly accessToken = signal<string | null>(null);
   private readonly currentUser = signal<UserDto | null>(null);
 
@@ -92,10 +93,22 @@ export class AuthService {
   }
 
   /** The cookie is the credential; the body is empty on purpose. */
+  /**
+   * Exchanges the refresh cookie for a new session.
+   *
+   * One request at a time, however many callers ask. Refresh tokens rotate, and
+   * the server reads the reuse of a spent one as theft and signs the user out
+   * everywhere: when a page makes several requests with an access token that has
+   * just expired, each of them gets a 401 and asks for a refresh, and without this
+   * the second and third would present a token the first had already spent.
+   */
   refresh(): Observable<SessionDto> {
-    return this.http
-      .post<SessionDto>('/api/auth/refresh', {})
-      .pipe(tap((session) => this.adopt(session)));
+    this.refreshing ??= this.http.post<SessionDto>('/api/auth/refresh', {}).pipe(
+      tap((session) => this.adopt(session)),
+      finalize(() => (this.refreshing = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.refreshing;
   }
 
   forgotPassword(email: string): Observable<void> {

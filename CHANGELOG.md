@@ -18,8 +18,27 @@ called out under **Changed** with what to do about it.
   account with a monitoring service is involved. It starts working after the first
   scheduled run on `main`.
 
+### Changed
+
+- **Internal reorganisation, no change in behaviour, API or appearance.** The shared
+  schemas and the server configuration are split into one file per domain or concern;
+  the server's authentication code is split into sessions, registration, password and
+  account modules, and the CRUD modules (projects, checks, channels, access) keep their
+  queries in repositories; the web application is organised in `features/` with their
+  own routes, one API class per resource, a Settings page made of six tab components,
+  and the global stylesheet in parts. Every screen was compared before and after.
+- **The site's language can be changed on a phone from the home page too**: the header
+  keeps the language picker there (the other pages have it in the menu). The menu no
+  longer repeats the "Login" button the header already shows.
+- **The site no longer shows an "Edit page" link** under its pages.
+
 ### Fixed
 
+- **A tab left open past its access token's lifetime could sign the user out everywhere.**
+  Refresh tokens rotate, and the server treats the reuse of a spent one as theft. When
+  a page made several requests at the moment the access token expired (the Settings
+  page makes four), each one asked for its own refresh and the second presented a
+  token the first had already spent. Refreshes are now made one at a time and shared.
 - **The login, registration and password-reset rate limit could be dodged by adding a
   query string** (`/api/auth/login?1`, `?2`, …): each variant had its own budget. The
   limit now counts the path alone.
@@ -27,13 +46,6 @@ called out under **Changed** with what to do about it.
   to a user session. An API key reaches only the checks of its own project, as before:
   a test now tries every route with one project's key against another account's
   objects.
-
-### Changed
-
-- **The site's language can be changed on a phone from the home page too**: the header
-  keeps the language picker there (the other pages have it in the menu). The menu no
-  longer repeats the "Login" button the header already shows.
-- **The site no longer shows an "Edit page" link** under its pages.
 
 ## [0.3.2] — 2026-10-04
 

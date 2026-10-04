@@ -1,0 +1,35 @@
+@use '@angular/material' as mat;
+
+/* Angular Material provides the dialogs, menus, inputs and snackbars. Its own
+   palette is bound to the tokens above so its components sit inside this design
+   rather than beside it. */
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: (
+        plain-family: system-ui,
+        brand-family: system-ui,
+      ),
+      density: -1,
+    )
+  );
+
+  --mat-sys-surface: var(--sw-surface);
+  --mat-sys-surface-container: var(--sw-surface);
+  --mat-sys-surface-container-low: var(--sw-surface-2);
+  --mat-sys-surface-container-high: var(--sw-surface-2);
+  --mat-sys-surface-container-highest: var(--sw-surface-3);
+  --mat-sys-on-surface: var(--sw-text);
+  --mat-sys-on-surface-variant: var(--sw-text-muted);
+  --mat-sys-outline: var(--sw-border-strong);
+  --mat-sys-outline-variant: var(--sw-border);
+  --mat-sys-primary: var(--sw-accent);
+  --mat-sys-on-primary: var(--sw-accent-contrast);
+  --mat-sys-error: var(--sw-down);
+  --mat-sys-corner-medium: var(--sw-radius);
+  --mat-sys-corner-large: var(--sw-radius-lg);
+}

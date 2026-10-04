@@ -1,0 +1,20 @@
+/* One breakpoint for the whole application: 820px, the width below which a
+ * table of six columns stops fitting (the widest needs about 800) and a bar of
+ * three links stops fitting beside a project name. It also catches a tablet
+ * held upright, which has the width of a large phone and the same thumbs. Every screen answers to it the same way,
+ * which is the point — before this each page decided for itself, and each
+ * decided differently.
+ *
+ * Four ideas, applied everywhere rather than screen by screen:
+ *   1. the chrome splits — a slim top bar, a tab bar under the thumb;
+ *   2. a table becomes a list of cards, because the column that matters most
+ *      (the state) used to be the one scrolled off the edge;
+ *   3. a dialog becomes the whole screen, with its buttons pinned at the foot;
+ *   4. anything you press is at least 44px, the size a fingertip can hit. */
+
+@use 'phones/chrome';
+@use 'phones/controls';
+@use 'phones/toolbar';
+@use 'phones/table-cards';
+@use 'phones/paging';
+@use 'phones/dialogs';

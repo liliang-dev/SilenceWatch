@@ -1,0 +1,159 @@
+@media (max-width: 820px) {
+  /* --- tables become lists of cards ---------------------------------------
+   *
+   * The markup is untouched and stays a table for a screen reader and for
+   * every wider screen; only how it is drawn changes. Each cell says how much
+   * room it wants with a class —
+   *
+   *     sw-cell-main    the title: the first line, less the status
+   *     sw-cell-aside   the status, at the end of that line
+   *     sw-cell-half    a labelled fact, two to a line
+   *     sw-cell-third   a labelled fact, three to a line
+   *     (nothing)       a labelled fact on a line of its own
+   *     sw-hide-mobile  not worth a line on a phone
+   *
+   * — and `data-label` is what the fact is called, drawn above its value in
+   * place of the column header, which a card does not have. Sorting goes with
+   * the header: on a phone the order is the default one, which is the order
+   * each of these lists was designed to be read in. */
+  .sw-scroll-x {
+    overflow: visible;
+  }
+
+  .sw-datatable,
+  .sw-table.sw-stack {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .sw-datatable .mat-mdc-header-row,
+  .sw-datatable thead,
+  .sw-table.sw-stack thead {
+    display: none;
+  }
+
+  .sw-datatable tbody,
+  .sw-table.sw-stack tbody {
+    display: block;
+  }
+
+  .sw-datatable .mat-mdc-row,
+  .sw-table.sw-stack tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px 12px;
+    height: auto;
+    min-height: 0;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--sw-border);
+  }
+
+  .sw-datatable .mat-mdc-row:last-child,
+  .sw-table.sw-stack tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  /* The line break between the title row and the facts. Without it a short
+     fact fits beside the title and squeezes it into a column one word wide; a
+     full-width item that follows the title and the status, and precedes
+     everything else, makes "title and status" a line of their own whatever the
+     widths turn out to be. The negative margin takes back one of the two row
+     gaps it would otherwise add. */
+  .sw-datatable .mat-mdc-row::before,
+  .sw-table.sw-stack tbody tr::before {
+    content: '';
+    order: 2;
+    flex: 0 0 100%;
+    height: 0;
+    margin-top: -6px;
+  }
+
+  /* A card is a wrapping row. The title takes whatever the status leaves, the
+     status takes exactly what it needs — a fixed fraction of the width clipped
+     "10 minutes ago" — and the facts fall into the lines below by their width.
+     `order` puts the status beside the title wherever its column sits. */
+  .sw-datatable .mat-mdc-cell,
+  .sw-table.sw-stack tbody td {
+    display: block;
+    flex: 0 0 100%;
+    order: 3;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none !important;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-main,
+  .sw-table.sw-stack td.sw-cell-main {
+    flex: 1 1 0;
+    order: 0;
+    font-weight: 500;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-aside,
+  .sw-table.sw-stack td.sw-cell-aside {
+    flex: 0 0 auto;
+    order: 1;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-half,
+  .sw-table.sw-stack td.sw-cell-half {
+    flex: 0 0 calc((100% - 12px) / 2);
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-cell-third,
+  .sw-table.sw-stack td.sw-cell-third {
+    flex: 0 0 calc((100% - 24px) / 3);
+  }
+
+  .sw-datatable .mat-mdc-cell[data-label]::before,
+  .sw-table.sw-stack td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 1px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sw-text-subtle);
+  }
+
+  /* Free-form output: a few lines, not a column. */
+  .sw-datatable .mat-mdc-cell.body {
+    max-width: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  .sw-datatable .mat-mdc-cell.sw-hide-mobile,
+  .sw-table.sw-stack td.sw-hide-mobile {
+    display: none !important;
+  }
+
+  /* The state stripe moves from the first cell to the card. */
+  .sw-datatable .mat-mdc-row.row-down {
+    box-shadow: inset 3px 0 0 var(--sw-down);
+  }
+
+  .sw-datatable .mat-mdc-row.row-late {
+    box-shadow: inset 3px 0 0 var(--sw-late);
+  }
+
+  .sw-datatable .mat-mdc-row.ongoing {
+    box-shadow: inset 3px 0 0 var(--sw-down);
+  }
+
+  .sw-datatable.sw-rows-clickable .mat-mdc-row:active {
+    background: var(--sw-surface-3);
+  }
+}

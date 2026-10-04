@@ -1,0 +1,20 @@
+@media (max-width: 820px) {
+  /* --- paging: where you are, and the two arrows -------------------------- */
+
+  /* Nested under the paginator for the specificity: Material's own rules for
+     these are loaded after this file and win a tie. */
+  .mat-mdc-paginator .mat-mdc-paginator-container {
+    justify-content: space-between;
+    min-height: 56px;
+    padding: 0 4px 0 16px;
+  }
+
+  .mat-mdc-paginator .mat-mdc-paginator-page-size {
+    display: none;
+  }
+
+  .mat-mdc-paginator .mat-mdc-paginator-range-actions {
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+}

@@ -1,0 +1,73 @@
+/* ------------------------------------------------------------------ base --- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--sw-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sw-text);
+  background: var(--sw-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--sw-text);
+}
+
+h1 {
+  font-size: 1.375rem;
+}
+
+h2 {
+  font-size: 1.0625rem;
+}
+
+a {
+  color: var(--sw-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* One visible focus treatment everywhere, including for Material's controls. */
+:focus-visible {
+  outline: 2px solid var(--sw-accent);
+  outline-offset: 2px;
+  border-radius: var(--sw-radius-sm);
+}
+
+::selection {
+  background: var(--sw-accent-soft);
+  color: var(--sw-text);
+}
+
+/* Times, durations and counts line up in columns when they are tabular. */
+time,
+.sw-num,
+.sw-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-mono {
+  font-family: var(--sw-font-mono);
+  font-size: 0.8125rem;
+}
