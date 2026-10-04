@@ -31,8 +31,8 @@ called out under **Changed** with what to do about it.
 - **The application's last two hand-drawn icons (the tick and the error mark of the
   email confirmation and password reset pages) are now Material Icons too**, like
   every other icon of the interface, through the same inline `sw-icon` component.
-- **The site's header shows a "Login" button ("Connexion" in French) on every page** (on a screen
-  wide enough to have room for it).
+- **The site's header shows a "Login" button ("Connexion" in French) on every page**, phones
+  included (on the narrowest ones the site name makes way for it, the logo stays).
 - **A second logo for dark mode.** The application and the site show the pale tile
   on a light page and the purple one on a dark page, following the theme — the
   device's, or the one chosen in Settings → Preferences, which wins. The favicon

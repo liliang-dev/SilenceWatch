@@ -289,7 +289,6 @@
 
 /* The header's sign-in button: visible on every page, not only the home page. */
 .sw-login {
-  display: none;
   align-items: center;
   padding: 0.4rem 0.95rem;
   border-radius: 999px;
@@ -311,8 +310,35 @@
   color: #fff;
 }
 
-@media (min-width: 50rem) {
+.sw-login {
+  display: inline-flex;
+}
+
+/* On a phone Starlight hides the whole right-hand group (the theme and language
+   pickers move into the menu). Keep that group, with the sign-in button alone in it. */
+@media (max-width: 49.99rem) {
+  .header .right-group {
+    display: flex !important;
+  }
+
+  .header .right-group > :not(.social-icons),
+  .header .social-icons > :not(.sw-login) {
+    display: none !important;
+  }
+
   .sw-login {
-    display: inline-flex;
+    padding: 0.3rem 0.8rem;
+  }
+
+  /* The divider that precedes the menu button: on a page without a menu, it points at nothing. */
+  :root:not([data-has-sidebar]) .header .social-icons::after {
+    display: none;
+  }
+}
+
+/* On the narrowest phones the name makes way for the button: the logo stays. */
+@media (max-width: 26rem) {
+  .header .site-title span {
+    display: none;
   }
 }
