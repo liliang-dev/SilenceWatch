@@ -1,0 +1,88 @@
+<section class="sw-card section">
+  <div class="section-head">
+    <h2>{{ t('settings.keysTitle') }}</h2>
+    <p class="sw-muted">{{ t('settings.keysBody') }}</p>
+  </div>
+
+  <div class="section-body">
+    @if (createdKey(); as created) {
+      <!-- Shown once, and said so plainly: the secret is not stored in a
+     recoverable form and there is no second chance to copy it. -->
+      <div class="new-key">
+        <p class="new-key-title">{{ t('settings.newKeyTitle') }}</p>
+        <div class="key-row">
+          <code class="sw-mono">{{ created.token }}</code>
+          <button
+            mat-icon-button
+            class="sw-icon-button"
+            (click)="copy(created.token)"
+            [attr.aria-label]="t('settings.copyKeyAria')"
+          >
+            <sw-icon name="copy" />
+          </button>
+        </div>
+      </div>
+    }
+
+    <form [formGroup]="keyForm" (ngSubmit)="createKey()" class="inline-form">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('settings.keyName') }}</mat-label>
+        <input matInput formControlName="name" placeholder="spring-boot-starter" required />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="busy()" class="tall">
+        {{ t('settings.createKey') }}
+      </button>
+    </form>
+  </div>
+
+  @if (apiKeys().length === 0) {
+    <p class="section-note sw-muted">{{ t('settings.noKey') }}</p>
+  } @else {
+    <div class="sw-scroll-x bordered">
+      <table class="sw-table sw-stack">
+        <thead>
+          <tr>
+            <th scope="col">{{ t('settings.colName') }}</th>
+            <th scope="col">{{ t('settings.colPrefix') }}</th>
+            <th scope="col">{{ t('settings.colLastUsed') }}</th>
+            <th scope="col">{{ t('settings.colCreated') }}</th>
+            <th scope="col">
+              <span class="visually-hidden">{{ t('settings.colActions') }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (key of apiKeys(); track key.id) {
+            <tr [class.revoked]="key.revokedAt">
+              <td class="sw-cell-main">{{ key.name }}</td>
+              <td
+                class="sw-mono sw-muted sw-cell-half"
+                [attr.data-label]="t('settings.colPrefix')"
+              >
+                {{ key.prefix }}…
+              </td>
+              <td class="sw-cell-half" [attr.data-label]="t('settings.colLastUsed')">
+                {{ key.lastUsedAt | swRelativeTime }}
+              </td>
+              <td
+                class="sw-muted sw-cell-half"
+                [attr.data-label]="t('settings.colCreated')"
+              >
+                {{ key.createdAt | swRelativeTime }}
+              </td>
+              <td class="right sw-cell-aside">
+                @if (key.revokedAt) {
+                  <span class="sw-tag">{{ t('settings.revoked') }}</span>
+                } @else {
+                  <button mat-button class="danger" (click)="revoke(key)">
+                    {{ t('settings.revoke') }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

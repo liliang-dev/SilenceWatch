@@ -1,0 +1,148 @@
+/* =============================================================================
+   SilenceWatch design tokens
+   =============================================================================
+
+   The product is read at a glance, often by someone who has just been woken up.
+   Two rules follow from that and drive everything below:
+
+   1. The chrome is quiet. Surfaces, borders and text are near-neutral, so the
+      only saturated colour on screen belongs to a check's state. A blue button
+      competing with a red status is a design that hides the answer.
+   2. Colour is never the only signal. Every state also has a label and a shape,
+      so the screen survives greyscale and colour blindness.
+
+   No web font is loaded: the served Content-Security-Policy is `default-src
+   'self'`, and a monitoring tool should not go and fetch a stylesheet from a
+   third party before it can tell you what is broken.
+   ========================================================================== */
+
+:root {
+  color-scheme: light dark;
+
+  /* Neutrals — light */
+  --sw-bg: #fafbfc;
+  --sw-bg-accent: #f2f4f7;
+  --sw-surface: #ffffff;
+  --sw-surface-2: #f7f8fa;
+  --sw-surface-3: #eef0f4;
+  --sw-border: #e4e7ec;
+  --sw-border-strong: #d0d5dd;
+  --sw-text: #101828;
+  --sw-text-muted: #667085;
+  --sw-text-subtle: #98a2b3;
+
+  /* One purple, hsl(263 86% 62%).
+
+     The brand started lighter, at hsl(263 94% 79%), and that shade cannot be
+     an interface: white on it is 2.4:1, so the glyph washed out and a filled
+     button was unreadable. Darkened to 62% lightness it clears 4.5:1 in both
+     directions at once — white on the mark, and the mark's colour as text or a
+     button on white — which is what lets the logo and the accent be the same
+     value instead of two purples that merely resemble each other.
+
+     The original lightness is not thrown away: it is what the dark theme uses
+     below, where a pale lavender is exactly right. */
+  --sw-brand: #8b4bf1;
+  --sw-accent: #8b4bf1;
+  --sw-accent-hover: #6c1bee;
+  --sw-accent-soft: #faf7ff;
+  --sw-accent-contrast: #ffffff;
+
+  /* Status — the only colours allowed to shout */
+  --sw-up: #067647;
+  --sw-up-soft: #ecfdf3;
+  --sw-late: #b54708;
+  --sw-late-soft: #fffaeb;
+  --sw-down: #d92d20;
+  --sw-down-soft: #fef3f2;
+  --sw-paused: #667085;
+  --sw-paused-soft: #f2f4f7;
+  --sw-new: #175cd3;
+  --sw-new-soft: #eff8ff;
+
+  --sw-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
+  --sw-shadow: 0 1px 3px rgb(16 24 40 / 8%), 0 1px 2px rgb(16 24 40 / 4%);
+  --sw-shadow-lg: 0 12px 32px -8px rgb(16 24 40 / 14%);
+
+  /* One height for every input, select and button. Declared once so a button
+     beside a field is the same object, on every screen. */
+  --sw-control-height: 48px;
+
+  --sw-radius-sm: 6px;
+  --sw-radius: 10px;
+  --sw-radius-lg: 14px;
+
+  --sw-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sw-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Which of the two logos is shown (see the `.mark` images): the light tile on
+     a light page, the purple one on a dark page. `display` values, so that one
+     token in each theme is all a template needs. */
+  --sw-logo-light: block;
+  --sw-logo-dark: none;
+}
+
+/* The dark palette, written once and applied two ways below: when the device
+   asks for it and nothing has been chosen, and when the person chose it. */
+@mixin dark-tokens {
+  color-scheme: dark;
+
+  --sw-bg: #0b0d11;
+  --sw-bg-accent: #10131a;
+  --sw-surface: #14171e;
+  --sw-surface-2: #191d26;
+  --sw-surface-3: #212734;
+  --sw-border: #252b36;
+  --sw-border-strong: #333b49;
+  --sw-text: #e8eaf0;
+  --sw-text-muted: #98a2b3;
+  --sw-text-subtle: #6c7689;
+
+  --sw-logo-light: none;
+  --sw-logo-dark: block;
+
+  /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
+     surface it sits on. */
+  --sw-brand: #8b4bf1;
+  --sw-accent: #bc95fc;
+  --sw-accent-hover: #d3bafe;
+  --sw-accent-soft: #221a36;
+  --sw-accent-contrast: #0b0d11;
+
+  /* Lightened so they keep contrast on a dark surface: the light-mode greens
+     and reds are unreadable here, which is how status colour quietly stops
+     working in dark mode. */
+  --sw-up: #47cd89;
+  --sw-up-soft: #0c1f18;
+  --sw-late: #fdb022;
+  --sw-late-soft: #241a09;
+  --sw-down: #f97066;
+  --sw-down-soft: #2a1211;
+  --sw-paused: #98a2b3;
+  --sw-paused-soft: #1b2029;
+  --sw-new: #84adff;
+  --sw-new-soft: #101c33;
+
+  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+  --sw-shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 70%);
+}
+
+/* Following the device — the default, and what "System" means in the
+   preferences. A chosen light theme opts out of it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include dark-tokens;
+  }
+}
+
+/* A chosen theme wins over the device in both directions: a dark choice on a
+   light machine, and a light choice on a dark one. `data-theme` is set by the
+   ThemeService, and before the application starts by public/theme-init.js. */
+:root[data-theme='dark'] {
+  @include dark-tokens;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}

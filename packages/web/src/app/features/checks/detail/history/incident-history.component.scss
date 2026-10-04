@@ -1,0 +1,8 @@
+.ongoing-tag {
+  color: var(--sw-down);
+  font-weight: 600;
+}
+
+.mat-mdc-row.ongoing .mat-mdc-cell:first-child {
+  box-shadow: inset 3px 0 0 var(--sw-down);
+}

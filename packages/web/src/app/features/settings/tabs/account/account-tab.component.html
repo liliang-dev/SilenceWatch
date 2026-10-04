@@ -1,0 +1,31 @@
+<section class="sw-card section">
+  <div class="section-head">
+    <h2>{{ t('settings.accountTitle') }}</h2>
+  </div>
+  <dl class="section-body facts">
+    <div>
+      <dt class="sw-label">{{ t('settings.signedInAs') }}</dt>
+      <dd>{{ auth.user()?.email }}</dd>
+    </div>
+    <div>
+      <dt class="sw-label">{{ t('settings.accountProject') }}</dt>
+      <dd>{{ projects.selected()?.name ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt class="sw-label">{{ t('settings.accountChecks') }}</dt>
+      <dd class="sw-num">{{ projects.selected()?.checkCount ?? 0 }}</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="sw-card section danger">
+  <div class="section-head">
+    <h2>{{ t('settings.dangerTitle') }}</h2>
+  </div>
+  <div class="section-body danger-body">
+    <p class="sw-muted">{{ t('settings.dangerBody') }}</p>
+    <button mat-stroked-button type="button" class="danger-button" (click)="deleteAccount()">
+      {{ t('settings.deleteAccountOpen') }}
+    </button>
+  </div>
+</section>

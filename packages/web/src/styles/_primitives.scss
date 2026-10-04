@@ -1,0 +1,74 @@
+/* ---------------------------------------------------------- primitives --- */
+
+.sw-card {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+}
+
+.sw-card-pad {
+  padding: 20px;
+}
+
+/* Column headings and field labels: quiet, small, and never shouting in caps. */
+.sw-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sw-text-subtle);
+}
+
+.sw-muted {
+  color: var(--sw-text-muted);
+}
+
+.sw-subtle {
+  color: var(--sw-text-subtle);
+}
+
+.sw-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--sw-text-muted);
+  white-space: nowrap;
+}
+
+.sw-error {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--sw-down) 30%, transparent);
+  border-radius: var(--sw-radius);
+  background: var(--sw-down-soft);
+  color: var(--sw-down);
+  font-size: 0.875rem;
+}
+
+.sw-empty {
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.sw-empty h2 {
+  margin-bottom: 8px;
+}
+
+.sw-empty p {
+  max-width: 46ch;
+  margin: 0 auto;
+  color: var(--sw-text-muted);
+}
+
+.sw-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}

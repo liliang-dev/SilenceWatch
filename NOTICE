@@ -24,7 +24,7 @@ part of the work you may reuse. It is:
     the logo and the wordmark shown in the application header and on the
     sign-in page:
         packages/web/src/app/app.component.html
-        packages/web/src/app/pages/login/login.component.html
+        packages/web/src/app/features/auth/login/login.component.html
 
 A fork or a redistribution keeps every right the licence gives over the code, and
 replaces these. See TRADEMARK.md for what can be done with the name and the logo

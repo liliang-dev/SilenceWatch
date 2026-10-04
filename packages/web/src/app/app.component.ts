@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AuthService } from './core/auth.service';
+import { AuthService } from './core/auth/auth.service';
 import { I18n } from './core/i18n/i18n.service';
 import { ProjectStore } from './core/project.store';
 import { IconComponent } from './shared/icon.component';

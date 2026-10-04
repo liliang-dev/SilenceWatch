@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { ProjectDto } from '@silencewatch/shared';
-import { ApiService } from './api.service';
+import { ProjectsApi } from './api/projects.api';
 
 const SELECTED_PROJECT_KEY = 'silencewatch.project';
 
@@ -13,7 +13,7 @@ const SELECTED_PROJECT_KEY = 'silencewatch.project';
  */
 @Injectable({ providedIn: 'root' })
 export class ProjectStore {
-  private readonly api = inject(ApiService);
+  private readonly projectsApi = inject(ProjectsApi);
 
   private readonly projects = signal<ProjectDto[]>([]);
   private readonly selectedId = signal<string | null>(localStorage.getItem(SELECTED_PROJECT_KEY));
@@ -31,7 +31,7 @@ export class ProjectStore {
     if (this.loading() || (this.projects().length > 0 && !force)) return;
 
     this.loading.set(true);
-    this.api.listProjects().subscribe({
+    this.projectsApi.list().subscribe({
       next: (projects) => {
         this.projects.set(projects);
         this.loading.set(false);

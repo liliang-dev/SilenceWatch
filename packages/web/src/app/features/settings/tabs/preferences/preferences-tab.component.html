@@ -1,0 +1,50 @@
+<section class="sw-card section">
+  <div class="section-head">
+    <h2>{{ t('prefs.title') }}</h2>
+    <p class="sw-muted">{{ t('prefs.body') }}</p>
+  </div>
+
+  <div class="section-body prefs">
+    <!-- Native radio buttons dressed as cards: the keyboard, the screen
+   reader and the form semantics come with them, for free. -->
+    <fieldset class="pref-group">
+      <legend class="sw-label">{{ t('prefs.language') }}</legend>
+      <div class="choices">
+        @for (option of languages; track option.code) {
+          <label class="choice">
+            <input
+              type="radio"
+              name="language"
+              [value]="option.code"
+              [checked]="language() === option.code"
+              (change)="setLanguage(option.code)"
+            />
+            <sw-flag [country]="option.flag" />
+            <span class="choice-label" [attr.lang]="option.code">{{ option.name }}</span>
+          </label>
+        }
+      </div>
+      <p class="pref-hint sw-subtle">{{ t('prefs.languageHint') }}</p>
+    </fieldset>
+
+    <fieldset class="pref-group">
+      <legend class="sw-label">{{ t('prefs.theme') }}</legend>
+      <div class="choices thirds">
+        @for (option of themes; track option.choice) {
+          <label class="choice">
+            <input
+              type="radio"
+              name="theme"
+              [value]="option.choice"
+              [checked]="theme.choice() === option.choice"
+              (change)="theme.set(option.choice)"
+            />
+            <sw-icon [name]="option.icon" [size]="22" />
+            <span class="choice-label">{{ t(option.label) }}</span>
+          </label>
+        }
+      </div>
+      <p class="pref-hint sw-subtle">{{ t('prefs.themeHint') }}</p>
+    </fieldset>
+  </div>
+</section>
