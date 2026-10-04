@@ -13,6 +13,10 @@ import { authGuard } from './core/auth/auth.guard';
  * where they are mounted and which of them need a session.
  */
 export const routes: Routes = [
+  // First, and `pathMatch: 'full'`: the auth routes below are mounted on the empty path,
+  // and an empty-path parent whose children do not match "/" would claim it and render
+  // nothing at all.
+  { path: '', pathMatch: 'full', redirectTo: 'checks' },
   {
     path: '',
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
@@ -36,6 +40,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/settings/settings.component').then((m) => m.SettingsComponent),
   },
-  { path: '', pathMatch: 'full', redirectTo: 'checks' },
   { path: '**', redirectTo: 'checks' },
 ];
