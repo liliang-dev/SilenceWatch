@@ -10,6 +10,12 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-10-05
+
+Two additive migrations (two new tables, three columns, two indexes), so going back to 0.4.1
+is safe. Nothing to set: every new feature below is **off unless you turn it on**, except the
+test-alert limit, which is the one behaviour change and is why this is a minor version.
+
 ### Added
 
 - Subscriptions for the hosted service, through Stripe: a **Subscription** tab in Settings
@@ -26,28 +32,28 @@ called out under **Changed** with what to do about it.
   `BILLING_AUTOMATIC_TAX`, `STRIPE_API_URL`; two new tables (`subscription`, `stripe_event`)
   that nothing writes to without billing.
 - A pricing page on the site, in both languages, built from one list of plans.
+- Limits on what a free account can cost, for the hosted service. **One account per
+  connection** (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default, needs
+  `EMAIL_VERIFICATION_REQUIRED`): counts the accounts that exist from an IPv4 address or IPv6
+  /64, using a keyed hash and never the address. **Alerts per channel per hour**
+  (`ALERT_MAX_PER_CHANNEL_PER_HOUR`, off by default) so that a flapping check or a channel
+  aimed at someone else's mailbox cannot send without end. A project holds at most 25 live
+  API keys, and an account keeps its 20 newest sessions.
 - A plan limit that blocks an action is now explained in the language of the page, with the
   numbers, instead of in the server's English.
 
-- Limits on what a free account can cost, for the hosted service. **A test alert** (the button
-  on a channel) is limited to one per channel per minute and 20 per account per hour, and
-  answers 429 with the time to wait (`TEST_ALERT_COOLDOWN_SECONDS`, `TEST_ALERT_MAX_PER_HOUR`);
-  both apply everywhere, and can be turned off with 0. **One account per connection**
-  (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default, needs `EMAIL_VERIFICATION_REQUIRED`):
-  counts the accounts that exist from an IPv4 address or IPv6 /64, using a keyed hash and
-  never the address. **Alerts per channel per hour** (`ALERT_MAX_PER_CHANNEL_PER_HOUR`, off by
-  default) so that a flapping check or a channel aimed at someone else's mailbox cannot send
-  without end. A project holds at most 25 live API keys, and an account keeps its 20 newest
-  sessions. Two additive columns and an index.
+### Changed
+
+- **A test alert** (the button on a channel) is limited to one per channel per minute and 20
+  per account per hour, and answers 429 with the time to wait, on every instance. It sends a
+  real message to an address or URL of the user's choosing. `TEST_ALERT_COOLDOWN_SECONDS` and
+  `TEST_ALERT_MAX_PER_HOUR` change it; 0 turns each off.
+- The site no longer says the hosted service *is* free: it has a free plan, and paid plans.
 
 ### Fixed
 
 - Resolved incidents were never deleted; they are now purged with the ping history, and a
   revoked or expired API key is deleted after 30 days.
-
-### Changed
-
-- The site no longer says the hosted service *is* free: it has a free plan, and paid plans.
 
 ## [0.4.1] — 2026-10-04
 
@@ -665,7 +671,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.1...0.3.2
