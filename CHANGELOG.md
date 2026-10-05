@@ -29,6 +29,22 @@ called out under **Changed** with what to do about it.
 - A plan limit that blocks an action is now explained in the language of the page, with the
   numbers, instead of in the server's English.
 
+- Limits on what a free account can cost, for the hosted service. **A test alert** (the button
+  on a channel) is limited to one per channel per minute and 20 per account per hour, and
+  answers 429 with the time to wait (`TEST_ALERT_COOLDOWN_SECONDS`, `TEST_ALERT_MAX_PER_HOUR`);
+  both apply everywhere, and can be turned off with 0. **One account per connection**
+  (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default, needs `EMAIL_VERIFICATION_REQUIRED`):
+  counts the accounts that exist from an IPv4 address or IPv6 /64, using a keyed hash and
+  never the address. **Alerts per channel per hour** (`ALERT_MAX_PER_CHANNEL_PER_HOUR`, off by
+  default) so that a flapping check or a channel aimed at someone else's mailbox cannot send
+  without end. A project holds at most 25 live API keys, and an account keeps its 20 newest
+  sessions. Two additive columns and an index.
+
+### Fixed
+
+- Resolved incidents were never deleted; they are now purged with the ping history, and a
+  revoked or expired API key is deleted after 30 days.
+
 ### Changed
 
 - The site no longer says the hosted service *is* free: it has a free plan, and paid plans.

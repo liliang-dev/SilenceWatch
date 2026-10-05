@@ -164,4 +164,28 @@ describe('loadConfig', () => {
       expect(() => loadConfig(plans({ pro: { price: 'nope', amount: 1 } }))).toThrow(/STRIPE_PLANS/);
     });
   });
+
+  describe('abuse limits', () => {
+    it('lets a connection have one account only when addresses are proven', () => {
+      expect(() => loadConfig({ ...minimal, SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1' })).toThrow(
+        /needs EMAIL_VERIFICATION_REQUIRED/,
+      );
+      const config = loadConfig({
+        ...minimal,
+        SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1',
+        EMAIL_VERIFICATION_REQUIRED: 'true',
+        EMAIL_PROVIDER: 'smtp',
+        SMTP_URL: 'smtp://u:p@smtp.example.test:587',
+      } as NodeJS.ProcessEnv);
+      expect(config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(1);
+    });
+
+    it('is off for one connection and on for test alerts by default', () => {
+      const config = loadConfig(minimal);
+      expect(config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(0);
+      expect(config.ALERT_MAX_PER_CHANNEL_PER_HOUR).toBe(0);
+      expect(config.TEST_ALERT_COOLDOWN_SECONDS).toBe(60);
+      expect(config.TEST_ALERT_MAX_PER_HOUR).toBe(20);
+    });
+  });
 });

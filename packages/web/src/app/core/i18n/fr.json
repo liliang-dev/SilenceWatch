@@ -455,5 +455,9 @@
   "error.quota.checks": "Limite de checks atteinte : votre forfait en autorise {limit}, et {used} sont utilisés.",
   "error.quota.projects": "Limite de projets atteinte : votre forfait en autorise {limit}, et {used} sont utilisés.",
   "error.quota.channels": "Limite de canaux d’alerte atteinte : votre forfait en autorise {limit} par projet.",
-  "audit.billing.plan_changed": "Forfait modifié"
+  "audit.billing.plan_changed": "Forfait modifié",
+  "error.testCooldown": "Ce canal a été testé il y a un instant. Patientez {seconds} secondes avant de le retester.",
+  "error.testLimit": "Vous avez envoyé {limit} alertes de test en moins d’une heure. Réessayez plus tard.",
+  "server.addressTaken": "Un compte existe déjà depuis ce réseau. Connectez-vous-y, ou contactez-nous si cette connexion est partagée.",
+  "server.tooManyKeys": "Un projet peut avoir 25 clés d’API actives. Révoquez-en une dont vous ne vous servez plus."
 }

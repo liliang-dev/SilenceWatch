@@ -78,7 +78,7 @@ export class RegistrationService {
     input: RegisterRequest,
     context: SessionContext,
   ): Promise<RegisterResponse> {
-    const user = await this.createUser(input);
+    const user = await this.createUser(input, context);
     await this.signupGuard.record(networkOf(context), true);
     this.logger.log(`Account created for ${maskEmail(user.email)}`);
     this.audit.record({ action: 'account.registered', actor: auditActorOf(user, context) });
@@ -105,7 +105,7 @@ export class RegistrationService {
       return answer;
     }
 
-    const user = await this.createUser(input).catch((error: unknown) => {
+    const user = await this.createUser(input, context).catch((error: unknown) => {
       // Lost a race with a concurrent registration for the same address. The
       // observable outcome is the one above, so answer as if we had seen it.
       if (isUniqueViolation(error)) return null;
@@ -155,6 +155,17 @@ export class RegistrationService {
       );
     }
 
+    if (!(await this.signupGuard.isAddressWithinQuota(this.signupGuard.signupNetworkOf(context.ip)))) {
+      await this.signupGuard.record(network, false);
+      throw new HttpException(
+        {
+          message:
+            'An account already exists from this network. Sign in to it, or contact us if this connection is shared.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     if (!(await this.signupGuard.isNetworkWithinQuota(network))) {
       await this.signupGuard.record(network, false);
       throw new HttpException(
@@ -164,7 +175,7 @@ export class RegistrationService {
     }
   }
 
-  private async createUser(input: RegisterRequest): Promise<UserRecord> {
+  private async createUser(input: RegisterRequest, context: SessionContext): Promise<UserRecord> {
     const passwordHash = await hashPassword(input.password);
     const projectName = input.name === undefined ? 'My project' : `${input.name}'s project`;
     const projectSlug = await uniqueSlug(projectName, (candidate) =>
@@ -179,6 +190,7 @@ export class RegistrationService {
         // Null when quotas are off, which is every self-hosted install and
         // therefore the unlimited plan.
         plan: this.quotas.defaultPlan,
+        signupNetwork: this.signupGuard.signupNetworkOf(context.ip),
         projectName,
         projectSlug,
       })

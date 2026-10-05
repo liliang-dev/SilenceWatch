@@ -92,6 +92,18 @@ the log instead of sending them, and the published image sets
 | `NOTIFICATION_MAX_ATTEMPTS` | `6` | Retries before a delivery is abandoned |
 | `NOTIFICATION_TIMEOUT_MS` | `10000` | Timeout for each outbound alert |
 | `ALLOW_PRIVATE_NOTIFICATION_TARGETS` | `false` | Allow alerts to reach private addresses |
+| `ALERT_MAX_PER_CHANNEL_PER_HOUR` | `0` | Alerts one channel may deliver per hour; 0 is no limit |
+| `TEST_ALERT_COOLDOWN_SECONDS` | `60` | Gap between two test alerts from one channel; 0 disables it |
+| `TEST_ALERT_MAX_PER_HOUR` | `20` | Test alerts one account may send per hour; 0 disables it |
+
+A test alert (the button on a channel) sends a real message to whatever address or
+URL the channel points at, so it is limited: one every `TEST_ALERT_COOLDOWN_SECONDS`
+per channel, and `TEST_ALERT_MAX_PER_HOUR` per account. Both answer 429 with the
+time to wait. `ALERT_MAX_PER_CHANNEL_PER_HOUR` bounds the real ones: past it an
+alert is not sent and is marked as refused (with the reason) rather than retried,
+which keeps a check that keeps flapping, or a channel pointed at someone else's
+mailbox, from sending without end. Leave it at 0 unless you run SilenceWatch for
+other people.
 
 `console` prints alerts to the log instead of sending them, which is useful in
 development and unacceptable in production — the server refuses to start with it
@@ -114,6 +126,7 @@ spam folder. Relay through a provider or through a relay you already trust.
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |
 | `SIGNUP_MAX_PER_NETWORK_PER_HOUR` | `0` | Accounts per hour per network prefix; 0 disables it |
+| `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` | `0` | Accounts that may exist from one connection; needs `EMAIL_VERIFICATION_REQUIRED`; 0 disables it |
 
 Everything below the first line is **off by default and stays that way for most
 self-hosters**. If your instance is on a private network, or you set

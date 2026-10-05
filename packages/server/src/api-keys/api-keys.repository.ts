@@ -42,6 +42,25 @@ export class ApiKeysRepository {
     return this.prisma.apiKey.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } });
   }
 
+  /** Keys that still open the API: not revoked, not expired. */
+  countLive(projectId: string): Promise<number> {
+    return this.prisma.apiKey.count({
+      where: {
+        projectId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    });
+  }
+
+  /** Deletes keys that stopped working before the cutoff: revoked, or expired. */
+  async deleteDeadBefore(cutoff: Date): Promise<number> {
+    const { count } = await this.prisma.apiKey.deleteMany({
+      where: { OR: [{ revokedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },
+    });
+    return count;
+  }
+
   /** Scoped by project, so one project's admin cannot revoke another project's key by id. */
   async revoke(projectId: string, apiKeyId: string): Promise<void> {
     await this.prisma.apiKey.updateMany({

@@ -110,6 +110,11 @@ model User {
   /// The limits behind the name come from PLAN_LIMITS, never from this repo.
   plan String?
 
+  /// Keyed hash of the network the account was created from (an IPv4 address, an
+  /// IPv6 /64), never the address itself. Only read by SIGNUP_MAX_ACCOUNTS_PER_ADDRESS,
+  /// and null for accounts that predate it.
+  signupNetwork String? @map("signup_network")
+
   // Online-guessing throttle, enforced in addition to per-IP rate limiting.
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
@@ -120,6 +125,7 @@ model User {
   passwordResets PasswordReset[]
   subscription   Subscription?
 
+  @@index([signupNetwork])
   @@map("user")
 }
 
@@ -390,20 +396,23 @@ model Incident {
   deliveries NotificationDelivery[]
 
   @@index([checkId, startedAt(sort: Desc)])
+  @@index([resolvedAt])
   @@map("incident")
 }
 
 model NotificationChannel {
-  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId String      @map("project_id") @db.Uuid
-  type      ChannelType
-  name      String
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId    String      @map("project_id") @db.Uuid
+  type         ChannelType
+  name         String
   /// Channel-specific settings. Secrets stay in this column and are never
   /// returned by the API.
-  config    Json
-  enabled   Boolean     @default(true)
-  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  config       Json
+  enabled      Boolean     @default(true)
+  /// When a test alert was last sent, so another cannot follow within the cooldown.
+  lastTestedAt DateTime?   @map("last_tested_at") @db.Timestamptz(3)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project    Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deliveries NotificationDelivery[]

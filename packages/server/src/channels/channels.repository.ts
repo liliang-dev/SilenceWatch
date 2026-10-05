@@ -63,6 +63,34 @@ export class ChannelsRepository {
     return this.prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } });
   }
 
+  /**
+   * Takes the right to send a test alert, in one statement: the channel is marked
+   * as tested only if it was not tested within the cooldown, so two requests
+   * arriving together cannot both go through.
+   *
+   * Returns 0 when the test may go ahead, and otherwise the seconds to wait.
+   */
+  async claimTest(projectId: string, channelId: string, cooldownSeconds: number): Promise<number> {
+    const now = new Date();
+    const claimed = await this.prisma.notificationChannel.updateMany({
+      where: {
+        id: channelId,
+        projectId,
+        OR: [
+          { lastTestedAt: null },
+          { lastTestedAt: { lt: new Date(now.getTime() - cooldownSeconds * 1000) } },
+        ],
+      },
+      data: { lastTestedAt: now },
+    });
+    if (claimed.count > 0) return 0;
+
+    const channel = await this.findInProject(projectId, channelId);
+    if (channel?.lastTestedAt == null) return 0;
+    const wait = cooldownSeconds * 1000 - (now.getTime() - channel.lastTestedAt.getTime());
+    return Math.max(1, Math.ceil(wait / 1000));
+  }
+
   /** Whether a channel was deleted. */
   async delete(projectId: string, channelId: string): Promise<boolean> {
     const deleted = await this.prisma.notificationChannel.deleteMany({

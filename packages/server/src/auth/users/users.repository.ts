@@ -19,6 +19,8 @@ export interface NewUser {
   name: string | null;
   /** Null when quotas are off, which is every self-hosted install. */
   plan: string | null;
+  /** Keyed hash of the network it was created from, or null when the rule is off. */
+  signupNetwork: string | null;
   projectName: string;
   projectSlug: string;
 }
@@ -62,6 +64,19 @@ export class UsersRepository {
     return this.prisma.user.findUniqueOrThrow({ where: { id } });
   }
 
+  /**
+   * Accounts created from a network that still count against its limit: those
+   * whose address is proven, and those too young to have had the chance.
+   */
+  countFromNetwork(signupNetwork: string, recentSince: Date): Promise<number> {
+    return this.prisma.user.count({
+      where: {
+        signupNetwork,
+        OR: [{ emailVerifiedAt: { not: null } }, { createdAt: { gte: recentSince } }],
+      },
+    });
+  }
+
   /** The account and the owner membership of its first project, in one write. */
   createWithFirstProject(input: NewUser) {
     return this.prisma.user.create({
@@ -70,6 +85,7 @@ export class UsersRepository {
         passwordHash: input.passwordHash,
         name: input.name,
         plan: input.plan,
+        signupNetwork: input.signupNetwork,
         memberships: {
           create: {
             role: 'owner',

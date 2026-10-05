@@ -158,6 +158,13 @@ export class AuditService {
     };
   }
 
+  /** How many times an account did something in a window: the budget of a rate rule. */
+  countRecent(action: AuditAction, userId: string, since: Date): Promise<number> {
+    return this.prisma.auditEvent.count({
+      where: { action, actorUserId: userId, occurredAt: { gte: since } },
+    });
+  }
+
   /** Drops events past the retention window. Called by the retention job. */
   async purge(retentionDays: number): Promise<number> {
     const { count } = await this.prisma.auditEvent.deleteMany({

@@ -455,5 +455,9 @@
   "error.quota.checks": "Check limit reached: your plan allows {limit}, and {used} are in use.",
   "error.quota.projects": "Project limit reached: your plan allows {limit}, and {used} are in use.",
   "error.quota.channels": "Alert channel limit reached: your plan allows {limit} per project.",
-  "audit.billing.plan_changed": "Plan changed"
+  "audit.billing.plan_changed": "Plan changed",
+  "error.testCooldown": "This channel was tested a moment ago. Wait {seconds} seconds before testing it again.",
+  "error.testLimit": "You have sent {limit} test alerts in the last hour. Try again later.",
+  "server.addressTaken": "An account already exists from this network. Sign in to it, or contact us if this connection is shared.",
+  "server.tooManyKeys": "A project can have 25 active API keys. Revoke one you no longer use first."
 }

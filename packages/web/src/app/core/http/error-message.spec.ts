@@ -128,4 +128,42 @@ describe('errorMessage', () => {
     });
     expect(errorMessage(error)).toBe('Payment required');
   });
+
+  it('says how long to wait before testing a channel again, and when the hour is used up', async () => {
+    const cooldown = new HttpErrorResponse({
+      status: 429,
+      error: {
+        statusCode: 429,
+        message: 'This channel was tested a moment ago. Wait 42 seconds before testing it again.',
+        details: { reason: 'test_cooldown', retryAfterSeconds: 42 },
+      },
+    });
+    expect(errorMessage(cooldown)).toBe(
+      'This channel was tested a moment ago. Wait 42 seconds before testing it again.',
+    );
+
+    const budget = new HttpErrorResponse({
+      status: 429,
+      error: { statusCode: 429, message: 'x', details: { reason: 'test_limit', limit: 20 } },
+    });
+    expect(errorMessage(budget)).toBe('You have sent 20 test alerts in the last hour. Try again later.');
+
+    await i18n.set('fr');
+    expect(errorMessage(cooldown)).toBe(
+      'Ce canal a été testé il y a un instant. Patientez 42 secondes avant de le retester.',
+    );
+  });
+
+  it('translates the refusal of a second account from one connection', async () => {
+    const error = new HttpErrorResponse({
+      status: 429,
+      error: {
+        statusCode: 429,
+        message:
+          'An account already exists from this network. Sign in to it, or contact us if this connection is shared.',
+      },
+    });
+    await i18n.set('fr');
+    expect(errorMessage(error)).toContain('Un compte existe déjà depuis ce réseau');
+  });
 });

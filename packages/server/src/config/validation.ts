@@ -28,6 +28,16 @@ export function validateEnv(env: Env, ctx: z.RefinementCtx): void {
         'needs a real email transport: with EMAIL_PROVIDER=console nobody could ever verify an address',
     });
   }
+  // Without proven addresses every account would stop counting after an hour,
+  // and the rule would only slow a flood down.
+  if (env.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS > 0 && !env.EMAIL_VERIFICATION_REQUIRED) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['SIGNUP_MAX_ACCOUNTS_PER_ADDRESS'],
+      message:
+        'needs EMAIL_VERIFICATION_REQUIRED: only accounts with a proven address keep counting, so without it the limit would lapse after an hour',
+    });
+  }
   // A quota system nobody configured would silently give every account the
   // unlimited plan, which is the failure that only shows up on the invoice.
   const plans = parsePlanLimits(env.PLAN_LIMITS);

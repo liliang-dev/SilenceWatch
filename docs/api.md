@@ -233,6 +233,7 @@ tenant's project returns "not found", because "forbidden" would be an answer.
 
 - Heartbeats: `PING_RATE_LIMIT_PER_MINUTE` per ping key (120 by default)
 - Authentication: `AUTH_RATE_LIMIT_PER_MINUTE` per IP and route (10)
+- Test alerts: one per channel per `TEST_ALERT_COOLDOWN_SECONDS` (60) and `TEST_ALERT_MAX_PER_HOUR` (20) per account, answered 429 with `Retry-After`
 - Everything else: `API_RATE_LIMIT_PER_MINUTE` per IP (600)
 
 Rejections carry `Retry-After`.
