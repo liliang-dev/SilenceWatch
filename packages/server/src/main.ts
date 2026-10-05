@@ -6,6 +6,8 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
+import { registerBillingWebhook } from './billing/billing-webhook.plugin';
+import { BillingService } from './billing/billing.service';
 import { registerProxyTrustCheck } from './common/proxy-trust';
 import { EventLoopLagMonitor, registerSlowRequestLog } from './common/runtime-watch';
 import { loadConfig, type AppConfig } from './config/config';
@@ -68,6 +70,13 @@ async function bootstrap(): Promise<void> {
   await registerIngestRoutes(
     app.getHttpAdapter().getInstance() as never,
     app.get(IngestService),
+    config,
+  );
+
+  // Stripe's webhook needs the body as it arrived, so it is mounted the same way.
+  await registerBillingWebhook(
+    app.getHttpAdapter().getInstance() as never,
+    app.get(BillingService),
     config,
   );
 

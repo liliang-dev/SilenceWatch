@@ -14,10 +14,24 @@
        trail meant scrolling past the key you had just created. Each tab is its
        own component, built when it is first opened and then kept: the new key's
        secret is shown once, and must still be there after a look at another tab. -->
-  <mat-tab-group animationDuration="0ms" class="tabs" disablePagination preserveContent swScrollTabs>
+  <mat-tab-group
+    animationDuration="0ms"
+    class="tabs"
+    disablePagination
+    preserveContent
+    swScrollTabs
+    [selectedIndex]="selectedTab()"
+    (selectedIndexChange)="selectedTab.set($event)"
+  >
     <mat-tab [label]="t('settings.tabProjects')">
       <ng-template matTabContent><sw-projects-tab /></ng-template>
     </mat-tab>
+
+    @if (billing.enabled()) {
+      <mat-tab [label]="t('settings.tabSubscription')">
+        <ng-template matTabContent><sw-subscription-tab /></ng-template>
+      </mat-tab>
+    }
 
     <mat-tab [label]="t('settings.tabKeys')">
       <ng-template matTabContent><sw-api-keys-tab /></ng-template>

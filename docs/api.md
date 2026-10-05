@@ -45,6 +45,14 @@ signed in and a 401 means "your session expired". Wrong passwords count towards
 the same lockout as login. The security log keeps a record, with the account's
 address, for its retention period.
 
+**Subscriptions** (the hosted service only). `GET /api/v1/billing` answers every
+instance, with `{"enabled": false}` where nothing is sold, and otherwise the plans,
+what the account uses and the state of its subscription. `POST /api/v1/billing/checkout`
+(`{"plan": "pro"}`) and `POST /api/v1/billing/portal` answer `{"url": "…"}`: Stripe's
+payment page, and Stripe's customer portal. They require a user session (an API key
+is refused) and answer 404 where nothing is sold. `POST /api/v1/billing/webhook` is
+Stripe's, authenticated by its signature alone. See the self-hosting reference.
+
 ## Heartbeats
 
 Heartbeats are **not** part of `/api`. They live at `/p/:pingKey`, are
@@ -225,6 +233,7 @@ tenant's project returns "not found", because "forbidden" would be an answer.
 
 - Heartbeats: `PING_RATE_LIMIT_PER_MINUTE` per ping key (120 by default)
 - Authentication: `AUTH_RATE_LIMIT_PER_MINUTE` per IP and route (10)
+- Test alerts: one per channel per `TEST_ALERT_COOLDOWN_SECONDS` (60) and `TEST_ALERT_MAX_PER_HOUR` (20) per account, answered 429 with `Retry-After`
 - Everything else: `API_RATE_LIMIT_PER_MINUTE` per IP (600)
 
 Rejections carry `Retry-After`.

@@ -92,6 +92,18 @@ the log instead of sending them, and the published image sets
 | `NOTIFICATION_MAX_ATTEMPTS` | `6` | Retries before a delivery is abandoned |
 | `NOTIFICATION_TIMEOUT_MS` | `10000` | Timeout for each outbound alert |
 | `ALLOW_PRIVATE_NOTIFICATION_TARGETS` | `false` | Allow alerts to reach private addresses |
+| `ALERT_MAX_PER_CHANNEL_PER_HOUR` | `0` | Alerts one channel may deliver per hour; 0 is no limit |
+| `TEST_ALERT_COOLDOWN_SECONDS` | `60` | Gap between two test alerts from one channel; 0 disables it |
+| `TEST_ALERT_MAX_PER_HOUR` | `20` | Test alerts one account may send per hour; 0 disables it |
+
+A test alert (the button on a channel) sends a real message to whatever address or
+URL the channel points at, so it is limited: one every `TEST_ALERT_COOLDOWN_SECONDS`
+per channel, and `TEST_ALERT_MAX_PER_HOUR` per account. Both answer 429 with the
+time to wait. `ALERT_MAX_PER_CHANNEL_PER_HOUR` bounds the real ones: past it an
+alert is not sent and is marked as refused (with the reason) rather than retried,
+which keeps a check that keeps flapping, or a channel pointed at someone else's
+mailbox, from sending without end. Leave it at 0 unless you run SilenceWatch for
+other people.
 
 `console` prints alerts to the log instead of sending them, which is useful in
 development and unacceptable in production — the server refuses to start with it
@@ -114,6 +126,7 @@ spam folder. Relay through a provider or through a relay you already trust.
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |
 | `SIGNUP_MAX_PER_NETWORK_PER_HOUR` | `0` | Accounts per hour per network prefix; 0 disables it |
+| `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` | `0` | Accounts that may exist from one connection; needs `EMAIL_VERIFICATION_REQUIRED`; 0 disables it |
 
 Everything below the first line is **off by default and stays that way for most
 self-hosters**. If your instance is on a private network, or you set
@@ -161,15 +174,72 @@ cap. An **unknown** plan name is also unlimited — a typo in this JSON, or a pl
 renamed on the billing side, should briefly give someone too much rather than
 lock a paying customer out of their own monitoring.
 
-Which plan an account is on is the `plan` column on `user`. This repository never
-writes it and knows nothing about prices, payment or subscriptions; whatever does
-your billing sets the column, and the reconciler picks the change up within
-`QUOTA_RECONCILE_INTERVAL_MS`.
+Which plan an account is on is the `plan` column on `user`. Something has to
+write it: by hand, from your own billing, or with the Stripe integration below.
+The reconciler picks the change up within `QUOTA_RECONCILE_INTERVAL_MS`.
 
 Checks are counted across **every project the account owns**, so a second project
 does not reset the allowance. On a downgrade the excess checks are paused —
 newest first, deliberately paused checks untouched, and the account emailed the
 list — and they resume on their own when the account moves back under its limit.
+
+### Subscriptions (the hosted service)
+
+**Also off, also invisible, and not needed to self-host.** With `BILLING_ENABLED`
+unset no route answers, the Settings page has no subscription tab and Stripe is
+never contacted. It exists for the hosted service, and is documented for the same
+reason as the quotas above: it is the same code.
+
+When on, an account chooses a plan by paying for it on Stripe's own page. Stripe
+holds the card, the invoices and the prices; this side keeps only which Stripe
+customer an account is, and what its subscription last said. It needs quotas,
+because a subscription does nothing but pick a plan.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `BILLING_ENABLED` | `false` | Master switch. Needs `QUOTAS_ENABLED` |
+| `STRIPE_SECRET_KEY` | — | A secret or restricted key (`sk_…`, `rk_…`) |
+| `STRIPE_WEBHOOK_SECRET` | — | Signing secret of the webhook endpoint (`whsec_…`) |
+| `STRIPE_PLANS` | `{}` | JSON: for each paid plan, its Stripe price and the amount shown |
+| `BILLING_CURRENCY` | `eur` | Currency of the prices, lower case |
+| `BILLING_AUTOMATIC_TAX` | `false` | Let Stripe Tax compute the tax on each payment |
+| `STRIPE_API_URL` | `https://api.stripe.com` | Only worth changing to point a test at a stand-in |
+
+```bash
+BILLING_ENABLED=true
+STRIPE_SECRET_KEY=sk_live_…
+STRIPE_WEBHOOK_SECRET=whsec_…
+STRIPE_PLANS='{
+  "pro":      {"price": "price_…", "amount": 499},
+  "business": {"price": "price_…", "amount": 1999}
+}'
+```
+
+An account with no plan is unlimited, and so is every account created before
+quotas were turned on. To put them on the default plan, once your users have been
+told: `UPDATE "user" SET plan = 'free' WHERE plan IS NULL;`. Take that seriously:
+the reconciler then pauses the checks above the plan's limit within minutes, and
+the purge deletes history older than its retention.
+
+Every plan named in `STRIPE_PLANS` has to exist in `PLAN_LIMITS`, and none can be
+`DEFAULT_PLAN`: that is the plan an account falls back to. The `amount` is only
+displayed; what a customer pays is the Stripe price. The server refuses to boot
+if any of this is missing or inconsistent.
+
+**In Stripe**, create one product with a monthly price per paid plan, set up the
+customer portal (payment method, invoices, plan changes between those prices,
+cancellation), and add a webhook endpoint at
+`https://<your host>/api/v1/billing/webhook` for the events
+`customer.subscription.created`, `customer.subscription.updated` and
+`customer.subscription.deleted`. Its signing secret is `STRIPE_WEBHOOK_SECRET`.
+
+How an event becomes a plan: `active` and `trialing` give the plan of the price;
+`past_due` keeps it, since Stripe retries the payment before giving up; `canceled`
+and `unpaid` send the account back to `DEFAULT_PLAN`, and the reconciler pauses
+what no longer fits. A price that is not in `STRIPE_PLANS` changes nothing. Events
+are applied once whatever the number of deliveries, and an older one never undoes
+a newer one. Deleting an account first ends its subscription, and is refused if
+Stripe cannot be reached, so that no card is charged for an account that is gone.
 
 ### Security and recovery
 

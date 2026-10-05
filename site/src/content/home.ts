@@ -8,8 +8,8 @@
  * address), `**bold**` and `` `code` ``. Internal paths are written without the
  * language prefix.
  *
- * Nothing here talks about price beyond "free": the hosted service is free for
- * now, and there is no plan, tier or subscription to describe.
+ * Prices live on the pricing page (`plans.ts`); here the hosted service is only
+ * said to start free, and the self-hosted edition to have no limit.
  */
 export interface HomeCopy {
   app: string;
@@ -45,7 +45,7 @@ export interface HomeCopy {
 export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
-    trust: ['Free', 'Open source', 'One HTTP call'],
+    trust: ['Free plan', 'Open source', 'One HTTP call'],
     demo: {
       caption: 'A job goes quiet. You know within seconds.',
       window: 'Checks',
@@ -126,7 +126,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     hosted: {
       title: 'Hosted or self-hosted',
-      text: 'Open source under **Apache 2.0**. Use the hosted service, free, or [self-host it](/self-hosted/): one container and one PostgreSQL database.',
+      text: 'Open source under **Apache 2.0**. Use the [hosted service](/pricing/), free to start, or [self-host it](/self-hosted/): one container and one PostgreSQL database.',
       secondary: 'Self-host',
       source: 'Source code',
     },
@@ -144,7 +144,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         },
         {
           q: 'Is SilenceWatch free?',
-          a: 'Yes. The hosted service is free, and the self-hosted edition is free and open source (Apache 2.0), with no reserved feature.',
+          a: 'The self-hosted edition is free and open source (Apache 2.0), with no limit and no reserved feature. The hosted service has a free plan, and paid plans from €4.99 a month when you need more checks.',
         },
         {
           q: 'How do I monitor a job that does not crash but stops running?',
@@ -172,7 +172,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
 
   fr: {
     app: 'Essayer',
-    trust: ['Gratuit', 'Open source', 'Un seul appel HTTP'],
+    trust: ['Offre gratuite', 'Open source', 'Un seul appel HTTP'],
     demo: {
       caption: 'Un job se tait. Vous le savez en quelques secondes.',
       window: 'Checks',
@@ -253,7 +253,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     hosted: {
       title: 'Hébergé ou auto-hébergé',
-      text: 'Open source sous licence **Apache 2.0**. Utilisez le service hébergé, gratuit, ou [auto-hébergez-le](/self-hosted/) : un conteneur et une base PostgreSQL.',
+      text: 'Open source sous licence **Apache 2.0**. Utilisez le [service hébergé](/pricing/), gratuit pour commencer, ou [auto-hébergez-le](/self-hosted/) : un conteneur et une base PostgreSQL.',
       secondary: 'Auto-héberger',
       source: 'Code source',
     },
@@ -271,7 +271,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         },
         {
           q: 'SilenceWatch est-il gratuit ?',
-          a: 'Oui. Le service hébergé est gratuit, et l’édition auto-hébergée est gratuite et open source (Apache 2.0), sans fonction réservée.',
+          a: 'L’édition auto-hébergée est gratuite et open source (Apache 2.0), sans limite et sans fonction réservée. Le service hébergé a une offre gratuite, et des offres payantes à partir de 4,99 € par mois quand il vous faut plus de checks.',
         },
         {
           q: 'Comment surveiller un job qui ne plante pas mais ne s’exécute plus ?',

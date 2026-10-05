@@ -28,6 +28,13 @@ const DECOY_HASH =
 
 const REVOKED_SESSION_RETENTION_MS = 7 * 86_400_000;
 
+/**
+ * Sessions one account may keep signed in at once. Each browser or device holds
+ * one, so this is generous; it exists so that signing in over and over is not a
+ * way to make rows, and the oldest are the ones that go.
+ */
+export const MAX_LIVE_SESSIONS_PER_USER = 20;
+
 /** Signing in and out, and the life of a session in between. */
 @Injectable()
 export class SessionService {
@@ -159,6 +166,11 @@ export class SessionService {
       expiresAt: issued.expiresAt,
       context,
     });
+    await this.sessions
+      .revokeOldestBeyond(user.id, MAX_LIVE_SESSIONS_PER_USER)
+      .catch((error: unknown) =>
+        this.logger.warn(`Could not trim the live sessions of ${user.id}: ${String(error)}`),
+      );
     return this.describe(user, session.id, issued.token);
   }
 

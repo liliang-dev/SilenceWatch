@@ -31,6 +31,7 @@ const AUDIT_ACTIONS = new Set<string>([
   'project.updated',
   'project.deleted',
   'quota.checks_paused',
+  'billing.plan_changed',
 ]);
 
 /** "auth.login_failed" reads as noise; "Sign-in failed" reads as a sentence. */
@@ -55,7 +56,9 @@ export function isFailure(action: string): boolean {
  * the project.
  */
 export function auditScope(event: AuditEventDto): 'account' | 'project' {
-  return event.action.startsWith('auth.') || event.action.startsWith('account.')
+  return event.action.startsWith('auth.') ||
+    event.action.startsWith('account.') ||
+    event.action.startsWith('billing.')
     ? 'account'
     : 'project';
 }

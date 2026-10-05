@@ -1,4 +1,5 @@
 import { defineRouteMiddleware } from '@astrojs/starlight/route-data';
+import { PLANS } from './content/plans';
 import { REPOSITORY, SITE } from './site';
 
 /**
@@ -117,6 +118,23 @@ export const onRequest = defineRouteMiddleware((context) => {
         item: step.item,
       })),
     });
+
+    // The hosted plans, as offers of the software.
+    if (/\/pricing\/$/.test(path)) {
+      graph.push({
+        '@type': 'SoftwareApplication',
+        name: 'SilenceWatch',
+        url: url(home),
+        applicationCategory: 'DeveloperApplication',
+        offers: PLANS.map((plan) => ({
+          '@type': 'Offer',
+          name: plan.id.charAt(0).toUpperCase() + plan.id.slice(1),
+          price: plan.price.toFixed(2),
+          priceCurrency: 'EUR',
+          url: url(path),
+        })),
+      });
+    }
 
     if (path.includes('/docs/')) {
       graph.push({
