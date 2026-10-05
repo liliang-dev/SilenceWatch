@@ -26,7 +26,7 @@ const PLANS: BillingStateDto['plans'] = [
   },
   {
     id: 'business',
-    amount: 999,
+    amount: 1999,
     currency: 'eur',
     purchasable: true,
     limits: { checks: 1000, projects: 20, channelsPerProject: 20, retentionDays: 90 },
@@ -90,7 +90,7 @@ describe('SubscriptionTabComponent', () => {
     expect(text).toContain('1 of 2');
     expect(element.querySelectorAll('.plans .plan')).toHaveLength(3);
     expect(text).toContain('€4.99');
-    expect(text).toContain('€9.99');
+    expect(text).toContain('€19.99');
     expect(text).toContain('30 days');
 
     // Nothing to buy on the plan everyone starts on, and nothing to manage

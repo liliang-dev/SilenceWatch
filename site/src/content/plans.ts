@@ -20,7 +20,7 @@ export interface Plan {
 export const PLANS: readonly Plan[] = [
   { id: 'free', price: 0, checks: 10, projects: 2, channelsPerProject: 2, retentionDays: 7 },
   { id: 'pro', price: 4.99, checks: 100, projects: 5, channelsPerProject: 5, retentionDays: 30 },
-  { id: 'business', price: 9.99, checks: 1000, projects: 20, channelsPerProject: 20, retentionDays: 90 },
+  { id: 'business', price: 19.99, checks: 1000, projects: 20, channelsPerProject: 20, retentionDays: 90 },
 ];
 
 export interface PricingCopy {

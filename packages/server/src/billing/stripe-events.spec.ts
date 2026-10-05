@@ -2,7 +2,7 @@ import { decidePlan, readSubscriptionEvent, type StripeEvent } from './stripe-ev
 
 const PLANS = {
   pro: { price: 'price_pro', amount: 499 },
-  business: { price: 'price_business', amount: 999 },
+  business: { price: 'price_business', amount: 1999 },
 };
 
 function event(type: string, object: Record<string, unknown>): StripeEvent {

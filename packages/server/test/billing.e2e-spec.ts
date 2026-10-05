@@ -19,7 +19,7 @@ const BILLING = {
   STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
   STRIPE_PLANS: JSON.stringify({
     pro: { price: 'price_pro', amount: 499 },
-    business: { price: 'price_business', amount: 999 },
+    business: { price: 'price_business', amount: 1999 },
   }),
 };
 
@@ -152,7 +152,7 @@ describe('billing', () => {
     expect(state.plans.map((plan) => [plan.id, plan.amount, plan.purchasable])).toEqual([
       ['free', 0, false],
       ['pro', 499, true],
-      ['business', 999, true],
+      ['business', 1999, true],
     ]);
     expect(state.plans[1]).toMatchObject({
       currency: 'eur',

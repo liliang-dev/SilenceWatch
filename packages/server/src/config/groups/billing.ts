@@ -23,7 +23,7 @@ export const billingShape = {
    * price that buys it, and the monthly amount shown in the application.
    *
    *   {"pro":{"price":"price_123","amount":499},
-   *    "business":{"price":"price_456","amount":999}}
+   *    "business":{"price":"price_456","amount":1999}}
    */
   STRIPE_PLANS: z.preprocess((value) => (value === '' ? undefined : value), z.string().default('{}')),
   /** ISO 4217 code of the prices, lower case. */

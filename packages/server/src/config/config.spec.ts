@@ -116,7 +116,7 @@ describe('loadConfig', () => {
     });
     const STRIPE_PLANS = JSON.stringify({
       pro: { price: 'price_pro', amount: 499 },
-      business: { price: 'price_business', amount: 999 },
+      business: { price: 'price_business', amount: 1999 },
     });
     const billing = {
       ...minimal,

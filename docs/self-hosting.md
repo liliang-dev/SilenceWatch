@@ -198,7 +198,7 @@ STRIPE_SECRET_KEY=sk_live_…
 STRIPE_WEBHOOK_SECRET=whsec_…
 STRIPE_PLANS='{
   "pro":      {"price": "price_…", "amount": 499},
-  "business": {"price": "price_…", "amount": 999}
+  "business": {"price": "price_…", "amount": 1999}
 }'
 ```
 
