@@ -156,6 +156,50 @@ failing on purpose.
 Start at 20/hour. Legitimate traffic almost never approaches it; a flood hits it
 in seconds.
 
+### 4. One account per connection (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`)
+
+The velocity rule limits how fast accounts appear. This one limits how many exist
+at once from one connection (an IPv4 address, an IPv6 /64), which is what stops a
+free plan from being multiplied by registering again.
+
+It counts the accounts that **exist**: one that is deleted frees its place. It
+counts those with a **proven address**, and those created in the last hour, so a
+mistyped address costs an hour rather than the connection, and a run of
+registrations from one address is still held to the limit while it lasts. That is
+why it needs `EMAIL_VERIFICATION_REQUIRED`: without proven addresses nothing would
+keep counting after the hour.
+
+What is stored is a keyed hash of the address, never the address: the column can
+be compared and cannot be read back, and a copy of the database does not let
+anyone test a guess without the server's secret. Accounts created before the rule
+carry nothing and are not counted.
+
+**Be careful what it costs.** Everyone behind one address shares the budget: an
+office, a school, a household, a mobile carrier. Set to 1, the second person at a
+company cannot register from its network and has to be told to contact you. It is
+a decision about who you are willing to turn away, not a free control; the hourly
+rule above is the gentler version.
+
+## Once the account exists
+
+Verification and velocity decide who gets in. What a free account can then cost
+is bounded separately, and each bound is a setting or a fixed ceiling:
+
+- **Emails to an address of the account's choosing.** A test alert is limited per
+  channel (`TEST_ALERT_COOLDOWN_SECONDS`) and per account
+  (`TEST_ALERT_MAX_PER_HOUR`); the real alerts of a channel by
+  `ALERT_MAX_PER_CHANNEL_PER_HOUR`. Verification and password-reset emails already
+  wait a minute between two to the same address.
+- **Rows.** History and resolved incidents are purged with the retention of the
+  plan; a project holds at most 25 live API keys (a revoked key is deleted after
+  30 days); an account keeps its 20 newest sessions signed in.
+- **What one heartbeat can write.** `PING_RATE_LIMIT_PER_MINUTE` and
+  `PING_BODY_MAX_BYTES` bound each check; their defaults suit a trusted team, and
+  a deployment for strangers will want them lower.
+
+Not covered: an email channel is not confirmed by its recipient, so the limits
+above are what stands between it and somebody else's mailbox.
+
 ## Choosing your settings
 
 ```bash

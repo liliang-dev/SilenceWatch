@@ -1,0 +1,140 @@
+@if (state(); as billing) {
+  @if (confirmation() === 'waiting') {
+    <p class="notice" role="status">{{ t('billing.processing') }}</p>
+  } @else if (confirmation() === 'done') {
+    <p class="notice ok" role="status">
+      {{ t('billing.activated', { plan: planName(billing.plan) }) }}
+    </p>
+  } @else if (confirmation() === 'slow') {
+    <p class="notice" role="status">{{ t('billing.processingSlow') }}</p>
+  }
+
+  <section class="sw-card section">
+    <div class="section-head">
+      <h2>{{ t('billing.title') }}</h2>
+      <p class="sw-muted">{{ t('billing.body') }}</p>
+    </div>
+
+    <div class="section-body current">
+      <div class="current-plan">
+        <span class="sw-label">{{ t('billing.currentPlan') }}</span>
+        <strong class="plan-name">{{ planName(billing.plan) }}</strong>
+
+        @if (subscription(); as subscription) {
+          @if (subscription.status === 'past_due') {
+            <p class="status warn" role="alert">{{ t('billing.pastDue') }}</p>
+          } @else if (live() && subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd) {
+            <p class="status sw-muted">
+              {{
+                t('billing.endsOn', {
+                  date: date(subscription.currentPeriodEnd),
+                  plan: planName(base()?.id ?? null),
+                })
+              }}
+            </p>
+          } @else if (live() && subscription.currentPeriodEnd) {
+            <p class="status sw-muted">
+              {{ t('billing.renewsOn', { date: date(subscription.currentPeriodEnd) }) }}
+            </p>
+          }
+        }
+      </div>
+
+      @if (meters().length > 0) {
+        <dl class="usage">
+          @for (meter of meters(); track meter.label) {
+            <div>
+              <dt class="sw-label">{{ t(meter.label) }}</dt>
+              <dd>
+                <span class="sw-num">{{ usedOf(meter.used, meter.limit) }}</span>
+                @if (meter.percent !== null) {
+                  <span
+                    class="meter"
+                    role="progressbar"
+                    [attr.aria-valuenow]="meter.percent"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-label]="t(meter.label)"
+                  >
+                    <span [style.width.%]="meter.percent" [class.full]="meter.percent >= 100"></span>
+                  </span>
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+
+      @if (subscription()) {
+        <div class="manage">
+          <button
+            mat-stroked-button
+            type="button"
+            class="manage-button"
+            [disabled]="busy() !== null"
+            (click)="manage()"
+          >
+            {{ t('billing.manage') }}
+          </button>
+          <p class="sw-muted">{{ t('billing.manageHint') }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="sw-card section">
+    <div class="section-head">
+      <h2>{{ t('billing.plansTitle') }}</h2>
+      <p class="sw-muted">{{ t('billing.priceNote') }}</p>
+    </div>
+
+    <ul class="plans section-body">
+      @for (plan of billing.plans; track plan.id) {
+        <li class="plan" [class.is-current]="isCurrent(plan)">
+          <h3>{{ planName(plan.id) }}</h3>
+          <p class="price">
+            <strong>{{ price(plan) }}</strong>
+            <span class="sw-muted">{{ t('billing.perMonth') }}</span>
+          </p>
+          <dl class="limits">
+            <div>
+              <dt>{{ t('billing.limitChecks') }}</dt>
+              <dd class="sw-num">{{ limit(plan.limits.checks) }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('billing.limitProjects') }}</dt>
+              <dd class="sw-num">{{ limit(plan.limits.projects) }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('billing.limitChannels') }}</dt>
+              <dd class="sw-num">{{ limit(plan.limits.channelsPerProject) }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('billing.limitHistory') }}</dt>
+              <dd class="sw-num">{{ days(plan.limits.retentionDays) }}</dd>
+            </div>
+          </dl>
+
+          @if (isCurrent(plan)) {
+            <span class="badge">{{ t('billing.currentBadge') }}</span>
+          } @else if (plan.purchasable) {
+            <button
+              mat-flat-button
+              type="button"
+              [disabled]="busy() !== null"
+              (click)="choose(plan)"
+            >
+              {{
+                live()
+                  ? t('billing.switchTo', { plan: planName(plan.id) })
+                  : t('billing.choose', { plan: planName(plan.id) })
+              }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+
+    <p class="section-note sw-muted">{{ t('billing.downgradeWarning') }}</p>
+  </section>
+}

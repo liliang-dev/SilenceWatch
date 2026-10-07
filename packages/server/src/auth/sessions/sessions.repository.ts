@@ -55,6 +55,26 @@ export class SessionsRepository {
     return count;
   }
 
+  /**
+   * Revokes the oldest live sessions of a user beyond the `keep` newest, and
+   * returns how many it closed.
+   */
+  async revokeOldestBeyond(userId: string, keep: number): Promise<number> {
+    const surplus = await this.prisma.session.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      skip: keep,
+      select: { id: true },
+    });
+    if (surplus.length === 0) return 0;
+
+    const { count } = await this.prisma.session.updateMany({
+      where: { id: { in: surplus.map((session) => session.id) }, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return count;
+  }
+
   async revokeAllForUser(userId: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { userId, revokedAt: null },

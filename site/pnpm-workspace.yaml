@@ -34,3 +34,15 @@ auditConfig:
     # serves no one, and ships none of it — the output is static files. Revisit
     # when 4.2.1 exists: the ignore should then become an override, and go.
     - GHSA-ch52-4w7c-c8xp
+
+# Advisories whose fix is a newer release of something an Astro dependency pins.
+# Delete one as soon as its parent ships the fix.
+overrides:
+  # GHSA-68fv-2mgg-jv7q — source-map-js below 1.2.2 can be made to stall the event
+  # loop by a crafted indexed source map. Reached by the build only (Astro, svgo,
+  # css-tree), on source maps this site's own build produces.
+  source-map-js@<1.2.2: '^1.2.2'
+  # GHSA-rj75-hqrm-r3gf — postcss-selector-parser below 7.1.6 takes quadratic time
+  # on a long flat selector. Reached through postcss-nested, which Starlight's code
+  # blocks use at build time, on styles that ship with the theme.
+  postcss-selector-parser@<7.1.6: '^7.1.6'

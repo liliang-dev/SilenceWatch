@@ -4,7 +4,7 @@ services:
     # it happened to restart, and "which version is this?" must have an answer
     # when something is wrong. Upgrading is editing this line, then
     # `docker compose pull && docker compose up -d`.
-    image: ghcr.io/liliang-dev/silencewatch:0.4.1
+    image: ghcr.io/liliang-dev/silencewatch:0.5.0
     # Working from a checkout instead? Comment the line above and uncomment
     # these; nothing else in this file changes.
     # build:
@@ -42,9 +42,19 @@ services:
       SIGNUP_BLOCK_DISPOSABLE_EMAIL: ${SIGNUP_BLOCK_DISPOSABLE_EMAIL:-false}
       SIGNUP_BLOCKED_EMAIL_DOMAINS: ${SIGNUP_BLOCKED_EMAIL_DOMAINS:-}
       SIGNUP_MAX_PER_NETWORK_PER_HOUR: ${SIGNUP_MAX_PER_NETWORK_PER_HOUR:-0}
+      SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: ${SIGNUP_MAX_ACCOUNTS_PER_ADDRESS:-0}
+      TEST_ALERT_COOLDOWN_SECONDS: ${TEST_ALERT_COOLDOWN_SECONDS:-60}
+      TEST_ALERT_MAX_PER_HOUR: ${TEST_ALERT_MAX_PER_HOUR:-20}
+      ALERT_MAX_PER_CHANNEL_PER_HOUR: ${ALERT_MAX_PER_CHANNEL_PER_HOUR:-0}
       QUOTAS_ENABLED: ${QUOTAS_ENABLED:-false}
       DEFAULT_PLAN: ${DEFAULT_PLAN:-free}
       PLAN_LIMITS: ${PLAN_LIMITS:-}
+      BILLING_ENABLED: ${BILLING_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PLANS: ${STRIPE_PLANS:-}
+      BILLING_CURRENCY: ${BILLING_CURRENCY:-eur}
+      BILLING_AUTOMATIC_TAX: ${BILLING_AUTOMATIC_TAX:-false}
       AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-SilenceWatch}
       ALLOW_PRIVATE_NOTIFICATION_TARGETS: ${ALLOW_PRIVATE_NOTIFICATION_TARGETS:-false}

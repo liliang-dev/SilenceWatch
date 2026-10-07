@@ -30,6 +30,8 @@ export const AUDIT_ACTIONS = [
    */
   'project.deleted',
   'quota.checks_paused',
+  /** A subscription moved the account to another plan. Written by the payment webhook. */
+  'billing.plan_changed',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

@@ -44,4 +44,13 @@ export const signupShape = {
    * counted in PostgreSQL so the rule survives a restart. 0 disables it.
    */
   SIGNUP_MAX_PER_NETWORK_PER_HOUR: positiveInt(0, 10_000).default(0),
+  /**
+   * Accounts that may exist at once from one connection (an IPv4 address, an
+   * IPv6 /64). 0 disables the rule. It counts accounts with a proven address, and
+   * those created in the last hour, so that a mistyped address does not lock the
+   * person out; it therefore needs EMAIL_VERIFICATION_REQUIRED. Accounts behind a
+   * shared address (an office, a school, a mobile carrier) share this budget, so
+   * set it with that in mind. Only a keyed hash of the address is stored.
+   */
+  SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: positiveInt(0, 1_000).default(0),
 };

@@ -4,6 +4,9 @@ import { RequestMethod } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { ChannelType } from '@silencewatch/shared';
 import { AppModule } from '../../src/app.module';
+import { registerBillingWebhook } from '../../src/billing/billing-webhook.plugin';
+import { BillingService } from '../../src/billing/billing.service';
+import { StripeApi, StripeError } from '../../src/billing/stripe.api';
 import { CONFIG, loadConfig, type AppConfig } from '../../src/config/config';
 import { DetectionService } from '../../src/detection/detection.service';
 import { PrismaService } from '../../src/database/prisma.service';
@@ -70,6 +73,54 @@ export class RecordingEmailService {
   }
 }
 
+/**
+ * Stands in for Stripe, so that no test contacts it: records what was asked, and
+ * can be told to fail the way an unreachable Stripe does.
+ */
+export class FakeStripeApi extends StripeApi {
+  readonly customers: Array<{ id: string; email: string; userId: string }> = [];
+  readonly checkouts: Array<{ customerId: string; priceId: string; userId: string; successUrl: string; cancelUrl: string; automaticTax: boolean }> = [];
+  readonly portals: Array<{ customerId: string; returnUrl: string }> = [];
+  readonly cancelled: string[] = [];
+  failing = false;
+
+  async createCustomer(input: { email: string; userId: string }): Promise<{ id: string }> {
+    this.maybeFail();
+    const id = `cus_${this.customers.length + 1}`;
+    this.customers.push({ id, ...input });
+    return { id };
+  }
+
+  async createCheckoutSession(input: FakeStripeApi['checkouts'][number]): Promise<{ url: string }> {
+    this.maybeFail();
+    this.checkouts.push(input);
+    return { url: `https://checkout.stripe.test/${input.priceId}` };
+  }
+
+  async createPortalSession(input: { customerId: string; returnUrl: string }): Promise<{ url: string }> {
+    this.maybeFail();
+    this.portals.push(input);
+    return { url: `https://portal.stripe.test/${input.customerId}` };
+  }
+
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    this.maybeFail();
+    this.cancelled.push(subscriptionId);
+  }
+
+  clear(): void {
+    this.customers.length = 0;
+    this.checkouts.length = 0;
+    this.portals.length = 0;
+    this.cancelled.length = 0;
+    this.failing = false;
+  }
+
+  private maybeFail(): void {
+    if (this.failing) throw new StripeError('simulated Stripe outage', 503, null);
+  }
+}
+
 export interface TestApp {
   app: NestFastifyApplication;
   prisma: PrismaService;
@@ -77,6 +128,7 @@ export interface TestApp {
   notifications: NotificationQueueService;
   senders: RecordingSenderRegistry;
   emails: RecordingEmailService;
+  stripe: FakeStripeApi;
   config: AppConfig;
   reset(): Promise<void>;
   close(): Promise<void>;
@@ -111,6 +163,7 @@ export async function createTestApp(
 
   const senders = new RecordingSenderRegistry();
   const emails = new RecordingEmailService();
+  const stripe = new FakeStripeApi();
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CONFIG)
@@ -119,6 +172,8 @@ export async function createTestApp(
     .useValue(senders)
     .overrideProvider(EmailService)
     .useValue(emails)
+    .overrideProvider(StripeApi)
+    .useValue(stripe)
     .compile();
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
@@ -132,6 +187,11 @@ export async function createTestApp(
   await registerIngestRoutes(
     app.getHttpAdapter().getInstance() as never,
     app.get(IngestService),
+    config,
+  );
+  await registerBillingWebhook(
+    app.getHttpAdapter().getInstance() as never,
+    app.get(BillingService),
     config,
   );
   app.setGlobalPrefix('api', { exclude: [{ path: 'health', method: RequestMethod.GET }] });
@@ -150,10 +210,11 @@ export async function createTestApp(
     await prisma.$executeRawUnsafe(
       'TRUNCATE "user", project, project_member, session, api_key, "check", ping, incident, ' +
         'notification_channel, notification_delivery, email_verification, signup_attempt, ' +
-        'password_reset, audit_event RESTART IDENTITY CASCADE',
+        'password_reset, audit_event, subscription, stripe_event RESTART IDENTITY CASCADE',
     );
     senders.clear();
     emails.clear();
+    stripe.clear();
   };
 
   await reset();
@@ -165,6 +226,7 @@ export async function createTestApp(
     notifications,
     senders,
     emails,
+    stripe,
     config,
     reset,
     close: async (): Promise<void> => {

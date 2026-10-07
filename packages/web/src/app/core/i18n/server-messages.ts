@@ -54,6 +54,14 @@ const EXACT: ReadonlyArray<readonly [string, MessageKey]> = [
   ['Check not found', 'server.checkNotFound'],
   ['Channel not found', 'server.channelNotFound'],
   ['Session expired', 'server.sessionExpired'],
+  [
+    'An account already exists from this network. Sign in to it, or contact us if this connection is shared.',
+    'server.addressTaken',
+  ],
+  [
+    'A project can have 25 active API keys. Revoke one you no longer use first.',
+    'server.tooManyKeys',
+  ],
 ];
 
 /** Sentences that carry a reason after a fixed beginning: the reason stays as sent. */

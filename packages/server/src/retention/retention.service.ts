@@ -5,6 +5,7 @@ import { PasswordResetService } from '../auth/password/password-reset.service';
 import { EmailVerificationService } from '../auth/registration/email-verification/email-verification.service';
 import { SignupGuardService } from '../auth/registration/signup-guard.service';
 import { SessionService } from '../auth/sessions/session.service';
+import { ApiKeyService } from '../api-keys/api-key.service';
 import { AuditService } from '../audit/audit.service';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
@@ -18,8 +19,8 @@ import { PgService } from '../database/pg.service';
  * would hold a long transaction and bloat the table's dead-tuple count while
  * ingestion is trying to write to it.
  */
-const PURGE_PINGS_SQL = `
-WITH plan_caps AS (
+const RETENTION_CTES = `
+plan_caps AS (
     -- {"free": 7, "pro": 90} from configuration. Empty on a self-hosted
     -- instance, which caps nothing.
     SELECT key AS plan, value::int AS days FROM jsonb_each_text($3::jsonb)
@@ -37,7 +38,10 @@ project_retention AS (
       LEFT JOIN project_member pm ON pm.project_id = pr.id AND pm.role = 'owner'
       LEFT JOIN "user" u ON u.id = pm.user_id
       LEFT JOIN plan_caps pc ON pc.plan = u.plan
-),
+)`;
+
+const PURGE_PINGS_SQL = `
+WITH ${RETENTION_CTES},
 doomed AS (
     SELECT p.id
       FROM ping p
@@ -47,6 +51,24 @@ doomed AS (
      LIMIT $2
 )
 DELETE FROM ping WHERE id IN (SELECT id FROM doomed)`;
+
+/**
+ * Resolved incidents, held as long as the pings are. They used to be kept for
+ * good, and a check that keeps going down and up adds one each time; an open
+ * incident is never touched, and its notification deliveries go with it.
+ */
+const PURGE_INCIDENTS_SQL = `
+WITH ${RETENTION_CTES},
+doomed AS (
+    SELECT i.id
+      FROM incident i
+      JOIN "check" c ON c.id = i.check_id
+      JOIN project_retention pr ON pr.id = c.project_id
+     WHERE i.resolved_at IS NOT NULL
+       AND i.resolved_at < now() - make_interval(days => pr.days)
+     LIMIT $2
+)
+DELETE FROM incident WHERE id IN (SELECT id FROM doomed)`;
 
 /** Finished deliveries are an audit trail, not history worth keeping forever. */
 const PURGE_DELIVERIES_SQL = `
@@ -66,6 +88,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
     private readonly sessions: SessionService,
+    private readonly apiKeys: ApiKeyService,
     private readonly verification: EmailVerificationService,
     private readonly signupGuard: SignupGuardService,
     private readonly passwordResets: PasswordResetService,
@@ -107,6 +130,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
   /** One full purge pass. Safe to call concurrently with ingestion. */
   async purge(): Promise<{
     pings: number;
+    incidents: number;
     deliveries: number;
     sessions: number;
     verifications: number;
@@ -115,16 +139,25 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
   }> {
     const startedAt = Date.now();
     let pings = 0;
+    let incidents = 0;
 
     try {
-      for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
-        const result = await this.pg.query({
-          name: 'retention_purge_pings',
-          text: PURGE_PINGS_SQL,
-          values: [this.config.PING_RETENTION_DAYS, BATCH_SIZE, this.retentionCapsJson()],
-        });
-        pings += result.rowCount ?? 0;
-        if ((result.rowCount ?? 0) < BATCH_SIZE) break;
+      for (const [name, text] of [
+        ['retention_purge_pings', PURGE_PINGS_SQL],
+        ['retention_purge_incidents', PURGE_INCIDENTS_SQL],
+      ] as const) {
+        let purged = 0;
+        for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
+          const result = await this.pg.query({
+            name,
+            text,
+            values: [this.config.PING_RETENTION_DAYS, BATCH_SIZE, this.retentionCapsJson()],
+          });
+          purged += result.rowCount ?? 0;
+          if ((result.rowCount ?? 0) < BATCH_SIZE) break;
+        }
+        if (name === 'retention_purge_pings') pings = purged;
+        else incidents = purged;
       }
 
       const deliveries = await this.pg.query({
@@ -132,6 +165,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         text: PURGE_DELIVERIES_SQL,
       });
       const sessions = await this.sessions.purgeStale();
+      await this.apiKeys.purgeDead();
       // Spent verification tokens, accounts that never proved their address,
       // and the sign-up attempt log past the window it informs. Left alone,
       // abandoned rows keep holding real addresses hostage against the unique
@@ -146,6 +180,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
 
       const summary = {
         pings,
+        incidents,
         deliveries: deliveries.rowCount ?? 0,
         sessions,
         verifications: verifications.tokens,
@@ -154,6 +189,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
       };
       this.logger.log(
         `Purge done in ${Date.now() - startedAt}ms: ${summary.pings} pings, ` +
+          `${summary.incidents} incidents, ` +
           `${summary.deliveries} deliveries, ${summary.sessions} sessions, ` +
           `${summary.verifications} verification tokens, ` +
           `${summary.abandonedAccounts} unverified accounts, ` +
@@ -165,6 +201,7 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
       this.logger.error(`Purge failed: ${(error as Error).message}`);
       return {
         pings,
+        incidents,
         deliveries: 0,
         sessions: 0,
         verifications: 0,
