@@ -60,6 +60,12 @@ minimumReleaseAge: 4320
 # Delete one as soon as its parent ships the fix: an override that outlives the
 # reason for it silently pins a version nobody is choosing any more.
 overrides:
+  # GHSA-68fv-2mgg-jv7q — source-map-js below 1.2.2 can be made to stall the event
+  # loop by a crafted indexed source map. Reached through the Nest CLI's build
+  # tooling (dev only, it reads this project's own maps); the fix is a patch
+  # release, so it is a patch override.
+  source-map-js@<1.2.2: '^1.2.2'
+
   # GHSA-w5hq-g745-h8pq — uuid writes past the end of a caller-supplied buffer.
   # Reached only through autocannon, the load-testing tool, which is a dev
   # dependency and never runs against attacker input. Overridden anyway: the fix
@@ -138,3 +144,14 @@ overrides:
   'js-yaml@>=3.0.0 <3.15.2': '^3.15.2'
   'js-yaml@>=4.0.0 <4.3.2': '^4.3.2'
 
+# An advisory that has no fix to install. Listed here, with the reason, rather than
+# left to fail CI for everyone or silenced by loosening the audit level.
+auditConfig:
+  ignoreGhsas:
+    # GHSA-hp3w-g68c-fv3c — sprintf-js up to 1.1.3 (the latest release) lets a
+    # huge precision in a format string exhaust memory. No patched version has been
+    # published, so there is nothing to override to. Reached only through jest's
+    # coverage instrumentation (js-yaml 3 → argparse), which formats its own
+    # strings and never a user's: a development dependency that no instance runs.
+    # Revisit when 1.1.4 exists: the ignore should then become an override, and go.
+    - GHSA-hp3w-g68c-fv3c
