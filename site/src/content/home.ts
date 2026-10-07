@@ -13,7 +13,6 @@
  */
 export interface HomeCopy {
   app: string;
-  trust: string[];
   demo: {
     caption: string;
     window: string;
@@ -45,7 +44,6 @@ export interface HomeCopy {
 export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
-    trust: ['Free plan', 'Open source', 'One HTTP call'],
     demo: {
       caption: 'A job goes quiet. You know within seconds.',
       window: 'Checks',
@@ -172,7 +170,6 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
 
   fr: {
     app: 'Essayer',
-    trust: ['Offre gratuite', 'Open source', 'Un seul appel HTTP'],
     demo: {
       caption: 'Un job se tait. Vous le savez en quelques secondes.',
       window: 'Checks',
