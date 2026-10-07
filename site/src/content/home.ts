@@ -8,8 +8,8 @@
  * address), `**bold**` and `` `code` ``. Internal paths are written without the
  * language prefix.
  *
- * Prices live on the pricing page (`plans.ts`); here the hosted service is only
- * said to start free, and the self-hosted edition to have no limit.
+ * The plans and their limits come from `plans.ts`, which the pricing page uses
+ * too; only the framing of the choice is written here.
  */
 export interface HomeCopy {
   app: string;
@@ -36,7 +36,15 @@ export interface HomeCopy {
   features: { title: string; items: { icon: string; title: string; text: string }[] };
   which: { title: string; text: string; chips: { text: string; href: string }[] };
   spring: { title: string; text: string; discovered: string; jobs: { name: string; schedule: string }[] };
-  hosted: { title: string; text: string; secondary: string; source: string };
+  /** The choice (open source or hosted) and the hosted plans; the figures come from `plans.ts`. */
+  pricing: {
+    title: string;
+    lead: string;
+    or: string;
+    self: { title: string; badge: string; price: string; points: string[]; guide: string; source: string };
+    hosted: { title: string; text: string; cta: string; details: string };
+    note: string;
+  };
   cta: { title: string; text: string };
   faq: { title: string; heading: string; items: { q: string; a: string }[] };
 }
@@ -122,11 +130,29 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { name: 'InvoiceJob.generate', schedule: '0 0 6 1 * *' },
       ],
     },
-    hosted: {
-      title: 'Hosted or self-hosted',
-      text: 'Open source under **Apache 2.0**. Use the [hosted service](/pricing/), free to start, or [self-host it](/self-hosted/): one container and one PostgreSQL database.',
-      secondary: 'Self-host',
-      source: 'Source code',
+    pricing: {
+      title: 'Open source, or hosted for you',
+      lead: 'Run SilenceWatch on your own server for free, or let us run it. The plans below are for the hosted service.',
+      or: 'or',
+      self: {
+        title: 'Self-hosted',
+        badge: 'Open source · Apache 2.0',
+        price: 'Free',
+        points: [
+          'No limit and no reserved feature',
+          'One container and one PostgreSQL database',
+          'Your data stays on your server',
+        ],
+        guide: 'Self-hosting guide',
+        source: 'Source code',
+      },
+      hosted: {
+        title: 'Hosted by us',
+        text: 'Nothing to install. Start free, and move up when you need more checks.',
+        cta: 'Try it out',
+        details: 'All the details',
+      },
+      note: 'Prices are in euros, per month, taxes included.',
     },
     cta: {
       title: 'Your next silent failure shouldn’t be silent',
@@ -248,11 +274,29 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { name: 'InvoiceJob.generate', schedule: '0 0 6 1 * *' },
       ],
     },
-    hosted: {
-      title: 'Hébergé ou auto-hébergé',
-      text: 'Open source sous licence **Apache 2.0**. Utilisez le [service hébergé](/pricing/), gratuit pour commencer, ou [auto-hébergez-le](/self-hosted/) : un conteneur et une base PostgreSQL.',
-      secondary: 'Auto-héberger',
-      source: 'Code source',
+    pricing: {
+      title: 'Open source, ou hébergé pour vous',
+      lead: 'Faites tourner SilenceWatch sur votre propre serveur, gratuitement, ou laissez-nous l’héberger. Les offres ci-dessous concernent le service hébergé.',
+      or: 'ou',
+      self: {
+        title: 'Auto-hébergé',
+        badge: 'Open source · Apache 2.0',
+        price: 'Gratuit',
+        points: [
+          'Aucune limite, aucune fonction réservée',
+          'Un conteneur et une base PostgreSQL',
+          'Vos données restent sur votre serveur',
+        ],
+        guide: 'Auto-héberger',
+        source: 'Code source',
+      },
+      hosted: {
+        title: 'Hébergé par nous',
+        text: 'Rien à installer. Démarrez gratuitement, et passez à l’offre supérieure quand il vous faut plus de checks.',
+        cta: 'Essayer',
+        details: 'Tous les détails',
+      },
+      note: 'Prix en euros, par mois, TTC.',
     },
     cta: {
       title: 'Votre prochaine panne silencieuse ne le sera plus',
