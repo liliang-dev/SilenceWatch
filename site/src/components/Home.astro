@@ -42,10 +42,6 @@ const login = `${APP}/login`;
     <path class="live" pathLength="1" d="M0 40H430L452 40L470 14L492 66L512 24L528 40H1200" />
   </svg>
 
-  <ul class="trust" aria-label="SilenceWatch">
-    {copy.trust.map((item) => <li>{item}</li>)}
-  </ul>
-
   <LiveDemo />
 
   <section class="works" aria-label={copy.works.label}>
@@ -192,7 +188,7 @@ const login = `${APP}/login`;
     display: block;
     width: 100vw;
     height: 4rem;
-    margin: 0 calc(50% - 50vw);
+    margin: 0 calc(50% - 50vw) clamp(2.5rem, 6vw, 4.5rem);
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -222,48 +218,6 @@ const login = `${APP}/login`;
     }
     to {
       stroke-dashoffset: -1;
-    }
-  }
-
-  /* --- what is true about it, at a glance ------------------------------- */
-  .sw-home .trust {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem 0.6rem;
-    margin-bottom: 2.5rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  .sw-home .trust li {
-    padding: 0.3rem 0.8rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .trust li::before {
-    content: '';
-    display: inline-block;
-    width: 0.45rem;
-    height: 0.45rem;
-    margin-right: 0.5rem;
-    border-radius: 50%;
-    background: #47cd89;
-    box-shadow: 0 0 0 0 #47cd89;
-    animation: sw-live 2.6s ease-out infinite;
-  }
-
-  @keyframes sw-live {
-    0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, #47cd89 60%, transparent);
-    }
-    70%,
-    100% {
-      box-shadow: 0 0 0 0.5rem transparent;
     }
   }
 
