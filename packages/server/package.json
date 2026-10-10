@@ -46,7 +46,7 @@
     "@nestjs/cli": "^11.0.2",
     "@nestjs/testing": "^11.2.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.4",
     "@types/pg": "^8.23.1",
     "autocannon": "^8.0.0",
     "jest": "^30.5.2",
