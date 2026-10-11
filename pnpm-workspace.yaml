@@ -60,6 +60,13 @@ minimumReleaseAge: 4320
 # Delete one as soon as its parent ships the fix: an override that outlives the
 # reason for it silently pins a version nobody is choosing any more.
 overrides:
+  # GHSA-8r5x-fm3f-whwj, GHSA-p8wg-vrv2-v86f, GHSA-xw65-4hp5-5hc7 — handlebars up to
+  # 4.7.9 allows JavaScript injection through a crafted template. Reached only
+  # through ts-jest, which compiles this project's own test templates (a
+  # development dependency that no instance runs and that reads nothing from a
+  # user); the fix is a patch release, so it is a patch override.
+  handlebars@<4.7.10: '^4.7.10'
+
   # GHSA-68fv-2mgg-jv7q — source-map-js below 1.2.2 can be made to stall the event
   # loop by a crafted indexed source map. Reached through the Nest CLI's build
   # tooling (dev only, it reads this project's own maps); the fix is a patch
