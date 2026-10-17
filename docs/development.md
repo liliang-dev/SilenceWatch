@@ -127,6 +127,9 @@ SECRET_KEY=development-secret-key-at-least-32-chars
 BASE_URL=http://localhost:8080
 EMAIL_PROVIDER=console
 LOG_LEVEL=debug
+# The UI dev server is another origin, so sign-in has to be told it may. Passkeys
+# work on localhost; AUTH_MODE=password if you would rather type a password.
+AUTH_TRUSTED_ORIGINS=http://localhost:4200
 EOF
 
 pnpm run prisma:migrate
@@ -136,6 +139,11 @@ pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
 with it when `NODE_ENV=production`.
+
+The first account on an empty instance is whoever signs up first (set `ADMIN_EMAIL`
+to reserve it for one address, and the server prints a one-time link instead). With
+the default `AUTH_MODE=passkey`, Chrome's DevTools can stand in for a device: see
+[Testing by hand](authentication.md#testing-by-hand).
 
 ### What reads that `.env`
 
@@ -185,7 +193,8 @@ pnpm --filter @silencewatch/shared run watch
 ## Proving it works with curl
 
 `scripts/smoke.sh` walks the whole product from the outside: register, create a
-check, ping it, watch it go down, bring it back.
+check, ping it, watch it go down, bring it back. It signs up with a password, so
+the instance has to run with `AUTH_MODE=password`; a passkey needs a browser.
 
 ```bash
 cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
@@ -201,6 +210,13 @@ cd clients/spring-boot-starter && mvn test
 
 The web tests run on Vitest through the Angular builder; they need no browser.
 
+The server is compiled as `module: node20` and Better Auth ships ES modules only,
+which Jest cannot load by itself: `packages/server/jest.esm.js` lists the
+dependencies that go through the same transform as our own code. A new ESM-only
+dependency that fails with *"Must use import to load ES Module"* belongs in that
+list. (Under `module: node16` the same import is TS1479; `node20` compiles it to a
+`require()` that Node 22 and 24 serve.)
+
 The end-to-end suite migrates and truncates the database it is pointed at, so give
 it its own:
 
@@ -212,6 +228,16 @@ TEST_DATABASE_URL=postgresql://…/silencewatch_test pnpm run test:e2e
 It runs against a real PostgreSQL on purpose: the interesting logic (the detection
 state machine, `FOR UPDATE SKIP LOCKED`, the sync upsert, partial indexes) lives in
 SQL, and a mocked database would test none of it.
+
+Sign-in is tested the same way, from the outside. The suites run the app in
+`AUTH_MODE=password` unless they say otherwise (a test can type a password), and the
+passkey and `full` suites drive the **real** WebAuthn verification with a software
+authenticator (`test/utils/virtual-authenticator.ts`). The providers' servers cannot
+be reached from a test, so `full` replaces them at the one point where the network
+would be crossed — the profile a provider returns — and everything after it is the
+real code: the account-linking rules, the sign-up policy and the session. What is
+*not* covered is a real browser's prompt and a real provider's consent screen; that is
+the manual checklist in [`authentication.md`](authentication.md#testing-by-hand).
 
 ## Load testing the ingestion path
 
@@ -256,8 +282,8 @@ To change the schema:
 1. edit `packages/server/prisma/schema.prisma`;
 2. generate the SQL and review it:
    ```bash
-   pnpm exec prisma migrate diff --from-url "$DATABASE_URL" \
-     --to-schema-datamodel prisma/schema.prisma --script
+   pnpm exec prisma migrate diff --from-config-datasource \
+     --to-schema prisma/schema.prisma --script
    ```
 3. save it as `prisma/migrations/<timestamp>_<name>/migration.sql`, adding by hand
    anything Prisma cannot express;

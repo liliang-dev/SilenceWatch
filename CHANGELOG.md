@@ -10,6 +10,115 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+Sign-in is replaced by [Better Auth](https://www.better-auth.com). **This changes how every
+account gets in, so read [Upgrading](#upgrading-from-the-previous-version--mise-à-jour-depuis-la-version-précédente)
+before deploying.** One additive migration; going back to 0.5.0 is possible, but the
+sign-ins made in between do not exist there.
+
+### Added
+
+- **`AUTH_MODE`** chooses how people sign in, and only what it names exists: `passkey` (the
+  default; a passkey, with eight single-use recovery codes), `password` (an address and
+  12 characters at least), or `full` (Google, Microsoft, and a passkey added after the first
+  sign-in). Any other value stops the server at startup and lists the valid ones. In
+  `passkey` and `full` the server also refuses to start without `https://` (or `localhost`),
+  with a passkey domain (`AUTH_RP_ID`) that does not match `BASE_URL`, or with extra origins
+  (`AUTH_TRUSTED_ORIGINS`) outside it; `full` refuses to start without its four provider
+  credentials. See [docs/authentication.md](docs/authentication.md).
+- **A single sign-in page** that shows what the instance offers, works on a phone, and answers
+  every failed sign-in the same way (wrong password, unknown address, locked account).
+- **A Sign-in tab in Settings**: passkeys (several per account, added and removed there),
+  recovery codes, or the password, according to the mode. A passkey is offered once after a
+  first sign-in, and again after a recovery code.
+- **The first account** can be named with `ADMIN_EMAIL`. While there is no account, and
+  `ADMIN_EMAIL` is set or `SIGNUP_ENABLED=false`, sign-up is closed except to a **one-time link**
+  printed in the server log (30 minutes, one use, that address only). The same link can be made
+  at any time with `create-admin`, to let one more person into an instance that is closed.
+- **Command-line recovery**, in the server container: `node packages/server/dist/auth/cli.js`
+  with `create-admin`, `reset-password` (password mode) and `recovery-codes` (passkey mode).
+  These are not endpoints.
+- **A recent sign-in** (the last ten minutes) is now required to delete an account, to create
+  or revoke an API key, and to add or remove a passkey. The page asks the person to sign in
+  again, with the method the instance has, and carries on.
+- New audit entries: passkey added and removed, recovery codes made and used.
+- Settings: `AUTH_MODE`, `AUTH_RP_ID`, `AUTH_RP_NAME`, `AUTH_TRUSTED_ORIGINS`, `ADMIN_EMAIL`,
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`,
+  `MICROSOFT_TENANT_ID`.
+
+### Changed
+
+- **Sessions are cookies**, not tokens. A session lasts 30 days and slides (using it after a
+  day moves its end forward). The cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` over
+  HTTPS; a write made with it has to name `BASE_URL` (or an `AUTH_TRUSTED_ORIGINS` entry) in its
+  `Origin`, and the sign-in endpoints refuse a foreign origin even without a cookie. **API keys
+  and heartbeat URLs are untouched.**
+- **Passwords are hashed with scrypt** (Better Auth's default) instead of Argon2id. Accounts
+  made before this version have no password Better Auth can read: see Upgrading.
+- Passwords: 12 characters at least, as before; 10 failures in a row still lock an account for
+  15 minutes; the per-address rate limit is now Better Auth's, still set by
+  `AUTH_RATE_LIMIT_PER_MINUTE`.
+- `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` no longer needs email verification, and counts every
+  account that exists from the connection: nothing waits for an address to be proven now.
+- The first account of an empty instance is no longer "always allowed" when the operator has
+  named it or closed sign-up: it needs the link above. With neither, it is still whoever
+  arrives first.
+- Deleting an account no longer asks for the password: it needs a recent sign-in.
+- The audit trail's `auth.password_reset_*` and `auth.email_verified` actions no longer exist.
+- The server is compiled as `module: node20`, because Better Auth ships ES modules only. It
+  runs on Node 22.22.3+ and 24.15+ as before.
+
+### Removed
+
+- **Email verification, password reset by email and the sign-up proof of work**, with their
+  settings (`EMAIL_VERIFICATION_REQUIRED`, `EMAIL_VERIFICATION_TTL_HOURS`,
+  `UNVERIFIED_ACCOUNT_TTL_DAYS`, `PASSWORD_RESET_TTL_MINUTES`, `SIGNUP_POW_DIFFICULTY`,
+  `SIGNUP_POW_TTL_SECONDS`), their routes and their screens. SilenceWatch sends no email to
+  prove an address; alert emails are unchanged. A password is reset from the command line.
+- The access and refresh tokens, `ACCESS_TOKEN_TTL_SECONDS` and `REFRESH_TOKEN_TTL_DAYS`, and
+  the endpoints `/api/auth/register`, `login`, `refresh`, `logout`, `password`,
+  `verify-email`, `resend-verification`, `forgot-password`, `reset-password` and
+  `signup-challenge`. The dependency `@node-rs/argon2` goes with them; `jose` stays at version 6,
+  which Better Auth requires.
+
+### Database
+
+One migration, `20261020120000_better_auth`, that only adds and renames: the tables `account`,
+`verification`, `passkey` and `recovery_code`, a new `session` (the old one is kept as
+`session_legacy`), and `email_verified` and `image` on `user`. **Nothing that held an account
+is dropped.** The old tables and columns (`email_verification`, `password_reset`,
+`session_legacy`, `user.password_hash`, `user.email_verified_at`) are unused and stay until you
+apply the migration waiting in `packages/server/prisma/pending/`, outside the history on
+purpose; its README says when and how.
+
+### Upgrading from the previous version — Mise à jour depuis la version précédente
+
+1. **Choose a mode** and set `AUTH_MODE` in `.env` (and in `docker-stack.yml` environments if
+   you use Swarm: both Compose files pass the new variables through). The default, `passkey`,
+   needs `https://` or `localhost`: an instance on a plain-`http://` address that is not
+   `localhost` must set `AUTH_MODE=password` or it will not start, and says why.
+2. **Everyone is signed out** when the new version starts: the old sessions are not read.
+3. **Existing accounts keep their projects, checks and keys, but no way to sign in.** The old
+   password hash is not carried over. Give each person one:
+   - `password`: `docker compose exec silencewatch node packages/server/dist/auth/cli.js reset-password --email …`
+     prints a new password, once;
+   - `passkey`: `… cli.js recovery-codes --email …` prints codes; they sign in with one and add
+     a passkey;
+   - `full`: Google refuses an address nothing has proven, so run
+     `UPDATE "user" SET email_verified = true WHERE email = '…';` for the people you know,
+     and they sign in with Google. For everyone else, start in `password` or `passkey`
+     mode and move to `full` later (see
+     [docs/authentication.md](docs/authentication.md#changing-the-mode-later)).
+4. **Remove the variables that no longer exist** from `.env` (listed under Removed). Left in
+   place they are ignored.
+5. **Scripts that signed in** to the API with `/api/auth/login` and a Bearer token should use an
+   API key instead (`Authorization: Bearer sw_…`, per project). Sign-in endpoints are for
+   browsers.
+6. **A reverse proxy** must pass the `Origin` header (nginx and Caddy do by default) and must
+   not rewrite `Host` to something that is not `BASE_URL`. If it serves the UI from another
+   origin, name it in `AUTH_TRUSTED_ORIGINS`.
+7. Optional, later: apply `prisma/pending/20261020120000_drop_legacy_auth` once you are sure you
+   will not go back (see the README in that folder).
+
 ## [0.5.0] — 2026-10-05
 
 Two additive migrations (two new tables, three columns, two indexes), so going back to 0.4.1

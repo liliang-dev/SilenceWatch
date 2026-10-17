@@ -31,9 +31,12 @@ Then:
 docker compose up -d
 ```
 
-Create the first account at `BASE_URL`. On an empty instance sign-up is always
-allowed, whatever `SIGNUP_ENABLED` says — otherwise a fresh install could never be
-bootstrapped. Once your team is in, set `SIGNUP_ENABLED=false` and restart.
+Create the first account at `BASE_URL`. People sign in with a passkey by default,
+which browsers only accept on `https://` or `localhost`: on a plain-`http://` address
+set `AUTH_MODE=password`, or the server refuses to start and says why. Once your
+team is in, set `SIGNUP_ENABLED=false` and restart; more people can still be let in
+one at a time. [`authentication.md`](authentication.md) has the sign-in methods, the
+first account and what to do when someone is locked out.
 
 ## Configuration
 
@@ -48,7 +51,7 @@ which one:
 
 | Variable            | Set it to                                                  |
 | ------------------- | ---------------------------------------------------------- |
-| `SECRET_KEY`        | `openssl rand -hex 32`. Every signing key derives from it, so rotating it signs everyone out |
+| `SECRET_KEY`        | `openssl rand -hex 32`. Session cookies are signed with it, so rotating it signs everyone out |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Compose builds `DATABASE_URL` from it |
 | `SMTP_URL`          | `smtp://user:password@relay.example.com:587`. Or a `POSTMARK_TOKEN` / `BREVO_API_KEY` with the matching `EMAIL_PROVIDER` |
 
@@ -113,23 +116,21 @@ when `NODE_ENV=production`.
 no reason to play; the day an alert matters is the day you do not want it in a
 spam folder. Relay through a provider or through a relay you already trust.
 
-### Sign-up
+### Sign-in and sign-up
+
+How people sign in is `AUTH_MODE` (`passkey`, `password` or `full`), with its own
+settings: all of them are on [`authentication.md`](authentication.md), together with
+what the server checks at startup.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `SIGNUP_ENABLED` | `true` | When false, only the first account can be created |
-| `EMAIL_VERIFICATION_REQUIRED` | `false` | Require a proven address before sign-in |
-| `EMAIL_VERIFICATION_TTL_HOURS` | `24` | How long a confirmation link stays valid |
-| `UNVERIFIED_ACCOUNT_TTL_DAYS` | `7` | Unconfirmed accounts are deleted after this; 0 keeps them |
-| `SIGNUP_POW_DIFFICULTY` | `0` | Proof-of-work bits required to register; 0 disables it |
-| `SIGNUP_POW_TTL_SECONDS` | `600` | Lifetime of an issued challenge |
+| `SIGNUP_ENABLED` | `true` | When false, only someone holding a one-time setup link can create an account |
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |
 | `SIGNUP_MAX_PER_NETWORK_PER_HOUR` | `0` | Accounts per hour per network prefix; 0 disables it |
-| `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` | `0` | Accounts that may exist from one connection; needs `EMAIL_VERIFICATION_REQUIRED`; 0 disables it |
+| `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` | `0` | Accounts that may exist from one connection; 0 disables it |
 
-Everything below the first line is **off by default and stays that way for most
-self-hosters**. If your instance is on a private network, or you set
+The last four rows are **off by default and stay that way for most self-hosters**. If your instance is on a private network, or you set
 `SIGNUP_ENABLED=false` once the team is in, you have already solved the problem
 these settings address — none of them is worth turning on.
 
@@ -137,12 +138,6 @@ They exist for instances whose sign-up form is reachable by strangers.
 [`abuse-prevention.md`](abuse-prevention.md) explains what each one actually
 buys, with measurements, including the ones that are not worth what people
 expect.
-
-Turning `EMAIL_VERIFICATION_REQUIRED` on also makes registration
-enumeration-safe: the API stops revealing whether an address already has an
-account. The server refuses to boot with it enabled and `EMAIL_PROVIDER=console`
-— nobody could ever confirm an address, so every new account would be locked out
-of an instance that otherwise looks healthy.
 
 ### Plans and quotas
 
@@ -245,12 +240,11 @@ Stripe cannot be reached, so that no card is charged for an account that is gone
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
 | `AUDIT_RETENTION_DAYS` | `365` | How long the audit trail is kept |
 
-The audit trail records sign-ins and failed sign-ins, password changes and
-resets, API key and alert channel changes, check deletions, ping-key rotations
-and quota pauses. It is readable in **Settings → Security activity** by project
+The audit trail records sign-ins and failed sign-ins, password changes, passkeys
+and recovery codes, API key and alert channel changes, check deletions, ping-key
+rotations and quota pauses. It is readable in **Settings → Security activity** by project
 admins, and never contains a token, a key or a channel's configuration.
 
 A leaked ping URL no longer means recreating the check: **Check → ⋯ → Rotate ping
