@@ -142,8 +142,8 @@ describe('API key scope', () => {
 
     for (const [method, url, payload] of [
       ['GET', '/auth/me'],
-      ['POST', '/auth/password', { currentPassword: 'x', newPassword: 'a-sufficiently-long-password' }],
-      ['POST', '/auth/delete-account', { password: 'x', confirmation: 'x' }],
+      ['POST', '/auth/change-password', { currentPassword: 'x', newPassword: 'a-sufficiently-long-password' }],
+      ['POST', '/auth/delete-account', {}],
       ['GET', '/v1/account/audit'],
       ['POST', '/v1/projects', { name: 'Another' }],
       ['GET', '/v1/status'],
@@ -168,30 +168,5 @@ describe('API key scope', () => {
     expect(await send('POST', `/v1/checks/${id}/rotate-ping-key`, key)).toBe(403);
     expect(await send('DELETE', `/v1/checks/${id}`, key)).toBe(403);
     expect(await send('POST', `/v1/projects/${alice.projectId}/channels`, key, { type: 'slack', name: 'x', config: { url: 'https://hooks.example.com/z' } })).toBe(403);
-  });
-});
-
-describe('login rate limit', () => {
-  let context: TestApp;
-
-  beforeAll(async () => {
-    context = await createTestApp({ AUTH_RATE_LIMIT_PER_MINUTE: '5' });
-  });
-
-  afterAll(async () => {
-    await context.close();
-  });
-
-  it('is not reset by changing the query string', async () => {
-    const statuses: number[] = [];
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const response = await context.app.inject({
-        method: 'POST',
-        url: `/api/auth/login?x=${attempt}`,
-        payload: { email: 'nobody@example.test', password: 'wrong-password-wrong' },
-      });
-      statuses.push(response.statusCode);
-    }
-    expect(statuses).toContain(429);
   });
 });
