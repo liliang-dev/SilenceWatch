@@ -10,10 +10,15 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
-Sign-in is replaced by [Better Auth](https://www.better-auth.com). **This changes how every
-account gets in, so read [Upgrading](#upgrading-from-the-previous-version--mise-à-jour-depuis-la-version-précédente)
-before deploying.** One additive migration; going back to 0.5.0 is possible, but the
-sign-ins made in between do not exist there.
+## [0.5.0] — 2026-10-17
+
+**Sign-in is replaced by [Better Auth](https://www.better-auth.com), so read
+[Upgrading](#upgrading-from-the-previous-version--mise-à-jour-depuis-la-version-précédente)
+before deploying.** Everyone is signed out, and accounts made before have no way to sign in until
+they are given one. The rest is additive: three migrations that only add and rename, none of
+which drops what held an account (going back to 0.4.1 is possible, but the sign-ins made in
+between do not exist there). Every other new feature is **off unless you turn it on**, except the test-alert
+limit. That is why this is a minor version.
 
 ### Added
 
@@ -44,6 +49,28 @@ sign-ins made in between do not exist there.
 - Settings: `AUTH_MODE`, `AUTH_RP_ID`, `AUTH_RP_NAME`, `AUTH_TRUSTED_ORIGINS`, `ADMIN_EMAIL`,
   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`,
   `MICROSOFT_TENANT_ID`.
+- Subscriptions for the hosted service, through Stripe: a **Subscription** tab in Settings
+  to see the plan and what the account uses, choose a plan on Stripe's payment page, and
+  manage it (card, invoices, plan change, cancellation) in Stripe's customer portal. A payment
+  moves the account to the plan it bought, a cancellation moves it back to the plan everyone
+  starts on, and the quota reconciler pauses or resumes checks to match. Events from Stripe
+  are verified by signature, applied once however many times they are delivered, and an older
+  one never undoes a newer one. Deleting an account ends its subscription first.
+  **Off, and invisible, unless `BILLING_ENABLED` is set** (it also needs `QUOTAS_ENABLED`):
+  a self-hosted instance has no route, no tab and no contact with Stripe. Stripe is reached
+  with `fetch`, so there is no new dependency. New settings: `BILLING_ENABLED`,
+  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PLANS`, `BILLING_CURRENCY`,
+  `BILLING_AUTOMATIC_TAX`, `STRIPE_API_URL`; two new tables (`subscription`, `stripe_event`)
+  that nothing writes to without billing.
+- A pricing page on the site, in both languages, built from one list of plans.
+- Limits on what a free account can cost, for the hosted service. **One account per
+  connection** (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default): counts the accounts that exist from an IPv4 address or IPv6
+  /64, using a keyed hash and never the address. **Alerts per channel per hour**
+  (`ALERT_MAX_PER_CHANNEL_PER_HOUR`, off by default) so that a flapping check or a channel
+  aimed at someone else's mailbox cannot send without end. A project holds at most 25 live
+  API keys, and an account keeps its 20 newest sessions.
+- A plan limit that blocks an action is now explained in the language of the page, with the
+  numbers, instead of in the server's English.
 
 ### Changed
 
@@ -57,8 +84,6 @@ sign-ins made in between do not exist there.
 - Passwords: 12 characters at least, as before; 10 failures in a row still lock an account for
   15 minutes; the per-address rate limit is now Better Auth's, still set by
   `AUTH_RATE_LIMIT_PER_MINUTE`.
-- `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` no longer needs email verification, and counts every
-  account that exists from the connection: nothing waits for an address to be proven now.
 - The first account of an empty instance is no longer "always allowed" when the operator has
   named it or closed sign-up: it needs the link above. With neither, it is still whoever
   arrives first.
@@ -66,6 +91,11 @@ sign-ins made in between do not exist there.
 - The audit trail's `auth.password_reset_*` and `auth.email_verified` actions no longer exist.
 - The server is compiled as `module: node20`, because Better Auth ships ES modules only. It
   runs on Node 22.22.3+ and 24.15+ as before.
+- **A test alert** (the button on a channel) is limited to one per channel per minute and 20
+  per account per hour, and answers 429 with the time to wait, on every instance. It sends a
+  real message to an address or URL of the user's choosing. `TEST_ALERT_COOLDOWN_SECONDS` and
+  `TEST_ALERT_MAX_PER_HOUR` change it; 0 turns each off.
+- The site no longer says the hosted service *is* free: it has a free plan, and paid plans.
 
 ### Removed
 
@@ -79,6 +109,11 @@ sign-ins made in between do not exist there.
   `verify-email`, `resend-verification`, `forgot-password`, `reset-password` and
   `signup-challenge`. The dependency `@node-rs/argon2` goes with them; `jose` stays at version 6,
   which Better Auth requires.
+
+### Fixed
+
+- Resolved incidents were never deleted; they are now purged with the ping history, and a
+  revoked or expired API key is deleted after 30 days.
 
 ### Database
 
@@ -118,51 +153,6 @@ purpose; its README says when and how.
    origin, name it in `AUTH_TRUSTED_ORIGINS`.
 7. Optional, later: apply `prisma/pending/20261020120000_drop_legacy_auth` once you are sure you
    will not go back (see the README in that folder).
-
-## [0.5.0] — 2026-10-05
-
-Two additive migrations (two new tables, three columns, two indexes), so going back to 0.4.1
-is safe. Nothing to set: every new feature below is **off unless you turn it on**, except the
-test-alert limit, which is the one behaviour change and is why this is a minor version.
-
-### Added
-
-- Subscriptions for the hosted service, through Stripe: a **Subscription** tab in Settings
-  to see the plan and what the account uses, choose a plan on Stripe's payment page, and
-  manage it (card, invoices, plan change, cancellation) in Stripe's customer portal. A payment
-  moves the account to the plan it bought, a cancellation moves it back to the plan everyone
-  starts on, and the quota reconciler pauses or resumes checks to match. Events from Stripe
-  are verified by signature, applied once however many times they are delivered, and an older
-  one never undoes a newer one. Deleting an account ends its subscription first.
-  **Off, and invisible, unless `BILLING_ENABLED` is set** (it also needs `QUOTAS_ENABLED`):
-  a self-hosted instance has no route, no tab and no contact with Stripe. Stripe is reached
-  with `fetch`, so there is no new dependency. New settings: `BILLING_ENABLED`,
-  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PLANS`, `BILLING_CURRENCY`,
-  `BILLING_AUTOMATIC_TAX`, `STRIPE_API_URL`; two new tables (`subscription`, `stripe_event`)
-  that nothing writes to without billing.
-- A pricing page on the site, in both languages, built from one list of plans.
-- Limits on what a free account can cost, for the hosted service. **One account per
-  connection** (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default, needs
-  `EMAIL_VERIFICATION_REQUIRED`): counts the accounts that exist from an IPv4 address or IPv6
-  /64, using a keyed hash and never the address. **Alerts per channel per hour**
-  (`ALERT_MAX_PER_CHANNEL_PER_HOUR`, off by default) so that a flapping check or a channel
-  aimed at someone else's mailbox cannot send without end. A project holds at most 25 live
-  API keys, and an account keeps its 20 newest sessions.
-- A plan limit that blocks an action is now explained in the language of the page, with the
-  numbers, instead of in the server's English.
-
-### Changed
-
-- **A test alert** (the button on a channel) is limited to one per channel per minute and 20
-  per account per hour, and answers 429 with the time to wait, on every instance. It sends a
-  real message to an address or URL of the user's choosing. `TEST_ALERT_COOLDOWN_SECONDS` and
-  `TEST_ALERT_MAX_PER_HOUR` change it; 0 turns each off.
-- The site no longer says the hosted service *is* free: it has a free plan, and paid plans.
-
-### Fixed
-
-- Resolved incidents were never deleted; they are now purged with the ping history, and a
-  revoked or expired API key is deleted after 30 days.
 
 ## [0.4.1] — 2026-10-04
 
