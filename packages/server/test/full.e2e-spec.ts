@@ -169,6 +169,9 @@ describe('passkeys, Google and Microsoft', () => {
       expect(user.memberships.map((member) => member.role)).toEqual(['owner']);
       // Tokens the provider handed over are not kept: nothing here calls it again.
       expect(user.accounts[0]?.password).toBeNull();
+      expect(user.accounts[0]?.accessToken).toBeNull();
+      expect(user.accounts[0]?.refreshToken).toBeNull();
+      expect(user.accounts[0]?.idToken).toBeNull();
     });
 
     it('signs the same person into the same account next time', async () => {

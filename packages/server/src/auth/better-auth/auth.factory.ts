@@ -155,6 +155,9 @@ export function createAuth(
         trustedProviders: ['google'],
         allowDifferentEmails: false,
       },
+      // Nothing here ever calls Google or Microsoft again, so nothing they hand over
+      // is worth keeping: see the account hook below.
+      updateAccountOnSignIn: false,
     },
 
     user: {
@@ -238,6 +241,23 @@ export function createAuth(
             const setupToken = setupTokenOfHeaders(headers);
             await deps.signup.created(user, { ...originOfHeaders(headers), setupToken });
           },
+        },
+      },
+      account: {
+        create: {
+          // The identity of the account, and no token: a copy of the database holds
+          // nothing that could be used at a provider.
+          before: (account) =>
+            Promise.resolve({
+              data: {
+                ...account,
+                accessToken: null,
+                refreshToken: null,
+                idToken: null,
+                accessTokenExpiresAt: null,
+                refreshTokenExpiresAt: null,
+              },
+            }),
         },
       },
       session: {
