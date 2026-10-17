@@ -26,8 +26,9 @@ Le fournisseur d’e-mail `console` (qui écrit les alertes dans le journal) n�
 
 | Variable | Défaut | Effet |
 | --- | --- | --- |
-| `SIGNUP_ENABLED` | `true` | À `false`, seul le premier compte peut être créé. À fixer une fois votre équipe inscrite. |
-| `EMAIL_VERIFICATION_REQUIRED` | `false` | Exige une adresse e-mail confirmée avant la connexion. |
+| `AUTH_MODE` | `passkey` | Comment on se connecte : `passkey`, `password` ou `full` (Google, Microsoft et passkey). Une passkey exige `https://` ou `localhost`. Voir le [guide d’authentification](/docs/reference/authentication/). |
+| `ADMIN_EMAIL` | — | L’adresse du premier compte : tant qu’il n’existe pas, l’inscription n’est ouverte qu’à un lien à usage unique, affiché dans le journal du serveur. |
+| `SIGNUP_ENABLED` | `true` | À `false`, seul un lien d’installation permet de créer un compte. À fixer une fois votre équipe inscrite. |
 | `PING_RETENTION_DAYS` | `90` | Durée de conservation de l’historique des pings. |
 | `AUDIT_RETENTION_DAYS` | `365` | Durée de conservation de l’historique de sécurité. |
 | `ALLOW_PRIVATE_NOTIFICATION_TARGETS` | `false` | Autorise les alertes vers des adresses privées (protection contre le SSRF activée par défaut). |

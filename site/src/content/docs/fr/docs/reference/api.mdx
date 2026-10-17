@@ -20,7 +20,7 @@ Deux types d’identifiants, un seul en-tête :
   ```
 
   Une clé gère les checks de son projet et rien d’autre : elle ne lit jamais un autre projet et ne peut ni créer ni lister de clés, donc une clé de CI qui fuit ne peut pas s’octroyer plus d’accès.
-- **Les sessions utilisateur** sont celles de l’interface web.
+- **Les sessions utilisateur** sont celles de l’interface web : un cookie posé par la connexion, que la page ne peut pas lire. Elles sont faites pour les navigateurs ; un script utilise une clé d’API. La méthode de connexion est celle de l’instance (`AUTH_MODE`), décrite dans le [guide d’authentification](/docs/reference/authentication/).
 
 ## Les principaux points d’entrée
 

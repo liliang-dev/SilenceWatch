@@ -71,6 +71,7 @@ export default defineConfig({
           items: [
             { slug: 'docs/reference/api' },
             { slug: 'docs/reference/self-hosting' },
+            { slug: 'docs/reference/authentication' },
             { slug: 'docs/reference/security' },
           ],
         },
