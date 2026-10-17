@@ -6,7 +6,6 @@ import { AuthGuard } from './access/auth.guard';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
-import { SessionsModule } from './auth/sessions/sessions.module';
 import { ChannelsModule } from './channels/channels.module';
 import { ChecksModule } from './checks/checks.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
@@ -30,7 +29,6 @@ import { RetentionModule } from './retention/retention.module';
     AuditModule,
     AccessModule,
     ApiKeysModule,
-    SessionsModule,
     AuthModule,
     IngestModule,
     NotificationsModule,
@@ -45,7 +43,7 @@ import { RetentionModule } from './retention/retention.module';
   ],
   providers: [
     // Order matters: rate limiting runs before authentication, so an unauthenticated
-    // flood is rejected without touching Argon2 or the database.
+    // flood is rejected without touching the database.
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },

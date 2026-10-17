@@ -1,43 +1,4 @@
-import { hash as argon2Hash, verify as argon2Verify, Algorithm } from '@node-rs/argon2';
-import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
-import { createHash } from 'node:crypto';
-
-/**
- * Argon2id parameters follow the OWASP Password Storage Cheat Sheet
- * (m=19456 KiB, t=2, p=1). Raising them later is safe: stored hashes carry
- * their own parameters, and `needsRehash` reports outdated ones.
- */
-const ARGON2_OPTIONS = {
-  algorithm: Algorithm.Argon2id,
-  memoryCost: 19_456,
-  timeCost: 2,
-  parallelism: 1,
-} as const;
-
-export async function hashPassword(password: string): Promise<string> {
-  return argon2Hash(password, ARGON2_OPTIONS);
-}
-
-/** Constant-time password check. Never throws — a corrupt hash is a failed login. */
-export async function verifyPassword(storedHash: string, password: string): Promise<boolean> {
-  try {
-    return await argon2Verify(storedHash, password);
-  } catch {
-    return false;
-  }
-}
-
-/** True when a stored hash was produced with weaker parameters than current policy. */
-export function needsRehash(storedHash: string): boolean {
-  const match = /^\$argon2id\$v=19\$m=(\d+),t=(\d+),p=(\d+)/.exec(storedHash);
-  if (!match) return true;
-  const [, memory, time, parallelism] = match;
-  return (
-    Number(memory) < ARGON2_OPTIONS.memoryCost ||
-    Number(time) < ARGON2_OPTIONS.timeCost ||
-    Number(parallelism) !== ARGON2_OPTIONS.parallelism
-  );
-}
+import { createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /**
  * Derives a purpose-bound key from the root secret. Distinct purposes cannot be

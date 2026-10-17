@@ -1,20 +1,14 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
-import { deleteAccountRequestSchema, type UserDto } from '@silencewatch/shared';
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import { assertUser, CurrentPrincipal, type Principal } from '../../access/principal';
+import { Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
+import type { UserDto } from '@silencewatch/shared';
+import type { FastifyRequest } from 'fastify';
+import { assertRecentUser, assertUser, CurrentPrincipal, type Principal } from '../../access/principal';
 import { StrictRateLimit } from '../../common/rate-limit.guard';
-import { zodPipe } from '../../common/zod-validation.pipe';
-import { AppConfig, CONFIG } from '../../config/config';
-import { sessionContextOf } from '../session-context';
-import { clearRefreshCookie } from '../sessions/refresh-cookie';
+import { originOfRequest } from '../better-auth/auth-policy';
 import { AccountService } from './account.service';
 
 @Controller('auth')
 export class AccountController {
-  constructor(
-    @Inject(CONFIG) private readonly config: AppConfig,
-    private readonly account: AccountService,
-  ) {}
+  constructor(private readonly account: AccountService) {}
 
   @Get('me')
   async me(@CurrentPrincipal() principal: Principal): Promise<UserDto> {
@@ -24,20 +18,17 @@ export class AccountController {
   /**
    * Deletes the signed-in account and its data, at once. See AccountService.
    *
-   * A POST rather than a DELETE with a body: some proxies drop a body on DELETE,
-   * and this one carries the password. Rate-limited like the other routes that
-   * take a password, since it is one more place to guess it.
+   * A POST rather than a DELETE: it is not a resource of its own to remove, and a
+   * proxy is free to treat DELETE oddly. The session's cookie is cleared by the
+   * browser's next request, which the server no longer honours.
    */
   @StrictRateLimit()
   @Post('delete-account')
   @HttpCode(204)
   async deleteAccount(
     @CurrentPrincipal() principal: Principal,
-    @Body(zodPipe(deleteAccountRequestSchema)) body: { password: string },
     @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
-    await this.account.delete(assertUser(principal).userId, body, sessionContextOf(request));
-    clearRefreshCookie(reply, this.config);
+    await this.account.delete(assertRecentUser(principal).userId, originOfRequest(request));
   }
 }

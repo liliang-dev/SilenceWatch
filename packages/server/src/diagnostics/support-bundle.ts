@@ -19,6 +19,9 @@ import { SILENCEWATCH_COMMIT, SILENCEWATCH_VERSION } from '../version';
 /** Variables whose *values* are never included, only whether they are set. */
 const SECRET_KEYS = new Set([
   'SECRET_KEY',
+  'GOOGLE_CLIENT_SECRET',
+  'MICROSOFT_CLIENT_SECRET',
+  'ADMIN_EMAIL',
   'DATABASE_URL',
   'SMTP_URL',
   'POSTMARK_TOKEN',
@@ -51,9 +54,11 @@ const SAFE_KEYS = [
   'PURGE_CRON',
   'DATABASE_POOL_MAX',
   'INGEST_POOL_MAX',
-  'ACCESS_TOKEN_TTL_SECONDS',
-  'REFRESH_TOKEN_TTL_DAYS',
   'SIGNUP_ENABLED',
+  'AUTH_MODE',
+  'AUTH_RP_ID',
+  'AUTH_TRUSTED_ORIGINS',
+  'MICROSOFT_TENANT_ID',
 ] as const satisfies readonly (keyof AppConfig)[];
 
 const COUNT_QUERIES: Array<[string, string]> = [

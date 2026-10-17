@@ -166,18 +166,8 @@ describe('loadConfig', () => {
   });
 
   describe('abuse limits', () => {
-    it('lets a connection have one account only when addresses are proven', () => {
-      expect(() => loadConfig({ ...minimal, SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1' })).toThrow(
-        /needs EMAIL_VERIFICATION_REQUIRED/,
-      );
-      const config = loadConfig({
-        ...minimal,
-        SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1',
-        EMAIL_VERIFICATION_REQUIRED: 'true',
-        EMAIL_PROVIDER: 'smtp',
-        SMTP_URL: 'smtp://u:p@smtp.example.test:587',
-      } as NodeJS.ProcessEnv);
-      expect(config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(1);
+    it('lets a connection have one account without asking for anything else', () => {
+      expect(loadConfig({ ...minimal, SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1' }).SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(1);
     });
 
     it('is off for one connection and on for test alerts by default', () => {
@@ -186,6 +176,101 @@ describe('loadConfig', () => {
       expect(config.ALERT_MAX_PER_CHANNEL_PER_HOUR).toBe(0);
       expect(config.TEST_ALERT_COOLDOWN_SECONDS).toBe(60);
       expect(config.TEST_ALERT_MAX_PER_HOUR).toBe(20);
+    });
+  });
+
+  describe('sign-in', () => {
+    const oauth = {
+      GOOGLE_CLIENT_ID: 'g',
+      GOOGLE_CLIENT_SECRET: 'g',
+      MICROSOFT_CLIENT_ID: 'm',
+      MICROSOFT_CLIENT_SECRET: 'm',
+    };
+    const hosted = { ...minimal, BASE_URL: 'https://watch.example.com' } as NodeJS.ProcessEnv;
+
+    it('uses passkeys unless told otherwise', () => {
+      const config = loadConfig(minimal);
+      expect(config.AUTH_MODE).toBe('passkey');
+      expect(config.MICROSOFT_TENANT_ID).toBe('common');
+    });
+
+    it.each(['passkey', 'password', 'full'])('accepts %s', (mode) => {
+      expect(loadConfig({ ...hosted, ...oauth, AUTH_MODE: mode }).AUTH_MODE).toBe(mode);
+    });
+
+    it('refuses any other mode, and lists the valid ones', () => {
+      for (const mode of ['both', 'PASSKEY', 'google', 'oauth', '']) {
+        expect(() => loadConfig({ ...minimal, AUTH_MODE: mode })).toThrow(
+          /is not a sign-in mode\. Valid values: passkey, password, full/,
+        );
+      }
+    });
+
+    it('asks for both providers\' credentials in full mode, and only there', () => {
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'full' })).toThrow(/GOOGLE_CLIENT_ID.*required when AUTH_MODE=full/s);
+      expect(() => loadConfig({ ...hosted, ...oauth, AUTH_MODE: 'full', MICROSOFT_CLIENT_SECRET: '' })).toThrow(
+        /MICROSOFT_CLIENT_SECRET/,
+      );
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'password' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'passkey' })).not.toThrow();
+    });
+
+    it('wants https for passkeys, but lets localhost be developed on', () => {
+      for (const mode of ['passkey', 'full']) {
+        expect(() =>
+          loadConfig({ ...minimal, ...oauth, AUTH_MODE: mode, BASE_URL: 'http://watch.example.com' }),
+        ).toThrow(/must be https \(or localhost\)/);
+        expect(() =>
+          loadConfig({ ...minimal, ...oauth, AUTH_MODE: mode, BASE_URL: 'http://localhost:8080' }),
+        ).not.toThrow();
+      }
+      // A password needs no secure origin: that is the server's HTTPS check, in production.
+      expect(() =>
+        loadConfig({ ...minimal, AUTH_MODE: 'password', BASE_URL: 'http://watch.internal:8080' }),
+      ).not.toThrow();
+    });
+
+    it('ties the passkey domain to the address the UI is served from', () => {
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'example.com' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'watch.example.com' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'other.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'notexample.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'sub.watch.example.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'com' })).toThrow(/parent domain|top-level/);
+    });
+
+    it('keeps every extra origin inside that domain', () => {
+      const withOrigins = (origins: string) => ({ ...hosted, AUTH_RP_ID: 'example.com', AUTH_TRUSTED_ORIGINS: origins });
+      expect(() => loadConfig(withOrigins('https://app.example.com'))).not.toThrow();
+      expect(() => loadConfig(withOrigins('https://evil.com'))).toThrow(/outside AUTH_RP_ID/);
+      expect(() => loadConfig(withOrigins('http://app.example.com'))).toThrow(/must be https/);
+      expect(() => loadConfig(withOrigins('https://app.example.com/path'))).toThrow(/not an origin/);
+      expect(() => loadConfig(withOrigins('not a url'))).toThrow(/not an origin/);
+    });
+
+    it('does not apply any of that to passwords', () => {
+      expect(() =>
+        loadConfig({
+          ...minimal,
+          AUTH_MODE: 'password',
+          BASE_URL: 'http://watch.example.com',
+          AUTH_RP_ID: 'other.com',
+          AUTH_TRUSTED_ORIGINS: 'http://elsewhere.test',
+        }),
+      ).not.toThrow();
+    });
+
+    it('treats a blank optional setting as unset', () => {
+      const config = loadConfig({ ...minimal, ADMIN_EMAIL: '', AUTH_RP_ID: '', GOOGLE_CLIENT_ID: '' });
+      expect(config.ADMIN_EMAIL).toBeUndefined();
+      expect(config.AUTH_RP_ID).toBeUndefined();
+    });
+
+    it('is not configured by the settings of the system it replaced', () => {
+      // These used to exist; setting them now does nothing, and the schema ignores them.
+      const config = loadConfig({ ...minimal, ACCESS_TOKEN_TTL_SECONDS: '60', EMAIL_VERIFICATION_REQUIRED: 'true' });
+      expect('ACCESS_TOKEN_TTL_SECONDS' in config).toBe(false);
+      expect('EMAIL_VERIFICATION_REQUIRED' in config).toBe(false);
     });
   });
 });

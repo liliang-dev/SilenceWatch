@@ -13,12 +13,6 @@ export const emailSchema = z
   .max(LIMITS.emailMax)
   .email();
 
-/**
- * Password policy: length over composition rules (NIST SP 800-63B). Upper bound
- * caps the work an attacker can force on the Argon2 hasher.
- */
-export const passwordSchema = z.string().min(LIMITS.passwordMin).max(LIMITS.passwordMax);
-
 export const slugSchema = z
   .string()
   .trim()

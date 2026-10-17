@@ -6,6 +6,9 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
+import { registerAuthRoutes } from './auth/better-auth/auth-routes';
+import { AUTH } from './auth/better-auth/auth.provider';
+import type { Auth } from './auth/better-auth/auth.factory';
 import { registerBillingWebhook } from './billing/billing-webhook.plugin';
 import { BillingService } from './billing/billing.service';
 import { registerProxyTrustCheck } from './common/proxy-trust';
@@ -73,6 +76,9 @@ async function bootstrap(): Promise<void> {
     config,
   );
 
+  // Sign-in is Better Auth's, which brings its own routing and is mounted whole.
+  registerAuthRoutes(app.getHttpAdapter().getInstance() as never, app.get<Auth>(AUTH), config);
+
   // Stripe's webhook needs the body as it arrived, so it is mounted the same way.
   await registerBillingWebhook(
     app.getHttpAdapter().getInstance() as never,
@@ -119,10 +125,6 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
         imgSrc: ["'self'", 'data:'],
         fontSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
-        // The sign-up proof of work runs in a same-origin module worker. Named
-        // explicitly because workerSrc does not inherit from scriptSrc in every
-        // browser, and a silently blocked worker would look like a hung form.
-        workerSrc: ["'self'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
@@ -138,7 +140,7 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
   });
 
   // The UI is served same-origin, so CORS only matters for third-party API
-  // consumers, which use bearer tokens — never cookies.
+  // consumers, which use API keys in a header — never cookies.
   const origins = [config.baseUrl, ...config.CORS_ORIGINS];
   await app.register(cors as never, {
     origin: origins,

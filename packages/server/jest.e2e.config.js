@@ -10,7 +10,11 @@ module.exports = {
   rootDir: 'test',
   testEnvironment: 'node',
   testRegex: '.*\\.e2e-spec\\.ts$',
-  transform: { '^.+\\.(ts|js|mjs)$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json', diagnostics: { ignoreCodes: [151002] } }] },
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.jest.json', diagnostics: { ignoreCodes: [151002] } }],
+    // Only dependencies: our own workspace packages are already CommonJS.
+    'node_modules/.+\\.m?js$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.jest.json', diagnostics: false }],
+  },
   ...esm,
   moduleFileExtensions: ['ts', 'js', 'json'],
   testTimeout: 60000,

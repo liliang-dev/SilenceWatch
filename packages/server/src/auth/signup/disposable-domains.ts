@@ -7,8 +7,8 @@
  * head of the distribution is short — a handful of domains account for most
  * casual throwaway signups — and stopping those costs one Set lookup.
  *
- * The load-bearing defences are elsewhere (proof of work, verified delivery,
- * per-network velocity). Operators who want a maintained list point
+ * The load-bearing defences are elsewhere (rate limits, the per-connection and
+ * per-network limits). Operators who want a maintained list point
  * SIGNUP_BLOCKED_EMAIL_DOMAINS at their own, refreshed on their own schedule.
  *
  * Deliberately *not* included: Gmail, Outlook, Proton, Tutanota and the other

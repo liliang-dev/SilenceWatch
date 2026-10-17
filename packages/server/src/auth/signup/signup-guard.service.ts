@@ -2,20 +2,20 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { hmacSha256Hex } from '../../common/crypto.util';
 import { AppConfig, CONFIG } from '../../config/config';
 import { UsersRepository } from '../users/users.repository';
-import { SignupChallengeService } from './signup-challenge.service';
 import { DISPOSABLE_EMAIL_DOMAINS, domainSuffixes } from './disposable-domains';
+import { addressOf } from './network';
 import { SignupAttemptsRepository } from './signup-attempts.repository';
 
 export type SignupRejection = 'disposable_email' | 'network_quota' | 'address_quota';
 
 /**
  * The checks that decide whether an account may be created at all — the ones
- * that need durable state, as opposed to the per-request proof of work.
+ * that need durable state, as opposed to the rate limits, which live in memory.
  *
  * Three rules, all off by default:
  *
  *  1. **Disposable mailboxes.** Cheap, and it removes the laziest way to make a
- *     verification email meaningless.
+ *     fresh account for every free-plan limit you reach.
  *  2. **Per-network velocity, counted in PostgreSQL.** The in-memory rate
  *     limiter is per-instance and forgets everything on restart, which makes a
  *     deploy a free window and a second replica a doubled budget. Counting
@@ -69,7 +69,7 @@ export class SignupGuardService {
     if (this.config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS === 0) return null;
     return hmacSha256Hex(
       this.config.SECRET_KEY,
-      `silencewatch:signup-network:${SignupChallengeService.addressOf(ip)}`,
+      `silencewatch:signup-network:${addressOf(ip)}`,
     ).slice(0, 32);
   }
 
@@ -77,16 +77,14 @@ export class SignupGuardService {
    * Whether this connection may have one more account.
    *
    * Counts the accounts that exist, not the ones ever made: one that was deleted
-   * frees its place, and one whose address was never proven stops counting after
-   * an hour, so a mistyped address costs an hour and not the connection. An
-   * address the server cannot read is one shared bucket rather than a way past
-   * the rule, as for the hourly one.
+   * frees its place. An address the server cannot read is one shared bucket
+   * rather than a way past the rule, as for the hourly one.
    */
   async isAddressWithinQuota(signupNetwork: string | null): Promise<boolean> {
     const ceiling = this.config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS;
     if (ceiling === 0 || signupNetwork === null) return true;
 
-    const used = await this.users.countFromNetwork(signupNetwork, new Date(Date.now() - 3_600_000));
+    const used = await this.users.countFromNetwork(signupNetwork);
     if (used >= ceiling) {
       this.logger.warn(`Account limit reached for one connection: ${used} account(s) already`);
       return false;
