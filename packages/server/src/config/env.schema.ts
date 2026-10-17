@@ -4,6 +4,7 @@ import { httpShape } from './groups/http';
 import { databaseShape } from './groups/database';
 import { authShape } from './groups/auth';
 import { signupShape } from './groups/signup';
+import { billingShape } from './groups/billing';
 import { quotasShape } from './groups/quotas';
 import { rateLimitsShape } from './groups/rate-limits';
 import { detectionShape } from './groups/detection';
@@ -21,6 +22,7 @@ const shape = {
   ...authShape,
   ...signupShape,
   ...quotasShape,
+  ...billingShape,
   ...rateLimitsShape,
   ...detectionShape,
   ...notificationsShape,

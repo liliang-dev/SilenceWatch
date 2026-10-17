@@ -1,13 +1,13 @@
-import { auth, createTestApp, registerUser, type TestApp } from './utils/test-app';
+import { auth, createTestApp, registerUser, TEST_BASE_URL, type TestApp } from './utils/test-app';
 
 /**
- * Deleting an account: the password is asked again, everything only that
+ * Deleting an account: a recent sign-in is required, everything only that
  * account held goes at once, and what other people share survives.
  *
  * The confirmation the interface asks for (typing a word) is a courtesy against
- * a stray click. What the server enforces is the password and the one rule that
- * keeps a shared project from being left without an owner, so that is what is
- * tested, from the outside.
+ * a stray click. What the server enforces is the recent sign-in (tested in
+ * sign-in.e2e-spec.ts) and the one rule that keeps a shared project from being
+ * left without an owner, so that is what is tested here, from the outside.
  */
 describe('account deletion', () => {
   let context: TestApp;
@@ -22,47 +22,12 @@ describe('account deletion', () => {
     await context.close();
   });
 
-  const deleteAccount = (token: string, payload: unknown) =>
+  const deleteAccount = (token: string) =>
     context.app.inject({
       method: 'POST',
       url: '/api/auth/delete-account',
       headers: auth(token),
-      payload: payload as Record<string, unknown>,
     });
-
-  it('refuses a wrong password and leaves everything as it was', async () => {
-    const user = await registerUser(context);
-
-    // 403 and not 401: a 401 tells the browser its session has expired, and it would
-    // refresh and send the same wrong password again before signing the user out.
-    const response = await deleteAccount(user.token, { password: 'not-the-password-at-all' });
-    expect(response.statusCode).toBe(403);
-
-    const me = await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(user.token) });
-    expect(me.statusCode).toBe(200);
-    expect(await context.prisma.project.count({ where: { id: user.projectId } })).toBe(1);
-  });
-
-  it('counts wrong passwords towards the lockout, like a login does', async () => {
-    const user = await registerUser(context);
-
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      await deleteAccount(user.token, { password: 'not-the-password-at-all' });
-    }
-
-    // Locked now: even the right password is refused, and nothing is deleted.
-    const response = await deleteAccount(user.token, { password: PASSWORD });
-    expect(response.statusCode).toBe(403);
-    expect(await context.prisma.user.count({ where: { id: user.userId } })).toBe(1);
-  });
-
-  it('refuses a request without a password', async () => {
-    const user = await registerUser(context);
-
-    const response = await deleteAccount(user.token, {});
-    expect(response.statusCode).toBe(400);
-    expect(await context.prisma.user.count({ where: { id: user.userId } })).toBe(1);
-  });
 
   it('is not available to an API key', async () => {
     const user = await registerUser(context);
@@ -74,7 +39,7 @@ describe('account deletion', () => {
     });
     const key = created.json<{ token: string }>().token;
 
-    const response = await deleteAccount(key, { password: PASSWORD });
+    const response = await deleteAccount(key);
     expect(response.statusCode).toBe(401);
     expect(await context.prisma.user.count({ where: { id: user.userId } })).toBe(1);
   });
@@ -90,7 +55,7 @@ describe('account deletion', () => {
     expect(check.statusCode).toBe(201);
     const checkId = check.json<{ id: string }>().id;
 
-    const response = await deleteAccount(user.token, { password: PASSWORD });
+    const response = await deleteAccount(user.token);
     expect(response.statusCode).toBe(204);
 
     expect(await context.prisma.user.count({ where: { id: user.userId } })).toBe(0);
@@ -98,12 +63,13 @@ describe('account deletion', () => {
     expect(await context.prisma.check.count({ where: { id: checkId } })).toBe(0);
     expect(await context.prisma.session.count({ where: { userId: user.userId } })).toBe(0);
 
-    // The access token that was just used is dead, and so is the account.
+    // The session that was just used is dead, and so is the account.
     const me = await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(user.token) });
     expect(me.statusCode).toBe(401);
     const login = await context.app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: TEST_BASE_URL },
       payload: { email: user.email, password: PASSWORD },
     });
     expect(login.statusCode).toBe(401);
@@ -114,7 +80,7 @@ describe('account deletion', () => {
 
   it('keeps a record that it happened, with the address of whoever did it', async () => {
     const user = await registerUser(context);
-    await deleteAccount(user.token, { password: PASSWORD });
+    await deleteAccount(user.token);
 
     // The trail is written without blocking the request, so give it a moment.
     let event: { actorEmail: string | null; actorUserId: string | null } | null = null;
@@ -138,7 +104,7 @@ describe('account deletion', () => {
       data: { projectId: leaving.projectId, userId: staying.userId, role: 'owner' },
     });
 
-    const response = await deleteAccount(leaving.token, { password: PASSWORD });
+    const response = await deleteAccount(leaving.token);
     expect(response.statusCode).toBe(204);
 
     expect(await context.prisma.user.count({ where: { id: leaving.userId } })).toBe(0);
@@ -155,7 +121,7 @@ describe('account deletion', () => {
       data: { projectId: owner.projectId, userId: member.userId, role: 'member' },
     });
 
-    const response = await deleteAccount(owner.token, { password: PASSWORD });
+    const response = await deleteAccount(owner.token);
     expect(response.statusCode).toBe(409);
     expect(response.json<{ message: string }>().message).toMatch(/without one/i);
 

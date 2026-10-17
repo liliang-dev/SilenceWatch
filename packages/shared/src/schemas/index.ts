@@ -7,4 +7,5 @@ export * from './channels';
 export * from './api-keys';
 export * from './sync';
 export * from './audit';
+export * from './billing';
 export * from './errors';

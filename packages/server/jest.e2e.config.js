@@ -4,11 +4,18 @@
  * Set TEST_DATABASE_URL (or DATABASE_URL) to a database that may be migrated and
  * truncated; the suite refuses to run against anything it was not pointed at.
  */
+const esm = require('./jest.esm');
+
 module.exports = {
   rootDir: 'test',
   testEnvironment: 'node',
   testRegex: '.*\\.e2e-spec\\.ts$',
-  transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json' }] },
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.jest.json', diagnostics: { ignoreCodes: [151002] } }],
+    // Only dependencies: our own workspace packages are already CommonJS.
+    'node_modules/.+\\.m?js$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.jest.json', diagnostics: false }],
+  },
+  ...esm,
   moduleFileExtensions: ['ts', 'js', 'json'],
   testTimeout: 60000,
   globalSetup: '<rootDir>/global-setup.ts',

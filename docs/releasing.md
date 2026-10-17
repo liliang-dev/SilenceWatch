@@ -129,6 +129,56 @@ failure, not a quiet no-op.
 run was cancelled. Re-run it without moving the tag: **Actions → Release → Run
 workflow**, and give it the existing tag.
 
+## Releasing the Spring Boot starter
+
+The starter (`clients/spring-boot-starter`) has a version of its own, and is
+published to **Maven Central** so that anyone can add it with one dependency. It is
+tagged apart from the application: `starter-0.1.0`, not `0.1.0`. The
+[Starter release](../.github/workflows/starter-release.yml) workflow answers to
+that tag only, and the Release workflow never sees it.
+
+### Once: the accounts and the key
+
+1. **A Central Portal account** at <https://central.sonatype.com>, and the
+   namespace `com.silencewatch` **verified**: Central asks you to prove you own
+   `silencewatch.com` by adding a DNS record it gives you. Nothing can be
+   published under the group until that is done.
+2. **A user token** (Account → Generate User Token): a username and a password
+   that stand for the account, and that can be revoked.
+3. **A signing key**: `gpg --full-generate-key`, then publish the public key
+   (`gpg --keyserver keyserver.ubuntu.com --send-keys <id>`), because Central
+   checks signatures against a public keyserver. Export the private key with
+   `gpg --armor --export-secret-keys <id>`.
+4. **A GitHub environment** named `maven-central` (Settings → Environments), with
+   four secrets: `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD` (the token),
+   `MAVEN_GPG_PRIVATE_KEY` (the armored key) and `MAVEN_GPG_PASSPHRASE`. Add
+   yourself as a required reviewer if you want a click before each release.
+
+### Each release
+
+1. Put the version in the install snippets of `clients/spring-boot-starter/README.md`
+   (`<version>0.1.0</version>` and the Gradle line), and land it on `main`.
+2. Tag it, from the commit on `main`:
+
+   ```bash
+   git tag starter-0.1.0
+   git push origin starter-0.1.0
+   ```
+
+3. Watch [Actions → Starter release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/starter-release.yml).
+   It checks that the commit is on `main` and that the README gives the version,
+   takes the number from the tag (the repository keeps `0.1.0-SNAPSHOT`), runs the
+   tests, builds the jar with its sources and javadoc, signs everything, and
+   uploads it to the Portal.
+4. **Publish it by hand**: open <https://central.sonatype.com/publishing/deployments>,
+   check the deployment and press **Publish**. This last click is deliberately not
+   automated: a version published to Central can never be changed or removed, and
+   a mistake can only be answered with the next number. A few minutes later the
+   dependency resolves from Maven Central.
+
+Until step 1 of "Once" is done, the dependency in the README cannot be resolved by
+anyone: the starter builds and passes its tests, but is not published.
+
 ## Deploying by hand
 
 For a fork without the deploy secrets, or when you want to choose the moment.

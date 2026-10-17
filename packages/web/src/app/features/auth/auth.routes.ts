@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-/** The screens a signed-out visitor can reach: sign in, confirm an address, reset a password. */
+/** The screens a signed-out visitor can reach: sign in, and the first visit by a setup link. */
 export const AUTH_ROUTES: Routes = [
   {
     path: 'login',
@@ -8,15 +8,9 @@ export const AUTH_ROUTES: Routes = [
     loadComponent: () => import('./login/login.component').then((m) => m.LoginComponent),
   },
   {
-    path: 'verify-email',
-    title: 'title.verifyEmail',
-    loadComponent: () =>
-      import('./verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
-  },
-  {
-    path: 'reset-password',
-    title: 'title.resetPassword',
-    loadComponent: () =>
-      import('./reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
+    path: 'setup',
+    title: 'title.setup',
+    data: { setup: true },
+    loadComponent: () => import('./login/login.component').then((m) => m.LoginComponent),
   },
 ];

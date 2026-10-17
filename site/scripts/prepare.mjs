@@ -5,7 +5,7 @@
 //      for the logo, so the site cannot drift from it, and the repository holds
 //      no further copy of a file the licence leaves out;
 //   2. the reference pages, generated from the Markdown in /docs — one source for
-//      the API, self-hosting and security documentation;
+//      the API, self-hosting, authentication and security documentation;
 //   3. the social-sharing images, drawn from the logo.
 //
 // Everything it writes is ignored by git and rebuilt every time.
@@ -46,6 +46,11 @@ const REFERENCE = {
     file: 'self-hosting.md',
     description:
       'Self-host SilenceWatch with Docker Compose or Docker Swarm: requirements, configuration, HTTPS, backups, upgrades and monitoring the monitor.',
+  },
+  authentication: {
+    file: 'authentication.md',
+    description:
+      'How people sign in to SilenceWatch: passkeys, passwords, or Google and Microsoft; the first account, sessions and what to do when someone is locked out.',
   },
   security: {
     file: 'security.md',

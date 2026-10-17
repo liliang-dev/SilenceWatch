@@ -47,13 +47,13 @@ describe('access control', () => {
       expect((await context.app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
     });
 
-    it('rejects malformed, forged and expired-looking tokens', async () => {
+    it('rejects malformed and forged credentials', async () => {
       for (const header of [
         'Bearer',
         'Bearer ',
         'Basic dXNlcjpwYXNz',
-        'Bearer not.a.jwt',
-        // A JWT signed with the wrong key: correct shape, invalid signature.
+        'Bearer not.an.api.key',
+        // A JWT: the access tokens of the previous sign-in system are not credentials any more.
         'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         'Bearer sw_0123456789abcdef_' + 'a'.repeat(43),
       ]) {
@@ -227,162 +227,6 @@ describe('access control', () => {
           })
         ).statusCode,
       ).toBe(401);
-    });
-  });
-
-  describe('sessions', () => {
-    it('rotates refresh tokens and refuses to reuse one', async () => {
-      const login = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        payload: { email: 'rotate@example.test', password: 'a-sufficiently-long-password' },
-      });
-      const first = login.json<{ refreshToken: string }>().refreshToken;
-
-      const refreshed = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/refresh',
-        payload: { refreshToken: first },
-      });
-      expect(refreshed.statusCode).toBe(200);
-      const second = refreshed.json<{ refreshToken: string }>().refreshToken;
-      expect(second).not.toBe(first);
-
-      // Replaying the old token is treated as theft: every session dies.
-      const replay = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/refresh',
-        payload: { refreshToken: first },
-      });
-      expect(replay.statusCode).toBe(401);
-
-      const afterReplay = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/refresh',
-        payload: { refreshToken: second },
-      });
-      expect(afterReplay.statusCode).toBe(401);
-    });
-
-    it('invalidates access tokens on logout', async () => {
-      const registered = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        payload: { email: 'logout@example.test', password: 'a-sufficiently-long-password' },
-      });
-      const session = registered.json<{ accessToken: string; refreshToken: string }>();
-
-      expect(
-        (await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(session.accessToken) }))
-          .statusCode,
-      ).toBe(200);
-
-      await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/logout',
-        payload: { refreshToken: session.refreshToken },
-      });
-
-      // The JWT is still cryptographically valid; the session behind it is not.
-      expect(
-        (await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(session.accessToken) }))
-          .statusCode,
-      ).toBe(401);
-    });
-
-    it('ends every session when the password changes', async () => {
-      const registered = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        payload: { email: 'rekey@example.test', password: 'a-sufficiently-long-password' },
-      });
-      const session = registered.json<{ accessToken: string }>();
-
-      const changed = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/password',
-        headers: auth(session.accessToken),
-        payload: {
-          currentPassword: 'a-sufficiently-long-password',
-          newPassword: 'an-even-longer-new-password',
-        },
-      });
-      expect(changed.statusCode).toBe(204);
-
-      expect(
-        (await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(session.accessToken) }))
-          .statusCode,
-      ).toBe(401);
-    });
-
-    it('refuses a wrong current password with a 403, which leaves the session alone', async () => {
-      // A 401 means "your session expired" to the browser, which refreshes and
-      // sends the same request again before signing the user out. A wrong password
-      // from someone who is signed in is not that.
-      const user = await registerUser(context);
-
-      const changed = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/password',
-        headers: auth(user.token),
-        payload: { currentPassword: 'not-the-password-at-all', newPassword: 'an-even-longer-new-password' },
-      });
-      expect(changed.statusCode).toBe(403);
-
-      expect(
-        (await context.app.inject({ method: 'GET', url: '/api/auth/me', headers: auth(user.token) }))
-          .statusCode,
-      ).toBe(200);
-    });
-
-    it('answers identically whether or not the email exists', async () => {
-      await registerUser(context, 'known@example.test');
-
-      const unknown = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/login',
-        payload: { email: 'unknown@example.test', password: 'wrong-password-here' },
-      });
-      const wrongPassword = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/login',
-        payload: { email: 'known@example.test', password: 'wrong-password-here' },
-      });
-
-      expect(unknown.statusCode).toBe(401);
-      expect(wrongPassword.statusCode).toBe(401);
-      expect(unknown.json<{ message: string }>().message).toBe(
-        wrongPassword.json<{ message: string }>().message,
-      );
-    });
-
-    it('locks an account after repeated failures', async () => {
-      const user = await registerUser(context, 'lockme@example.test');
-
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        await context.app.inject({
-          method: 'POST',
-          url: '/api/auth/login',
-          payload: { email: user.email, password: `wrong-password-${attempt}` },
-        });
-      }
-
-      const correct = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/login',
-        payload: { email: user.email, password: 'a-sufficiently-long-password' },
-      });
-      expect(correct.statusCode).toBe(401);
-      expect(correct.json<{ message: string }>().message).toContain('Too many failed attempts');
-    });
-
-    it('enforces a minimum password length', async () => {
-      const response = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        payload: { email: 'weak@example.test', password: 'short' },
-      });
-      expect(response.statusCode).toBe(400);
     });
   });
 

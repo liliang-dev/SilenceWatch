@@ -1,7 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import type { ApiKeyDto, CreatedApiKeyDto } from '@silencewatch/shared';
 import { generateApiKey, parseApiKey, timingSafeEqualHex } from '../common/crypto.util';
 import { ApiKeysRepository, type ApiKeyRecord } from './api-keys.repository';
+
+/**
+ * Keys a project may have at once. A project needs a handful (a starter, a CI
+ * job, a script); the ceiling is there so that creating keys is not a way to
+ * make rows, and it is well above any use.
+ */
+export const MAX_LIVE_KEYS_PER_PROJECT = 25;
+
+/** How long a revoked or expired key stays listed before it is deleted. */
+const DEAD_KEY_RETENTION_MS = 30 * 86_400_000;
 
 export interface ResolvedApiKey {
   apiKeyId: string;
@@ -28,6 +38,12 @@ export class ApiKeyService {
     projectId: string,
     input: { name: string; expiresInDays?: number },
   ): Promise<CreatedApiKeyDto> {
+    if ((await this.keys.countLive(projectId)) >= MAX_LIVE_KEYS_PER_PROJECT) {
+      throw new ConflictException(
+        `A project can have ${MAX_LIVE_KEYS_PER_PROJECT} active API keys. Revoke one you no longer use first.`,
+      );
+    }
+
     const generated = generateApiKey();
     const record = await this.keys.create({
       projectId,
@@ -47,6 +63,11 @@ export class ApiKeyService {
 
   async list(projectId: string): Promise<ApiKeyDto[]> {
     return (await this.keys.listForProject(projectId)).map(toDto);
+  }
+
+  /** Deletes keys revoked or expired long ago. Called by the retention job. */
+  purgeDead(): Promise<number> {
+    return this.keys.deleteDeadBefore(new Date(Date.now() - DEAD_KEY_RETENTION_MS));
   }
 
   async revoke(projectId: string, apiKeyId: string): Promise<void> {

@@ -107,4 +107,170 @@ describe('loadConfig', () => {
       (config as { PORT: number }).PORT = 1;
     }).toThrow();
   });
+
+  describe('billing', () => {
+    const PLAN_LIMITS = JSON.stringify({
+      free: { checks: 10 },
+      pro: { checks: 100 },
+      business: { checks: 1000 },
+    });
+    const STRIPE_PLANS = JSON.stringify({
+      pro: { price: 'price_pro', amount: 499 },
+      business: { price: 'price_business', amount: 1999 },
+    });
+    const billing = {
+      ...minimal,
+      QUOTAS_ENABLED: 'true',
+      PLAN_LIMITS,
+      BILLING_ENABLED: 'true',
+      STRIPE_SECRET_KEY: 'sk_test_123456789',
+      STRIPE_WEBHOOK_SECRET: 'whsec_123456789',
+      STRIPE_PLANS,
+    } as NodeJS.ProcessEnv;
+
+    it('is off, and asks for nothing, by default', () => {
+      const config = loadConfig(minimal);
+      expect(config.BILLING_ENABLED).toBe(false);
+      expect(config.stripePlans).toEqual({});
+      expect(config.STRIPE_SECRET_KEY).toBeUndefined();
+    });
+
+    it('accepts a complete setup', () => {
+      const config = loadConfig(billing);
+      expect(config.stripePlans.pro).toEqual({ price: 'price_pro', amount: 499 });
+    });
+
+    it('needs quotas, the key, the signing secret and at least one paid plan', () => {
+      expect(() => loadConfig({ ...billing, QUOTAS_ENABLED: 'false' })).toThrow(/needs QUOTAS_ENABLED/);
+      expect(() => loadConfig({ ...billing, STRIPE_SECRET_KEY: '' })).toThrow(/STRIPE_SECRET_KEY/);
+      expect(() => loadConfig({ ...billing, STRIPE_WEBHOOK_SECRET: '' })).toThrow(/STRIPE_WEBHOOK_SECRET/);
+      expect(() => loadConfig({ ...billing, STRIPE_PLANS: '{}' })).toThrow(/no paid plan/);
+    });
+
+    it('refuses the publishable key and a secret that is not a signing secret', () => {
+      expect(() => loadConfig({ ...billing, STRIPE_SECRET_KEY: 'pk_test_123456789' })).toThrow(/not the publishable/);
+      expect(() => loadConfig({ ...billing, STRIPE_WEBHOOK_SECRET: 'sk_test_123456789' })).toThrow(/whsec_/);
+    });
+
+    it('refuses a plan that is not defined, is the default, or shares a price', () => {
+      const plans = (value: unknown) => ({ ...billing, STRIPE_PLANS: JSON.stringify(value) });
+      expect(() => loadConfig(plans({ gold: { price: 'price_g', amount: 1 } }))).toThrow(/not one of the plans/);
+      expect(() => loadConfig(plans({ free: { price: 'price_f', amount: 1 } }))).toThrow(/cannot be bought/);
+      expect(() =>
+        loadConfig(
+          plans({ pro: { price: 'price_same', amount: 1 }, business: { price: 'price_same', amount: 2 } }),
+        ),
+      ).toThrow(/two plans/);
+      expect(() => loadConfig(plans({ pro: { price: 'nope', amount: 1 } }))).toThrow(/STRIPE_PLANS/);
+    });
+  });
+
+  describe('abuse limits', () => {
+    it('lets a connection have one account without asking for anything else', () => {
+      expect(loadConfig({ ...minimal, SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1' }).SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(1);
+    });
+
+    it('is off for one connection and on for test alerts by default', () => {
+      const config = loadConfig(minimal);
+      expect(config.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS).toBe(0);
+      expect(config.ALERT_MAX_PER_CHANNEL_PER_HOUR).toBe(0);
+      expect(config.TEST_ALERT_COOLDOWN_SECONDS).toBe(60);
+      expect(config.TEST_ALERT_MAX_PER_HOUR).toBe(20);
+    });
+  });
+
+  describe('sign-in', () => {
+    const oauth = {
+      GOOGLE_CLIENT_ID: 'g',
+      GOOGLE_CLIENT_SECRET: 'g',
+      MICROSOFT_CLIENT_ID: 'm',
+      MICROSOFT_CLIENT_SECRET: 'm',
+    };
+    const hosted = { ...minimal, BASE_URL: 'https://watch.example.com' } as NodeJS.ProcessEnv;
+
+    it('uses passkeys unless told otherwise', () => {
+      const config = loadConfig(minimal);
+      expect(config.AUTH_MODE).toBe('passkey');
+      expect(config.MICROSOFT_TENANT_ID).toBe('common');
+    });
+
+    it.each(['passkey', 'password', 'full'])('accepts %s', (mode) => {
+      expect(loadConfig({ ...hosted, ...oauth, AUTH_MODE: mode }).AUTH_MODE).toBe(mode);
+    });
+
+    it('refuses any other mode, and lists the valid ones', () => {
+      for (const mode of ['both', 'PASSKEY', 'google', 'oauth', '']) {
+        expect(() => loadConfig({ ...minimal, AUTH_MODE: mode })).toThrow(
+          /is not a sign-in mode\. Valid values: passkey, password, full/,
+        );
+      }
+    });
+
+    it('asks for both providers\' credentials in full mode, and only there', () => {
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'full' })).toThrow(/GOOGLE_CLIENT_ID.*required when AUTH_MODE=full/s);
+      expect(() => loadConfig({ ...hosted, ...oauth, AUTH_MODE: 'full', MICROSOFT_CLIENT_SECRET: '' })).toThrow(
+        /MICROSOFT_CLIENT_SECRET/,
+      );
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'password' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'passkey' })).not.toThrow();
+    });
+
+    it('wants https for passkeys, but lets localhost be developed on', () => {
+      for (const mode of ['passkey', 'full']) {
+        expect(() =>
+          loadConfig({ ...minimal, ...oauth, AUTH_MODE: mode, BASE_URL: 'http://watch.example.com' }),
+        ).toThrow(/must be https \(or localhost\)/);
+        expect(() =>
+          loadConfig({ ...minimal, ...oauth, AUTH_MODE: mode, BASE_URL: 'http://localhost:8080' }),
+        ).not.toThrow();
+      }
+      // A password needs no secure origin: that is the server's HTTPS check, in production.
+      expect(() =>
+        loadConfig({ ...minimal, AUTH_MODE: 'password', BASE_URL: 'http://watch.internal:8080' }),
+      ).not.toThrow();
+    });
+
+    it('ties the passkey domain to the address the UI is served from', () => {
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'example.com' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'watch.example.com' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'other.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'notexample.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'sub.watch.example.com' })).toThrow(/parent domain/);
+      expect(() => loadConfig({ ...hosted, AUTH_RP_ID: 'com' })).toThrow(/parent domain|top-level/);
+    });
+
+    it('keeps every extra origin inside that domain', () => {
+      const withOrigins = (origins: string) => ({ ...hosted, AUTH_RP_ID: 'example.com', AUTH_TRUSTED_ORIGINS: origins });
+      expect(() => loadConfig(withOrigins('https://app.example.com'))).not.toThrow();
+      expect(() => loadConfig(withOrigins('https://evil.com'))).toThrow(/outside AUTH_RP_ID/);
+      expect(() => loadConfig(withOrigins('http://app.example.com'))).toThrow(/must be https/);
+      expect(() => loadConfig(withOrigins('https://app.example.com/path'))).toThrow(/not an origin/);
+      expect(() => loadConfig(withOrigins('not a url'))).toThrow(/not an origin/);
+    });
+
+    it('does not apply any of that to passwords', () => {
+      expect(() =>
+        loadConfig({
+          ...minimal,
+          AUTH_MODE: 'password',
+          BASE_URL: 'http://watch.example.com',
+          AUTH_RP_ID: 'other.com',
+          AUTH_TRUSTED_ORIGINS: 'http://elsewhere.test',
+        }),
+      ).not.toThrow();
+    });
+
+    it('treats a blank optional setting as unset', () => {
+      const config = loadConfig({ ...minimal, ADMIN_EMAIL: '', AUTH_RP_ID: '', GOOGLE_CLIENT_ID: '' });
+      expect(config.ADMIN_EMAIL).toBeUndefined();
+      expect(config.AUTH_RP_ID).toBeUndefined();
+    });
+
+    it('is not configured by the settings of the system it replaced', () => {
+      // These used to exist; setting them now does nothing, and the schema ignores them.
+      const config = loadConfig({ ...minimal, ACCESS_TOKEN_TTL_SECONDS: '60', EMAIL_VERIFICATION_REQUIRED: 'true' });
+      expect('ACCESS_TOKEN_TTL_SECONDS' in config).toBe(false);
+      expect('EMAIL_VERIFICATION_REQUIRED' in config).toBe(false);
+    });
+  });
 });

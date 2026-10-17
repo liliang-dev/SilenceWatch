@@ -1,0 +1,131 @@
+name: Starter release
+
+# Publishes the Spring Boot starter to Maven Central, for a tag of its own.
+#
+# The starter has a version of its own (0.1.0) and the application another (0.5.0),
+# so they are tagged apart: `starter-0.1.0` here, `0.5.0` for the Release workflow.
+# The strict pattern means neither workflow can fire on the other's tags, and an
+# unrelated tag cannot publish to a registry other people build against.
+on:
+  push:
+    tags: ['starter-[0-9]+.[0-9]+.[0-9]+']
+  # Releases a tag that already exists, for the same reason the Release workflow
+  # allows it: re-pushing a tag changes what a published version means.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, for example starter-0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+
+    # A GitHub environment, so the signing key and the Central credentials are
+    # secrets of this environment alone, and a required reviewer can be put in
+    # front of them. Created by hand, with these four secrets:
+    #   MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD  (a Central Portal user token)
+    #   MAVEN_GPG_PRIVATE_KEY, MAVEN_GPG_PASSPHRASE     (the signing key, armored)
+    environment: maven-central
+
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          # Through the environment rather than inlined: a tag name is
+          # attacker-influenced on a fork, and interpolating it into a shell
+          # would run it.
+          RAW_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -eu
+          case "$RAW_TAG" in
+            starter-[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing to release '$RAW_TAG': expected starter-N.N.N" >&2
+              exit 1
+              ;;
+          esac
+          # Only a final version: Central never lets a version be changed or
+          # removed, and a pre-release is better named in a staging repository.
+          version="${RAW_TAG#starter-}"
+          case "$version" in
+            *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$RAW_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tag, not the branch: a manual run must publish what was tagged.
+          ref: ${{ steps.version.outputs.tag }}
+          # The history, to tell whether the tagged commit is on main.
+          fetch-depth: 0
+
+      # Before anything is built, and certainly before anything is uploaded. What
+      # is published is what is on main, and the README has to give the version
+      # being published: an install snippet that names another version sends
+      # people to the one that was released before, or to one that does not exist.
+      - name: Check the tagged commit is releasable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::The tagged commit is not on main. Promote dev to main, then tag." >&2
+            exit 1
+          fi
+          if ! grep -q "<version>$VERSION</version>" clients/spring-boot-starter/README.md; then
+            echo "::error file=clients/spring-boot-starter/README.md::The README does not give version $VERSION." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+          # Writes the credentials and imports the key. The names of the
+          # environment variables are given here, and their values come from the
+          # secrets in the step below.
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      # The repository keeps the version of work in progress (0.1.0-SNAPSHOT);
+      # the release takes its number from the tag, in the build and nowhere else.
+      - name: Set the version from the tag
+        working-directory: clients/spring-boot-starter
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mvn -B -q org.codehaus.mojo:versions-maven-plugin:2.22.0:set \
+            -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+
+      # Tests, sources, javadoc, signature, then the upload to the Central Portal,
+      # where the version waits to be published by hand: see docs/releasing.md.
+      - name: Test, sign and upload
+        working-directory: clients/spring-boot-starter
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: mvn -B -P release deploy
+
+      - name: What happens next
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "### Starter $VERSION uploaded and validated"
+            echo
+            echo "It is **not published yet**. Open the Central Portal"
+            echo "(https://central.sonatype.com/publishing/deployments), check the deployment,"
+            echo "and press **Publish**. A published version can never be changed or removed."
+          } >> "$GITHUB_STEP_SUMMARY"

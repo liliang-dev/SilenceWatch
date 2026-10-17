@@ -11,4 +11,12 @@ export const notificationsShape = {
    * protection); self-hosters targeting an internal Mattermost turn it on.
    */
   ALLOW_PRIVATE_NOTIFICATION_TARGETS: booleanish.prefault('false'),
+  /**
+   * Alerts one channel may deliver in an hour. A check that keeps going up and
+   * down, or a channel pointed at somebody else's mailbox, would otherwise send
+   * as many messages as the checks care to produce; past this the alerts are not
+   * sent and are marked as refused. 0 disables it, which is what a self-hosted
+   * instance wants.
+   */
+  ALERT_MAX_PER_CHANNEL_PER_HOUR: positiveInt(0, 100_000).default(0),
 };

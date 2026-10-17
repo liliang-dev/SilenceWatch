@@ -31,8 +31,7 @@
             ],
             "define": {
               "ngDevMode": "false"
-            },
-            "webWorkerTsConfig": "tsconfig.worker.json"
+            }
           },
           "configurations": {
             "production": {
