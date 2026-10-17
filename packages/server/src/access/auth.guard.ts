@@ -1,17 +1,24 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
+  Inject,
   Injectable,
   SetMetadata,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { FastifyReply } from 'fastify';
 import { ApiKeyService } from '../api-keys/api-key.service';
-import { SessionService } from '../auth/sessions/session.service';
-import { TokenService } from '../auth/sessions/token.service';
+import { trustedOriginsOf } from '../auth/better-auth/auth.factory';
+import { SessionResolver } from '../auth/better-auth/auth.provider';
+import { AppConfig, CONFIG } from '../config/config';
 import type { AuthenticatedRequest, Principal } from './principal';
 
 const IS_PUBLIC = 'silencewatch:public';
+
+/** Methods that change something, and so must not be triggerable from another site. */
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
  * Marks a route as reachable without credentials. Everything else is closed:
@@ -21,10 +28,10 @@ const IS_PUBLIC = 'silencewatch:public';
 export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(IS_PUBLIC, true);
 
 /**
- * Resolves `Authorization: Bearer …` into a Principal.
+ * Resolves who is calling into a Principal.
  *
- * Both credential kinds share one header: a JWT for browser sessions, an
- * `sw_…` key for machines. The token shape decides which path is taken, and the
+ * Two kinds of credential, told apart by where they arrive: an `sw_…` key in
+ * `Authorization: Bearer` is a machine, and the session cookie is a browser. The
  * resulting Principal carries the scope the rest of the application enforces.
  *
  * Note that the ingestion routes never reach this guard — they are registered
@@ -32,12 +39,16 @@ export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(IS_PUB
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly origins: ReadonlySet<string>;
+
   constructor(
+    @Inject(CONFIG) config: AppConfig,
     private readonly reflector: Reflector,
-    private readonly tokens: TokenService,
-    private readonly sessions: SessionService,
+    private readonly sessions: SessionResolver,
     private readonly apiKeys: ApiKeyService,
-  ) {}
+  ) {
+    this.origins = new Set(trustedOriginsOf(config));
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
@@ -46,32 +57,43 @@ export class AuthGuard implements CanActivate {
     ]);
     if (isPublic === true) return true;
 
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const http = context.switchToHttp();
+    const request = http.getRequest<AuthenticatedRequest>();
     const token = extractBearer(request.headers.authorization);
-    if (token === null) throw new UnauthorizedException('Missing bearer token');
 
-    request.principal = await this.resolve(token);
+    request.principal =
+      token === null
+        ? await this.resolveSession(request, http.getResponse<FastifyReply>())
+        : await this.resolveApiKey(token);
     return true;
   }
 
-  private async resolve(token: string): Promise<Principal> {
-    if (token.startsWith('sw_')) {
-      const resolved = await this.apiKeys.resolve(token);
-      if (resolved === null) throw new UnauthorizedException('Invalid API key');
-      return { kind: 'apiKey', apiKeyId: resolved.apiKeyId, projectId: resolved.projectId };
+  private async resolveApiKey(token: string): Promise<Principal> {
+    const resolved = token.startsWith('sw_') ? await this.apiKeys.resolve(token) : null;
+    if (resolved === null) throw new UnauthorizedException('Invalid API key');
+    return { kind: 'apiKey', apiKeyId: resolved.apiKeyId, projectId: resolved.projectId };
+  }
+
+  private async resolveSession(request: AuthenticatedRequest, reply: FastifyReply): Promise<Principal> {
+    const session = await this.sessions.resolve(request.headers);
+    if (session === null) throw new UnauthorizedException('Authentication required');
+
+    // A cookie is sent by the browser whatever page asked for the request, which
+    // is what makes it forgeable from another site. SameSite=Lax already withholds
+    // it from cross-site writes; this refuses the ones that arrive anyway (a
+    // sibling subdomain, an old browser), and costs nothing to a client that is
+    // really our page, because browsers always say where a write came from.
+    if (UNSAFE_METHODS.has(request.method) && !this.origins.has(request.headers.origin ?? '')) {
+      throw new ForbiddenException('Cross-origin request refused');
     }
 
-    const claims = await this.tokens.verifyAccessToken(token);
-    if (claims === null) throw new UnauthorizedException('Invalid or expired access token');
-
-    // The token is signed and unexpired, but the session may have been revoked
-    // (logout, password change, token theft). One primary-key lookup buys
-    // immediate revocation, which is worth more here than saving a round trip.
-    if (!(await this.sessions.isActive(claims.sessionId))) {
-      throw new UnauthorizedException('Session is no longer active');
-    }
-
-    return { kind: 'user', userId: claims.userId, sessionId: claims.sessionId };
+    if (session.setCookies.length > 0) void reply.header('set-cookie', session.setCookies);
+    return {
+      kind: 'user',
+      userId: session.userId,
+      sessionId: session.sessionId,
+      signedInAt: session.signedInAt,
+    };
   }
 }
 

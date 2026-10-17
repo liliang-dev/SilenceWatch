@@ -18,28 +18,71 @@ are therefore:
 
 ## Authentication
 
-**Passwords** are hashed with Argon2id at the OWASP-recommended parameters
-(m=19456 KiB, t=2, p=1), each with its own salt. Login spends the same CPU on an
-unknown address as on a real one — an unknown email is checked against a decoy
-hash — so response time is not a user-enumeration oracle. Ten failures lock an
-account for fifteen minutes; the lock expires on its own, because a permanent lock
-is a denial of service against the owner.
+Sign-in is [Better Auth](https://www.better-auth.com), and `AUTH_MODE` decides which
+methods exist at all: passkeys (the default), passwords, or Google and Microsoft
+beside passkeys. The methods a mode does not name have no endpoint, and the server
+answers 404 to every Better Auth route the web UI does not use. How each works,
+and what to do when someone is locked out, is in
+[`authentication.md`](authentication.md); what it means for the threat model is
+here.
 
-**Sessions** use a short-lived JWT (15 minutes by default) plus an opaque refresh
-token stored only as SHA-256. Refresh tokens are single-use and rotated on every
-refresh; presenting a revoked one is treated as theft and revokes every session of
-that user. Changing a password revokes all sessions, including the current one.
+**Passkeys** are phishing-resistant by construction: the browser signs a challenge
+for the one domain the passkey was made for (`AUTH_RP_ID`), with the user verified
+on the device, and nothing a user could type into a fake page unlocks it. The server
+stores a public key, so a database dump signs nobody in. **Recovery codes** are 60
+bits, single-use, stored only as a keyed HMAC-SHA-256 (the key is derived from
+`SECRET_KEY`, so the dump alone is not enough to test a guess), and spent by a
+conditional update, so two requests carrying the same code cannot both succeed. The
+passkey and recovery-code endpoints are rate limited, and recovery counts towards the
+same lockout as a password.
 
-In a browser the refresh token lives in an **HttpOnly cookie** (`sw_refresh`),
-`SameSite=Strict`, `Secure` over HTTPS, and limited to `/api/auth`; the access
-token is kept in memory and never written to storage. Script on the page cannot
-read the cookie, so a successful XSS can act as the user while the page is open
-but cannot walk away with a long-lived credential. Clients that are not browsers
-send the refresh token in the request body instead.
+**Passwords** (12 characters at least, no composition rules) are hashed with scrypt,
+Better Auth's default, each with its own salt. Sign-in answers identically for an
+unknown address, a wrong password and a locked account — and spends the time of a real
+check in each case, so response time is not a user-enumeration oracle. Ten failures
+lock an account for fifteen minutes; the lock expires on its own, because a permanent
+lock is a denial of service against the owner. Together with the rate limit per
+address, that is what stands between a password and online guessing. No mail is sent
+to reset one: the person who runs the server does it from the command line.
 
-The access token is verified against the session on every request — one indexed
-primary-key lookup — so logout, password changes and theft response take effect
-immediately rather than after the token expires.
+**Google and Microsoft** are reached by redirect only; the endpoint that accepts a
+token handed straight to the API is switched off. Accounts are linked by address only
+where the provider can vouch for it: Google, and only when Google itself has verified
+the address. The address in a Microsoft token is whatever the administrator of that
+tenant set, so it is never taken as proof (an account is identified by Microsoft's
+immutable `oid`), and a Microsoft sign-in is never merged into an account made another
+way. An account made by typing an address is likewise never merged into one that
+arrives later with a provider: that would hand it to whoever typed the address first.
+
+**Sessions** are rows in the database, found by an opaque token in a cookie signed
+with `SECRET_KEY`. They last 30 days and slide: using one after a day moves its end
+forward, so an abandoned one dies. An account keeps at most 20; the oldest are ended.
+Signing out, or deleting the account, ends the session on the spot — it is looked up
+on every request, so revocation does not wait for anything to expire.
+
+The cookie is `HttpOnly` (script on the page cannot read it, so a successful XSS can
+act as the user while the page is open but cannot walk away with a long-lived
+credential), `SameSite=Lax`, and `Secure` with the `__Secure-` prefix over HTTPS.
+Because a cookie is sent whatever page asked for the request, **a write that carries
+one must come from `BASE_URL` or an `AUTH_TRUSTED_ORIGINS` entry**: the `Origin` header
+is checked, and the sign-in endpoints refuse an origin that is not ours even without a
+cookie, so no other site can sign a visitor in to an account of its own.
+
+**Deleting the account, creating or revoking an API key, adding or removing a passkey
+and making new recovery codes need a sign-in from the last ten minutes.** A session
+that lasts a month proves little about who is at the keyboard now; this makes the
+destructive and the access-granting actions ask again.
+
+The **first account** is the one nobody can invite, and no email proves its address,
+so while it is unclaimed sign-up is closed except to a one-time link that reaches only
+the person who can read the server log. The token in it is high-entropy, stored only
+as its SHA-256, sent in the part of the URL a browser never transmits, valid for 30
+minutes and spent on use.
+
+The client address that rate limits and sign-up rules depend on is written by the
+server into a header of its own on every request, replacing whatever the caller sent;
+it is Fastify's address, which honours `TRUST_PROXY` (see
+[`self-hosting.md`](self-hosting.md#behind-a-reverse-proxy)).
 
 **API keys** are `sw_<lookup id>_<secret>`. Only the lookup half is indexed; the
 secret half is stored as SHA-256 and compared in constant time. A database dump
@@ -96,11 +139,12 @@ targets legitimately live on a private network. It is off by default.
 A strict Content-Security-Policy (`default-src 'self'`, no `script-src-attr`,
 `frame-ancestors 'none'`), `nosniff`, `no-referrer`, and HSTS in production. The
 UI ships no external font, script or stylesheet — icons are inline SVG precisely
-so the policy can stay strict. The access token travels in the `Authorization`
-header, which a cross-site request cannot set. The one cookie is the refresh
-token, described above: `SameSite=Strict` means the browser never attaches it to a
-request that starts on another site, so there is no cross-site request to forge,
-and its path keeps it off every other route.
+so the policy can stay strict. API keys travel in the `Authorization` header,
+which a cross-site request cannot set. The one cookie that matters is the session,
+described above: `SameSite=Lax` keeps the browser from attaching it to a write that
+starts on another site, and the `Origin` check refuses the ones that arrive anyway.
+The only other cookie is short-lived and holds a sign-up link's token, scoped to the
+sign-in endpoints.
 
 ## Denial of service
 

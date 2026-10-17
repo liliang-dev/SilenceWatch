@@ -69,11 +69,16 @@ services:
       PING_RETENTION_DAYS: ${PING_RETENTION_DAYS:-90}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
-      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
-      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
-      UNVERIFIED_ACCOUNT_TTL_DAYS: ${UNVERIFIED_ACCOUNT_TTL_DAYS:-7}
-      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-60}
-      SIGNUP_POW_DIFFICULTY: ${SIGNUP_POW_DIFFICULTY:-0}
+      AUTH_MODE: ${AUTH_MODE:-passkey}
+      AUTH_RP_ID: ${AUTH_RP_ID:-}
+      AUTH_RP_NAME: ${AUTH_RP_NAME:-SilenceWatch}
+      AUTH_TRUSTED_ORIGINS: ${AUTH_TRUSTED_ORIGINS:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-common}
       SIGNUP_BLOCK_DISPOSABLE_EMAIL: ${SIGNUP_BLOCK_DISPOSABLE_EMAIL:-false}
       SIGNUP_BLOCKED_EMAIL_DOMAINS: ${SIGNUP_BLOCKED_EMAIL_DOMAINS:-}
       SIGNUP_MAX_PER_NETWORK_PER_HOUR: ${SIGNUP_MAX_PER_NETWORK_PER_HOUR:-0}
@@ -216,7 +221,7 @@ services:
           header Alt-Svc clear
           encode zstd gzip
 
-          @legacy path /p/* /api/* /health /login /checks /checks/* /channels /settings /verify-email /reset-password
+          @legacy path /p/* /api/* /health /login /checks /checks/* /channels /settings /setup
           redir @legacy https://$$SILENCEWATCH_DOMAIN{uri} 308
 
           header {

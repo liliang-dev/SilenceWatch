@@ -18,26 +18,8 @@ export function validateEnv(env: Env, ctx: z.RefinementCtx): void {
   if (env.EMAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['BREVO_API_KEY'], message: 'required when EMAIL_PROVIDER=brevo' });
   }
-  // Requiring a verification email while alerts only go to the log would lock
-  // every new account out of an instance that looks perfectly healthy.
-  if (env.EMAIL_VERIFICATION_REQUIRED && env.EMAIL_PROVIDER === 'console') {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['EMAIL_VERIFICATION_REQUIRED'],
-      message:
-        'needs a real email transport: with EMAIL_PROVIDER=console nobody could ever verify an address',
-    });
-  }
-  // Without proven addresses every account would stop counting after an hour,
-  // and the rule would only slow a flood down.
-  if (env.SIGNUP_MAX_ACCOUNTS_PER_ADDRESS > 0 && !env.EMAIL_VERIFICATION_REQUIRED) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['SIGNUP_MAX_ACCOUNTS_PER_ADDRESS'],
-      message:
-        'needs EMAIL_VERIFICATION_REQUIRED: only accounts with a proven address keep counting, so without it the limit would lapse after an hour',
-    });
-  }
+  validateAuth(env, ctx);
+
   // A quota system nobody configured would silently give every account the
   // unlimited plan, which is the failure that only shows up on the invoice.
   const plans = parsePlanLimits(env.PLAN_LIMITS);
@@ -92,6 +74,77 @@ export function validateEnv(env: Env, ctx: z.RefinementCtx): void {
         message: 'must be https in production',
       });
     }
+  }
+}
+
+/**
+ * Sign-in has to be able to work as configured. Everything here fails the boot,
+ * because the alternative is an instance that starts and then refuses every
+ * login: a passkey bound to the wrong domain, or a provider with no credentials.
+ */
+function validateAuth(env: Env, ctx: z.RefinementCtx): void {
+  const issue = (path: string, message: string): void =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+
+  if (env.AUTH_MODE === 'full') {
+    const credentials = [
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'MICROSOFT_CLIENT_ID',
+      'MICROSOFT_CLIENT_SECRET',
+    ] as const;
+    for (const name of credentials) {
+      if (env[name] === undefined) issue(name, 'required when AUTH_MODE=full');
+    }
+  }
+
+  if (env.AUTH_MODE === 'password') return;
+
+  // Passkeys, below: WebAuthn only runs on a secure origin, and a credential is
+  // bound to a domain.
+  const base = new URL(env.BASE_URL);
+  if (base.protocol !== 'https:' && !isLocalhost(base.hostname)) {
+    issue(
+      'BASE_URL',
+      `must be https (or localhost) when AUTH_MODE=${env.AUTH_MODE}: browsers refuse passkeys on a plain http origin`,
+    );
+  }
+
+  const rpId = (env.AUTH_RP_ID ?? base.hostname).toLowerCase();
+  if (!withinDomain(base.hostname, rpId)) {
+    issue(
+      'AUTH_RP_ID',
+      `"${rpId}" must be the host of BASE_URL (${base.hostname}) or a parent domain of it, or no passkey could ever be used`,
+    );
+  }
+  if (!isLocalhost(rpId) && !rpId.includes('.')) {
+    issue('AUTH_RP_ID', `"${rpId}" is a top-level domain, which browsers do not accept as a passkey domain`);
+  }
+
+  for (const origin of env.AUTH_TRUSTED_ORIGINS) {
+    const parsed = parseOrigin(origin);
+    if (parsed === null) {
+      issue('AUTH_TRUSTED_ORIGINS', `"${origin}" is not an origin (expected https://host[:port], no path)`);
+    } else if (parsed.protocol !== 'https:' && !isLocalhost(parsed.hostname)) {
+      issue('AUTH_TRUSTED_ORIGINS', `"${origin}" must be https (or localhost) when AUTH_MODE=${env.AUTH_MODE}`);
+    } else if (!withinDomain(parsed.hostname, rpId)) {
+      issue('AUTH_TRUSTED_ORIGINS', `"${origin}" is outside AUTH_RP_ID (${rpId}), so passkeys made there would not work`);
+    }
+  }
+}
+
+const isLocalhost = (host: string): boolean => host === 'localhost' || host.endsWith('.localhost');
+
+/** Whether `host` is `domain` or a subdomain of it: the rule that ties an origin to an rpID. */
+const withinDomain = (host: string, domain: string): boolean =>
+  host === domain || host.endsWith(`.${domain}`);
+
+function parseOrigin(value: string): URL | null {
+  try {
+    const url = new URL(value);
+    return url.origin === value ? url : null;
+  } catch {
+    return null;
   }
 }
 

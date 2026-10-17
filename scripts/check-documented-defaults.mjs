@@ -3,7 +3,7 @@
  * server actually applies.
  *
  * A wrong default in that table is worse than a missing one: it is followed.
- * Someone reads "SIGNUP_POW_DIFFICULTY | 0" and leaves it alone, believing they
+ * Someone reads "SIGNUP_MAX_ACCOUNTS_PER_ADDRESS | 0" and leaves it alone, believing they
  * know what their instance does. The table drifted from the schema once already
  * — the way it always drifts, one bump at a time — so it is now compared to it.
  *

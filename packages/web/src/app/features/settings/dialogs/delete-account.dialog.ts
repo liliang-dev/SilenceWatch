@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LIMITS } from '@silencewatch/shared';
 import { AuthService } from '../../../core/auth/auth.service';
 import { errorMessage } from '../../../core/http/error-message';
 import { I18n } from '../../../core/i18n/i18n.service';
@@ -18,14 +17,15 @@ export interface DeleteAccountData {
  * The last question before an account is destroyed.
  *
  * It says plainly that the loss is immediate and has no way back, says what is
- * lost in numbers, and then asks for two things a stray click cannot supply: a
- * word typed out, and the password. The word is the guard against a mistake; the
- * password is what the server insists on, because a signed-in browser left open
- * is not proof that its owner means it.
+ * lost in numbers, and then asks for a word typed out, which a stray click cannot
+ * supply. What the server insists on is a sign-in from the last few minutes, because
+ * a signed-in browser left open is not proof that its owner means it; if it has not
+ * been, the person is asked to sign in again (see the auth interceptor) and the
+ * request goes through once they have.
  *
- * The request is made from inside the dialog so that a wrong password is
- * answered where it was typed, with the dialog still open, rather than after
- * it has closed on an error nobody can act on.
+ * The request is made from inside the dialog so that a refusal is answered where it
+ * happened, with the dialog still open, rather than after it has closed on an error
+ * nobody can act on.
  */
 @Component({
   selector: 'sw-delete-account',
@@ -58,7 +58,6 @@ export class DeleteAccountDialog {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     confirmation: ['', [Validators.required]],
-    password: ['', [Validators.required, Validators.maxLength(LIMITS.passwordMax)]],
   });
 
   /**
@@ -84,7 +83,7 @@ export class DeleteAccountDialog {
     this.error.set(null);
     this.dialogRef.disableClose = true;
 
-    this.auth.deleteAccount(this.form.controls.password.value).subscribe({
+    this.auth.deleteAccount().subscribe({
       next: () => this.dialogRef.close(true),
       error: (failure: unknown) => {
         this.busy.set(false);

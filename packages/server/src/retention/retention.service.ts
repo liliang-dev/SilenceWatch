@@ -1,10 +1,8 @@
 import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { PasswordResetService } from '../auth/password/password-reset.service';
-import { EmailVerificationService } from '../auth/registration/email-verification/email-verification.service';
-import { SignupGuardService } from '../auth/registration/signup-guard.service';
-import { SessionService } from '../auth/sessions/session.service';
+import { SetupLinkService } from '../auth/signup/setup-link.service';
+import { SignupGuardService } from '../auth/signup/signup-guard.service';
 import { ApiKeyService } from '../api-keys/api-key.service';
 import { AuditService } from '../audit/audit.service';
 import { AppConfig, CONFIG } from '../config/config';
@@ -87,11 +85,9 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
-    private readonly sessions: SessionService,
     private readonly apiKeys: ApiKeyService,
-    private readonly verification: EmailVerificationService,
+    private readonly setupLinks: SetupLinkService,
     private readonly signupGuard: SignupGuardService,
-    private readonly passwordResets: PasswordResetService,
     private readonly audit: AuditService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
@@ -134,7 +130,6 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
     deliveries: number;
     sessions: number;
     verifications: number;
-    abandonedAccounts: number;
     auditEvents: number;
   }> {
     const startedAt = Date.now();
@@ -164,15 +159,16 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         name: 'retention_purge_deliveries',
         text: PURGE_DELIVERIES_SQL,
       });
-      const sessions = await this.sessions.purgeStale();
+      // A session that has run out is already refused; this only stops the rows
+      // piling up.
+      const sessions = await this.pg.query({
+        name: 'retention_purge_sessions',
+        text: 'DELETE FROM session WHERE expires_at < now()',
+      });
       await this.apiKeys.purgeDead();
-      // Spent verification tokens, accounts that never proved their address,
-      // and the sign-up attempt log past the window it informs. Left alone,
-      // abandoned rows keep holding real addresses hostage against the unique
-      // index — a flood that was blocked would still deny those users an
-      // account later.
-      const verifications = await this.verification.purge();
-      await this.passwordResets.purge();
+      // Setup links and passkey challenges that ran out, and the sign-up attempt
+      // log past the window it informs.
+      const verifications = await this.setupLinks.purgeExpired();
       await this.signupGuard.purgeOldAttempts();
       // The audit trail keeps its own, much longer window: it exists to answer
       // questions asked months after the fact.
@@ -182,17 +178,15 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         pings,
         incidents,
         deliveries: deliveries.rowCount ?? 0,
-        sessions,
-        verifications: verifications.tokens,
-        abandonedAccounts: verifications.accounts,
+        sessions: sessions.rowCount ?? 0,
+        verifications,
         auditEvents,
       };
       this.logger.log(
         `Purge done in ${Date.now() - startedAt}ms: ${summary.pings} pings, ` +
           `${summary.incidents} incidents, ` +
           `${summary.deliveries} deliveries, ${summary.sessions} sessions, ` +
-          `${summary.verifications} verification tokens, ` +
-          `${summary.abandonedAccounts} unverified accounts, ` +
+          `${summary.verifications} expired setup links and challenges, ` +
           `${summary.auditEvents} audit events`,
       );
       return summary;
@@ -205,7 +199,6 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         deliveries: 0,
         sessions: 0,
         verifications: 0,
-        abandonedAccounts: 0,
         auditEvents: 0,
       };
     }

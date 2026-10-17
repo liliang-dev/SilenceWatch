@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The ES-module dependencies Better Auth brings are plain .js, and Jest can
+    // only run them once they have been compiled to CommonJS (see jest.esm.js).
+    "allowJs": true
+  }
+}

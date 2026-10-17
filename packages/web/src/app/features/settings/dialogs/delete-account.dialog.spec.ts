@@ -7,9 +7,9 @@ import { loadI18n, provideI18n } from '../../../core/i18n/i18n.testing';
 import { DeleteAccountDialog } from './delete-account.dialog';
 
 /**
- * What stands between a click and an account being destroyed: a word typed out,
- * and the password. The dialog must not even try until both are there, and must
- * stay open, saying why, when the server refuses.
+ * What stands between a click and an account being destroyed: a word typed out.
+ * The dialog must not even try until it is there, and must stay open, saying why,
+ * when the server refuses.
  */
 describe('DeleteAccountDialog', () => {
   let closed: unknown[];
@@ -49,12 +49,9 @@ describe('DeleteAccountDialog', () => {
     expect((await create('fr')).word).toBe('SUPPRIMER');
   });
 
-  it('is not submittable until the word and the password are both there', async () => {
+  it('is not submittable until the word has been typed', async () => {
     const dialog = await create();
 
-    expect(dialog.canSubmit).toBe(false);
-
-    dialog.form.patchValue({ password: 'correct horse battery' });
     expect(dialog.canSubmit).toBe(false);
 
     dialog.form.patchValue({ confirmation: 'delet' });
@@ -63,50 +60,53 @@ describe('DeleteAccountDialog', () => {
     dialog.form.patchValue({ confirmation: 'delete' });
     expect(dialog.canSubmit).toBe(true);
 
-    dialog.form.patchValue({ confirmation: ' DELETE ', password: '' });
-    expect(dialog.canSubmit).toBe(false);
+    dialog.form.patchValue({ confirmation: ' DELETE ' });
+    expect(dialog.canSubmit).toBe(true);
   });
 
   it('sends nothing while it is not confirmed', async () => {
     const dialog = await create();
     const http = TestBed.inject(HttpTestingController);
 
-    dialog.form.patchValue({ password: 'correct horse battery', confirmation: 'nope' });
+    dialog.form.patchValue({ confirmation: 'nope' });
     dialog.submit();
 
     http.expectNone('/api/auth/delete-account');
   });
 
-  it('posts the password, and closes with true once the account is gone', async () => {
+  it('posts the deletion, and closes with true once the account is gone', async () => {
     const dialog = await create();
     const http = TestBed.inject(HttpTestingController);
 
-    dialog.form.patchValue({ password: 'correct horse battery', confirmation: 'DELETE' });
+    dialog.form.patchValue({ confirmation: 'DELETE' });
     dialog.submit();
 
     const request = http.expectOne('/api/auth/delete-account');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ password: 'correct horse battery' });
     request.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(closed).toEqual([true]);
   });
 
-  it('stays open and says so when the password is wrong', async () => {
+  it('stays open and says so when the server refuses', async () => {
     const dialog = await create();
     const http = TestBed.inject(HttpTestingController);
 
-    dialog.form.patchValue({ password: 'wrong wrong wrong', confirmation: 'DELETE' });
+    dialog.form.patchValue({ confirmation: 'DELETE' });
     dialog.submit();
     http
       .expectOne('/api/auth/delete-account')
       .flush(
-        { statusCode: 401, error: 'UNAUTHORIZED', message: 'Current password is incorrect' },
-        { status: 401, statusText: 'Unauthorized' },
+        {
+          statusCode: 409,
+          error: 'CONFLICT',
+          message: 'You are the only owner of "Production", so deleting your account would leave it without one.',
+        },
+        { status: 409, statusText: 'Conflict' },
       );
 
     expect(closed).toEqual([]);
-    expect(dialog.error()).toBe('Current password is incorrect');
+    expect(dialog.error()).toContain('only owner');
     // And it can be tried again.
     expect(dialog.canSubmit).toBe(true);
   });

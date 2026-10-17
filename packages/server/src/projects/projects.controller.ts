@@ -23,7 +23,7 @@ import type { z } from 'zod';
 import { auditActor } from '../audit/audit-actor';
 import { AuditService } from '../audit/audit.service';
 import { ApiKeyService } from '../api-keys/api-key.service';
-import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
+import { assertRecentUser, assertUser, CurrentPrincipal, type Principal } from '../access/principal';
 import { ProjectAccessService } from '../access/project-access.service';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { ProjectsService } from './projects.service';
@@ -141,7 +141,8 @@ export class ProjectsController {
     @Body(zodPipe(createApiKeyRequestSchema)) body: z.infer<typeof createApiKeyRequestSchema>,
     @Req() request: FastifyRequest,
   ): Promise<CreatedApiKeyDto> {
-    assertUser(principal);
+    // A key is a standing credential, so minting one asks for a recent sign-in.
+    assertRecentUser(principal);
     await this.access.assertAccess(principal, projectId, 'admin');
     const created = await this.apiKeys.create(projectId, body);
 
@@ -167,7 +168,7 @@ export class ProjectsController {
     @Param('apiKeyId', ParseUUIDPipe) apiKeyId: string,
     @Req() request: FastifyRequest,
   ): Promise<void> {
-    assertUser(principal);
+    assertRecentUser(principal);
     await this.access.assertAccess(principal, projectId, 'admin');
     await this.apiKeys.revoke(projectId, apiKeyId);
 

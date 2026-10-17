@@ -1,6 +1,6 @@
 import type { CheckDto, CreatedApiKeyDto } from '@silencewatch/shared';
 import { RetentionService } from '../src/retention/retention.service';
-import { auth, createTestApp, registerUser, type TestApp } from './utils/test-app';
+import { auth, createTestApp, registerUser, TEST_BASE_URL, type TestApp } from './utils/test-app';
 
 const PASSWORD = 'a-sufficiently-long-password';
 
@@ -14,12 +14,7 @@ describe('one account per connection', () => {
   let context: TestApp;
 
   beforeAll(async () => {
-    context = await createTestApp({
-      EMAIL_VERIFICATION_REQUIRED: 'true',
-      EMAIL_PROVIDER: 'smtp',
-      SMTP_URL: 'smtp://user:pass@smtp.example.test:587',
-      SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1',
-    });
+    context = await createTestApp({ SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1' });
   });
 
   afterAll(async () => {
@@ -29,68 +24,53 @@ describe('one account per connection', () => {
   beforeEach(async () => {
     await context.reset();
     // The first account of an instance is exempt from every check.
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      remoteAddress: '198.51.100.1',
-      payload: { email: 'first@example.test', password: PASSWORD },
-    });
+    await register('first@example.test', '198.51.100.1');
   });
 
   const register = async (email: string, ip: string) =>
     (
       await context.app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/auth/sign-up/email',
+        headers: { origin: TEST_BASE_URL },
         remoteAddress: ip,
-        payload: { email, password: PASSWORD },
+        payload: { email, password: PASSWORD, name: '' },
       })
     ).statusCode;
 
-  const verify = (email: string) =>
-    context.prisma.user.update({ where: { email }, data: { emailVerifiedAt: new Date() } });
-
   it('lets a second account in from another connection, and refuses it from the same one', async () => {
-    expect(await register('a@example.test', '203.0.113.7')).toBe(201);
-    await verify('a@example.test');
+    expect(await register('a@example.test', '203.0.113.7')).toBe(200);
 
     expect(await register('b@example.test', '203.0.113.7')).toBe(429);
     expect(await context.prisma.user.count({ where: { email: 'b@example.test' } })).toBe(0);
 
     // The neighbouring address is another connection.
-    expect(await register('c@example.test', '203.0.113.8')).toBe(201);
+    expect(await register('c@example.test', '203.0.113.8')).toBe(200);
   });
 
-  it('holds a connection while its first address is unproven, for an hour, and then lets go', async () => {
-    expect(await register('typo@exmaple.test', '203.0.113.20')).toBe(201);
-
-    // A mistyped address must not lock the person out for good, but a flood of
-    // them must not slip through either: inside the hour it counts.
-    expect(await register('right@example.test', '203.0.113.20')).toBe(429);
-
+  it('keeps counting an account however old it is', async () => {
+    expect(await register('a@example.test', '203.0.113.20')).toBe(200);
     await context.prisma.user.update({
-      where: { email: 'typo@exmaple.test' },
-      data: { createdAt: new Date(Date.now() - 2 * 3_600_000) },
+      where: { email: 'a@example.test' },
+      data: { createdAt: new Date(Date.now() - 400 * 86_400_000) },
     });
-    expect(await register('right@example.test', '203.0.113.20')).toBe(201);
+    expect(await register('b@example.test', '203.0.113.20')).toBe(429);
   });
 
   it('frees the place when the account is deleted', async () => {
-    expect(await register('a@example.test', '203.0.113.30')).toBe(201);
-    await verify('a@example.test');
+    expect(await register('a@example.test', '203.0.113.30')).toBe(200);
     expect(await register('b@example.test', '203.0.113.30')).toBe(429);
 
     await context.prisma.user.delete({ where: { email: 'a@example.test' } });
-    expect(await register('b@example.test', '203.0.113.30')).toBe(201);
+    expect(await register('b@example.test', '203.0.113.30')).toBe(200);
   });
 
   it('treats an IPv6 /64 as one connection', async () => {
-    expect(await register('a@example.test', '2001:db8:1:2:aaaa::1')).toBe(201);
-    await verify('a@example.test');
+    expect(await register('a@example.test', '2001:db8:1:2:aaaa::1')).toBe(200);
 
     // Any address in the same /64 is the same line; the next /64 is another.
     expect(await register('b@example.test', '2001:db8:1:2:bbbb::9')).toBe(429);
-    expect(await register('c@example.test', '2001:db8:1:3::1')).toBe(201);
+    expect(await register('c@example.test', '2001:db8:1:3::1')).toBe(200);
   });
 
   it('keeps no address: only a keyed hash that tells nothing on its own', async () => {
@@ -328,24 +308,6 @@ describe('rows an account can make for itself', () => {
     await context.app.get(RetentionService).purge();
     expect(await context.prisma.apiKey.count({ where: { id: ids[0] as string } })).toBe(0);
     expect(await context.prisma.apiKey.count({ where: { id: ids[1] as string } })).toBe(1);
-  });
-
-  it('keeps the 20 newest sessions of an account signed in', async () => {
-    const user = await registerUser(context);
-
-    for (let index = 0; index < 22; index += 1) {
-      const response = await context.app.inject({
-        method: 'POST',
-        url: '/api/auth/login',
-        payload: { email: user.email, password: PASSWORD },
-      });
-      expect(response.statusCode).toBe(200);
-    }
-
-    const live = await context.prisma.session.count({
-      where: { userId: user.userId, revokedAt: null },
-    });
-    expect(live).toBe(20);
   });
 
   it('purges resolved incidents with the history, and never an open one', async () => {

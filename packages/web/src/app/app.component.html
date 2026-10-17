@@ -1,4 +1,4 @@
-@if (auth.isAuthenticated()) {
+@if (auth.isAuthenticated() && !onAuthScreen()) {
   <header class="bar">
     <div class="bar-inner">
       <a routerLink="/checks" class="brand" [attr.aria-label]="t('shell.home')">

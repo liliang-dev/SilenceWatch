@@ -9,20 +9,11 @@ export interface UserRecord {
   createdAt: Date;
 }
 
-export interface UserIdentity extends UserRecord {
-  emailVerifiedAt: Date | null;
-}
-
-export interface NewUser {
-  email: string;
-  passwordHash: string;
-  name: string | null;
-  /** Null when quotas are off, which is every self-hosted install. */
-  plan: string | null;
-  /** Keyed hash of the network it was created from, or null when the rule is off. */
-  signupNetwork: string | null;
-  projectName: string;
-  projectSlug: string;
+/** The first project of a new account, created with the account's owner membership. */
+export interface FirstProject {
+  userId: string;
+  name: string;
+  slug: string;
 }
 
 /** A project the user belongs to, with who else is in it: what deleting an account must weigh. */
@@ -49,13 +40,6 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  findIdentityByEmail(email: string): Promise<UserIdentity | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, name: true, createdAt: true, emailVerifiedAt: true },
-    });
-  }
-
   findById(id: string) {
     return this.prisma.user.findUnique({ where: { id } });
   }
@@ -64,48 +48,40 @@ export class UsersRepository {
     return this.prisma.user.findUniqueOrThrow({ where: { id } });
   }
 
-  /**
-   * Accounts created from a network that still count against its limit: those
-   * whose address is proven, and those too young to have had the chance.
-   */
-  countFromNetwork(signupNetwork: string, recentSince: Date): Promise<number> {
-    return this.prisma.user.count({
-      where: {
-        signupNetwork,
-        OR: [{ emailVerifiedAt: { not: null } }, { createdAt: { gte: recentSince } }],
-      },
-    });
+  /** Accounts created from a network, which is what one-account-per-address counts. */
+  countFromNetwork(signupNetwork: string): Promise<number> {
+    return this.prisma.user.count({ where: { signupNetwork } });
   }
 
-  /** The account and the owner membership of its first project, in one write. */
-  createWithFirstProject(input: NewUser) {
-    return this.prisma.user.create({
+  /** The owner membership of a new account's first project, in one write with the project. */
+  createFirstProject(input: FirstProject) {
+    return this.prisma.project.create({
       data: {
-        email: input.email,
-        passwordHash: input.passwordHash,
         name: input.name,
-        plan: input.plan,
-        signupNetwork: input.signupNetwork,
-        memberships: {
-          create: {
-            role: 'owner',
-            project: { create: { name: input.projectName, slug: input.projectSlug } },
-          },
-        },
+        slug: input.slug,
+        members: { create: { userId: input.userId, role: 'owner' } },
       },
     });
   }
 
-  /** A successful sign-in: clears the lockout, and keeps the hash current if it was rehashed. */
-  recordSuccessfulLogin(userId: string, passwordHash?: string): Promise<unknown> {
+  /**
+   * Whether anything at all lets this account sign in: a passkey, a password or a
+   * provider. An account without one is what a registration that failed halfway
+   * leaves behind, and it may be finished by whoever asks next.
+   */
+  async hasCredential(userId: string): Promise<boolean> {
+    const [passkeys, accounts] = await Promise.all([
+      this.prisma.passkey.count({ where: { userId } }),
+      this.prisma.account.count({ where: { userId } }),
+    ]);
+    return passkeys + accounts > 0;
+  }
+
+  /** A successful sign-in: clears the lockout. */
+  recordSuccessfulLogin(userId: string): Promise<unknown> {
     return this.prisma.user.update({
       where: { id: userId },
-      data: {
-        failedLoginCount: 0,
-        lockedUntil: null,
-        lastLoginAt: new Date(),
-        ...(passwordHash === undefined ? {} : { passwordHash }),
-      },
+      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
     });
   }
 
@@ -117,20 +93,34 @@ export class UsersRepository {
   }
 
   /**
-   * Sets a new password and ends every session, in one transaction: that is the
-   * point of changing it. The lockout goes with the old password.
+   * Sets a password and ends every session, in one transaction: that is the
+   * point of resetting it. The lockout goes with the old password.
    */
   replacePasswordAndEndSessions(userId: string, passwordHash: string): Promise<unknown> {
     return this.prisma.$transaction([
+      this.prisma.account.upsert({
+        where: { providerId_accountId: { providerId: 'credential', accountId: userId } },
+        create: { providerId: 'credential', accountId: userId, userId, password: passwordHash },
+        update: { password: passwordHash },
+      }),
       this.prisma.user.update({
         where: { id: userId },
-        data: { passwordHash, failedLoginCount: 0, lockedUntil: null },
+        data: { failedLoginCount: 0, lockedUntil: null },
       }),
-      this.prisma.session.updateMany({
-        where: { userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
+      this.prisma.session.deleteMany({ where: { userId } }),
     ]);
+  }
+
+  /** Ends the oldest sessions beyond a ceiling, so signing in over and over is not a way to make rows. */
+  async trimSessions(userId: string, keep: number): Promise<void> {
+    const surplus = await this.prisma.session.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: keep,
+      select: { id: true },
+    });
+    if (surplus.length === 0) return;
+    await this.prisma.session.deleteMany({ where: { id: { in: surplus.map((row) => row.id) } } });
   }
 
   async listMembershipsWithPeers(userId: string): Promise<MembershipWithPeers[]> {
@@ -155,13 +145,5 @@ export class UsersRepository {
       this.prisma.project.deleteMany({ where: { id: { in: projectIds } } }),
       this.prisma.user.delete({ where: { id: userId } }),
     ]);
-  }
-
-  /** Accounts that never proved their address and are older than the cutoff. */
-  async deleteUnverifiedCreatedBefore(cutoff: Date): Promise<number> {
-    const { count } = await this.prisma.user.deleteMany({
-      where: { emailVerifiedAt: null, createdAt: { lt: cutoff } },
-    });
-    return count;
   }
 }

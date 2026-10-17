@@ -1,0 +1,50 @@
+---
+title: "Authentification : se connecter à SilenceWatch"
+description: "Passkeys, mots de passe ou Google et Microsoft : mode de connexion, premier compte, sessions et accès perdu. Texte complet en anglais."
+sidebar:
+  label: Authentification
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+La connexion à SilenceWatch dépend d’un seul réglage de l’instance, `AUTH_MODE`. Le mode décide quelles méthodes **existent** : celles qu’il ne nomme pas n’ont aucun point d’entrée. Les clés d’API et les adresses de heartbeat sont un système à part, que rien de tout cela ne touche. Cette page résume ; le **[guide complet, en anglais](/docs/reference/authentication/)** détaille chaque réglage.
+
+## Les trois modes
+
+| `AUTH_MODE` | On se connecte avec | À choisir quand |
+| --- | --- | --- |
+| `passkey` (défaut) | Une passkey : empreinte, visage ou code de l’appareil. Des codes de récupération si toutes les passkeys sont perdues | N’importe qui peut joindre l’instance et vous ne voulez rien qui se hameçonne ou qui fuite |
+| `password` | Une adresse e-mail et un mot de passe de 12 caractères au moins | Une instance privée où les passkeys en demandent plus que l’équipe n’en veut |
+| `full` | Google, Microsoft, ou une passkey ajoutée après la première connexion | Les gens ont déjà un compte Google ou Microsoft et vous préférez ne pas détenir d’identifiant pour eux |
+
+Toute autre valeur arrête le serveur au démarrage et liste les valeurs valides. En `passkey` et `full`, le serveur refuse aussi de démarrer sans `https://` (ou `localhost`), avec un domaine de passkey (`AUTH_RP_ID`) qui ne correspond pas à `BASE_URL`, ou en `full` sans les identifiants des deux fournisseurs.
+
+<Aside type="caution" title="Choisissez AUTH_RP_ID une fois pour toutes">
+Une passkey appartient à un domaine : le changer rend inutilisables toutes les passkeys déjà créées, sans moyen de les déplacer. Si vous pensez déplacer l’instance vers un autre sous-domaine, mettez dès maintenant le domaine parent.
+</Aside>
+
+## Le premier compte
+
+Tant qu’aucun compte n’existe, et que `ADMIN_EMAIL` est défini ou `SIGNUP_ENABLED=false`, l’inscription n’est ouverte qu’à un **lien à usage unique**, affiché dans le journal du serveur : il vaut 30 minutes, une seule fois, pour cette adresse seulement. Le même lien peut être créé à tout moment pour une autre personne :
+
+```bash
+docker compose exec silencewatch node packages/server/dist/auth/cli.js \
+  create-admin --email jane@example.com
+```
+
+## Sessions et actions sensibles
+
+Une session dure 30 jours et se prolonge à l’usage. Supprimer le compte, créer ou révoquer une clé d’API, ajouter ou retirer une passkey demandent une connexion de moins de dix minutes : la page vous redemande de vous connecter, puis continue.
+
+## Quand quelqu’un est enfermé dehors
+
+Rien de ce qui suit n’est un point d’entrée de l’API : cela se fait sur le serveur.
+
+| Mode | Situation | Que faire |
+| --- | --- | --- |
+| `passkey` | Passkeys perdues, codes de récupération conservés | Ils utilisent un code sur la page de connexion |
+| `passkey` | Passkeys et codes perdus | `cli.js recovery-codes --email …` affiche une nouvelle série, une fois |
+| `password` | Mot de passe oublié | `cli.js reset-password --email …` |
+| `full` | Passkey perdue | Ils se connectent avec Google ou Microsoft |
+
+Changer `AUTH_MODE` plus tard ne supprime jamais un compte ; il faut en revanche redonner à chacun un moyen d’entrer. La procédure, mode par mode, est dans le [guide complet](/docs/reference/authentication/#changing-the-mode-later).
