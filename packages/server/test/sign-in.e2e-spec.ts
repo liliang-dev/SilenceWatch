@@ -358,6 +358,47 @@ describe('password sign-in', () => {
   });
 });
 
+/** Over HTTPS the cookie is also Secure, and cannot be set from a sibling site. */
+describe('the session cookie over https', () => {
+  let context: TestApp;
+  const HTTPS = 'https://watch.example.com';
+
+  beforeAll(async () => {
+    context = await createTestApp({ BASE_URL: HTTPS });
+  });
+
+  afterAll(async () => {
+    await context.close();
+  });
+
+  it('is Secure, HttpOnly, SameSite=Lax and carries the __Secure- prefix', async () => {
+    await context.reset();
+    const response = await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-up/email',
+      headers: { origin: HTTPS },
+      payload: { email: 'tls@example.test', password: PASSWORD, name: '' },
+    });
+    expect(response.statusCode).toBe(200);
+
+    const cookie = [response.headers['set-cookie']].flat().find((line) => line?.includes('session_token='));
+    expect(cookie).toMatch(/^__Secure-sw\.session_token=/);
+    expect(cookie).toMatch(/; Secure/i);
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/SameSite=Lax/i);
+  });
+
+  it('refuses a write from the plain-http twin of the site', async () => {
+    const response = await context.app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: 'http://watch.example.com' },
+      payload: { email: 'tls@example.test', password: PASSWORD },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
+
 /** The limit on trying: Better Auth's own, set from AUTH_RATE_LIMIT_PER_MINUTE. */
 describe('rate limiting of sign-in', () => {
   let context: TestApp;

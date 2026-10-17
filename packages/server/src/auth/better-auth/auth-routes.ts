@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AppConfig } from '../../config/config';
 import { allowedAuthPaths } from './auth-paths';
 import { AUTH_BASE_PATH, CLIENT_IP_HEADER } from './auth-policy';
-import type { Auth } from './auth.factory';
+import { trustedOriginsOf, type Auth } from './auth.factory';
 
 /**
  * Mounts Better Auth straight on Fastify, under /api/auth.
@@ -17,9 +17,16 @@ import type { Auth } from './auth.factory';
  *    caller sent under that name, so rate limits and sign-up rules see the address
  *    Fastify resolved (honouring TRUST_PROXY) and not one the caller chose;
  *  - the URL is built from BASE_URL, never from the Host header.
+ *
+ * And one thing on the way through: a write that names an origin which is not one
+ * of ours is refused. Better Auth checks the origin only when a cookie comes with
+ * the request, which leaves a form on another site free to sign a visitor in to an
+ * account of its own choosing; browsers always say where a write came from, so this
+ * closes that, and costs a script that sends no Origin nothing.
  */
 export function registerAuthRoutes(app: FastifyInstance, auth: Auth, config: AppConfig): void {
   const allowed = allowedAuthPaths(config.AUTH_MODE);
+  const origins = new Set(trustedOriginsOf(config));
 
   app.route({
     method: ['GET', 'POST'],
@@ -28,6 +35,13 @@ export function registerAuthRoutes(app: FastifyInstance, auth: Auth, config: App
       const path = pathWithinAuth(request.url);
       if (!allowed.has(path) && !isProviderCallback(path, allowed)) {
         return reply.status(404).send({ statusCode: 404, error: 'NOT_FOUND', message: 'Not found' });
+      }
+
+      const origin = request.headers.origin;
+      if (request.method !== 'GET' && origin !== undefined && !origins.has(origin)) {
+        return reply
+          .status(403)
+          .send({ statusCode: 403, error: 'FORBIDDEN', message: 'Cross-origin request refused' });
       }
 
       const response = await auth.handler(toWebRequest(request, config));
