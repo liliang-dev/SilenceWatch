@@ -26,11 +26,6 @@
       />
     </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>{{ t('deleteAccount.passwordField') }}</mat-label>
-      <input matInput type="password" formControlName="password" autocomplete="current-password" />
-    </mat-form-field>
-
     @if (error(); as message) {
     <p class="error" role="alert">{{ message }}</p>
     }

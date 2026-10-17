@@ -8,10 +8,10 @@ import { ScrollTabsDirective } from '../../shared/scroll-tabs.directive';
 import { SettingsFeedback } from './settings-feedback';
 import { AccountTabComponent } from './tabs/account/account-tab.component';
 import { ApiKeysTabComponent } from './tabs/api-keys/api-keys-tab.component';
-import { PasswordTabComponent } from './tabs/password/password-tab.component';
 import { PreferencesTabComponent } from './tabs/preferences/preferences-tab.component';
 import { ProjectsTabComponent } from './tabs/projects/projects-tab.component';
 import { SecurityTabComponent } from './tabs/security/security-tab.component';
+import { SignInTabComponent } from './tabs/sign-in/sign-in-tab.component';
 import { SubscriptionTabComponent } from './tabs/subscription/subscription-tab.component';
 
 /**
@@ -29,11 +29,11 @@ import { SubscriptionTabComponent } from './tabs/subscription/subscription-tab.c
     AccountTabComponent,
     ApiKeysTabComponent,
     MatTabsModule,
-    PasswordTabComponent,
     PreferencesTabComponent,
     ProjectsTabComponent,
     ScrollTabsDirective,
     SecurityTabComponent,
+    SignInTabComponent,
     SubscriptionTabComponent,
   ],
   providers: [SettingsFeedback],

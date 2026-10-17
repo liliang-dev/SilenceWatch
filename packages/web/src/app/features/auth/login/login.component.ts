@@ -1,18 +1,32 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { Router } from '@angular/router';
-import { LIMITS, type RegisterResponse, type SessionDto } from '@silencewatch/shared';
-import type { Observable } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { LIMITS, type AuthConfigDto, type UserDto } from '@silencewatch/shared';
+import { AuthConfigService } from '../../../core/auth/auth-config.service';
+import { PasskeysService } from '../../../core/auth/passkeys.service';
+import { PasskeyError, SignInService, type Provider } from '../../../core/auth/sign-in.service';
+import { errorMessage } from '../../../core/http/error-message';
 import { I18n } from '../../../core/i18n/i18n.service';
 import { ProjectStore } from '../../../core/project.store';
-import { AuthService } from '../../../core/auth/auth.service';
-import { errorMessage, isVerificationPending } from '../../../core/http/error-message';
-import { SignupChallengeService } from '../../../core/auth/signup-challenge.service';
+import { RecoveryCodesComponent } from '../../../shared/recovery-codes.component';
 
+/**
+ * The one way in.
+ *
+ * What the page offers is what the instance has (`AUTH_MODE`): a passkey, a
+ * password, or Google and Microsoft beside a passkey. The same page is the first
+ * visit by a setup link (`/setup`), where the address is fixed by the link and the
+ * only thing left is to create the account.
+ *
+ * Signing in never says why it failed: a wrong password, an unknown address, a
+ * locked account and a refused passkey all read the same. Creating an account may
+ * be specific, because there the person needs to know what to change.
+ */
 @Component({
   selector: 'sw-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,181 +36,201 @@ import { SignupChallengeService } from '../../../core/auth/signup-challenge.serv
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    RecoveryCodesComponent,
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent {
-  private readonly auth = inject(AuthService);
+export class LoginComponent implements OnInit {
+  private readonly signIn = inject(SignInService);
+  private readonly passkeys = inject(PasskeysService);
+  private readonly configs = inject(AuthConfigService);
   private readonly projects = inject(ProjectStore);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(FormBuilder);
-  private readonly challenge = inject(SignupChallengeService);
   private readonly i18n = inject(I18n);
   protected readonly t = this.i18n.t;
-  protected readonly around = this.i18n.around;
 
   protected readonly minLength = LIMITS.passwordMin;
-  protected readonly mode = signal<'login' | 'register'>('login');
+
+  /** Null while the instance is being asked how it lets people in. */
+  protected readonly config = signal<AuthConfigDto | null>(null);
+  protected readonly view = signal<'signin' | 'signup' | 'recovery' | 'codes'>('signin');
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly codes = signal<string[]>([]);
+  protected readonly codesSaved = signal(false);
 
-  /** Set once a confirmation link has gone out; swaps the card for its "sent" state. */
-  protected readonly sentTo = signal<string | null>(null);
+  /** True on /setup: the address is the link's, and the account is the only thing to make. */
+  protected readonly setup = signal(false);
+  protected readonly setupBroken = signal(false);
 
-  /** Same, for a password reset. Kept apart because the wording must differ. */
-  protected readonly resetSentTo = signal<string | null>(null);
-
-  /** True when the server refused a sign-in because the address is unconfirmed. */
-  protected readonly verificationPending = signal(false);
-
-  /** What the submit button is doing, when it is doing something slow. */
-  protected readonly working = signal<'challenge' | 'request' | null>(null);
-
-  protected readonly workingLabel = computed(() =>
-    this.working() === 'challenge' ? this.t('login.checkingBrowser') : this.t('login.working'),
-  );
+  protected readonly canSignUp = computed(() => this.setup() || (this.config()?.signup ?? false));
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    name: [''],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(LIMITS.passwordMin)]],
+    code: [''],
   });
 
-  protected toggleMode(): void {
-    this.mode.update((mode) => (mode === 'login' ? 'register' : 'login'));
-    this.error.set(null);
-    this.verificationPending.set(false);
+  ngOnInit(): void {
+    this.configs
+      .load()
+      .then((config) => {
+        this.config.set(config);
+        if (this.route.snapshot.queryParamMap.get('failed') === '1') {
+          this.error.set(this.t('login.providerRefused'));
+        }
+        if (this.route.snapshot.data['setup'] === true) this.startSetup();
+      })
+      .catch(() => this.error.set(this.t('error.offline')));
   }
 
-  protected backToSignIn(): void {
-    this.sentTo.set(null);
-    this.resetSentTo.set(null);
-    this.mode.set('login');
-    this.error.set(null);
-    this.form.patchValue({ password: '' });
-  }
+  /** Takes the token out of the link's fragment and keeps it for the sign-up. */
+  private startSetup(): void {
+    const token = window.location.hash.slice(1);
+    const email = this.route.snapshot.queryParamMap.get('email') ?? '';
+    // Out of the address bar and the history at once: it is a secret, and whoever
+    // looks over the shoulder or at the history should not get it.
+    window.history.replaceState(null, '', `${window.location.pathname}?email=${encodeURIComponent(email)}`);
 
-  /**
-   * Asks for a reset link.
-   *
-   * Only the address is needed, so an invalid password does not block it — the
-   * person who cannot remember their password is exactly who needs this button.
-   */
-  protected forgotPassword(): void {
-    const email = this.form.getRawValue().email.trim();
-    if (email === '') {
-      this.form.controls.email.markAsTouched();
-      this.error.set(this.t('login.enterEmailFirst'));
+    if (token === '' || email === '') {
+      this.setupBroken.set(true);
       return;
     }
+    this.setup.set(true);
+    this.signIn.rememberSetupToken(token);
+    this.form.patchValue({ email });
+    this.form.controls.email.disable();
+    this.view.set('signup');
+  }
 
-    this.busy.set(true);
+  protected show(view: 'signin' | 'signup' | 'recovery'): void {
+    this.view.set(view);
     this.error.set(null);
-    this.auth.forgotPassword(email).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.resetSentTo.set(email);
-      },
-      error: (failure: unknown) => {
-        this.busy.set(false);
-        this.error.set(errorMessage(failure, this.t('login.cannotSendLink'), this.t));
-      },
-    });
   }
 
   protected submit(): void {
-    if (this.form.invalid || this.busy()) {
-      this.form.markAllAsTouched();
-      return;
+    const view = this.view();
+    const config = this.config();
+    if (config === null || this.busy() || view === 'codes') return;
+
+    if (view === 'recovery') return void this.run(() => this.recover(), 'signin');
+
+    if (config.password) {
+      if (!this.passwordFormValid()) return;
+      const { password } = this.form.getRawValue();
+      const email = this.email();
+      return void this.run(
+        () =>
+          view === 'signup'
+            ? this.signIn.signUpWithPassword(email, password)
+            : this.signIn.withPassword(email, password),
+        view,
+      );
     }
 
+    // Passkeys only: creating an account is the one thing that needs an address.
+    if (view === 'signup') {
+      if (this.form.controls.email.invalid) {
+        this.form.controls.email.markAsTouched();
+        return;
+      }
+      return void this.run(() => this.createWithPasskey(), 'signup');
+    }
+    void this.run(() => this.signIn.withPasskey(), 'signin');
+  }
+
+  protected usePasskey(): void {
+    if (this.busy()) return;
+    void this.run(() => this.signIn.withPasskey(), 'signin');
+  }
+
+  protected useProvider(provider: Provider): void {
+    if (this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
-    this.verificationPending.set(false);
+    this.signIn.withProvider(provider, this.nextUrl()).catch(() => {
+      this.busy.set(false);
+      this.error.set(this.t('login.failed'));
+    });
+  }
 
-    if (this.mode() === 'login') {
-      this.run(this.auth.login(this.form.getRawValue()));
-      return;
+  /** Continues from the screen that shows the recovery codes. */
+  protected continueToApp(): void {
+    void this.enter();
+  }
+
+  private email(): string {
+    return this.form.getRawValue().email.trim().toLowerCase();
+  }
+
+  private passwordFormValid(): boolean {
+    const emailOk = this.form.controls.email.disabled || this.form.controls.email.valid;
+    if (emailOk && this.form.controls.password.valid) return true;
+    this.form.markAllAsTouched();
+    return false;
+  }
+
+  private async createWithPasskey(): Promise<UserDto> {
+    const user = await this.signIn.signUpWithPasskey(this.email());
+    // The account has this one credential and nothing else to get back in with:
+    // its recovery codes are made now, while the sign-in is as fresh as it gets.
+    if (this.config()?.recoveryCodes === true) {
+      this.codes.set(await this.passkeys.newRecoveryCodes());
+      this.view.set('codes');
     }
-
-    void this.submitRegistration();
+    return user;
   }
 
-  /**
-   * Registration first asks the instance what work it wants. On a self-hosted
-   * instance the answer is "none" and this costs one request; on the hosted one
-   * it costs a fraction of a second of CPU, which is the point.
-   */
-  private async submitRegistration(): Promise<void> {
-    this.working.set('challenge');
-    const powSolution = await this.challenge.solve();
-    this.working.set('request');
-
-    const { name, email, password } = this.form.getRawValue();
-    this.run(
-      this.auth.register({
-        email,
-        password,
-        ...(name.trim() === '' ? {} : { name }),
-        ...(powSolution === undefined ? {} : { powSolution }),
-      }),
-    );
+  private async recover(): Promise<UserDto> {
+    const { code } = this.form.getRawValue();
+    return this.signIn.withRecoveryCode(this.email(), code);
   }
 
-  private run(request: Observable<SessionDto | RegisterResponse>): void {
-    request.subscribe({
-      next: (result) => {
-        this.busy.set(false);
-        this.working.set(null);
-
-        // Registration with verification on returns no session: the account
-        // exists, but nothing is signed in and there is nowhere to navigate to.
-        if ('status' in result && result.status === 'verification_sent') {
-          this.sentTo.set(result.email);
-          return;
-        }
-
-        // A fresh session means a fresh project list.
-        this.projects.clear();
-        this.projects.load(true);
-        void this.router.navigateByUrl(this.nextUrl());
-      },
-      error: (failure: unknown) => {
-        this.busy.set(false);
-        this.working.set(null);
-        this.verificationPending.set(isVerificationPending(failure));
-        this.error.set(errorMessage(failure, this.t('login.failed'), this.t));
-      },
-    });
-  }
-
-  /**
-   * Asks for another link. Deliberately optimistic: the endpoint answers the
-   * same way whether or not the address exists, so there is no outcome to
-   * report beyond "we did what you asked".
-   */
-  protected resend(): void {
-    const email = this.sentTo() ?? this.form.getRawValue().email;
-    if (email === '') return;
-
+  private async run(attempt: () => Promise<UserDto>, doing: 'signin' | 'signup'): Promise<void> {
     this.busy.set(true);
-    this.auth.resendVerification(email).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.error.set(null);
-        this.verificationPending.set(false);
-        this.sentTo.set(email);
-      },
-      error: () => {
-        this.busy.set(false);
-        this.error.set(this.t('login.cannotSendLinkMinute'));
-      },
-    });
+    this.error.set(null);
+    try {
+      await attempt();
+      if (this.setup()) this.signIn.forgetSetupToken();
+      // The recovery codes are shown first, and the person leaves when they say so.
+      if (this.view() !== 'codes') await this.enter();
+    } catch (failure: unknown) {
+      this.error.set(this.failureMessage(failure, doing));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private async enter(): Promise<void> {
+    // A fresh session means a fresh project list.
+    this.projects.clear();
+    this.projects.load(true);
+    await this.router.navigateByUrl(this.nextUrl());
+  }
+
+  private failureMessage(failure: unknown, doing: 'signin' | 'signup'): string {
+    if (failure instanceof PasskeyError) {
+      if (failure.reason === 'unsupported') return this.t('login.passkeyUnsupported');
+      return this.t(failure.reason === 'cancelled' ? 'login.passkeyCancelled' : 'login.passkeyFailed');
+    }
+    if (failure instanceof HttpErrorResponse && failure.status === 429) {
+      return this.t('error.tooManyAttempts');
+    }
+    // Signing in says one thing about every refusal. Creating an account may say
+    // what is wrong with it.
+    if (doing === 'signup' && failure instanceof HttpErrorResponse && failure.status !== 0) {
+      return errorMessage(failure, this.t('login.signUpFailed'), this.t);
+    }
+    return failure instanceof HttpErrorResponse && failure.status === 0
+      ? this.t('error.offline')
+      : this.t('login.failed');
   }
 
   private nextUrl(): string {
-    const next = new URLSearchParams(window.location.search).get('next');
+    const next = this.route.snapshot.queryParamMap.get('next');
     // Only same-site paths: a "next" pointing elsewhere would be an open redirect.
     return next !== null && next.startsWith('/') && !next.startsWith('//') ? next : '/checks';
   }

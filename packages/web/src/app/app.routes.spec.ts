@@ -18,7 +18,7 @@ describe('app routes', () => {
       table.map((route) => {
         const { canActivate: _guard, loadChildren: _children, loadComponent: _component, ...rest } = route;
         if (route.loadChildren !== undefined) {
-          return { ...rest, children: [{ path: 'login', component: Stub }, { path: 'verify-email', component: Stub }, { path: 'reset-password', component: Stub }] };
+          return { ...rest, children: [{ path: 'login', component: Stub }, { path: 'setup', component: Stub }] };
         }
         return route.redirectTo === undefined ? { ...rest, component: Stub } : rest;
       });
@@ -41,7 +41,15 @@ describe('app routes', () => {
     expect(await navigate('/login')).toBe('/login');
   });
 
-  it('keeps the reset-password screen where it is', async () => {
-    expect(await navigate('/reset-password')).toBe('/reset-password');
+  it('keeps the setup screen where it is', async () => {
+    expect(await navigate('/setup')).toBe('/setup');
+  });
+
+  it('no longer has the screen that took a reset link by email', async () => {
+    expect(await navigate('/reset-password')).toBe('/checks');
+  });
+
+  it('no longer has the screen that took a confirmation link by email', async () => {
+    expect(await navigate('/verify-email')).toBe('/checks');
   });
 });

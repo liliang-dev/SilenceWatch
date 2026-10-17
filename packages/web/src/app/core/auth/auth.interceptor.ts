@@ -1,33 +1,22 @@
-import {
-  HttpErrorResponse,
-  HttpEvent,
-  HttpHandlerFn,
-  HttpRequest,
-} from '@angular/common/http';
+import { HttpErrorResponse, HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, catchError, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
-
-/** Endpoints that must not carry a token, and must not trigger a refresh loop. */
-const ANONYMOUS_PATHS = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/refresh',
-  '/api/auth/logout',
-  '/api/auth/signup-challenge',
-  '/api/auth/verify-email',
-  '/api/auth/resend-verification',
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password',
-];
+import { ReauthService } from './reauth.service';
 
 /**
- * Attaches the bearer token and, on a 401, refreshes once before giving up.
+ * Two things the server can answer that the page has to act on.
  *
- * A single retry is the whole policy: if the refresh itself fails, the session is
- * genuinely over and the user goes back to the login page rather than watching
- * the application retry forever.
+ * **401 from the API**: the session is over (it ran out, was signed out elsewhere,
+ * or the account is gone). The page forgets it and goes to the sign-in screen. The
+ * auth endpoints themselves are left alone, since a 401 there is a wrong credential
+ * and not an ended session.
+ *
+ * **403 asking for a recent sign-in**: deleting the account, managing an API key
+ * and adding a passkey want proof that the person is there now. The request is held
+ * while they sign in again, then sent once more as it was; if they decline, the
+ * refusal is the answer.
  */
 export function authInterceptor(
   request: HttpRequest<unknown>,
@@ -35,33 +24,31 @@ export function authInterceptor(
 ): Observable<HttpEvent<unknown>> {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const reauth = inject(ReauthService);
 
-  if (ANONYMOUS_PATHS.some((path) => request.url.startsWith(path))) {
-    return next(request);
-  }
-
-  return next(withToken(request, auth.token)).pipe(
+  return next(request).pipe(
     catchError((error: unknown) => {
-      const isExpired = error instanceof HttpErrorResponse && error.status === 401;
-      // Whether a refresh token exists is no longer knowable from here — it is
-      // an HttpOnly cookie. So the retry is unconditional on a 401, and the
-      // refresh failing is what tells us the session is genuinely over.
-      if (!isExpired) return throwError(() => error);
+      if (!(error instanceof HttpErrorResponse)) return throwError(() => error);
 
-      return auth.refresh().pipe(
-        switchMap(() => next(withToken(request, auth.token))),
-        catchError((refreshError: unknown) => {
-          auth.forget();
-          void router.navigate(['/login']);
-          return throwError(() => refreshError);
-        }),
-      );
+      if (error.status === 401 && !request.url.startsWith('/api/auth/')) {
+        auth.forget();
+        void router.navigate(['/login'], { queryParams: { next: router.url } });
+        return throwError(() => error);
+      }
+
+      if (error.status === 403 && asksForRecentSignIn(error)) {
+        return from(reauth.confirm()).pipe(
+          switchMap((confirmed) => (confirmed ? next(request) : throwError(() => error))),
+        );
+      }
+
+      return throwError(() => error);
     }),
   );
 }
 
-function withToken(request: HttpRequest<unknown>, token: string | null): HttpRequest<unknown> {
-  return token === null
-    ? request
-    : request.clone({ setHeaders: { authorization: `Bearer ${token}` } });
+/** Read from what the server flags, not from its wording. */
+export function asksForRecentSignIn(error: HttpErrorResponse): boolean {
+  const body = error.error as { code?: unknown; details?: { reauthRequired?: unknown } } | null;
+  return body?.details?.reauthRequired === true || body?.code === 'SESSION_NOT_FRESH';
 }
