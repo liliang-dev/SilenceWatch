@@ -198,6 +198,9 @@ because a subscription does nothing but pick a plan.
 | `STRIPE_PLANS` | `{}` | JSON: for each paid plan, its Stripe price and the amount shown |
 | `BILLING_CURRENCY` | `eur` | Currency of the prices, lower case |
 | `BILLING_AUTOMATIC_TAX` | `false` | Let Stripe Tax compute the tax on each payment |
+| `BILLING_TERMS_URL` | | Address of your terms of sale. When set, Stripe's payment page asks the buyer to accept them before paying (Stripe also needs the address in the Dashboard, under Settings, Public details) |
+| `BILLING_TERMS_URL_FR` | | The French page, used when the buyer's language is French; without it `BILLING_TERMS_URL` serves everyone |
+| `BILLING_PROFESSIONAL_ONLY` | `false` | The same box also states that the buyer acts for their business. Needs `BILLING_TERMS_URL` |
 | `STRIPE_API_URL` | `https://api.stripe.com` | Only worth changing to point a test at a stand-in |
 
 ```bash

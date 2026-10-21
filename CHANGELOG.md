@@ -61,7 +61,10 @@ limit. That is why this is a minor version.
   with `fetch`, so there is no new dependency. New settings: `BILLING_ENABLED`,
   `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PLANS`, `BILLING_CURRENCY`,
   `BILLING_AUTOMATIC_TAX`, `STRIPE_API_URL`; two new tables (`subscription`, `stripe_event`)
-  that nothing writes to without billing.
+  that nothing writes to without billing. Stripe's payment page can ask the buyer to accept
+  the terms of sale (`BILLING_TERMS_URL`, `BILLING_TERMS_URL_FR`), and, for a service sold to
+  professionals only, to state that they act as one in the same box
+  (`BILLING_PROFESSIONAL_ONLY`); the application passes its language along.
 - A pricing page on the site, in both languages, built from one list of plans.
 - Limits on what a free account can cost, for the hosted service. **One account per
   connection** (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`, off by default): counts the accounts that exist from an IPv4 address or IPv6

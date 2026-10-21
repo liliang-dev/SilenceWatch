@@ -33,6 +33,22 @@ export const billingShape = {
    * up on the account; leave it off when no tax is charged.
    */
   BILLING_AUTOMATIC_TAX: booleanish.prefault('false'),
+  /**
+   * The terms of sale. When set, Stripe's payment page asks the buyer to accept
+   * them before paying, and the acceptance is recorded on the checkout session.
+   * `BILLING_TERMS_URL_FR` is the French page, used when the buyer's language is
+   * French; without it the first one is used for everyone. Stripe also needs the
+   * terms address in the Dashboard (Settings, Public details) for the box to show.
+   */
+  BILLING_TERMS_URL: optional(z.url()),
+  BILLING_TERMS_URL_FR: optional(z.url()),
+  /**
+   * Sell to professionals only. The acceptance box then also says the buyer acts
+   * for their business, which is what lets the terms leave out the consumer
+   * rules (withdrawal, mediation). Needs BILLING_TERMS_URL: the declaration is
+   * made in the same box.
+   */
+  BILLING_PROFESSIONAL_ONLY: booleanish.prefault('false'),
   /** Where Stripe's API lives. Only worth changing to point a test at a stand-in. */
   STRIPE_API_URL: z.url().default('https://api.stripe.com'),
 };

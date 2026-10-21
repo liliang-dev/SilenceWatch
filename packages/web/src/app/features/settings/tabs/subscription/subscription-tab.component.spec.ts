@@ -104,7 +104,7 @@ describe('SubscriptionTabComponent', () => {
 
     (element.querySelectorAll('.plans button')[1] as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/billing/checkout');
-    expect(request.request.body).toEqual({ plan: 'business' });
+    expect(request.request.body).toEqual({ plan: 'business', lang: 'en' });
     request.flush({ url: 'https://checkout.stripe.test/s1' });
 
     expect(redirected).toEqual(['https://checkout.stripe.test/s1']);

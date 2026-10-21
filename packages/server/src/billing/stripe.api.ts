@@ -16,6 +16,10 @@ export abstract class StripeApi {
     successUrl: string;
     cancelUrl: string;
     automaticTax: boolean;
+    /** The language of Stripe's page; its own choice when absent. */
+    locale?: 'fr' | 'en';
+    /** Markdown shown next to a box the buyer must tick before paying. */
+    acceptance?: string;
   }): Promise<{ url: string }>;
 
   abstract createPortalSession(input: { customerId: string; returnUrl: string }): Promise<{ url: string }>;
@@ -70,6 +74,8 @@ export class HttpStripeApi extends StripeApi {
     successUrl: string;
     cancelUrl: string;
     automaticTax: boolean;
+    locale?: 'fr' | 'en';
+    acceptance?: string;
   }): Promise<{ url: string }> {
     const session = await this.call<{ url: string | null }>('POST', '/v1/checkout/sessions', {
       mode: 'subscription',
@@ -79,8 +85,14 @@ export class HttpStripeApi extends StripeApi {
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       billing_address_collection: 'auto',
-      locale: 'auto',
+      locale: input.locale ?? 'auto',
       subscription_data: { metadata: { user_id: input.userId } },
+      ...(input.acceptance === undefined
+        ? {}
+        : {
+            consent_collection: { terms_of_service: 'required' },
+            custom_text: { terms_of_service_acceptance: { message: input.acceptance } },
+          }),
       ...(input.automaticTax
         ? { automatic_tax: { enabled: true }, customer_update: { address: 'auto' } }
         : {}),

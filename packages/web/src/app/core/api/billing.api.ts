@@ -17,8 +17,8 @@ export class BillingApi {
   }
 
   /** The address of Stripe's payment page for a plan. */
-  checkout(plan: string): Observable<BillingRedirectDto> {
-    return this.http.post<BillingRedirectDto>('/api/v1/billing/checkout', { plan });
+  checkout(plan: string, lang?: 'fr' | 'en'): Observable<BillingRedirectDto> {
+    return this.http.post<BillingRedirectDto>('/api/v1/billing/checkout', { plan, ...(lang === undefined ? {} : { lang }) });
   }
 
   /** The address of Stripe's customer portal. */

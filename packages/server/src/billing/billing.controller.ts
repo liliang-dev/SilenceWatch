@@ -31,7 +31,7 @@ export class BillingController {
     @CurrentPrincipal() principal: Principal,
     @Body(zodPipe(checkoutRequestSchema)) body: CheckoutRequest,
   ): Promise<BillingRedirectDto> {
-    return this.billing.startCheckout(assertUser(principal).userId, body.plan);
+    return this.billing.startCheckout(assertUser(principal).userId, body.plan, body.lang);
   }
 
   @StrictRateLimit()

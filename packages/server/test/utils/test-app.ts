@@ -88,7 +88,7 @@ export class RecordingEmailService {
  */
 export class FakeStripeApi extends StripeApi {
   readonly customers: Array<{ id: string; email: string; userId: string }> = [];
-  readonly checkouts: Array<{ customerId: string; priceId: string; userId: string; successUrl: string; cancelUrl: string; automaticTax: boolean }> = [];
+  readonly checkouts: Array<{ customerId: string; priceId: string; userId: string; successUrl: string; cancelUrl: string; automaticTax: boolean; locale?: 'fr' | 'en'; acceptance?: string }> = [];
   readonly portals: Array<{ customerId: string; returnUrl: string }> = [];
   readonly cancelled: string[] = [];
   failing = false;

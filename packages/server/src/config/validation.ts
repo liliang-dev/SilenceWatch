@@ -165,6 +165,9 @@ function validateBilling(
   if (stripePlans === null) {
     issue('STRIPE_PLANS', 'must be a JSON object of {plan: {price: "price_…", amount: <cents>}}');
   }
+  if (env.BILLING_PROFESSIONAL_ONLY && !env.BILLING_TERMS_URL) {
+    issue('BILLING_PROFESSIONAL_ONLY', 'needs BILLING_TERMS_URL: the declaration is made in the box that accepts the terms');
+  }
   if (!env.BILLING_ENABLED) return;
 
   if (!env.QUOTAS_ENABLED) {

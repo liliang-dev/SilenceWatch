@@ -139,7 +139,7 @@ export class SubscriptionTabComponent {
     this.busy.set(plan.id);
     this.feedback.clear();
 
-    const request = this.live() ? this.api.portal() : this.api.checkout(plan.id);
+    const request = this.live() ? this.api.portal() : this.api.checkout(plan.id, this.i18n.language());
     request.subscribe({
       next: ({ url }) => this.redirect(url),
       error: (failure: unknown) => {

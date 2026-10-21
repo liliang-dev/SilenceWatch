@@ -79,7 +79,7 @@ export class BillingService {
   }
 
   /** The page to pay on, for a plan. */
-  async startCheckout(userId: string, planName: string): Promise<BillingRedirectDto> {
+  async startCheckout(userId: string, planName: string, lang?: 'fr' | 'en'): Promise<BillingRedirectDto> {
     this.assertEnabled();
 
     const plan = this.config.stripePlans[planName];
@@ -103,6 +103,8 @@ export class BillingService {
         successUrl: this.returnUrl('checkout=success'),
         cancelUrl: this.returnUrl('checkout=cancelled'),
         automaticTax: this.config.BILLING_AUTOMATIC_TAX,
+        ...(lang === undefined ? {} : { locale: lang }),
+        ...this.acceptance(lang),
       });
       return { url: session.url };
     } catch (error) {
@@ -218,6 +220,30 @@ export class BillingService {
     const user = await this.users.findByIdOrThrow(userId);
     const customer = await this.stripe.createCustomer({ email: user.email, userId });
     return (await this.repository.rememberCustomer(userId, customer.id)).stripeCustomerId;
+  }
+
+  /**
+   * The box the buyer ticks before paying: the terms of sale, and when the
+   * service is for professionals only, the statement that they act as one. One
+   * box, so that the acceptance Stripe records covers both.
+   */
+  private acceptance(lang: 'fr' | 'en' | undefined): { acceptance?: string } {
+    const english = this.config.BILLING_TERMS_URL;
+    if (english === undefined) return {};
+    const french = this.config.BILLING_TERMS_URL_FR ?? english;
+    const professional = this.config.BILLING_PROFESSIONAL_ONLY;
+    if (lang === 'fr') {
+      return {
+        acceptance: professional
+          ? `J’agis à titre professionnel et j’accepte les [conditions de vente](${french}).`
+          : `J’accepte les [conditions de vente](${french}).`,
+      };
+    }
+    return {
+      acceptance: professional
+        ? `I am acting for my business and I accept the [terms of sale](${english}).`
+        : `I accept the [terms of sale](${english}).`,
+    };
   }
 
   private returnUrl(query?: string): string {
