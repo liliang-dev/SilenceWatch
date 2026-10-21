@@ -23,11 +23,11 @@ export const LEGAL = {
    */
   anonymous: false,
   /** Name of the person, or the company's registered name. */
-  name: PENDING,
+  name: 'Lilian Garrido',
   /** Legal form: "Entrepreneur individuel", "SAS"… */
   form: 'Entrepreneur individuel',
   /** Postal address of the publisher. */
-  address: PENDING,
+  address: '2 allée du Niger, 31000 Toulouse, France',
   /** A contact address that is read: it is also where privacy requests arrive. */
   email: 'contact@silencewatch.com',
   /** Optional. */
@@ -46,7 +46,7 @@ export const LEGAL = {
    */
   vatExemption: true,
   /** The publication director: a natural person, often the publisher. */
-  director: PENDING,
+  director: 'Lilian Garrido',
 };
 
 /** The host, which the law also requires the site to name. */
