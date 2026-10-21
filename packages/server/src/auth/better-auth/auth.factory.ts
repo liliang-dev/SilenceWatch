@@ -14,6 +14,7 @@ import { recoveryCodes } from '../recovery/recovery-codes.plugin';
 import type { RecoveryCodesService } from '../recovery/recovery-codes.service';
 import type { SignupPolicyService } from '../signup/signup-policy.service';
 import type { UsersRepository } from '../users/users.repository';
+import { enabledProviders } from './providers';
 import {
   AUTH_BASE_PATH,
   CLIENT_IP_HEADER,
@@ -67,6 +68,7 @@ export function createAuth(
 ): Auth {
   const { config } = deps;
   const mode = config.AUTH_MODE;
+  const providers = enabledProviders(config);
   const origins = trustedOriginsOf(config);
   const secure = config.baseUrl.startsWith('https://');
   const strict = {
@@ -118,31 +120,37 @@ export function createAuth(
       autoSignIn: true,
     },
 
-    socialProviders:
-      mode === 'full'
+    socialProviders: {
+      // A provider is present only when both its id and its secret are set.
+      ...(providers.includes('google')
         ? {
             google: {
               clientId: config.GOOGLE_CLIENT_ID as string,
               clientSecret: config.GOOGLE_CLIENT_SECRET as string,
-              prompt: 'select_account',
+              prompt: 'select_account' as const,
               // The redirect is the only way in: a token handed straight to the
               // API is a second door nobody asked for.
               disableIdTokenSignIn: true,
               // A picture is not something this application has any use for.
               mapProfileToUser: () => ({ image: undefined }),
             },
+          }
+        : {}),
+      ...(providers.includes('microsoft')
+        ? {
             microsoft: {
               clientId: config.MICROSOFT_CLIENT_ID as string,
               clientSecret: config.MICROSOFT_CLIENT_SECRET as string,
               tenantId: config.MICROSOFT_TENANT_ID,
-              prompt: 'select_account',
+              prompt: 'select_account' as const,
               disableIdTokenSignIn: true,
               // Otherwise a photo is fetched from Microsoft Graph and stored whole.
               disableProfilePhoto: true,
               mapProfileToUser: () => ({ image: undefined }),
             },
           }
-        : {},
+        : {}),
+    },
 
     account: {
       accountLinking: {

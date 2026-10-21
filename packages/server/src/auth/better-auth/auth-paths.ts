@@ -1,4 +1,5 @@
 import type { AuthMode } from '../../config/groups/auth';
+import type { SocialProvider } from './providers';
 
 /**
  * The Better Auth endpoints an instance answers, by mode.
@@ -9,7 +10,7 @@ import type { AuthMode } from '../../config/groups/auth';
  * also makes "only the chosen methods exist" true of the URL space and not just
  * of the configuration.
  */
-export function allowedAuthPaths(mode: AuthMode): ReadonlySet<string> {
+export function allowedAuthPaths(mode: AuthMode, providers: readonly SocialProvider[] = []): ReadonlySet<string> {
   const paths = ['/sign-out'];
 
   if (mode === 'password') {
@@ -28,8 +29,8 @@ export function allowedAuthPaths(mode: AuthMode): ReadonlySet<string> {
   if (mode === 'passkey') {
     paths.push('/recovery-codes/generate', '/recovery-codes/remaining', '/recovery-codes/sign-in');
   }
-  if (mode === 'full') {
-    paths.push('/sign-in/social', '/callback/google', '/callback/microsoft');
+  if (mode === 'full' && providers.length > 0) {
+    paths.push('/sign-in/social', ...providers.map((provider) => `/callback/${provider}`));
   }
   return new Set(paths);
 }

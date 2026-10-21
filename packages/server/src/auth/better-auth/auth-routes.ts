@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AppConfig } from '../../config/config';
 import { allowedAuthPaths } from './auth-paths';
+import { enabledProviders } from './providers';
 import { AUTH_BASE_PATH, CLIENT_IP_HEADER } from './auth-policy';
 import { trustedOriginsOf, type Auth } from './auth.factory';
 
@@ -25,7 +26,7 @@ import { trustedOriginsOf, type Auth } from './auth.factory';
  * closes that, and costs a script that sends no Origin nothing.
  */
 export function registerAuthRoutes(app: FastifyInstance, auth: Auth, config: AppConfig): void {
-  const allowed = allowedAuthPaths(config.AUTH_MODE);
+  const allowed = allowedAuthPaths(config.AUTH_MODE, enabledProviders(config));
   const origins = new Set(trustedOriginsOf(config));
 
   app.route({

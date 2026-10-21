@@ -2,6 +2,7 @@ import { Controller, Get, Inject } from '@nestjs/common';
 import type { AuthConfigDto } from '@silencewatch/shared';
 import { Public } from '../access/auth.guard';
 import { AppConfig, CONFIG } from '../config/config';
+import { enabledProviders } from './better-auth/providers';
 import { UsersRepository } from './users/users.repository';
 
 /** What the sign-in page needs to know about this instance before anyone has signed in. */
@@ -26,7 +27,7 @@ export class AuthConfigController {
       mode,
       passkey: mode !== 'password',
       password: mode === 'password',
-      providers: mode === 'full' ? ['google', 'microsoft'] : [],
+      providers: enabledProviders(this.config),
       recoveryCodes: mode === 'passkey',
       signup,
     };
