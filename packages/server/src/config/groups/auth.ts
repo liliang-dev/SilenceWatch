@@ -51,10 +51,10 @@ export const authShape = {
    */
   ADMIN_EMAIL: optional(z.string().email()),
 
-  /** Google sign-in (AUTH_MODE=full). */
+  /** Google sign-in (AUTH_MODE=full); the button shows only when both are set. */
   GOOGLE_CLIENT_ID: optional(z.string().min(1)),
   GOOGLE_CLIENT_SECRET: optional(z.string().min(1)),
-  /** Microsoft sign-in (AUTH_MODE=full). */
+  /** Microsoft sign-in (AUTH_MODE=full); the button shows only when both are set. */
   MICROSOFT_CLIENT_ID: optional(z.string().min(1)),
   MICROSOFT_CLIENT_SECRET: optional(z.string().min(1)),
   /** `common` accepts work, school and personal accounts; a tenant id restricts it to one organisation. */

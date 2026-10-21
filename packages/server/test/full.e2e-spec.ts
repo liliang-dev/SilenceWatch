@@ -302,3 +302,34 @@ describe('passkeys, Google and Microsoft', () => {
     });
   });
 });
+
+describe('AUTH_MODE=full with one provider set up', () => {
+  let context: TestApp;
+
+  beforeAll(async () => {
+    context = await createTestApp({
+      AUTH_MODE: 'full',
+      BASE_URL,
+      GOOGLE_CLIENT_ID: 'google-client',
+      GOOGLE_CLIENT_SECRET: 'google-secret',
+    });
+  });
+
+  afterAll(async () => {
+    await context.close();
+  });
+
+  it('offers only that provider', async () => {
+    const response = await context.app.inject({ method: 'GET', url: '/api/auth/config' });
+    expect(response.json()).toMatchObject({ mode: 'full', providers: ['google'] });
+  });
+
+  it('has no callback for the other one', async () => {
+    const response = await context.app.inject({
+      method: 'GET',
+      url: '/api/auth/callback/microsoft',
+      headers: { origin: BASE_URL },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});

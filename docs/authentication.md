@@ -49,8 +49,8 @@ the person who is locked out.
 | `AUTH_RP_ID` | host of `BASE_URL` | The domain passkeys are bound to. Decide once: see below |
 | `AUTH_RP_NAME` | `SilenceWatch` | The name the browser shows when asking for a passkey |
 | `AUTH_TRUSTED_ORIGINS` | — | Extra browser origins that may sign in (a development server, say), comma-separated |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | — | Required when `AUTH_MODE=full` |
-| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | — | Required when `AUTH_MODE=full` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | — | Google sign-in (`AUTH_MODE=full`). The button shows only when both are set |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | — | Microsoft sign-in, same rule. `full` needs at least one provider |
 | `MICROSOFT_TENANT_ID` | `common` | `common` accepts work, school and personal accounts; a tenant id restricts sign-in to that organisation |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Sign-in attempts per minute from one address, per endpoint |
 

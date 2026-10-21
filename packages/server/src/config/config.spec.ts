@@ -206,13 +206,23 @@ describe('loadConfig', () => {
       }
     });
 
-    it('asks for both providers\' credentials in full mode, and only there', () => {
-      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'full' })).toThrow(/GOOGLE_CLIENT_ID.*required when AUTH_MODE=full/s);
-      expect(() => loadConfig({ ...hosted, ...oauth, AUTH_MODE: 'full', MICROSOFT_CLIENT_SECRET: '' })).toThrow(
-        /MICROSOFT_CLIENT_SECRET/,
-      );
+    it('needs at least one provider in full mode, and only there', () => {
+      expect(() => loadConfig({ ...hosted, AUTH_MODE: 'full' })).toThrow(/full needs at least one provider/);
       expect(() => loadConfig({ ...hosted, AUTH_MODE: 'password' })).not.toThrow();
       expect(() => loadConfig({ ...hosted, AUTH_MODE: 'passkey' })).not.toThrow();
+    });
+
+    it('lets either provider be set up alone, but not half of one', () => {
+      const google = { GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret' };
+      const microsoft = { MICROSOFT_CLIENT_ID: 'id', MICROSOFT_CLIENT_SECRET: 'secret' };
+      expect(() => loadConfig({ ...hosted, ...google, AUTH_MODE: 'full' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, ...microsoft, AUTH_MODE: 'full' })).not.toThrow();
+      expect(() => loadConfig({ ...hosted, ...oauth, AUTH_MODE: 'full', MICROSOFT_CLIENT_SECRET: '' })).toThrow(
+        /MICROSOFT_CLIENT_SECRET.*required with MICROSOFT_CLIENT_ID/s,
+      );
+      expect(() => loadConfig({ ...hosted, GOOGLE_CLIENT_ID: 'id', AUTH_MODE: 'full' })).toThrow(
+        /GOOGLE_CLIENT_SECRET.*required with GOOGLE_CLIENT_ID/s,
+      );
     });
 
     it('wants https for passkeys, but lets localhost be developed on', () => {

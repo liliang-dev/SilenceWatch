@@ -46,6 +46,7 @@ limit. That is why this is a minor version.
   or revoke an API key, and to add or remove a passkey. The page asks the person to sign in
   again, with the method the instance has, and carries on.
 - New audit entries: passkey added and removed, recovery codes made and used.
+- In `full` mode each provider is optional: its sign-in button, endpoint and callback exist only when both its id and secret are set, and at least one provider is required.
 - Settings: `AUTH_MODE`, `AUTH_RP_ID`, `AUTH_RP_NAME`, `AUTH_TRUSTED_ORIGINS`, `ADMIN_EMAIL`,
   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`,
   `MICROSOFT_TENANT_ID`.

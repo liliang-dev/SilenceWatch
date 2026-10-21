@@ -87,14 +87,23 @@ function validateAuth(env: Env, ctx: z.RefinementCtx): void {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
 
   if (env.AUTH_MODE === 'full') {
-    const credentials = [
-      'GOOGLE_CLIENT_ID',
-      'GOOGLE_CLIENT_SECRET',
-      'MICROSOFT_CLIENT_ID',
-      'MICROSOFT_CLIENT_SECRET',
+    // Each provider is optional, but half of one is a mistake, and none at all
+    // would leave nobody able to create an account.
+    const pairs = [
+      ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+      ['MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET'],
     ] as const;
-    for (const name of credentials) {
-      if (env[name] === undefined) issue(name, 'required when AUTH_MODE=full');
+    let complete = 0;
+    for (const [id, secret] of pairs) {
+      if (env[id] !== undefined && env[secret] !== undefined) complete += 1;
+      else if (env[id] !== undefined) issue(secret, `required with ${id}`);
+      else if (env[secret] !== undefined) issue(id, `required with ${secret}`);
+    }
+    if (complete === 0 && pairs.every(([id, secret]) => env[id] === undefined && env[secret] === undefined)) {
+      issue(
+        'AUTH_MODE',
+        'full needs at least one provider: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET (or use AUTH_MODE=passkey)',
+      );
     }
   }
 
