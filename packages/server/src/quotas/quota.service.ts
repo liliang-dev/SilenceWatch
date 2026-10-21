@@ -134,6 +134,15 @@ export class QuotaService {
     return ceiling === undefined ? requested : Math.min(requested, ceiling);
   }
 
+  /** What an account is using of what its plan allows, for the Settings page. */
+  async usageOf(userId: string): Promise<{ checks: number; projects: number }> {
+    const [checks, projects] = await Promise.all([
+      this.countOwnedChecks(userId),
+      this.prisma.projectMember.count({ where: { userId, role: 'owner' } }),
+    ]);
+    return { checks, projects };
+  }
+
   /** Checks in every project this account owns. */
   async countOwnedChecks(userId: string): Promise<number> {
     return this.prisma.check.count({

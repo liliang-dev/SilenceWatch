@@ -11,6 +11,8 @@
  *
  * Rate limiting is per ping key, so the test spreads load over CHECKS keys and
  * raises PING_RATE_LIMIT_PER_MINUTE if needed — see the README.
+ *
+ * It signs up with a password, so the server has to run with AUTH_MODE=password.
  */
 import autocannon from 'autocannon';
 
@@ -20,28 +22,38 @@ const DURATION = Number(process.env.DURATION ?? 15);
 const CONNECTIONS = Number(process.env.CONNECTIONS ?? 100);
 const PASSWORD = 'load-test-password-long-enough';
 
-async function api(path, { method = 'GET', token, body } = {}) {
+/**
+ * `token` is the session cookie, as `name=value`. `origin` is what a browser would
+ * send, and what a write made with a cookie has to name.
+ */
+async function api(path, { method = 'GET', token, body, raw = false } = {}) {
   const response = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       'content-type': 'application/json',
-      ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+      origin: new URL(BASE).origin,
+      ...(token === undefined ? {} : { cookie: token }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!response.ok) {
     throw new Error(`${method} ${path} -> ${response.status} ${await response.text()}`);
   }
-  return response.json();
+  return raw ? response : response.json();
 }
 
 async function setup() {
   const email = `loadtest-${Date.now()}@example.test`;
-  const session = await api('/api/auth/register', {
+  const signUp = await api('/api/auth/sign-up/email', {
     method: 'POST',
-    body: { email, password: PASSWORD, name: 'Load test' },
+    body: { email, password: PASSWORD, name: '' },
+    raw: true,
   });
-  const token = session.accessToken;
+  const token = signUp.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(';')[0])
+    .find((cookie) => cookie.includes('session_token='));
+  if (token === undefined) throw new Error('sign-up set no session cookie: is AUTH_MODE=password?');
   const [project] = await api('/api/v1/projects', { token });
 
   process.stdout.write(`Creating ${CHECKS} checks…\n`);

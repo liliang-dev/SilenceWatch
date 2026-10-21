@@ -100,6 +100,21 @@ UPDATE notification_delivery
        next_attempt_at = now() + make_interval(secs => LEAST(3600, 30 * power(2, GREATEST(0, attempts - 1)))::double precision)
  WHERE id = $1::uuid`;
 
+/** What each channel has already delivered in the last hour. */
+const SENT_LAST_HOUR_SQL = `
+SELECT channel_id, count(*)::int AS total
+  FROM notification_delivery
+ WHERE channel_id = ANY($1::uuid[])
+   AND status = 'sent'
+   AND sent_at > now() - interval '1 hour'
+ GROUP BY channel_id`;
+
+/** A refused alert is final: retrying it would only be the same flood, later. */
+const REFUSE_SQL = `
+UPDATE notification_delivery
+   SET status = 'failed', last_error = left($2::text, 500)
+ WHERE id = $1::uuid`;
+
 interface ContextRow {
   id: string;
   kind: AlertKind;
@@ -227,11 +242,19 @@ export class NotificationQueueService implements OnApplicationBootstrap, OnModul
     // Sequential on purpose: batches are small, and one hung provider must not
     // open fifty concurrent sockets.
     const delivered: string[] = [];
+    const sentLastHour = await this.sentLastHour(contexts.rows);
+    const ceiling = this.config.ALERT_MAX_PER_CHANNEL_PER_HOUR;
     for (const row of contexts.rows) {
+      if (ceiling > 0 && (sentLastHour.get(row.channel_id) ?? 0) >= ceiling) {
+        await this.refuse(row, ceiling);
+        continue;
+      }
+
       try {
         await this.deliver(row);
         delivered.push(row.id);
         this.sent += 1;
+        sentLastHour.set(row.channel_id, (sentLastHour.get(row.channel_id) ?? 0) + 1);
       } catch (error) {
         this.failed += 1;
         const message = (error as Error).message;
@@ -270,6 +293,34 @@ export class NotificationQueueService implements OnApplicationBootstrap, OnModul
       .catch((error: Error) =>
         this.logger.warn(`Could not update incident notification counters: ${error.message}`),
       );
+  }
+
+  private async sentLastHour(rows: readonly ContextRow[]): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    if (this.config.ALERT_MAX_PER_CHANNEL_PER_HOUR === 0 || rows.length === 0) return counts;
+
+    const result = await this.pg.query<{ channel_id: string; total: number }>({
+      name: 'notification_sent_last_hour',
+      text: SENT_LAST_HOUR_SQL,
+      values: [[...new Set(rows.map((row) => row.channel_id))]],
+    });
+    for (const row of result.rows) counts.set(row.channel_id, row.total);
+    return counts;
+  }
+
+  private async refuse(row: ContextRow, ceiling: number): Promise<void> {
+    this.failed += 1;
+    this.logger.warn(
+      `Alert ${row.id} to ${row.channel_type} channel "${row.channel_name}" not sent: ` +
+        `the channel has reached its ${ceiling} alerts per hour`,
+    );
+    await this.pg
+      .query({
+        name: 'notification_refuse',
+        text: REFUSE_SQL,
+        values: [row.id, `Not sent: this channel reached its limit of ${ceiling} alerts per hour`],
+      })
+      .catch((error: Error) => this.logger.error(`Could not record the refusal: ${error.message}`));
   }
 
   private async deliver(row: ContextRow): Promise<void> {

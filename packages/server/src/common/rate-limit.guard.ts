@@ -49,9 +49,9 @@ export class RateLimitGuard implements CanActivate {
     const http = context.switchToHttp();
     const request = http.getRequest<{ ip?: string; url?: string }>();
     const limiter = isStrict ? this.strict : this.general;
-    // Strict buckets are per route *and* per IP, so hammering /login does not
-    // consume the budget for /refresh. The route is the path alone: with the query
-    // string in the key, `/login?1`, `/login?2`… would each get a fresh budget.
+    // Strict buckets are per route *and* per IP, so hammering one route does not
+    // consume the budget of another. The route is the path alone: with the query
+    // string in the key, `/x?1`, `/x?2`… would each get a fresh budget.
     const path = (request.url ?? '').split('?', 1)[0];
     const key = isStrict ? `${request.ip ?? 'unknown'}:${path}` : (request.ip ?? 'unknown');
 

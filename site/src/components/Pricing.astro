@@ -1,0 +1,216 @@
+---
+import { APP } from '../site';
+import { PLANS, pricing } from '../content/plans';
+import Faq from './Faq.astro';
+
+/**
+ * The plans of the hosted service side by side, then what is the same on all of
+ * them, then the way out: self-hosting, which has no plan. Built from
+ * `content/plans.ts`, so the numbers and the two languages are written once.
+ */
+const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
+const copy = pricing[lang];
+const prefix = lang === 'fr' ? '/fr' : '';
+
+const formatter = new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const euros = (amount: number) => formatter.format(amount);
+const login = `${APP}/login`;
+---
+
+<div class="sw-pricing not-content">
+  <p class="lede">{copy.lede}</p>
+
+  <ul class="plans">
+    {PLANS.map((plan) => (
+      <li class="plan">
+        <h2>{copy.names[plan.id]}</h2>
+        <p class="price">
+          <strong>{euros(plan.price)}</strong>
+          <span>{copy.perMonth}</span>
+        </p>
+        <ul class="limits">
+          <li>{copy.limits.checks(plan.checks)}</li>
+          <li>{copy.limits.projects(plan.projects)}</li>
+          <li>{copy.limits.channels(plan.channelsPerProject)}</li>
+          <li>{copy.limits.retention(plan.retentionDays)}</li>
+        </ul>
+        <a class:list={['btn', plan.id === 'free' && 'primary']} href={login}>{copy.cta[plan.id]}</a>
+      </li>
+    ))}
+  </ul>
+
+  <p class="note">{copy.note}</p>
+
+  <section class="same">
+    <h2>{copy.same.title}</h2>
+    <ul>
+      {copy.same.items.map((item) => <li>{item}</li>)}
+    </ul>
+  </section>
+
+  <section class="self">
+    <h2>{copy.selfHosted.title}</h2>
+    <p>{copy.selfHosted.text}</p>
+    <a class="btn" href={`${prefix}/self-hosted/`}>{copy.selfHosted.link}</a>
+  </section>
+
+  <section class="faq">
+    <h2>{copy.faq.heading}</h2>
+    <Faq title={copy.faq.title} items={copy.faq.items} />
+  </section>
+</div>
+
+<style is:global>
+  .sw-pricing {
+    max-width: 62rem;
+    margin-inline: auto;
+  }
+
+  .sw-pricing h2,
+  .sw-pricing p,
+  .sw-pricing ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  .sw-pricing .lede {
+    max-width: 44rem;
+    font-size: var(--sl-text-lg);
+    line-height: 1.55;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-pricing .plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+    list-style: none;
+  }
+
+  .sw-pricing .plan {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 1rem;
+    background: var(--sl-color-bg-nav);
+  }
+
+  .sw-pricing .plan h2 {
+    font-size: var(--sl-text-xl);
+    color: var(--sl-color-white);
+  }
+
+  .sw-pricing .price strong {
+    font-size: var(--sl-text-4xl);
+    line-height: 1;
+    color: var(--sl-color-white);
+  }
+
+  .sw-pricing .price span {
+    margin-left: 0.3rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-pricing .limits,
+  .sw-pricing .same ul {
+    display: grid;
+    gap: 0.6rem;
+    list-style: none;
+  }
+
+  .sw-pricing .limits {
+    flex: 1;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-pricing .limits li,
+  .sw-pricing .same li {
+    display: flex;
+    gap: 0.6rem;
+    color: var(--sl-color-gray-1);
+  }
+
+  .sw-pricing .limits li::before,
+  .sw-pricing .same li::before {
+    content: '';
+    flex: none;
+    width: 0.4rem;
+    height: 0.75rem;
+    margin: 0.15rem 0.3rem 0 0.2rem;
+    border: solid #47cd89;
+    border-width: 0 2px 2px 0;
+    transform: rotate(40deg);
+  }
+
+  .sw-pricing .btn {
+    display: inline-flex;
+    justify-content: center;
+    padding: 0.65rem 1.2rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    background: var(--sl-color-bg);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--sl-color-white);
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease;
+  }
+
+  .sw-pricing .btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--sl-color-accent);
+  }
+
+  .sw-pricing .btn.primary {
+    border-color: transparent;
+    background: #7a35e8;
+    color: #fff;
+  }
+
+  .sw-pricing .btn.primary:hover {
+    background: #6c1bee;
+  }
+
+  .sw-pricing .note {
+    margin-top: 1rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-pricing section {
+    margin-top: 3.5rem;
+  }
+
+  .sw-pricing section h2 {
+    margin-bottom: 1rem;
+    font-size: var(--sl-text-2xl);
+    color: var(--sl-color-white);
+  }
+
+  .sw-pricing .sw-faq {
+    margin-top: 0;
+  }
+
+  .sw-pricing .self p {
+    max-width: 44rem;
+    margin-bottom: 1.2rem;
+    line-height: 1.55;
+    color: var(--sl-color-gray-2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sw-pricing .btn {
+      transition: none;
+    }
+  }
+</style>

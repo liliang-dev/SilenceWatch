@@ -18,32 +18,57 @@ A key can manage the checks of its own project and nothing else. It can never re
 another project, and it can never create or list API keys — a leaked CI key cannot
 mint itself more access.
 
-**User sessions** are what the web UI uses: `POST /api/auth/login` returns a
-short-lived access token (JWT) and a refresh token. Refresh tokens are single-use
-and rotated; replaying one is treated as theft and revokes every session of that
-user.
+**User sessions** are what the web UI uses: a cookie set by signing in, which the page
+cannot read. They are for browsers, not for scripts — a script uses an API key. A
+write made with a session cookie must carry an `Origin` header naming the instance
+(`BASE_URL`) or one of `AUTH_TRUSTED_ORIGINS`; a browser does this by itself, and the
+server answers `403` otherwise. A call without a session answers `401`.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/auth/register` | Create an account (plus a first project) |
-| `POST /api/auth/login` | Exchange credentials for tokens |
-| `POST /api/auth/refresh` | Rotate the refresh token |
-| `POST /api/auth/logout` | Revoke the presented refresh token |
-| `GET /api/auth/me` | The current user |
-| `POST /api/auth/password` | Change the password (revokes all sessions) |
-| `POST /api/auth/delete-account` | Delete the account and its data, at once and for good |
+How people sign in is the instance's `AUTH_MODE`, and only the endpoints of that mode
+exist (everything else under `/api/auth` answers 404). They are
+[Better Auth](https://www.better-auth.com)'s, with the shapes it documents; what the
+web UI calls is:
 
-**Deleting an account.** `POST /api/auth/delete-account` with `{"password": "…"}`
-requires a user session (an API key is refused) and the account's password again,
-and answers 204. It removes the user, its sessions, and every project it is the
-only member of, with those projects' checks, ping and incident history, API keys
-and channels. A project shared with other members only loses this member; if the
-account is the project's only owner while other members remain, the request is
-refused with 409 and nothing is deleted. A wrong password, or an account locked by
-too many wrong ones, answers **403** rather than 401, because the caller *is*
-signed in and a 401 means "your session expired". Wrong passwords count towards
-the same lockout as login. The security log keeps a record, with the account's
-address, for its retention period.
+| Endpoint | Purpose | Modes |
+| --- | --- | --- |
+| `GET /api/auth/config` | What the sign-in page offers: mode, providers, whether sign-up is open. Public | all |
+| `GET /api/auth/me` | The current user | all |
+| `POST /api/auth/sign-out` | End the session | all |
+| `POST /api/auth/sign-up/email` · `sign-in/email` · `change-password` | Create an account, sign in, change the password | `password` |
+| `GET /api/auth/passkey/generate-register-options` · `POST …/verify-registration` | Register a passkey (and create the account, if none is signed in) | `passkey`, `full` |
+| `GET /api/auth/passkey/generate-authenticate-options` · `POST …/verify-authentication` | Sign in with a passkey | `passkey`, `full` |
+| `GET /api/auth/passkey/list-user-passkeys` · `POST …/update-passkey` · `POST …/delete-passkey` | Manage passkeys | `passkey`, `full` |
+| `POST /api/auth/recovery-codes/generate` · `GET …/remaining` · `POST …/sign-in` | Recovery codes | `passkey` |
+| `POST /api/auth/sign-in/social` · `GET /api/auth/callback/{google,microsoft}` | Provider sign-in, by redirect | `full` |
+| `POST /api/auth/delete-account` | Delete the account and its data, at once and for good | all |
+
+**A recent sign-in.** Deleting the account, creating or revoking an API key, adding or
+removing a passkey and making recovery codes need a sign-in from the last ten
+minutes. Without one the answer is `403` with `details.reauthRequired: true` (or the
+code `SESSION_NOT_FRESH` from Better Auth's own endpoints); signing in again makes
+the call possible.
+
+**Failed sign-ins** answer `401` with the same message whether the address has an
+account, the password is wrong, or the account is locked after repeated failures.
+Sign-in endpoints are rate limited per address (`AUTH_RATE_LIMIT_PER_MINUTE`) and
+answer `429` with `Retry-After`.
+
+**Deleting an account.** `POST /api/auth/delete-account` requires a user session (an
+API key is refused) and a recent sign-in, and answers 204. It removes the user, its
+sessions, passkeys and recovery codes, and every project it is the only member of,
+with those projects' checks, ping and incident history, API keys and channels. A
+project shared with other members only loses this member; if the account is the
+project's only owner while other members remain, the request is refused with 409 and
+nothing is deleted. The security log keeps a record, with the account's address, for
+its retention period.
+
+**Subscriptions** (the hosted service only). `GET /api/v1/billing` answers every
+instance, with `{"enabled": false}` where nothing is sold, and otherwise the plans,
+what the account uses and the state of its subscription. `POST /api/v1/billing/checkout`
+(`{"plan": "pro"}`, with an optional `"lang": "fr"` or `"en"` for Stripe's page) and `POST /api/v1/billing/portal` answer `{"url": "…"}`: Stripe's
+payment page, and Stripe's customer portal. They require a user session (an API key
+is refused) and answer 404 where nothing is sold. `POST /api/v1/billing/webhook` is
+Stripe's, authenticated by its signature alone. See the self-hosting reference.
 
 ## Heartbeats
 
@@ -225,6 +250,7 @@ tenant's project returns "not found", because "forbidden" would be an answer.
 
 - Heartbeats: `PING_RATE_LIMIT_PER_MINUTE` per ping key (120 by default)
 - Authentication: `AUTH_RATE_LIMIT_PER_MINUTE` per IP and route (10)
+- Test alerts: one per channel per `TEST_ALERT_COOLDOWN_SECONDS` (60) and `TEST_ALERT_MAX_PER_HOUR` (20) per account, answered 429 with `Retry-After`
 - Everything else: `API_RATE_LIMIT_PER_MINUTE` per IP (600)
 
 Rejections carry `Retry-After`.

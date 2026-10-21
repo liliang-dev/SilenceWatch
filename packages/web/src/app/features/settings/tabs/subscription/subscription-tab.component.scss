@@ -1,0 +1,169 @@
+.notice {
+  margin: 20px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--sw-border);
+  border-radius: 12px;
+  background: var(--sw-surface-2);
+  font-size: 0.875rem;
+}
+
+.notice + .section {
+  margin-top: 20px;
+}
+
+.notice.ok {
+  border-color: color-mix(in srgb, var(--sw-up) 45%, var(--sw-border));
+}
+
+.current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px 40px;
+}
+
+.current-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.plan-name {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.status {
+  max-width: 36ch;
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+}
+
+.status.warn {
+  color: var(--sw-down);
+}
+
+.usage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  flex: 1 1 280px;
+  gap: 16px;
+  margin: 0;
+}
+
+.usage dd {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+/* A bar that fills as an allowance is used, and says so in red once it is spent. */
+.meter {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sw-surface-2);
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--sw-up);
+}
+
+.meter > span.full {
+  background: var(--sw-down);
+}
+
+.manage {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.manage p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding-top: 4px;
+  list-style: none;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--sw-border);
+  border-radius: 14px;
+}
+
+.plan.is-current {
+  border-color: var(--sw-accent);
+  background: color-mix(in srgb, var(--sw-accent) 6%, transparent);
+}
+
+.plan h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.price {
+  margin: 0;
+}
+
+.price .sw-muted {
+  margin-left: 4px;
+}
+
+.price strong {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.limits {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--sw-border);
+  font-size: 0.875rem;
+}
+
+.limits div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.limits dt {
+  color: var(--sw-text-muted);
+}
+
+.limits dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.badge {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sw-accent) 14%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

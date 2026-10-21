@@ -31,10 +31,29 @@
     </license>
   </licenses>
 
+  <!--
+    Maven Central requires a developer, and shows it to everyone. It names the
+    project rather than a person; change it to a name if you prefer.
+  -->
+  <developers>
+    <developer>
+      <id>silencewatch</id>
+      <name>SilenceWatch authors</name>
+      <email>contact@silencewatch.com</email>
+      <url>https://silencewatch.com</url>
+    </developer>
+  </developers>
+
   <scm>
     <url>https://github.com/liliang-dev/SilenceWatch</url>
     <connection>scm:git:https://github.com/liliang-dev/SilenceWatch.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/liliang-dev/SilenceWatch.git</developerConnection>
   </scm>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/liliang-dev/SilenceWatch/issues</url>
+  </issueManagement>
 
   <properties>
     <java.version>17</java.version>
@@ -55,6 +74,8 @@
     <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
     <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
     <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+    <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+    <central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -143,4 +164,57 @@
       </plugin>
     </plugins>
   </build>
+
+  <!--
+    Publishing to Maven Central, and only that. An ordinary build (`mvn install`,
+    CI, a developer's machine) needs no key and contacts nothing: this profile is
+    switched on by the starter release workflow alone.
+
+    Central requires the jar, its sources and its javadoc, all signed. The
+    signature uses the key held as a secret of the `maven-central` environment,
+    unlocked through the environment, never through a prompt.
+  -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven-gpg-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-maven-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <!--
+                Uploaded and validated, then left for a person to publish in the
+                Central Portal: a published version can never be changed or taken
+                back, so the last click is not automated.
+              -->
+              <autoPublish>false</autoPublish>
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

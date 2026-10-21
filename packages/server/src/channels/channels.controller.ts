@@ -19,7 +19,7 @@ import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import { auditActor } from '../audit/audit-actor';
 import { AuditService } from '../audit/audit.service';
-import { CurrentPrincipal, type Principal } from '../access/principal';
+import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
 import { ProjectAccessService } from '../access/project-access.service';
 import { zodPipe } from '../common/zod-validation.pipe';
 import { ChannelsService } from './channels.service';
@@ -123,7 +123,7 @@ export class ChannelsController {
     @Req() request: FastifyRequest,
   ): Promise<void> {
     await this.access.assertAccess(principal, projectId, 'admin');
-    await this.channels.sendTest(projectId, channelId);
+    await this.channels.sendTest(projectId, channelId, assertUser(principal).userId);
 
     this.audit.record({
       action: 'channel.tested',

@@ -18,6 +18,9 @@ const publisher: [string, string][] = [
   ...(LEGAL.registration ? ([[en ? 'Registration' : 'Immatriculation', LEGAL.registration]] as [string, string][]) : []),
   ...(LEGAL.capital ? ([[en ? 'Share capital' : 'Capital social', LEGAL.capital]] as [string, string][]) : []),
   ...(LEGAL.vat ? ([[en ? 'VAT number' : 'TVA intracommunautaire', LEGAL.vat]] as [string, string][]) : []),
+  ...(LEGAL.vatExemption
+    ? ([[en ? 'VAT' : 'TVA', en ? 'Not applicable, article 293 B of the French General Tax Code' : 'TVA non applicable, article 293 B du Code général des impôts']] as [string, string][])
+    : []),
   [en ? 'Publication director' : 'Directeur de la publication', LEGAL.director],
 ];
 

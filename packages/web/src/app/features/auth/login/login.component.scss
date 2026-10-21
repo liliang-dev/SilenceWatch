@@ -107,34 +107,21 @@ h1 {
   text-align: center;
 }
 
-/* ------------------------------------------------ verification sent --- */
-
-.address {
-  color: var(--sw-text);
-  /* break-all would split "new-user@exa / mple.test" mid-word; anywhere only
-     breaks when there is no other option, so the address stays readable. */
-  overflow-wrap: anywhere;
+.heading {
+  margin: 14px 0 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
 }
 
-.after-send {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.small {
-  margin: 0 0 6px;
+.hint {
+  margin: 4px 0 0;
   font-size: 0.8125rem;
   line-height: 1.5;
 }
 
-.switch-back {
-  width: 100%;
-}
-
-.forgot {
-  margin-top: 14px;
+.link {
+  display: block;
+  margin: 14px auto 0;
   padding: 4px;
   border: 0;
   background: none;
@@ -144,19 +131,51 @@ h1 {
   cursor: pointer;
 }
 
-.forgot:hover:not(:disabled) {
+.link:hover {
   color: var(--sw-accent);
   text-decoration: underline;
 }
 
-.inline-link {
-  padding: 0 0 0 4px;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--sw-text-subtle);
+  font-size: 0.8125rem;
+}
+
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sw-border);
+}
+
+/* The sign-in buttons are the point of the page: full width, tall enough for a thumb. */
+.submit,
+.provider {
+  width: 100%;
+  min-height: 44px;
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.provider svg {
+  margin-right: 8px;
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 

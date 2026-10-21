@@ -1,5 +1,5 @@
 import { QuotaEnforcerService } from '../src/quotas/quota-enforcer.service';
-import { auth, createTestApp, registerUser, type TestApp } from './utils/test-app';
+import { auth, createTestApp, registerUser, TEST_BASE_URL, type TestApp } from './utils/test-app';
 
 const PASSWORD = 'a-sufficiently-long-password';
 
@@ -212,203 +212,6 @@ describe('plan quotas', () => {
   });
 });
 
-describe('password reset', () => {
-  let context: TestApp;
-
-  beforeAll(async () => {
-    context = await createTestApp({
-      EMAIL_PROVIDER: 'smtp',
-      SMTP_URL: 'smtp://user:pass@smtp.example.test:587',
-    });
-  });
-
-  afterAll(async () => {
-    await context.close();
-  });
-
-  beforeEach(async () => {
-    await context.reset();
-  });
-
-  function tokenFrom(text: string): string {
-    const match = /reset-password\?token=(\S+)/.exec(text);
-    if (match === null) throw new Error(`no reset link in:\n${text}`);
-    return decodeURIComponent(match[1] as string);
-  }
-
-  it('resets the password and signs every session out', async () => {
-    const user = await registerUser(context);
-
-    // The old session works right up until the reset.
-    const before = await context.app.inject({
-      method: 'GET',
-      url: '/api/auth/me',
-      headers: auth(user.token),
-    });
-    expect(before.statusCode).toBe(200);
-
-    const requested = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/forgot-password',
-      payload: { email: user.email },
-    });
-    expect(requested.statusCode).toBe(204);
-
-    const token = tokenFrom(context.emails.lastTo(user.email)?.text as string);
-    const reset = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/reset-password',
-      payload: { token, newPassword: 'a-brand-new-long-password' },
-    });
-    expect(reset.statusCode).toBe(204);
-
-    // Whoever knew the old password is signed out, on every device.
-    const after = await context.app.inject({
-      method: 'GET',
-      url: '/api/auth/me',
-      headers: auth(user.token),
-    });
-    expect(after.statusCode).toBe(401);
-
-    const signIn = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: user.email, password: 'a-brand-new-long-password' },
-    });
-    expect(signIn.statusCode).toBe(200);
-  });
-
-  it('burns the token', async () => {
-    const user = await registerUser(context);
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/forgot-password',
-      payload: { email: user.email },
-    });
-    const token = tokenFrom(context.emails.lastTo(user.email)?.text as string);
-
-    const first = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/reset-password',
-      payload: { token, newPassword: 'a-brand-new-long-password' },
-    });
-    expect(first.statusCode).toBe(204);
-
-    const replay = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/reset-password',
-      payload: { token, newPassword: 'yet-another-long-password' },
-    });
-    expect(replay.statusCode).toBe(400);
-  });
-
-  it('answers the same for an address with no account', async () => {
-    const response = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/forgot-password',
-      payload: { email: 'nobody@example.test' },
-    });
-
-    expect(response.statusCode).toBe(204);
-    expect(context.emails.lastTo('nobody@example.test')).toBeUndefined();
-  });
-
-  it('clears a lockout, so a reset is a way back in', async () => {
-    const user = await registerUser(context);
-    await context.prisma.user.update({
-      where: { id: user.userId },
-      data: { failedLoginCount: 10, lockedUntil: new Date(Date.now() + 900_000) },
-    });
-
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/forgot-password',
-      payload: { email: user.email },
-    });
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/reset-password',
-      payload: {
-        token: tokenFrom(context.emails.lastTo(user.email)?.text as string),
-        newPassword: 'a-brand-new-long-password',
-      },
-    });
-
-    const signIn = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: user.email, password: 'a-brand-new-long-password' },
-    });
-    expect(signIn.statusCode).toBe(200);
-  });
-});
-
-describe('refresh token cookie', () => {
-  let context: TestApp;
-
-  beforeAll(async () => {
-    context = await createTestApp();
-  });
-
-  afterAll(async () => {
-    await context.close();
-  });
-
-  beforeEach(async () => {
-    await context.reset();
-  });
-
-  it('sets the token as an HttpOnly, SameSite=Strict cookie', async () => {
-    const response = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: { email: 'cookie@example.test', password: PASSWORD },
-    });
-
-    const cookie = response.headers['set-cookie'] as string;
-    expect(cookie).toContain('sw_refresh=');
-    // The whole point: no script can read it, and no other site can send it.
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('SameSite=Strict');
-    expect(cookie).toContain('Path=/api/auth');
-  });
-
-  it('refreshes from the cookie with an empty body', async () => {
-    const registered = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: { email: 'cookie2@example.test', password: PASSWORD },
-    });
-    const cookie = (registered.headers['set-cookie'] as string).split(';')[0] as string;
-
-    const refreshed = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/refresh',
-      headers: { cookie },
-      payload: {},
-    });
-
-    expect(refreshed.statusCode).toBe(200);
-    expect(refreshed.json<{ accessToken: string }>().accessToken).toEqual(expect.any(String));
-    // Rotated, so the cookie carries a different token than it arrived with.
-    expect(refreshed.headers['set-cookie']).not.toContain(cookie.split('=')[1]);
-  });
-
-  it('clears the cookie when the token is refused', async () => {
-    const response = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/refresh',
-      headers: { cookie: 'sw_refresh=not-a-real-token' },
-      payload: {},
-    });
-
-    expect(response.statusCode).toBe(401);
-    // Leaving a dead credential in the browser would make every page load
-    // retry something that cannot work.
-    expect(response.headers['set-cookie']).toContain('Max-Age=0');
-  });
-});
-
 describe('ping key rotation', () => {
   let context: TestApp;
 
@@ -485,12 +288,14 @@ describe('audit trail', () => {
 
     await context.app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: TEST_BASE_URL },
       payload: { email: user.email, password: 'wrong-password-entirely' },
     });
     await context.app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: TEST_BASE_URL },
       payload: { email: user.email, password: PASSWORD },
     });
     await settled();
@@ -514,8 +319,9 @@ describe('audit trail', () => {
     await registerUser(context);
     await context.app.inject({
       method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: 'nobody@example.test', password: 'guessing' },
+      url: '/api/auth/sign-in/email',
+      headers: { origin: TEST_BASE_URL },
+      payload: { email: 'nobody@example.test', password: 'guessing-guessing' },
     });
     await settled();
 
@@ -629,33 +435,24 @@ describe('audit trail', () => {
 
   it('records a sign-out, so an open session can be told from a closed one', async () => {
     const user = await registerUser(context);
-    const session = await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: user.email, password: PASSWORD },
-    });
-    const cookie = (session.headers['set-cookie'] as string).split(';')[0] as string;
 
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/logout',
-      headers: { cookie },
-      payload: {},
-    });
+    const out = () =>
+      context.app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-out',
+        headers: auth(user.token),
+        payload: {},
+      });
+    await out();
     await settled();
 
     const events = await context.prisma.auditEvent.findMany({ where: { action: 'auth.logout' } });
     expect(events).toHaveLength(1);
     expect(events[0]?.actorEmail).toBe(user.email);
 
-    // Replaying the dead token must not write a second entry: anyone holding a
-    // revoked token could otherwise append to the trail at will.
-    await context.app.inject({
-      method: 'POST',
-      url: '/api/auth/logout',
-      headers: { cookie },
-      payload: {},
-    });
+    // Replaying the dead session must not write a second entry: anyone holding a
+    // revoked cookie could otherwise append to the trail at will.
+    await out();
     await settled();
     expect(await context.prisma.auditEvent.count({ where: { action: 'auth.logout' } })).toBe(1);
   });

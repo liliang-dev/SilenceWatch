@@ -1,44 +1,16 @@
 import {
   deriveKey,
   generateApiKey,
-  hashPassword,
   hmacSha256Hex,
-  needsRehash,
   parseApiKey,
   timingSafeEqualHex,
-  verifyPassword,
 } from './crypto.util';
-
-describe('password hashing', () => {
-  it('verifies a correct password and rejects a wrong one', async () => {
-    const hash = await hashPassword('correct horse battery staple');
-    expect(hash.startsWith('$argon2id$')).toBe(true);
-    await expect(verifyPassword(hash, 'correct horse battery staple')).resolves.toBe(true);
-    await expect(verifyPassword(hash, 'correct horse battery stapl')).resolves.toBe(false);
-  });
-
-  it('salts every hash', async () => {
-    const [first, second] = await Promise.all([hashPassword('same'), hashPassword('same')]);
-    expect(first).not.toBe(second);
-  });
-
-  it('never throws on a corrupt stored hash', async () => {
-    await expect(verifyPassword('not-a-hash', 'whatever')).resolves.toBe(false);
-    await expect(verifyPassword('', '')).resolves.toBe(false);
-  });
-
-  it('flags hashes weaker than current policy', async () => {
-    expect(needsRehash(await hashPassword('x'.repeat(12)))).toBe(false);
-    expect(needsRehash('$argon2id$v=19$m=4096,t=1,p=1$abc$def')).toBe(true);
-    expect(needsRehash('$2y$10$bcrypt.hash.from.another.era')).toBe(true);
-  });
-});
 
 describe('key derivation', () => {
   it('is deterministic per purpose and different across purposes', () => {
     const secret = 'a'.repeat(32);
-    expect(deriveKey(secret, 'access-token-hs256')).toEqual(deriveKey(secret, 'access-token-hs256'));
-    expect(deriveKey(secret, 'access-token-hs256')).not.toEqual(deriveKey(secret, 'other'));
+    expect(deriveKey(secret, 'recovery-codes')).toEqual(deriveKey(secret, 'recovery-codes'));
+    expect(deriveKey(secret, 'recovery-codes')).not.toEqual(deriveKey(secret, 'other'));
   });
 
   it('changes completely when the root secret changes', () => {

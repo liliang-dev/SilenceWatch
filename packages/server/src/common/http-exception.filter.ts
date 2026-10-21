@@ -36,6 +36,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
         this.logger.error(`${request.method} ${request.url} -> ${status}`, exception.stack);
       }
+      // A refusal that says how long to wait says it where clients look for it.
+      const retryAfter = (body.details as { retryAfterSeconds?: unknown } | undefined)
+        ?.retryAfterSeconds;
+      if (status === HttpStatus.TOO_MANY_REQUESTS && typeof retryAfter === 'number') {
+        void reply.header('retry-after', String(retryAfter));
+      }
       void reply.status(status).send(body);
       return;
     }

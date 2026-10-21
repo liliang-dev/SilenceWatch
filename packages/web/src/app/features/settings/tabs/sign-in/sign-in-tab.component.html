@@ -1,0 +1,109 @@
+@if (config(); as options) {
+  @if (options.passkey) {
+    <section class="sw-card section">
+      <div class="section-head">
+        <h2>{{ t('settings.passkeysTitle') }}</h2>
+        <p class="sw-muted">{{ t('settings.passkeysBody') }}</p>
+      </div>
+
+      @if (passkeys().length > 0) {
+        <ul class="list bordered">
+          @for (passkey of passkeys(); track passkey.id) {
+            <li>
+              <div class="what">
+                <span class="name">{{ label(passkey) }}</span>
+                @if (passkey.createdAt) {
+                  <span class="sw-muted when">{{ passkey.createdAt | swRelativeTime }}</span>
+                }
+              </div>
+              <button
+                mat-button
+                type="button"
+                class="danger"
+                [disabled]="busy() || !canRemove()"
+                (click)="removePasskey(passkey)"
+              >
+                {{ t('settings.passkeyRemove') }}
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="section-note sw-muted">{{ t('settings.passkeysNone') }}</p>
+      }
+
+      <div class="section-body bordered">
+        <button mat-flat-button type="button" [disabled]="busy()" (click)="addPasskey()">
+          {{ t('settings.passkeyAdd') }}
+        </button>
+        @if (options.mode === 'passkey' && passkeys().length === 1) {
+          <p class="sw-muted note">{{ t('settings.passkeyLastNote') }}</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (options.recoveryCodes) {
+    <section class="sw-card section">
+      <div class="section-head">
+        <h2>{{ t('settings.recoveryTitle') }}</h2>
+        <p class="sw-muted">{{ t('settings.recoveryBody') }}</p>
+      </div>
+      <div class="section-body">
+        @if (newCodes().length > 0) {
+          <p class="shown-once">{{ t('settings.recoveryShownOnce') }}</p>
+          <sw-recovery-codes [codes]="newCodes()" />
+        } @else if (codesLeft() !== null) {
+          <p class="sw-muted note">{{ t('settings.recoveryLeft', { count: codesLeft() ?? 0 }) }}</p>
+        }
+        <button mat-stroked-button type="button" [disabled]="busy()" (click)="newRecoveryCodes()">
+          {{ t('settings.recoveryNew') }}
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (options.password) {
+    <section class="sw-card section">
+      <div class="section-head">
+        <h2>{{ t('settings.passwordTitle') }}</h2>
+        <p class="sw-muted">{{ t('settings.passwordBody') }}</p>
+      </div>
+      <div class="section-body">
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ t('settings.currentPassword') }}</mat-label>
+            <input
+              matInput
+              type="password"
+              formControlName="currentPassword"
+              autocomplete="current-password"
+            />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ t('settings.newPassword') }}</mat-label>
+            <input
+              matInput
+              type="password"
+              formControlName="newPassword"
+              autocomplete="new-password"
+            />
+            <mat-hint>{{ t('settings.passwordHint', { count: minLength }) }}</mat-hint>
+          </mat-form-field>
+          <button mat-flat-button type="submit" [disabled]="busy()" class="tall">
+            {{ t('settings.changePassword') }}
+          </button>
+        </form>
+      </div>
+    </section>
+  }
+
+  @if (!options.password && options.providers.length > 0 && !options.passkey) {
+    <section class="sw-card section">
+      <div class="section-head">
+        <h2>{{ t('settings.providerTitle') }}</h2>
+        <p class="sw-muted">{{ t('settings.providerBody') }}</p>
+      </div>
+    </section>
+  }
+}

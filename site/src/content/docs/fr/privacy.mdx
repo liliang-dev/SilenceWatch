@@ -16,13 +16,13 @@ Le responsable du traitement est l’éditeur du service, dont les informations 
 
 | Donnée | Pourquoi | Durée de conservation |
 | --- | --- | --- |
-| **Compte** : adresse e-mail, empreinte du mot de passe (Argon2id, jamais le mot de passe lui-même), état de la vérification de l’adresse | Créer et faire fonctionner votre compte | Tant que le compte existe. Lorsque la vérification de l’adresse est exigée, un compte jamais vérifié est supprimé au bout de 7 jours |
-| **Sessions** : jeton de rafraîchissement (conservé uniquement sous forme d’empreinte), adresse IP et navigateur de la connexion | Vous garder connecté, détecter le vol d’une session | Durée de la session, 30 jours au plus |
+| **Compte** : adresse e-mail, et ce que demande votre façon de vous connecter : la clé publique de chaque passkey (jamais la clé privée), une empreinte de mot de passe (scrypt, jamais le mot de passe lui-même), ou l’identifiant que votre compte Google ou Microsoft a chez nous, avec les codes de récupération sous forme d’empreintes. Ni photo de profil, ni jeton de ces fournisseurs n’est conservé | Créer et faire fonctionner votre compte | Tant que le compte existe |
+| **Sessions** : un jeton de session, adresse IP et navigateur de la connexion | Vous garder connecté, détecter le vol d’une session | 30 jours à compter de la dernière utilisation, et jusqu’à votre déconnexion |
 | **Journal de sécurité** : actions sensibles (connexion, changement de mot de passe, clés d’API, suppression…), avec l’e-mail, l’adresse IP et le navigateur | Sécurité du service et enquête en cas d’incident | 1 an. Il garde l’e-mail de l’auteur de l’action même après la suppression du compte |
-| **Réinitialisation du mot de passe** : adresse IP de la demande, jeton (empreinte uniquement) | Sécuriser la réinitialisation | Jusqu’à son utilisation ou son expiration |
 | **Inscription** : le réseau de provenance, tronqué (IPv4 /24, IPv6 /48) | Freiner les inscriptions automatisées | 7 jours |
 | **Votre configuration** : projets, checks (noms, planifications, environnements, étiquettes), canaux d’alerte (adresses e-mail, adresses de webhook, Slack, Teams, Discord), clés d’API (sous forme d’empreinte) | Fournir le service | Tant que vous les gardez |
 | **Historique des signaux** : date, résultat, durée, adresse IP et navigateur de l’appelant, et le texte éventuellement joint (10 000 octets au plus) | Détecter qu’un job s’est arrêté, afficher l’historique | 90 jours par défaut, réglable par projet |
+| **Abonnement** (offres payantes) : offre, état de l’abonnement, dates de période, et les identifiants client et abonnement chez Stripe. Le service ne reçoit ni ne garde de numéro de carte | Gérer votre abonnement et ses limites | Tant que le compte existe ; Stripe conserve les factures le temps que la loi comptable l’exige (10 ans) |
 | **Alertes envoyées** : destinataire, date, résultat | Vous prévenir, savoir si l’alerte est partie | 30 jours |
 
 N’envoyez pas de données personnelles de tiers dans le texte joint à un signal : il est conservé tel quel avec l’historique.
@@ -40,9 +40,11 @@ Le service n’utilise **aucun outil de mesure d’audience, aucune publicité e
 Les données ne sont communiquées qu’aux prestataires nécessaires au service, en tant que sous-traitants :
 
 - **OVH SAS** (France) : hébergement des serveurs et de la base de données.
-- **Mailjet** : envoi des e-mails du service (vérification de l’adresse, réinitialisation du mot de passe, alertes).
+- **Google et Microsoft**, uniquement si vous choisissez de vous connecter avec eux : ils nous communiquent votre adresse e-mail et un identifiant, et savent que vous vous connectez à SilenceWatch. Nous ne recevons aucune photo de profil et ne gardons aucun de leurs jetons.
+- **Stripe** (Stripe Payments Europe, Irlande), uniquement si vous souscrivez une offre payante : il reçoit votre adresse e-mail et vos données de paiement, et émet les factures. Il agit pour son propre compte pour ses obligations de lutte contre la fraude et de conformité, et peut traiter des données hors de l’Union européenne avec les garanties prévues par le RGPD.
+- **Mailjet** : envoi des e-mails d’alerte que vous avez demandés. Le service n’envoie aucun autre e-mail : rien n’est envoyé pour confirmer une adresse ou réinitialiser un mot de passe.
 
-Ces deux prestataires sont établis dans l’Union européenne. Ils ne reçoivent que ce qui est nécessaire à leur mission. Les alertes que vous configurez vers Slack, Microsoft Teams, Discord ou un webhook de votre choix sont envoyées au service que vous avez vous-même désigné, sous votre responsabilité.
+OVH et Mailjet sont établis dans l’Union européenne. Chaque prestataire ne reçoit que ce qui est nécessaire à sa mission. Les alertes que vous configurez vers Slack, Microsoft Teams, Discord ou un webhook de votre choix sont envoyées au service que vous avez vous-même désigné, sous votre responsabilité.
 
 ## Vos droits
 
@@ -54,7 +56,7 @@ Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la [CN
 
 ## Cookies et stockage dans le navigateur
 
-L’application dépose **un seul cookie**, `sw_refresh` : le jeton qui vous garde connecté. Il est `HttpOnly`, `SameSite=Strict`, réservé aux routes d’authentification, et indispensable au fonctionnement du service. À ce titre il n’est pas soumis à votre consentement.
+L’application dépose **un seul cookie durable**, `sw.session_token` : celui qui vous garde connecté. Il est `HttpOnly`, `SameSite=Lax`, `Secure`, et indispensable au fonctionnement du service. Pendant la connexion elle dépose aussi quelques cookies qui vivent quelques minutes (le défi de la passkey, l’échange avec Google ou Microsoft). À ce titre aucun n’est soumis à votre consentement.
 
 Elle enregistre aussi dans le stockage local de votre navigateur vos préférences d’affichage (langue, mode clair ou sombre) et le projet sélectionné. Ces valeurs restent sur votre appareil et ne sont jamais envoyées au serveur.
 
@@ -62,10 +64,10 @@ Le site silencewatch.com ne dépose aucun cookie ; son thème d’affichage est 
 
 ## Sécurité
 
-Les mots de passe sont stockés sous forme d’empreinte Argon2id, les jetons de session et les clés d’API sous forme d’empreinte SHA-256, et les échanges sont chiffrés (HTTPS). Le détail des mesures est publié dans la page [Sécurité](/fr/docs/reference/security/). Une faille se signale selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
+Les mots de passe, quand ils sont utilisés, sont stockés sous forme d’empreinte scrypt, les codes de récupération et les clés d’API sous forme d’empreinte aussi. Les passkeys sont des clés publiques, avec lesquelles personne ne peut se connecter. Le cookie de session est signé avec un secret que la base de données ne contient pas, et les échanges sont chiffrés (HTTPS). Le détail des mesures est publié dans la page [Sécurité](/fr/docs/reference/security/). Une faille se signale selon la procédure de [SECURITY.md](https://github.com/liliang-dev/SilenceWatch/blob/main/SECURITY.md).
 
 ## Modifications
 
 Cette politique peut évoluer ; la date de la dernière mise à jour figure en bas de page, et un changement important est porté à la connaissance des titulaires de compte.
 
-*Dernière mise à jour : 3 octobre 2026.*
+*Dernière mise à jour : 21 octobre 2026.*

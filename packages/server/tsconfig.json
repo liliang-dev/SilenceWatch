@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "module": "node20",
     "outDir": "dist",
     "types": ["node", "jest"]
   },
