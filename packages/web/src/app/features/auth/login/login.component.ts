@@ -216,7 +216,9 @@ export class LoginComponent implements OnInit {
       if (failure.reason === 'unsupported') return this.t('login.passkeyUnsupported');
       return this.t(failure.reason === 'cancelled' ? 'login.passkeyCancelled' : 'login.passkeyFailed');
     }
-    if (failure instanceof HttpErrorResponse && failure.status === 429) {
+    // Creating an account may say which limit it hit: a network that already has
+    // one is not "too many attempts", and the person can do something about it.
+    if (failure instanceof HttpErrorResponse && failure.status === 429 && doing === 'signin') {
       return this.t('error.tooManyAttempts');
     }
     // Signing in says one thing about every refusal. Creating an account may say

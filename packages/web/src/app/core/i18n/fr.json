@@ -42,6 +42,7 @@
   "server.invalidCredentials": "E-mail ou mot de passe incorrect",
   "server.signupDisabled": "L'inscription est désactivée sur cette instance",
   "server.wrongPassword": "Le mot de passe actuel est incorrect",
+  "server.accountFromNetwork": "Un compte existe déjà depuis ce réseau. Connectez-vous avec, ou contactez-nous si cette connexion est partagée.",
   "server.tooManyAccounts": "Trop de comptes créés depuis ce réseau. Réessayez plus tard.",
   "server.emailProviderRejected": "Ce fournisseur d'e-mail n'est pas accepté. Utilisez une adresse où vous pouvez recevoir du courrier.",
   "server.lastProject": "C'est votre dernier projet, et un compte en a besoin d'un. Créez-en un autre avant de le supprimer.",

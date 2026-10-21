@@ -27,6 +27,10 @@ const EXACT: ReadonlyArray<readonly [string, MessageKey]> = [
   ['Sign in again to do this.', 'server.signInAgain'],
   ['Invalid password', 'server.wrongPassword'],
   ['Too many accounts created from this network. Try again later.', 'server.tooManyAccounts'],
+  [
+    'An account already exists from this network. Sign in to it, or contact us if this connection is shared.',
+    'server.accountFromNetwork',
+  ],
   ['Too many requests', 'error.tooManyAttempts'],
   [
     'This email provider is not accepted. Use an address you can receive mail at.',
