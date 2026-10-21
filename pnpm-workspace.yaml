@@ -151,6 +151,15 @@ overrides:
   'js-yaml@>=3.0.0 <3.15.2': '^3.15.2'
   'js-yaml@>=4.0.0 <4.3.2': '^4.3.2'
 
+  # GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw — vite 8.3.0 to
+  # 8.3.2 (and the launch-editor it bundles): dev-server file-existence probe and
+  # editor command-line handling. Reached through better-auth's optional peer
+  # `vitest`, which pnpm resolves into the server's tree. A dev server never runs
+  # in an instance, so the code is not reachable; overridden because CI fails from
+  # moderate up and the fix is a patch release. Delete this when better-auth's
+  # resolved vitest asks for a vite that already has it.
+  'vite@>=8.3.0 <8.3.3': '^8.3.3'
+
 # An advisory that has no fix to install. Listed here, with the reason, rather than
 # left to fail CI for everyone or silenced by loosening the audit level.
 auditConfig:
