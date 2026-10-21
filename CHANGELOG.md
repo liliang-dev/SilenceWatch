@@ -10,7 +10,7 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
-## [0.5.0] — 2026-10-17
+## [0.5.0] — 2026-10-21
 
 **Sign-in is replaced by [Better Auth](https://www.better-auth.com), so read
 [Upgrading](#upgrading-from-the-previous-version--mise-à-jour-depuis-la-version-précédente)
