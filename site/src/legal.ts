@@ -21,25 +21,32 @@ export const LEGAL = {
    * `address` and `director` are not shown. Set to false, and fill those in, the
    * day the service is run as a business: a business must be identified.
    */
-  anonymous: true,
+  anonymous: false,
   /** Name of the person, or the company's registered name. */
-  name: '',
+  name: PENDING,
   /** Legal form: "Entrepreneur individuel", "SAS"… */
-  form: '',
+  form: 'Entrepreneur individuel',
   /** Postal address of the publisher. */
-  address: '',
+  address: PENDING,
   /** A contact address that is read: it is also where privacy requests arrive. */
   email: 'contact@silencewatch.com',
   /** Optional. */
   phone: '',
   /** Optional: "SIRET 123 456 789 00012 — RCS Paris B 123 456 789". */
-  registration: '',
+  registration: 'SIRET 878 736 578 00021',
   /** Optional: share capital of a company. */
   capital: '',
   /** Optional: intra-community VAT number. */
   vat: '',
+  /**
+   * Optional: the VAT mention of a business that does not charge it. A micro-business
+   * under the VAT exemption (franchise en base) must say so on its invoices, and
+   * saying so on the legal notice and the sales terms keeps them consistent.
+   * Empty once VAT is charged.
+   */
+  vatExemption: true,
   /** The publication director: a natural person, often the publisher. */
-  director: '',
+  director: PENDING,
 };
 
 /** The host, which the law also requires the site to name. */
@@ -51,4 +58,4 @@ export const HOST = {
 };
 
 /** The date the legal pages were last revised. */
-export const LEGAL_UPDATED = { fr: '3 octobre 2026', en: '3 October 2026' };
+export const LEGAL_UPDATED = { fr: '21 octobre 2026', en: '21 October 2026' };

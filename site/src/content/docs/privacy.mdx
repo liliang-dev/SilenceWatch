@@ -22,6 +22,7 @@ The controller is the publisher of the service, whose details are in the [legal 
 | **Sign-up**: the network the request came from, truncated (IPv4 /24, IPv6 /48) | To slow automated sign-ups | 7 days |
 | **Your configuration**: projects, checks (names, schedules, environments, tags), alert channels (email addresses, webhook addresses, Slack, Teams, Discord), API keys (as a hash) | To provide the service | As long as you keep them |
 | **Heartbeat history**: time, result, duration, the caller’s IP address and browser, and any text attached (10,000 bytes at most) | To detect that a job has stopped and to show the history | 90 days by default, adjustable per project |
+| **Subscription** (paid plans): plan, subscription state, period dates, and the customer and subscription identifiers at Stripe. The service neither receives nor keeps a card number | Run your subscription and its limits | As long as the account exists; Stripe keeps invoices as long as accounting law requires (10 years) |
 | **Alerts sent**: recipient, time, outcome | To tell you, and to know whether the alert went out | 30 days |
 
 Do not send third parties’ personal data in the text attached to a heartbeat: it is stored as it is with the history.
@@ -40,6 +41,7 @@ Data is shared only with the providers the service needs, as processors:
 
 - **OVH SAS** (France): hosting of the servers and the database.
 - **Google and Microsoft**, only if you choose to sign in with them: they tell us your email address and an identifier, and they learn that you sign in to SilenceWatch. We receive no profile picture and keep none of their tokens.
+- **Stripe** (Stripe Payments Europe, Ireland), only if you subscribe to a paid plan: it receives your email address and your payment data, and issues the invoices. It acts on its own account for its fraud-prevention and compliance duties, and may process data outside the European Union with the safeguards the GDPR provides.
 - **Mailjet**: sending the alert emails you have asked for. The service sends no other email: nothing is sent to confirm an address or to reset a password.
 
 OVH and Mailjet are established in the European Union. Every provider receives only what its task requires. The alerts you configure towards Slack, Microsoft Teams, Discord or a webhook of your choosing are sent to the service you designated yourself, under your responsibility.
@@ -68,4 +70,4 @@ Passwords, where they are used, are stored as scrypt hashes, and recovery codes 
 
 This policy may change; the date of the last update is at the foot of the page, and a significant change is brought to the attention of account holders.
 
-*Last updated: 17 October 2026.*
+*Last updated: 21 October 2026.*
