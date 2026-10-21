@@ -52,6 +52,8 @@ export interface BillingStateDto {
 
 export const checkoutRequestSchema = z.object({
   plan: z.string().min(1).max(40),
+  /** The language of the application, so that Stripe's page and its consent text match it. */
+  lang: z.enum(['fr', 'en']).optional(),
 });
 export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 

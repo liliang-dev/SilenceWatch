@@ -438,3 +438,67 @@ describe('billing', () => {
     });
   });
 });
+
+describe('billing, terms of sale', () => {
+  const TERMS = {
+    BILLING_TERMS_URL: 'https://example.test/sales/',
+    BILLING_TERMS_URL_FR: 'https://example.test/fr/sales/',
+  };
+  let context: TestApp | undefined;
+
+  afterEach(async () => {
+    await context?.close();
+    context = undefined;
+  });
+
+  async function startCheckout(overrides: Record<string, string>, payload: Record<string, unknown>) {
+    context = await createTestApp({ ...BILLING, ...overrides });
+    const user = await registerUser(context);
+    const response = await context.app.inject({
+      method: 'POST',
+      url: '/api/v1/billing/checkout',
+      headers: auth(user.token),
+      payload,
+    });
+    expect(response.statusCode).toBe(200);
+    const session = context.stripe.checkouts[0];
+    if (session === undefined) throw new Error('no checkout session was opened');
+    return session;
+  }
+
+  it('asks nothing of the buyer when no terms are set', async () => {
+    const session = await startCheckout({}, { plan: 'pro', lang: 'fr' });
+    expect(session.acceptance).toBeUndefined();
+    expect(session.locale).toBe('fr');
+  });
+
+  it('asks the buyer to accept the terms, in their language', async () => {
+    const french = await startCheckout(TERMS, { plan: 'pro', lang: 'fr' });
+    expect(french.acceptance).toBe('J’accepte les [conditions de vente](https://example.test/fr/sales/).');
+    await context?.close();
+
+    const english = await startCheckout(TERMS, { plan: 'pro', lang: 'en' });
+    expect(english.acceptance).toBe('I accept the [terms of sale](https://example.test/sales/).');
+  });
+
+  it('adds the professional declaration to the same box', async () => {
+    const session = await startCheckout({ ...TERMS, BILLING_PROFESSIONAL_ONLY: 'true' }, { plan: 'pro', lang: 'fr' });
+    expect(session.acceptance).toBe(
+      'J’agis à titre professionnel et j’accepte les [conditions de vente](https://example.test/fr/sales/).',
+    );
+  });
+
+  it('uses the one page for everyone when there is no French one', async () => {
+    const session = await startCheckout(
+      { BILLING_TERMS_URL: 'https://example.test/sales/' },
+      { plan: 'pro', lang: 'fr' },
+    );
+    expect(session.acceptance).toContain('(https://example.test/sales/)');
+  });
+
+  it('refuses to start as professionals-only without terms to carry the declaration', async () => {
+    await expect(createTestApp({ ...BILLING, BILLING_PROFESSIONAL_ONLY: 'true' })).rejects.toThrow(
+      /BILLING_TERMS_URL/,
+    );
+  });
+});
