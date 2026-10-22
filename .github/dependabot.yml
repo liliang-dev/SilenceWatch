@@ -130,7 +130,7 @@ updates:
         update-types: [minor, patch]
 
   # The Python library is a published package too: it has no runtime dependency, so
-  # what Dependabot moves is the tools CI runs, in requirements-dev.txt.
+  # what Dependabot moves is the tools CI runs, in the requirements files.
   - package-ecosystem: pip
     directory: /clients/python
     target-branch: dev

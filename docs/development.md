@@ -207,7 +207,7 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 pnpm test              # shared, server and web unit tests, no database
 pnpm run test:e2e      # needs TEST_DATABASE_URL
 cd clients/spring-boot-starter && mvn test
-cd clients/python && pip install -e ".[celery,apscheduler]" -r requirements-dev.txt && ruff check . && mypy && pytest
+cd clients/python && pip install -e ".[celery,apscheduler]" -r requirements.txt && ruff check . && mypy && pytest
 ```
 
 The web tests run on Vitest through the Angular builder; they need no browser.

@@ -1,7 +1,0 @@
-# The tools CI runs, at exact versions: a library that other people install should not
-# be built by whatever a tool published this morning. Dependabot moves them.
-build==1.6.1
-mypy==2.4.0
-pytest==9.1.1
-ruff==0.17.2
-twine==7.0.0

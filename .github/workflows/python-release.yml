@@ -91,11 +91,12 @@ jobs:
           cache: pip
           cache-dependency-path: |
             clients/python/pyproject.toml
-            clients/python/requirements-dev.txt
+            clients/python/requirements-test.txt
+            clients/python/requirements-lint.txt
 
       - name: Install
         working-directory: clients/python
-        run: pip install -e ".[celery,apscheduler]" -r requirements-dev.txt
+        run: pip install -e ".[celery,apscheduler]" -r requirements-test.txt -r requirements-lint.txt
 
       # The same checks as CI, on the tagged commit: nothing is published that did not
       # pass them.

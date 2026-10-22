@@ -124,27 +124,38 @@ jobs:
           cache: pip
           cache-dependency-path: |
             clients/python/pyproject.toml
-            clients/python/requirements-dev.txt
+            clients/python/requirements-test.txt
+            clients/python/requirements-lint.txt
 
       # The library has no dependency of its own; Celery and APScheduler are the
       # extras its two integrations are tested against, at whatever the range allows.
       - name: Install
-        run: pip install -e ".[celery,apscheduler]" -r requirements-dev.txt
+        run: pip install -e ".[celery,apscheduler]" -r requirements-test.txt
+
+      # The tests start a stand-in for SilenceWatch, so the real HTTP code runs, and
+      # real Celery and APScheduler schedulers drive the real hooks. On every Python.
+      - name: Tests
+        run: pytest
+
+      # The tools below need a current Python (ruff and mypy no longer run on 3.9),
+      # and their verdict does not depend on the interpreter, so they run once. The
+      # sources are still checked as 3.9 code: the target version is in pyproject.toml.
+      - name: Install the lint and build tools
+        if: matrix.python == '3.12'
+        run: pip install -r requirements-lint.txt
 
       - name: Lint
+        if: matrix.python == '3.12'
         run: ruff check .
 
       - name: Types
+        if: matrix.python == '3.12'
         run: mypy
-
-      # The tests start a stand-in for SilenceWatch, so the real HTTP code runs, and
-      # real Celery and APScheduler schedulers drive the real hooks.
-      - name: Tests
-        run: pytest
 
       # What people install is the wheel, not the checkout: build it, and have twine
       # check that its metadata renders on PyPI.
       - name: Build the distribution
+        if: matrix.python == '3.12'
         run: python -m build && twine check dist/*
 
   java:

@@ -174,7 +174,7 @@ Nothing else changes.
 ## Development
 
 ```bash
-pip install -e ".[celery,apscheduler]" pytest ruff mypy
+pip install -e ".[celery,apscheduler]" -r requirements.txt   # Python 3.10+ for the lint tools
 ruff check . && mypy && pytest
 ```
 
