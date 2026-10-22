@@ -105,12 +105,12 @@ const CARDS = {
   fr: {
     title: 'Monitoring de jobs',
     lines: ['Vos Jobs ne vous préviennent pas', 'quand ils s’arrêtent. Nous oui.'],
-    foot: 'Open source · Auto-hébergeable · Spring Boot',
+    foot: 'Open source · Auto-hébergeable · Spring Boot · Python',
   },
   en: {
     title: 'Job monitoring',
     lines: ['Your jobs don’t tell you when', 'they stop. We do.'],
-    foot: 'Open source · Self-hostable · Spring Boot',
+    foot: 'Open source · Self-hostable · Spring Boot · Python',
   },
 };
 

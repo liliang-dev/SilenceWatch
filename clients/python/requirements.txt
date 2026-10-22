@@ -1,0 +1,5 @@
+# Everything for working on the library: `pip install -e ".[celery,apscheduler]" -r requirements.txt`.
+# CI installs the two files separately (the tests on every Python, the lint tools on one),
+# and Dependabot reads them through this one.
+-r requirements-test.txt
+-r requirements-lint.txt

@@ -112,7 +112,7 @@
   "checks.counterReporting": "Reporting",
   "checks.counterAll": "All checks",
   "checks.emptyTitle": "Nothing is being watched yet",
-  "checks.emptyBody": "Create a check, then have your job call its ping URL when it runs — or add the Spring Boot starter and every scheduled task will declare itself.",
+  "checks.emptyBody": "Create a check, then have your job call its ping URL when it runs — or add the Spring Boot starter or the Python library and every scheduled task will declare itself.",
   "checks.filterDown": "Down",
   "checks.filterLate": "Late",
   "checks.filterUp": "Up",

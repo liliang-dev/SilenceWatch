@@ -102,7 +102,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { icon: 'schedule', title: 'Cron and intervals', text: 'A period or a cron expression, with a time zone and a grace period. See [cron monitoring](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Detection every 10 seconds', text: 'A late check is spotted within seconds.' },
         { icon: 'notifications', title: 'Alerts where you are', text: 'Email, webhook, Slack, Teams and Discord, each testable in one click.' },
-        { icon: 'leaf', title: 'Spring Boot starter', text: 'One dependency: every `@Scheduled` job declares itself. See [Spring Boot](/spring-boot/).' },
+        { icon: 'leaf', title: 'Spring Boot and Python', text: 'One dependency: every `@Scheduled` job, Celery task or APScheduler job declares itself. See [Spring Boot](/spring-boot/) and [Python](/python/).' },
         { icon: 'history', title: 'History and incidents', text: 'Every ping, incident and alert, searchable.' },
         { icon: 'key', title: 'REST API and keys', text: 'Manage checks through the API, with project-scoped keys.' },
       ],
@@ -122,7 +122,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     spring: {
       title: 'Spring Boot: nothing to declare by hand',
-      text: 'The starter reads your `@Scheduled` tasks and Quartz jobs at startup, declares them, and pings around every run. It never blocks your job. See [Spring Boot monitoring](/spring-boot/).',
+      text: 'The starter reads your `@Scheduled` tasks and Quartz jobs at startup, declares them, and pings around every run. It never blocks your job. Python has the same for Celery and APScheduler: see [Python monitoring](/python/) and [Spring Boot monitoring](/spring-boot/).',
       discovered: 'Declared at startup',
       jobs: [
         { name: 'BackupJob.run', schedule: '0 0 2 * * *' },
@@ -179,8 +179,8 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
           a: 'Yes. Anything that can make an HTTP request works: crontab, systemd, Kubernetes, GitHub Actions, scripts.',
         },
         {
-          q: 'Can Spring Boot @Scheduled tasks be monitored automatically?',
-          a: 'Yes. The starter discovers @Scheduled methods and Quartz jobs at startup and pings around every run, with no per-job configuration.',
+          q: 'Can scheduled tasks be monitored automatically?',
+          a: 'Yes. The Spring Boot starter discovers @Scheduled methods and Quartz jobs, and the Python library reads Celery beat and APScheduler jobs; both ping around every run, with no per-job configuration.',
         },
         {
           q: 'Can I self-host SilenceWatch?',
@@ -246,7 +246,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { icon: 'schedule', title: 'Cron et intervalles', text: 'Une fréquence ou une expression cron, avec fuseau horaire et délai de grâce. Voir le [monitoring de cron](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Détection toutes les 10 secondes', text: 'Un check en retard est repéré en quelques secondes.' },
         { icon: 'notifications', title: 'Alertes là où vous êtes', text: 'E-mail, webhook, Slack, Teams et Discord, chacun testable en un clic.' },
-        { icon: 'leaf', title: 'Starter Spring Boot', text: 'Une dépendance : chaque `@Scheduled` se déclare tout seul. Voir [Spring Boot](/spring-boot/).' },
+        { icon: 'leaf', title: 'Spring Boot et Python', text: 'Une dépendance : chaque `@Scheduled`, tâche Celery ou job APScheduler se déclare tout seul. Voir [Spring Boot](/spring-boot/) et [Python](/python/).' },
         { icon: 'history', title: 'Historique et incidents', text: 'Chaque ping, incident et alerte, avec recherche.' },
         { icon: 'key', title: 'API REST et clés', text: 'Pilotez vos checks par API, avec des clés limitées à un projet.' },
       ],
@@ -266,7 +266,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     spring: {
       title: 'Spring Boot : zéro déclaration à la main',
-      text: 'Le starter lit vos tâches `@Scheduled` et vos jobs Quartz au démarrage, les déclare, et envoie un ping autour de chaque exécution. Il ne bloque jamais votre job. Voir le [monitoring Spring Boot](/spring-boot/).',
+      text: 'Le starter lit vos tâches `@Scheduled` et vos jobs Quartz au démarrage, les déclare, et envoie un ping autour de chaque exécution. Il ne bloque jamais votre job. Python a la même chose pour Celery et APScheduler : voir le [monitoring Python](/python/) et le [monitoring Spring Boot](/spring-boot/).',
       discovered: 'Déclarés au démarrage',
       jobs: [
         { name: 'BackupJob.run', schedule: '0 0 2 * * *' },
@@ -323,8 +323,8 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
           a: 'Oui. Tout ce qui peut faire une requête HTTP convient : crontab, systemd, Kubernetes, GitHub Actions, scripts.',
         },
         {
-          q: 'Peut-on surveiller les @Scheduled de Spring Boot automatiquement ?',
-          a: 'Oui. Le starter découvre les méthodes @Scheduled et les jobs Quartz au démarrage et envoie un ping autour de chaque exécution, sans configuration par job.',
+          q: 'Peut-on surveiller des tâches planifiées automatiquement ?',
+          a: 'Oui. Le starter Spring Boot découvre les méthodes @Scheduled et les jobs Quartz, et la bibliothèque Python lit Celery beat et APScheduler ; les deux envoient un ping autour de chaque exécution, sans configuration par job.',
         },
         {
           q: 'Peut-on auto-héberger SilenceWatch ?',

@@ -64,6 +64,7 @@ export default defineConfig({
             { slug: 'docs/schedules-and-states' },
             { slug: 'docs/alerting' },
             { slug: 'docs/spring-boot' },
+            { slug: 'docs/python' },
           ],
         },
         {

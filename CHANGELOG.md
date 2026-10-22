@@ -25,6 +25,15 @@ called out under **Changed** with what to do about it.
 
 ### Added
 
+- **A Python library**, `silencewatch` on PyPI (`clients/python`), that does for Python what the
+  Spring Boot starter does for Java: it reads the Celery beat schedule or the APScheduler jobs of
+  an application, declares them with their real schedule, and sends a heartbeat around each run.
+  No dependency, never fails or blocks a job, survives the fork of Celery's workers. It is laid out
+  so that the next scheduler is one module, and `clients/README.md` states the contract every
+  client follows. Its documentation, its tests, a CI job on Python 3.9 to 3.13, a release workflow
+  for the `python-N.N.N` tags and a page on the website, in English and French, come with it. The
+  library has its own changelog and version (0.1.0); publishing it needs a PyPI account, see
+  `docs/releasing.md`.
 - **Stripe: `customer.subscription.paused` and `customer.subscription.resumed`** are handled.
   A subscription that Stripe pauses (a trial that ended with no payment method) takes the
   paid plan away, and resuming it gives it back. **Add the two events to the webhook endpoint
