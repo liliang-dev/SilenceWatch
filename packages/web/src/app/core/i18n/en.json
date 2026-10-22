@@ -42,6 +42,7 @@
   "server.invalidCredentials": "Invalid email or password",
   "server.signupDisabled": "Sign-up is disabled on this instance",
   "server.wrongPassword": "The current password is incorrect",
+  "server.accountFromNetwork": "An account already exists from this network. Sign in to it, or contact us if this connection is shared.",
   "server.tooManyAccounts": "Too many accounts created from this network. Try again later.",
   "server.emailProviderRejected": "This email provider is not accepted. Use an address you can receive mail at.",
   "server.lastProject": "This is your last project, and an account needs one. Create another before deleting it.",

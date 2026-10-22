@@ -94,7 +94,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.5.0`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.5.1`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account with a passkey — on an
 empty instance it is the first to arrive, unless you name it with `ADMIN_EMAIL`, in

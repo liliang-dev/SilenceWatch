@@ -166,3 +166,37 @@ mat-tab-group[swScrollTabs] {
 .mat-mdc-form-field .mat-mdc-form-field-bottom-align::before {
   content: unset;
 }
+
+/* A logo or an icon and a word, in one of Material's buttons.
+
+   Both are projected into the button's label, where they are inline and sit on
+   the text's baseline: the icon rides at the top of the line, and when the word
+   wraps (a long French label on a narrow phone) it ends up above the text.
+   Making the label a centred row puts the icon in the middle of the line, and in
+   the middle of the block when there are two. The gap replaces the space the
+   template had between them. */
+.mdc-button .mdc-button__label:has(> sw-icon, > svg, > img) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.mdc-button .mdc-button__label > sw-icon,
+.mdc-button .mdc-button__label > svg,
+.mdc-button .mdc-button__label > img {
+  flex: none;
+}
+
+/* An icon next to a word.
+
+   The row is centred on the line box, but the letters are not centred in their
+   line box: the room above the capitals is smaller than the room below the
+   baseline (descenders), so the word reads a little high beside an icon that is
+   exactly in the middle. Measured on the real glyphs, the icon was ~1.3px low
+   against the middle of the letters in every button. Lifting the icon by that
+   much puts it level with the text. Icon-only buttons are not touched. */
+:is(.mdc-button__label, .switcher, .back, .choice) :is(sw-icon, svg:not(sw-icon > svg), img) {
+  transform: translateY(-1.25px);
+}

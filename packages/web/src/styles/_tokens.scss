@@ -20,16 +20,26 @@
   color-scheme: light dark;
 
   /* Neutrals — light */
-  --sw-bg: #fafbfc;
-  --sw-bg-accent: #f2f4f7;
+  /* The page is a cool lavender-grey and the surfaces that carry content are
+     pure white with a visible edge, so the content stands out from what is
+     behind it (a near-white page under pale cards were two almost identical
+     lights). The same scheme as the website, and the dark theme below is this
+     one made dark, not another design. */
+  --sw-bg: #eceef7;
+  --sw-bg-accent: #e3e6f3;
   --sw-surface: #ffffff;
-  --sw-surface-2: #f7f8fa;
-  --sw-surface-3: #eef0f4;
-  --sw-border: #e4e7ec;
-  --sw-border-strong: #d0d5dd;
+  --sw-surface-2: #f6f7fc;
+  --sw-surface-3: #ebedf6;
+  --sw-border: #d4d8e8;
+  --sw-border-strong: #bfc5da;
   --sw-text: #101828;
-  --sw-text-muted: #667085;
-  --sw-text-subtle: #98a2b3;
+  --sw-text-muted: #566078;
+  --sw-text-subtle: #747d95;
+
+  /* The decoration behind the page: two soft glows and a dot grid (see _base). */
+  --sw-glow-a: rgb(139 75 241 / 17%);
+  --sw-glow-b: rgb(56 140 248 / 13%);
+  --sw-dot: rgb(76 82 130 / 18%);
 
   /* One purple, hsl(263 86% 62%).
 
@@ -43,9 +53,9 @@
      The original lightness is not thrown away: it is what the dark theme uses
      below, where a pale lavender is exactly right. */
   --sw-brand: #8b4bf1;
-  --sw-accent: #8b4bf1;
+  --sw-accent: #7a35e8;
   --sw-accent-hover: #6c1bee;
-  --sw-accent-soft: #faf7ff;
+  --sw-accent-soft: #efe7ff;
   --sw-accent-contrast: #ffffff;
 
   /* Status — the only colours allowed to shout */
@@ -60,9 +70,9 @@
   --sw-new: #175cd3;
   --sw-new-soft: #eff8ff;
 
-  --sw-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
-  --sw-shadow: 0 1px 3px rgb(16 24 40 / 8%), 0 1px 2px rgb(16 24 40 / 4%);
-  --sw-shadow-lg: 0 12px 32px -8px rgb(16 24 40 / 14%);
+  --sw-shadow-sm: 0 1px 2px rgb(40 30 90 / 8%);
+  --sw-shadow: 0 1px 2px rgb(40 30 90 / 6%), 0 6px 18px rgb(40 30 90 / 7%);
+  --sw-shadow-lg: 0 14px 36px -8px rgb(40 30 90 / 18%);
 
   /* One height for every input, select and button. Declared once so a button
      beside a field is the same object, on every screen. */
@@ -87,16 +97,23 @@
 @mixin dark-tokens {
   color-scheme: dark;
 
-  --sw-bg: #0b0d11;
-  --sw-bg-accent: #10131a;
-  --sw-surface: #14171e;
-  --sw-surface-2: #191d26;
-  --sw-surface-3: #212734;
-  --sw-border: #252b36;
-  --sw-border-strong: #333b49;
-  --sw-text: #e8eaf0;
-  --sw-text-muted: #98a2b3;
-  --sw-text-subtle: #6c7689;
+  /* The light scheme, darkened: a violet-tinted page, lighter surfaces with a
+     visible edge, and the same glows and dot grid, stronger because they have
+     to show up on a dark ground. */
+  --sw-bg: #0d0e19;
+  --sw-bg-accent: #121428;
+  --sw-surface: #171a2c;
+  --sw-surface-2: #1d2136;
+  --sw-surface-3: #272c47;
+  --sw-border: #2c3250;
+  --sw-border-strong: #3d4565;
+  --sw-text: #e8eaf4;
+  --sw-text-muted: #a3accb;
+  --sw-text-subtle: #7983a3;
+
+  --sw-glow-a: rgb(139 75 241 / 26%);
+  --sw-glow-b: rgb(56 140 248 / 14%);
+  --sw-dot: rgb(255 255 255 / 8%);
 
   --sw-logo-light: none;
   --sw-logo-dark: block;
@@ -106,8 +123,8 @@
   --sw-brand: #8b4bf1;
   --sw-accent: #bc95fc;
   --sw-accent-hover: #d3bafe;
-  --sw-accent-soft: #221a36;
-  --sw-accent-contrast: #0b0d11;
+  --sw-accent-soft: #2a2050;
+  --sw-accent-contrast: #0d0e19;
 
   /* Lightened so they keep contrast on a dark surface: the light-mode greens
      and reds are unreadable here, which is how status colour quietly stops
@@ -124,7 +141,7 @@
   --sw-new-soft: #101c33;
 
   --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
-  --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+  --sw-shadow: 0 1px 3px rgb(0 0 0 / 50%), 0 6px 18px rgb(0 0 0 / 25%);
   --sw-shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 70%);
 }
 

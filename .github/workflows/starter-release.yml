@@ -2,8 +2,8 @@ name: Starter release
 
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
-# The starter has a version of its own (0.1.0) and the application another (0.5.0),
-# so they are tagged apart: `starter-0.1.0` here, `0.5.0` for the Release workflow.
+# The starter has a version of its own (0.1.0) and the application another (0.5.1),
+# so they are tagged apart: `starter-0.1.0` here, `0.5.1` for the Release workflow.
 # The strict pattern means neither workflow can fire on the other's tags, and an
 # unrelated tag cannot publish to a registry other people build against.
 on:
