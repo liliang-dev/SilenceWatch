@@ -13,7 +13,7 @@ Un check a deux réglages qui décident de tout : **quand le prochain signal est
 
 Deux formes, jamais les deux à la fois :
 
-- **Un intervalle** : « toutes les N secondes ». Le minimum est de 30 secondes. Convient aux traitements réguliers (toutes les 5 minutes, toutes les heures).
+- **Un intervalle** : « toutes les N » secondes, minutes, heures, jours ou semaines, au choix de l’unité. Le minimum est de 30 secondes et le maximum d’un an. Convient aux traitements réguliers (toutes les 5 minutes, toutes les heures, une fois par semaine). Pour « le premier du mois », utilisez une expression cron.
 - **Une expression cron** : à 5 champs (Unix) ou à 6 champs (secondes en tête, comme l’écrivent Spring et Quartz), avec un **fuseau horaire** IANA (`Europe/Paris`). Les formes `?`, `L`, `5L` et `MON#2` sont acceptées. Le `W` de Quartz (jour ouvré le plus proche) est refusé : le serveur ne saurait pas calculer l’échéance, et un check dont l’échéance est incalculable est pire que pas de check.
 
 Le fuseau horaire compte pour les expressions cron : `0 2 * * *` ne tombe pas à la même heure à Paris et à New York, ni avant et après un changement d’heure.

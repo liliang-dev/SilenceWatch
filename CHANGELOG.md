@@ -10,6 +10,19 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The application and the website open in the dark theme** for someone who has not chosen
+  one. "System" (follow the device) is now a choice like Light and Dark, so it is remembered;
+  until a choice is made, nothing is stored and dark applies. People who had left the default
+  alone therefore see dark too, and can pick System in Settings. On the website the picker's
+  "Auto" is still there, and a visitor who has never used it gets dark.
+- **A check's period and grace period are written as a number and a unit** (seconds, minutes,
+  hours, days, weeks; the grace period stops at days, as it is capped at a week) instead of a
+  number of seconds. A saved value opens in the largest unit that fits it: 3600 is "1 hour".
+  Nothing changes in the API, which still takes seconds. A period that is a whole number of
+  weeks is shown as `2w` in the lists.
+
 ## [0.5.1] — 2026-10-22
 
 No configuration change and no migration: replace the image and restart. Nothing to do on

@@ -26,11 +26,16 @@
       </mat-form-field>
 
       @if (form.controls.scheduleType.value === 'interval') {
-      <mat-form-field appearance="outline">
-        <mat-label>{{ t('checkForm.period') }}</mat-label>
-        <input matInput type="number" formControlName="periodSeconds" required />
-        <mat-hint>{{ t('checkForm.periodMin', { count: minPeriod }) }}</mat-hint>
-      </mat-form-field>
+      <sw-duration-field
+        formControlName="periodSeconds"
+        [label]="t('checkForm.period')"
+        [hint]="t('checkForm.periodHint')"
+        [units]="periodUnits"
+        defaultUnit="hours"
+        [required]="true"
+        [minMessage]="t('checkForm.periodMinError')"
+        [maxMessage]="t('checkForm.periodMaxError')"
+      />
       } @else {
       <mat-form-field appearance="outline">
         <mat-label>{{ t('checkForm.cron') }}</mat-label>
@@ -56,11 +61,15 @@
       }
     </fieldset>
 
-    <mat-form-field appearance="outline">
-      <mat-label>{{ t('checkForm.grace') }}</mat-label>
-      <input matInput type="number" formControlName="graceSeconds" required />
-      <mat-hint>{{ t('checkForm.graceHint') }}</mat-hint>
-    </mat-form-field>
+    <sw-duration-field
+      formControlName="graceSeconds"
+      [label]="t('checkForm.grace')"
+      [hint]="t('checkForm.graceHint')"
+      [units]="graceUnits"
+      defaultUnit="minutes"
+      [required]="true"
+      [maxMessage]="t('checkForm.graceMaxError')"
+    />
 
     <mat-form-field appearance="outline">
       <mat-label>{{ t('checkForm.environment') }}</mat-label>
