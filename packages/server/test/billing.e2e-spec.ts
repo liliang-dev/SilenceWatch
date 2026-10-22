@@ -302,6 +302,21 @@ describe('billing', () => {
       });
     });
 
+    it('takes the plan away when the subscription is paused, and gives it back when it resumes', async () => {
+      const { user, customerId } = await customerWithCheckout();
+      const now = Math.floor(Date.now() / 1000);
+
+      await deliver('customer.subscription.created', subscription(customerId), { created: now - 30 });
+      expect(await planOf(user.userId)).toBe('pro');
+
+      await deliver('customer.subscription.paused', subscription(customerId, { status: 'paused' }), { created: now - 20 });
+      expect(await planOf(user.userId)).toBe('free');
+      expect((await get(user.token)).json<BillingStateDto>().subscription).toMatchObject({ status: 'paused' });
+
+      await deliver('customer.subscription.resumed', subscription(customerId, { status: 'active' }), { created: now - 10 });
+      expect(await planOf(user.userId)).toBe('pro');
+    });
+
     it('keeps the plan while a payment is being retried, and ends it when Stripe gives up', async () => {
       const { user, customerId } = await customerWithCheckout();
       const now = Math.floor(Date.now() / 1000);

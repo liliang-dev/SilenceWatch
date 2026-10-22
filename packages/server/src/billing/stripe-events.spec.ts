@@ -53,6 +53,13 @@ describe('readSubscriptionEvent', () => {
     expect(change?.status).toBe('canceled');
   });
 
+  it('reads the pause and the resumption of a subscription like any other change', () => {
+    const paused = readSubscriptionEvent(event('customer.subscription.paused', subscription({ status: 'paused' })));
+    expect(paused?.status).toBe('paused');
+    const resumed = readSubscriptionEvent(event('customer.subscription.resumed', subscription({ status: 'active' })));
+    expect(resumed?.status).toBe('active');
+  });
+
   it('ignores other events, and subscriptions that do not say whose they are', () => {
     expect(readSubscriptionEvent(event('invoice.paid', subscription()))).toBeNull();
     expect(readSubscriptionEvent(event('customer.subscription.updated', { id: 'sub_1' }))).toBeNull();

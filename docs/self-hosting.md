@@ -228,12 +228,17 @@ if any of this is missing or inconsistent.
 customer portal (payment method, invoices, plan changes between those prices,
 cancellation), and add a webhook endpoint at
 `https://<your host>/api/v1/billing/webhook` for the events
-`customer.subscription.created`, `customer.subscription.updated` and
-`customer.subscription.deleted`. Its signing secret is `STRIPE_WEBHOOK_SECRET`.
+`customer.subscription.created`, `customer.subscription.updated`,
+`customer.subscription.deleted`, `customer.subscription.paused` and
+`customer.subscription.resumed`. Its signing secret is `STRIPE_WEBHOOK_SECRET`.
+An endpoint set up with the first three keeps working: the last two only matter
+for a subscription that Stripe pauses (a trial that ended with no payment method),
+and without them such an account would keep its plan until the next change.
 
 How an event becomes a plan: `active` and `trialing` give the plan of the price;
 `past_due` keeps it, since Stripe retries the payment before giving up; `canceled`
-and `unpaid` send the account back to `DEFAULT_PLAN`, and the reconciler pauses
+`unpaid` and `paused` send the account back to `DEFAULT_PLAN` (and `resumed` gives the
+plan back), and the reconciler pauses
 what no longer fits. A price that is not in `STRIPE_PLANS` changes nothing. Events
 are applied once whatever the number of deliveries, and an older one never undoes
 a newer one. Deleting an account first ends its subscription, and is refused if
