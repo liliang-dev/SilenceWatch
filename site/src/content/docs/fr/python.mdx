@@ -1,0 +1,80 @@
+---
+title: "Monitoring Python : Celery et APScheduler"
+description: "Surveillez les tâches Celery beat et les jobs APScheduler : un paquet, une clé d’API, découverte automatique, durée et échecs signalés."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">Dans une application Python, les tâches planifiées se multiplient et personne ne tient la liste à jour. La <strong>bibliothèque SilenceWatch</strong> la tient à votre place : elle lit votre planification Celery beat ou vos jobs APScheduler, les déclare avec leur vraie planification, et signale chaque exécution.</p>
+
+## Un paquet, une clé
+
+```bash
+pip install "silencewatch[celery]"       # ou "silencewatch[apscheduler]"
+export SILENCEWATCH_API_KEY=sw_...
+```
+
+```python title="Celery"
+from silencewatch.integrations.celery import instrument
+
+instrument(app)
+```
+
+```python title="APScheduler"
+from silencewatch.integrations.apscheduler import instrument
+
+instrument(scheduler)
+```
+
+Redémarrez l’application. Chaque tâche planifiée apparaît dans SilenceWatch avec sa vraie planification, et envoie un signal autour de chaque exécution, avec sa durée et ses échecs. Aucun check à créer à la main, aucune URL de ping à copier, rien à tenir à jour quand le code change.
+
+## Ce qui la distingue
+
+- **Elle lit les vraies planifications.** Un `crontab(hour=2, minute=0)` est déclaré `0 2 * * *`, dans le fuseau de votre application Celery ; un `CronTrigger` ou un `IntervalTrigger` d’APScheduler est lu de la même façon.
+- **Elle donne à chaque job une identité stable** (`celery:shop.tasks.backup`, ou l’identifiant du job pour APScheduler) : l’historique survit aux redémarrages, aux redéploiements et aux renommages.
+- **Elle ne supprime jamais rien.** Un job qui disparaît du code est marqué *orphelin* ; l’historique est conservé jusqu’à ce que vous décidiez de le supprimer.
+- **Elle distingue les environnements** : la même application déclarée en préproduction et en production donne deux checks séparés.
+- **Elle est conçue pour accueillir d’autres planificateurs.** Celery et APScheduler sont deux modules d’un même petit paquet ; le suivant sera un autre module, avec la même déclaration et les mêmes règles.
+
+## Elle ne peut pas vous nuire
+
+Un outil de supervision qui perturbe la production est pire que pas d’outil. La bibliothèque suit des règles strictes :
+
+- elle **ne fait jamais échouer** votre job : toute erreur est avalée et journalisée en `WARNING`, et votre tâche s’exécute une fois, son résultat et son exception passant sans changement ;
+- elle **ne bloque jamais** votre job : l’envoi passe par une file bornée et un thread en arrière-plan, et résiste au fork des workers Celery ;
+- elle **se dégrade en silence** : sans clé, sans réseau ou sans serveur, l’application tourne exactement comme sans elle ;
+- `SILENCEWATCH_ENABLED=false` **retire tout le mécanisme** ;
+- elle n’a **aucune dépendance** : la bibliothèque standard seulement.
+
+Tous les réglages et les limites sont dans la [documentation de la bibliothèque](/fr/docs/python/).
+
+## Si votre job n’est ni Celery ni APScheduler
+
+Rien ne vous oblige à utiliser la bibliothèque : tout job capable de faire une requête HTTP se surveille avec l’[API de ping](/fr/docs/ping-api/). Voir la [surveillance des tâches cron](/fr/cron-monitoring/) et les [exemples](/fr/docs/cron-examples/).
+
+<div class="sw-cta">
+  <LinkButton href="/fr/docs/python/" variant="primary" icon="right-arrow">Documentation de la bibliothèque</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python" variant="secondary" icon="github">Code de la bibliothèque</LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes sur le monitoring Python"
+  items={[
+    { q: 'Comment surveiller les tâches Celery beat ?', a: 'Installez le paquet silencewatch avec l’extra celery, définissez une clé d’API et appelez instrument(app). Au démarrage d’un worker, la planification beat est déclarée, et chaque tâche planifiée envoie un signal autour de chaque exécution.' },
+    { q: 'Surveille-t-elle aussi APScheduler ?', a: 'Oui, APScheduler 3 : les déclencheurs cron et interval sont lus depuis le planificateur, et chaque exécution est signalée. Donnez un identifiant à chaque job pour que son identité ne change pas d’un démarrage à l’autre.' },
+    { q: 'La bibliothèque peut-elle ralentir ou faire planter mon application ?', a: 'Non. Les erreurs réseau sont avalées, l’envoi passe par une file bornée traitée en arrière-plan, et sans clé ou sans réseau l’application tourne comme sans la bibliothèque. Elle peut être désactivée entièrement.' },
+    { q: 'Et Django, RQ ou Dramatiq ?', a: 'Ils ne sont pas encore lus. La bibliothèque est organisée en un module par planificateur, donc d’autres pourront s’ajouter ; en attendant, tout job se surveille en appelant l’API de ping.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/job-monitoring/">Monitoring de jobs</a></li>
+  <li><a href="/fr/cron-monitoring/">Surveillance de tâches cron</a></li>
+  <li><a href="/fr/docs/python/">Documentation de la bibliothèque</a></li>
+</ul>

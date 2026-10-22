@@ -149,8 +149,10 @@ The response includes `pingUrl` — the only thing your job needs.
 
 ## `POST /api/v1/checks/sync`
 
-The endpoint the client starters call at startup, and the contract any new client
-library should implement.
+The endpoint the client libraries (the Spring Boot starter, the Python library) call at
+startup, and the contract any new client library should implement. `source` names the
+client (`spring-boot-starter`, `python-celery`, `python-apscheduler`…), at most 60
+characters, and is kept for the logs.
 
 ```http
 POST /api/v1/checks/sync

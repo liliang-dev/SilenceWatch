@@ -1,0 +1,119 @@
+---
+title: "Bibliothèque Python : Celery et APScheduler"
+description: "Surveillez les tâches Celery beat et les jobs APScheduler avec la bibliothèque SilenceWatch : une clé d’API, découverte automatique, sans perturber l’application."
+sidebar:
+  label: Bibliothèque Python
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+La **bibliothèque Python** de SilenceWatch surveille les jobs planifiés de votre application sans que vous déclariez quoi que ce soit : elle lit les jobs de votre planificateur, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution. Elle est sous licence Apache 2.0, volontairement, pour pouvoir être embarquée dans n’importe quelle application.
+
+| Planificateur | Installation | Ce qu’elle lit |
+| --- | --- | --- |
+| **Celery beat** | `pip install "silencewatch[celery]"` | le `beat_schedule` (crontab, `timedelta`, secondes) |
+| **APScheduler 3** | `pip install "silencewatch[apscheduler]"` | les jobs du planificateur (déclencheurs cron et interval) |
+
+Python 3.9 ou plus récent. Aucune autre dépendance.
+
+## Mise en route
+
+Créez la clé d’API dans *Réglages › Clés d’API* de votre projet et donnez-la au processus :
+
+```bash
+export SILENCEWATCH_API_KEY=sw_...
+# export SILENCEWATCH_URL=https://watch.example.com   # seulement si vous hébergez SilenceWatch vous-même
+```
+
+### Celery
+
+```python
+from celery import Celery
+from celery.schedules import crontab
+from silencewatch.integrations.celery import instrument
+
+app = Celery("shop")
+app.conf.beat_schedule = {
+    "nightly-backup": {"task": "shop.tasks.backup", "schedule": crontab(hour=2, minute=0)},
+    "sync-prices": {"task": "shop.tasks.sync_prices", "schedule": 900.0},
+}
+instrument(app)
+```
+
+Un worker déclare la planification à son démarrage, dans le processus principal avant que son pool ne se divise, si bien que chaque processus enfant a les clés de ping. Les signaux sont envoyés par le worker qui exécute chaque tâche planifiée.
+
+### APScheduler
+
+```python
+from apscheduler.schedulers.background import BackgroundScheduler
+from silencewatch.integrations.apscheduler import instrument
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(backup, "cron", hour=2, id="nightly-backup")
+scheduler.add_job(sync_prices, "interval", minutes=15, id="sync-prices")
+instrument(scheduler)
+scheduler.start()
+```
+
+<Aside type="tip">
+Donnez un `id` à chaque job. APScheduler en invente un au hasard sinon, qui change à chaque démarrage et ne peut pas rattacher un job à son historique. Sans identifiant, le job est reconnu par la fonction qu’il exécute, ce qui est stable.
+</Aside>
+
+## Ce qu’elle fait
+
+Au démarrage, en un seul appel HTTP, chaque job trouvé est déclaré à `POST /api/v1/checks/sync` et les clés de ping renvoyées sont gardées en mémoire. Autour de chaque exécution :
+
+```text
+POST /p/<clé>/start                      au début de l’exécution
+POST /p/<clé>/0?duration_ms=1234         quand elle se termine
+POST /p/<clé>/fail?duration_ms=1234      quand elle lève une exception
+```
+
+Chaque job reçoit une **identité stable** qui le rattache à son historique malgré les redémarrages, les redéploiements et les renommages :
+
+| Intégration | Clé |
+| --- | --- |
+| Celery | `celery:shop.tasks.backup` (le nom de la tâche) |
+| APScheduler | `apscheduler:nightly-backup` (l’identifiant du job ; sans lui, `apscheduler:app.jobs:backup`, la fonction) |
+
+Un job qui disparaît du code est marqué **orphelin**, jamais supprimé. Si plusieurs intégrations tournent dans un même processus, tout ce qu’elles trouvent est déclaré en une seule requête.
+
+## Configuration
+
+Chaque réglage est un argument nommé (`instrument(app, api_key="…", environment="staging")`) et une variable d’environnement. L’argument l’emporte. Une durée dans l’environnement est un nombre de secondes.
+
+| Argument | Variable d’environnement | Valeur par défaut |
+| --- | --- | --- |
+| `api_key` | `SILENCEWATCH_API_KEY` | aucune : rien n’est envoyé |
+| `base_url` | `SILENCEWATCH_URL` | `https://app.silencewatch.com` |
+| `environment` | `SILENCEWATCH_ENVIRONMENT` | `production` |
+| `enabled` | `SILENCEWATCH_ENABLED` | `true` ; `false` retire tout |
+| `default_grace` | `SILENCEWATCH_DEFAULT_GRACE` | 5 minutes, pour les jobs qui n’en déclarent pas |
+| `auto_register` | `SILENCEWATCH_AUTO_REGISTER` | `true` ; `false` pour gérer les checks à la main |
+| `report_start` | `SILENCEWATCH_REPORT_START` | `true` ; `false` pour n’envoyer que le résultat |
+| `timeout` | `SILENCEWATCH_TIMEOUT` | 2 secondes par appel, volontairement court |
+| `queue_capacity` | `SILENCEWATCH_QUEUE_CAPACITY` | 1000 ; les plus anciens sont abandonnés quand elle est pleine |
+| `timezone` | `SILENCEWATCH_TIMEZONE` | `UTC`, pour les jobs cron dont la planification n’en porte pas |
+| `prune` | `SILENCEWATCH_PRUNE` | `true` |
+
+`prune` marque comme orphelins tous les checks du projet et de l’environnement que la déclaration omet. Utilisez **un environnement par application** ; si plusieurs services partagent un même projet et un même environnement, mettez `prune=False`, sinon chacun marquerait les checks des autres comme orphelins.
+
+## Les règles qu’elle ne brisera pas
+
+- **Elle ne fait jamais échouer votre job.** Toute erreur réseau ou HTTP est avalée et journalisée en `WARNING`. Votre tâche s’exécute exactement une fois, et son résultat et son exception sont intacts.
+- **Elle ne bloque jamais votre job.** Envoyer un signal est un ajout à une file traité par un thread démon. Un SilenceWatch injoignable ne coûte rien à votre job.
+- **Elle est bornée.** La file contient au plus `queue_capacity` signaux ; au-delà, les plus anciens sont abandonnés, car l’état le plus récent est celui qui compte. Les avertissements sont limités à un par minute.
+- **Elle se dégrade en silence.** Sans clé, sans réseau, sans serveur : l’application démarre et tourne exactement comme sans la bibliothèque. Un processus démarré pendant que SilenceWatch était injoignable se déclare à son premier signal, au plus une fois par minute.
+- **Elle résiste au fork.** Le pool prefork de Celery et gunicorn se divisent après le démarrage de la bibliothèque ; chaque enfant démarre sa propre file et son propre thread.
+- **`enabled=False` retire tout le mécanisme** : pas de découverte, pas de crochets, pas de threads.
+
+## Limites
+
+- **Celery.** Une tâche planifiée par plusieurs entrées beat est déclarée à partir de celle qui se déclenche le plus souvent. Un `.delay()` **manuel** d’une tâche planifiée envoie aussi un signal, car un worker ne peut pas le distinguer d’un déclenchement planifié. Les planifications solaires et celles gardées en base (`django-celery-beat`) ne sont pas lues. Un crontab qui restreint à la fois le jour du mois et le jour de la semaine se déclenche quand les deux correspondent dans Celery et quand l’un des deux correspond dans cron ; le journal le signale.
+- **APScheduler.** Version 3 uniquement (la version 4 a une autre API). La durée d’un job inclut le temps passé à attendre un exécuteur. Les déclencheurs `date` ponctuels, les déclencheurs combinés `and`/`or` et les champs cron `week`, `year` et « troisième vendredi » ne s’expriment pas et sont ignorés avec un avertissement. Les jobs ajoutés ou retirés après le démarrage sont déclarés de nouveau deux secondes plus tard.
+- **Les jobs de moins de 30 secondes** sont déclarés avec une période de 30 secondes, la plus courte acceptée, et un avertissement les nomme.
+- **Les expressions cron que le serveur ne sait pas évaluer** sont ignorées avec un avertissement plutôt que de faire échouer toute la déclaration.
+
+<Aside type="note">
+Voir aussi la page de présentation du [monitoring Python](/fr/python/), et le [README de la bibliothèque](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python) pour ajouter l’intégration d’un autre planificateur.
+</Aside>

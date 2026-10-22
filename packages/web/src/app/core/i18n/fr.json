@@ -112,7 +112,7 @@
   "checks.counterReporting": "À l'heure",
   "checks.counterAll": "Tous les checks",
   "checks.emptyTitle": "Rien n'est encore surveillé",
-  "checks.emptyBody": "Créez un check, puis faites appeler son URL de ping par votre job à chaque exécution — ou ajoutez le starter Spring Boot et chaque tâche planifiée se déclarera toute seule.",
+  "checks.emptyBody": "Créez un check, puis faites appeler son URL de ping par votre job à chaque exécution — ou ajoutez le starter Spring Boot ou la bibliothèque Python et chaque tâche planifiée se déclarera toute seule.",
   "checks.filterDown": "En panne",
   "checks.filterLate": "En retard",
   "checks.filterUp": "OK",

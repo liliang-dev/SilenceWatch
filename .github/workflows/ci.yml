@@ -103,6 +103,50 @@ jobs:
       - name: Build server and web
         run: pnpm run build:server && pnpm run build:web
 
+  python:
+    name: Python library (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      # One version failing is information about the others, not a reason to stop
+      # collecting it.
+      fail-fast: false
+      matrix:
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    defaults:
+      run:
+        working-directory: clients/python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            clients/python/pyproject.toml
+            clients/python/requirements-dev.txt
+
+      # The library has no dependency of its own; Celery and APScheduler are the
+      # extras its two integrations are tested against, at whatever the range allows.
+      - name: Install
+        run: pip install -e ".[celery,apscheduler]" -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Types
+        run: mypy
+
+      # The tests start a stand-in for SilenceWatch, so the real HTTP code runs, and
+      # real Celery and APScheduler schedulers drive the real hooks.
+      - name: Tests
+        run: pytest
+
+      # What people install is the wheel, not the checkout: build it, and have twine
+      # check that its metadata renders on PyPI.
+      - name: Build the distribution
+        run: python -m build && twine check dist/*
+
   java:
     name: Spring Boot starter
     runs-on: ubuntu-latest

@@ -165,3 +165,7 @@ If SilenceWatch is unreachable, your job should not suffer: `--retry 3 -m 10` bo
 ## For Spring Boot
 
 Write nothing: the [Spring Boot starter](/docs/spring-boot/) discovers `@Scheduled` methods and Quartz jobs and sends the pings for you.
+
+## For Celery and APScheduler
+
+Write nothing either: the [Python library](/docs/python/) reads the Celery beat schedule or the APScheduler jobs and sends the pings for you.

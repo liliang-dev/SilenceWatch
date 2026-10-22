@@ -51,7 +51,7 @@ You declare the expected frequency (interval or cron expression, with time zone)
 - Data imports and exports, ETL processing, synchronisations.
 - Billing runs, reminders, bulk mailings.
 - Purges, rotations, certificate renewals.
-- `@Scheduled` tasks and Quartz jobs of a [Spring Boot](/spring-boot/) application, discovered automatically.
+- `@Scheduled` tasks and Quartz jobs of a [Spring Boot](/spring-boot/) application, and Celery beat tasks and APScheduler jobs of a [Python](/python/) one, discovered automatically.
 - The [cron jobs](/cron-monitoring/) of a server, a container or a [Kubernetes CronJob](/guides/kubernetes-cronjob-monitoring/).
 
 For **message queues** or on-demand processing, a periodic heartbeat is not the right tool: SilenceWatch monitors jobs that must run at regular intervals.
@@ -91,6 +91,7 @@ A few useful questions, whatever the tool:
 <ul class="sw-related">
   <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
   <li><a href="/spring-boot/">Spring Boot monitoring</a></li>
+  <li><a href="/python/">Python monitoring</a></li>
   <li><a href="/guides/backup-monitoring/">Monitoring a backup</a></li>
   <li><a href="/guides/kubernetes-cronjob-monitoring/">Monitor a Kubernetes CronJob</a></li>
   <li><a href="/dead-mans-switch/">Dead man's switch</a></li>
