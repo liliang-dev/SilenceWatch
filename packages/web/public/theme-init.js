@@ -13,8 +13,11 @@
 (function () {
   var root = document.documentElement;
   try {
+    // Dark unless the person chose otherwise; "system" is a choice, and leaves
+    // the device's colours to the stylesheet.
     var theme = localStorage.getItem('silencewatch.theme');
-    if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
+    if (theme !== 'light' && theme !== 'dark' && theme !== 'system') theme = 'dark';
+    if (theme !== 'system') root.setAttribute('data-theme', theme);
 
     var language = localStorage.getItem('silencewatch.language');
     if (language !== 'en' && language !== 'fr') {
@@ -22,6 +25,6 @@
     }
     root.lang = language;
   } catch (error) {
-    /* Defaults apply: the device's colours, and the markup's own language. */
+    /* Defaults apply: dark (the stylesheet follows the device), and the markup's own language. */
   }
 })();

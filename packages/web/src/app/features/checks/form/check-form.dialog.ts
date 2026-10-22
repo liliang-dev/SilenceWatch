@@ -15,6 +15,8 @@ import {
 import { ChecksApi } from '../../../core/api/checks.api';
 import { errorMessage } from '../../../core/http/error-message';
 import { I18n } from '../../../core/i18n/i18n.service';
+import { DurationFieldComponent } from '../../../shared/duration-field.component';
+import type { DurationUnit } from '../../../shared/duration';
 
 /** The same rules the server enforces, applied while the user is still typing. */
 function cronValidator(control: AbstractControl): ValidationErrors | null {
@@ -49,6 +51,7 @@ export interface CheckFormData {
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    DurationFieldComponent,
   ],
   templateUrl: './check-form.dialog.html',
   styleUrl: './check-form.dialog.scss',
@@ -61,7 +64,10 @@ export class CheckFormDialog {
   protected readonly t = inject(I18n).t;
   private readonly formBuilder = inject(FormBuilder);
 
-  protected readonly minPeriod = LIMITS.periodSecondsMin;
+  /** "Every 45 seconds" to "every 2 weeks". Months are not a fixed length: that is a cron expression. */
+  protected readonly periodUnits: readonly DurationUnit[] = ['seconds', 'minutes', 'hours', 'days', 'weeks'];
+  /** The longest grace is a week, so a week itself is not offered. */
+  protected readonly graceUnits: readonly DurationUnit[] = ['seconds', 'minutes', 'hours', 'days'];
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -70,7 +76,7 @@ export class CheckFormDialog {
     scheduleType: [this.data.check?.scheduleType ?? ('interval' as 'interval' | 'cron')],
     periodSeconds: [
       this.data.check?.periodSeconds ?? 3600,
-      [Validators.min(LIMITS.periodSecondsMin), Validators.max(LIMITS.periodSecondsMax)],
+      [Validators.required, Validators.min(LIMITS.periodSecondsMin), Validators.max(LIMITS.periodSecondsMax)],
     ],
     cronExpression: [
       this.data.check?.cronExpression ?? '',
@@ -86,6 +92,17 @@ export class CheckFormDialog {
     ],
     environment: [this.data.check?.environment ?? ''],
   });
+
+  constructor() {
+    // A cron schedule has no period: a field nobody can see must not keep the form invalid.
+    const syncPeriod = (type: 'interval' | 'cron'): void => {
+      const period = this.form.controls.periodSeconds;
+      if (type === 'cron') period.disable({ emitEvent: false });
+      else period.enable({ emitEvent: false });
+    };
+    syncPeriod(this.form.controls.scheduleType.value);
+    this.form.controls.scheduleType.valueChanges.subscribe(syncPeriod);
+  }
 
   protected save(): void {
     if (this.form.invalid || this.busy()) {
