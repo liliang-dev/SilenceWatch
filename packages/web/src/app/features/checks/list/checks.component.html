@@ -4,9 +4,15 @@
       <h1>{{ t('checks.title') }}</h1>
       <p class="sw-muted">{{ subtitle() }}</p>
     </div>
-    <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
+    <button
+      mat-flat-button
+      class="sw-header-add"
+      (click)="create()"
+      [disabled]="projects.selected() === null"
+      [attr.aria-label]="t('checks.new')"
+    >
       <sw-icon name="add" />
-      {{ t('checks.new') }}
+      <span class="sw-header-add-label">{{ t('checks.new') }}</span>
     </button>
   </header>
 

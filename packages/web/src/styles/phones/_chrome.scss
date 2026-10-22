@@ -20,9 +20,40 @@
     margin-bottom: 18px;
   }
 
-  /* A page's one primary action is the full width of the page. */
-  .sw-page-header > .mat-mdc-button-base {
-    width: 100%;
+  /* A page's one primary action is a round "+" at the right of the title, on the
+     same line, so it costs no row of its own. Its label stays for screen readers
+     (and is the button's aria-label); it is only not drawn. */
+  .sw-page-header:has(> .sw-header-add) {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .sw-page-header:has(> .sw-header-add) > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .sw-page-header > .sw-header-add.mat-mdc-button-base {
+    flex: none;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .sw-header-add .sw-header-add-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sw-header-add sw-icon {
+    margin: 0;
+    transform: none;
   }
 
   .sw-card-pad {

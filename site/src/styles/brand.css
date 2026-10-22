@@ -19,6 +19,68 @@
   --sl-color-accent-high: #d3bafe;
 }
 
+/* The light page.
+ *
+ * It used to be white with cards of a very pale grey on it, which is two almost
+ * identical lights: the content did not stand out, and the purple (a mid purple
+ * on a near-white page) was thin. So the page itself is a cool lavender-grey,
+ * the surfaces that carry content (header, cards, panels, the sidebar) are pure
+ * white and have a visible edge, and the purple is a step darker. Text is
+ * Starlight's own, a touch darker for the muted greys. */
+:root[data-theme='light'] {
+  --sl-color-bg: #eceef7;
+  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-sidebar: #ffffff;
+  --sl-color-hairline: #cdd2e4;
+  --sl-color-gray-3: #484c5a;
+  --sl-color-accent-low: #e6dafc;
+  --sl-color-accent: #6a2be0;
+  --sl-color-accent-high: #3f0f96;
+  --sl-color-text-accent: #5a1fc4;
+  --sw-glow-a: rgb(139 75 241 / 0.17);
+  --sw-glow-b: rgb(56 140 248 / 0.13);
+  --sw-dot: rgb(76 82 130 / 0.18);
+  --sw-lift: 0 1px 2px rgb(40 30 90 / 0.06), 0 6px 18px rgb(40 30 90 / 0.07);
+}
+
+:root[data-theme='dark'] {
+  /* The light page, made dark: the same tinted page, white-on-edge surfaces
+     becoming lighter dark ones, and the same glows and dot grid, stronger. The
+     application uses these very values. */
+  --sl-color-bg: #0d0e19;
+  --sl-color-bg-nav: #171a2c;
+  --sl-color-bg-sidebar: #131527;
+  --sl-color-hairline: #2c3250;
+  --sw-glow-a: rgb(139 75 241 / 0.26);
+  --sw-glow-b: rgb(56 140 248 / 0.14);
+  --sw-dot: rgb(255 255 255 / 0.08);
+  --sw-lift: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.25);
+}
+
+/* Something behind the content: two soft glows at the top and a fine dot grid,
+   all of it fading out down the page so that long pages are calm. Fixed to the
+   window, behind everything, and never in the way of a click. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 30rem at 12% -8%, var(--sw-glow-a), transparent 70%),
+    radial-gradient(50rem 26rem at 100% 4%, var(--sw-glow-b), transparent 68%),
+    radial-gradient(circle at 1px 1px, var(--sw-dot) 1px, transparent 1.5px) 0 0 / 24px 24px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 30%, transparent 92%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 30%, transparent 92%);
+}
+
+/* Cards and panels sit on the page rather than melting into it. */
+.sw-facts li,
+.sw-home .card,
+.sw-pricing .plan {
+  box-shadow: var(--sw-lift);
+}
+
 /* No web font is loaded: nothing here fetches from a third party. */
 
 /* --- the home page --------------------------------------------------------- */
@@ -359,4 +421,11 @@
   .header .site-title span {
     display: none;
   }
+}
+
+/* A plain button inside a white card was filled with the page colour, which on
+   the lavender page is a grey patch; it reads better as white with an edge. */
+:root[data-theme='light'] .sw-pricing .btn:not(.primary),
+:root[data-theme='light'] .sw-home .path .btn:not(.primary):not(.ghost) {
+  background: #ffffff;
 }

@@ -3,11 +3,7 @@
   place-items: center;
   min-height: 100dvh;
   padding: 24px;
-  /* A single faint wash behind the card: enough to keep the page from
-     reading as an unstyled form, quiet enough not to compete with it. */
-  background:
-    radial-gradient(60rem 30rem at 50% -10%, var(--sw-accent-soft), transparent 70%),
-    var(--sw-bg);
+  /* No background of its own: the page's glows and dot grid show through. */
 }
 
 .panel {
@@ -166,9 +162,7 @@ h1 {
   gap: 10px;
 }
 
-.provider svg {
-  margin-right: 8px;
-}
+
 
 .saved {
   display: flex;
