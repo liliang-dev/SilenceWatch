@@ -10,6 +10,39 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-10-22
+
+No configuration change and no migration: replace the image and restart. Nothing to do on
+an instance that signs in with a passkey, a password, Google or Microsoft.
+
+### Fixed
+
+- **A sign-up refused because the connection already has an account** (`SIGNUP_MAX_ACCOUNTS_PER_ADDRESS`)
+  said "Too many attempts, wait a moment", which sent people to wait when waiting changes nothing.
+  The sign-up page now shows the server's own reason, in English and French: an account already
+  exists from this network, sign in to it, or get in touch if the connection is shared.
+- **Icons sat low next to their word** in buttons, the project switcher, the back link and the
+  colour-mode tiles (about 1.3px below the middle of the letters, so the word read slightly high),
+  and a label that wrapped on a phone (a long French one) put its icon above the text. The
+  Google and Microsoft buttons of the sign-in page had both problems.
+
+### Changed
+
+- **One look for the application and the website**, light and dark: a lavender-grey page with
+  white surfaces and a visible edge, soft glows and a dot grid behind everything, and a darker
+  purple for text and links. The dark theme is the same scheme made dark. The old page was
+  near-white under pale cards, so content did not stand out.
+- **On a phone, the new-check button is a round "+"** on the title's row, centred between the
+  title and its subtitle, so it no longer takes a row of its own.
+- The colour-mode choices in Settings show the icon beside the word on a phone, as the language
+  choices do.
+
+### Added
+
+- The website serves `/.well-known/microsoft-identity-association.json`, which Microsoft asks for
+  to verify the publisher domain of the sign-in application. It holds only the application's
+  public client id.
+
 ## [0.5.0] — 2026-10-21
 
 **Sign-in is replaced by [Better Auth](https://www.better-auth.com), so read
@@ -774,7 +807,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.3.2...0.4.0
