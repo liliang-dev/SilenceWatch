@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { AppConfig, CONFIG } from '../config/config';
 
 /**
@@ -77,7 +78,7 @@ export class HttpStripeApi extends StripeApi {
     locale?: 'fr' | 'en';
     acceptance?: string;
   }): Promise<{ url: string }> {
-    const session = await this.call<{ url: string | null }>('POST', '/v1/checkout/sessions', {
+    const params = {
       mode: 'subscription',
       customer: input.customerId,
       client_reference_id: input.userId,
@@ -96,7 +97,13 @@ export class HttpStripeApi extends StripeApi {
       ...(input.automaticTax
         ? { automatic_tax: { enabled: true }, customer_update: { address: 'auto' } }
         : {}),
-    });
+    };
+    const session = await this.call<{ url: string | null }>(
+      'POST',
+      '/v1/checkout/sessions',
+      params,
+      checkoutIdempotencyKey(params),
+    );
     if (typeof session.url !== 'string') {
       throw new StripeError('Stripe returned a checkout session without an address', null, null);
     }
@@ -156,6 +163,46 @@ export class HttpStripeApi extends StripeApi {
     }
     return body as T;
   }
+}
+
+/**
+ * How long two identical requests to open a payment page count as one: a double
+ * click, a retry after a dropped connection. A minute is long enough for those
+ * and short enough that someone who comes back and asks again gets a fresh page.
+ */
+const CHECKOUT_WINDOW_MS = 60_000;
+
+/** The value with its keys in a fixed order, so the same parameters always read the same. */
+function stable(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([key, inner]) => [key, stable(inner)]),
+    );
+  }
+  return value;
+}
+
+/**
+ * The idempotency key of a payment page: a hash of what is asked and of the
+ * minute it is asked in, so that the same request made twice in a minute gets
+ * the same page back from Stripe, once, instead of two sessions.
+ *
+ * It is derived from the request rather than from the person, because Stripe
+ * refuses a reused key whose parameters differ: someone who changes language or
+ * plan between two clicks has made a different request and needs a different key.
+ * Stripe keeps keys for 24 hours, so the window is what bounds them. The hash
+ * keeps it short (Stripe takes 255 characters) and free of the user's identifiers.
+ */
+export function checkoutIdempotencyKey(params: Record<string, unknown>, now: number = Date.now()): string {
+  const window = Math.floor(now / CHECKOUT_WINDOW_MS);
+  const digest = createHash('sha256')
+    .update(JSON.stringify([window, stable(params)]))
+    .digest('hex')
+    .slice(0, 48);
+  return `silencewatch-checkout-${digest}`;
 }
 
 /** Stripe's form encoding: `a[b]=1`, `a[0][b]=1`. */

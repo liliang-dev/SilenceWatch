@@ -23,6 +23,17 @@ called out under **Changed** with what to do about it.
   Nothing changes in the API, which still takes seconds. A period that is a whole number of
   weeks is shown as `2w` in the lists.
 
+### Added
+
+- **Stripe: `customer.subscription.paused` and `customer.subscription.resumed`** are handled.
+  A subscription that Stripe pauses (a trial that ended with no payment method) takes the
+  paid plan away, and resuming it gives it back. **Add the two events to the webhook endpoint
+  in Stripe**; an endpoint with the first three keeps working, and only misses these two cases.
+- **Opening a payment page is idempotent.** Two identical requests within a minute (a double
+  click, a retry after a dropped connection) get the same Stripe session instead of two.
+  Changing the plan or the language between two clicks is a different request and opens a
+  new page.
+
 ## [0.5.1] — 2026-10-22
 
 No configuration change and no migration: replace the image and restart. Nothing to do on
