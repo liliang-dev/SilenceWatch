@@ -1,20 +1,22 @@
-name: Starter release
+name: Java release
 
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
 # The starter has a version of its own (0.1.0) and the application another (0.5.1),
-# so they are tagged apart: `starter-0.1.0` here, `0.5.1` for the Release workflow.
+# so they are tagged apart: `java-0.1.0` here, `0.5.1` for the Release workflow.
+# The tag names the language, as the Python library's does (`python-0.1.0`): the
+# next Java client would be released the same way.
 # The strict pattern means neither workflow can fire on the other's tags, and an
 # unrelated tag cannot publish to a registry other people build against.
 on:
   push:
-    tags: ['starter-[0-9]+.[0-9]+.[0-9]+']
+    tags: ['java-[0-9]+.[0-9]+.[0-9]+']
   # Releases a tag that already exists, for the same reason the Release workflow
   # allows it: re-pushing a tag changes what a published version means.
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to release, for example starter-0.1.0'
+        description: 'Existing tag to release, for example java-0.1.0'
         required: true
         type: string
 
@@ -44,15 +46,15 @@ jobs:
         run: |
           set -eu
           case "$RAW_TAG" in
-            starter-[0-9]*.[0-9]*.[0-9]*) ;;
+            java-[0-9]*.[0-9]*.[0-9]*) ;;
             *)
-              echo "Refusing to release '$RAW_TAG': expected starter-N.N.N" >&2
+              echo "Refusing to release '$RAW_TAG': expected java-N.N.N" >&2
               exit 1
               ;;
           esac
           # Only a final version: Central never lets a version be changed or
           # removed, and a pre-release is better named in a staging repository.
-          version="${RAW_TAG#starter-}"
+          version="${RAW_TAG#java-}"
           case "$version" in
             *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
           esac

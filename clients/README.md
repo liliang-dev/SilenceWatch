@@ -40,8 +40,8 @@ For another scheduler in a language that already has a client, add a module to i
 `discover()` and `install()`). For another language, add a folder here with its own
 package, its own tests, its own release workflow and its own README, following the
 contract above, and a row in the table. Put a new language's CI job in
-`.github/workflows/ci.yml` and its release workflow beside `starter-release.yml` and
-`python-release.yml`, with a tag of its own (`<name>-N.N.N`) so that no workflow can
+`.github/workflows/ci.yml` and its release workflow beside `java-release.yml` and
+`python-release.yml`, with a tag named after the language (`java-N.N.N`, `python-N.N.N`) so that no workflow can
 fire on another's tags.
 
 Licence: Apache-2.0, deliberately, so a client can be embedded in any application
