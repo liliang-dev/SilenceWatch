@@ -31,3 +31,6 @@ mvnw            text eol=lf
 *.woff2  binary
 *.jar    binary
 *.gz     binary
+
+# The `silencewatch` command of the image has no extension, and is just as much a script.
+deploy/silencewatch text eol=lf

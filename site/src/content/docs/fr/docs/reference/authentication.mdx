@@ -49,7 +49,7 @@ Rien de ce qui suit n’est un point d’entrée de l’API : cela se fait sur l
 
 ## Commandes de support
 
-La même ligne de commande (`node packages/server/dist/auth/cli.js <commande> --email <adresse>`, dans le conteneur) répond aux demandes courantes. Lancée sans argument, elle affiche cette liste.
+La même ligne de commande (`silencewatch <commande> --email <adresse>`, dans le conteneur, par exemple `docker compose exec silencewatch silencewatch show --email jane@example.com`) répond aux demandes courantes. Lancée sans argument, elle affiche cette liste. L’ancienne forme `node packages/server/dist/auth/cli.js` fonctionne toujours.
 
 | Commande | Ce qu’elle fait |
 | --- | --- |

@@ -18,6 +18,9 @@ called out under **Changed** with what to do about it.
   and `recovery-codes`. Run it with no arguments for the list. Each change writes an
   `operator.change` line to the audit trail, and `reset-password` and `recovery-codes`
   now do too. See [Authentication](docs/authentication.md#support-commands).
+- **`silencewatch`, a short name for that command line**, on the image's PATH:
+  `docker compose exec silencewatch silencewatch show --email …`. The long
+  `node packages/server/dist/auth/cli.js` form still works.
 
 ## [0.5.2] — 2026-10-23
 

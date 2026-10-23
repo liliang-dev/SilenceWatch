@@ -1,0 +1,4 @@
+#!/bin/sh
+# The account command line, short enough to type: `silencewatch show --email …`.
+# Run `silencewatch` with no arguments for the list of commands.
+exec node /app/packages/server/dist/auth/cli.js "$@"
