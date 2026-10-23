@@ -1,97 +1,90 @@
 #!/usr/bin/env node
 /**
- * Account tasks for whoever runs the server, from the command line:
+ * Account tasks for whoever runs the server, from the command line. Run it
+ * without arguments for the list of commands and what each one does.
  *
- *   node dist/auth/cli.js create-admin    --email <address>
- *   node dist/auth/cli.js reset-password  --email <address>   (AUTH_MODE=password)
- *   node dist/auth/cli.js recovery-codes  --email <address>   (AUTH_MODE=passkey)
- *
- * Deliberately not endpoints: each of these hands out access, and the only person
- * entitled to ask for it is one who can already run commands on the server.
+ * Deliberately not endpoints: each of these hands out access or changes an
+ * account, and the only person entitled to ask for it is one who can already run
+ * commands on the server.
  *
  * Every command prints what it produced to the terminal and nowhere else. The
- * password and the codes are shown once and are not recoverable afterwards.
+ * password and the codes are shown once and are not recoverable afterwards. Every
+ * command that changes something is recorded in the audit trail.
  */
-import { hashPassword } from 'better-auth/crypto';
-import { randomBytes } from 'node:crypto';
-import { loadConfig, type AppConfig } from '../config/config';
+import { loadConfig } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
-import { RecoveryCodesService } from './recovery/recovery-codes.service';
-import { SetupLinkService } from './signup/setup-link.service';
-import { UsersRepository } from './users/users.repository';
+import { SupportCommands, SupportError } from './cli/support-commands';
 
-const USAGE = `Usage: node dist/auth/cli.js <command> --email <address>
+const USAGE = `Usage: node dist/auth/cli.js <command> --email <address> [options]
 
-Commands:
+Look:
+  show             Print the account: plan, subscription, sign-in methods, live
+                   sessions, lockout and projects. Changes nothing.
+
+Let someone in:
   create-admin     Print a one-time link that creates an account for the address,
                    whether or not sign-up is open. Use it for the first account.
+  recovery-codes   Replace the account's recovery codes and print the new set once.
+                   Only when AUTH_MODE=passkey.
   reset-password   Set a new random password for the account and print it once.
                    Only when AUTH_MODE=password. Ends the account's sessions.
-  recovery-codes   Replace the account's recovery codes and print the new set once.
-                   Only when AUTH_MODE=passkey.`;
+  unlock           End a lockout after too many wrong passwords.
+  end-sessions     Sign the account out everywhere.
+
+Fix an account:
+  verify-email     Mark the address as verified. Needed before Google can be linked
+                   to an account that was created with a passkey.
+  set-plan         Change the plan: --plan <name> (a name from PLAN_LIMITS) or
+                   --plan none for no limits. A Stripe event sets it again.`;
 
 async function run(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
-  const email = emailOption(rest);
-  if (command === undefined || email === null) {
-    throw new UsageError(USAGE);
+  const email = option(rest, '--email')?.toLowerCase() ?? null;
+  if (command === undefined || email === null || !/^[^@\s]+@[^@\s]+$/.test(email)) {
+    throw new SupportError(USAGE);
   }
 
   const config = loadConfig();
   const prisma = new PrismaService(config);
   await prisma.$connect();
   try {
-    const users = new UsersRepository(prisma);
-
-    switch (command) {
-      case 'create-admin': {
-        const { url, expiresAt } = await new SetupLinkService(config, prisma).issue(email);
-        print(`Open this link once, before ${expiresAt.toISOString()}:\n\n  ${url}`);
-        return;
-      }
-      case 'reset-password': {
-        requireMode(config, 'password', 'reset-password');
-        const user = await existing(users, email);
-        const password = randomBytes(18).toString('base64url');
-        await users.replacePasswordAndEndSessions(user.id, await hashPassword(password));
-        print(
-          `New password for ${email} (shown once, change it after signing in):\n\n  ${password}`,
-        );
-        return;
-      }
-      case 'recovery-codes': {
-        requireMode(config, 'passkey', 'recovery-codes');
-        const user = await existing(users, email);
-        const codes = await new RecoveryCodesService(config, prisma).replaceAll(user.id);
-        print(`Recovery codes for ${email} (shown once; the previous ones no longer work):\n\n  ${codes.join('\n  ')}`);
-        return;
-      }
-      default:
-        throw new UsageError(USAGE);
-    }
+    const commands = new SupportCommands(config, prisma);
+    print(await dispatch(commands, command, email, rest));
   } finally {
     await prisma.onModuleDestroy();
   }
 }
 
-class UsageError extends Error {}
-
-function emailOption(args: string[]): string | null {
-  const at = args.indexOf('--email');
-  const value = at === -1 ? undefined : args[at + 1];
-  return value !== undefined && /^[^@\s]+@[^@\s]+$/.test(value) ? value.toLowerCase() : null;
-}
-
-function requireMode(config: AppConfig, mode: AppConfig['AUTH_MODE'], command: string): void {
-  if (config.AUTH_MODE !== mode) {
-    throw new UsageError(`${command} only applies when AUTH_MODE=${mode} (this instance runs ${config.AUTH_MODE}).`);
+function dispatch(commands: SupportCommands, command: string, email: string, args: string[]): Promise<string> {
+  switch (command) {
+    case 'show':
+      return commands.show(email);
+    case 'create-admin':
+      return commands.createAdmin(email);
+    case 'recovery-codes':
+      return commands.recoveryCodes(email);
+    case 'reset-password':
+      return commands.resetPassword(email);
+    case 'unlock':
+      return commands.unlock(email);
+    case 'end-sessions':
+      return commands.endSessions(email);
+    case 'verify-email':
+      return commands.verifyEmail(email);
+    case 'set-plan': {
+      const plan = option(args, '--plan');
+      if (plan === null) throw new SupportError('set-plan needs --plan <name>, or --plan none.');
+      return commands.setPlan(email, plan);
+    }
+    default:
+      throw new SupportError(USAGE);
   }
 }
 
-async function existing(users: UsersRepository, email: string): Promise<{ id: string }> {
-  const user = await users.findByEmail(email);
-  if (user === null) throw new UsageError(`No account for ${email}.`);
-  return user;
+function option(args: string[], name: string): string | null {
+  const at = args.indexOf(name);
+  const value = at === -1 ? undefined : args[at + 1];
+  return value !== undefined && !value.startsWith('--') ? value : null;
 }
 
 const print = (text: string): void => {
@@ -100,5 +93,5 @@ const print = (text: string): void => {
 
 run(process.argv.slice(2)).catch((error: Error) => {
   process.stderr.write(`${error.message}\n`);
-  process.exitCode = error instanceof UsageError ? 2 : 1;
+  process.exitCode = error instanceof SupportError ? 2 : 1;
 });

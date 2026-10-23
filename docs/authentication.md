@@ -240,6 +240,25 @@ Run them as `node packages/server/dist/auth/cli.js <command> --email <address>` 
 the server container. The password and the codes are printed to the terminal and
 nowhere else.
 
+## Support commands
+
+The same command line answers the everyday requests of running a service. Run it
+with no arguments to print this list.
+
+| Command | What it does |
+| --- | --- |
+| `show` | Prints the account: plan, subscription, sign-in methods, live sessions, lockout and projects. Changes nothing, and prints no secret. |
+| `create-admin` | A one-time setup link that creates an account for the address, whether or not sign-up is open. |
+| `recovery-codes` | A new set of recovery codes, once; the old ones stop working. `AUTH_MODE=passkey` only. |
+| `reset-password` | A new random password, once; ends the account's sessions. `AUTH_MODE=password` only. |
+| `unlock` | Ends a lockout after too many wrong passwords. |
+| `end-sessions` | Signs the account out everywhere. |
+| `verify-email` | Marks the address as verified. Google can only be linked to an existing account whose address is verified, and an account created with a passkey has none to prove it. |
+| `set-plan --plan <name>` | Moves the account to a plan from `PLAN_LIMITS`; `--plan none` removes the limits. An account with a Stripe subscription gets its plan set again by the next event. |
+
+Every command that changes something writes one `operator.change` line to the audit
+trail, naming the command and the account (never a password or a code).
+
 ## Changing the mode later
 
 Changing `AUTH_MODE` **never deletes an account, a project or a check.** It changes

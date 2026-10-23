@@ -42,6 +42,10 @@ overrides:
   # loop by a crafted indexed source map. Reached by the build only (Astro, svgo,
   # css-tree), on source maps this site's own build produces.
   source-map-js@<1.2.2: '^1.2.2'
+  # GHSA-mrhx-c7xc-m3w5 — zod below 4.6.6 can exhaust memory validating an oversized
+  # input. Reached through Astro, which validates its own content schemas at build
+  # time on files this repository wrote; nothing the published site serves.
+  zod@<4.6.6: '^4.6.6'
   # GHSA-rj75-hqrm-r3gf — postcss-selector-parser below 7.1.6 takes quadratic time
   # on a long flat selector. Reached through postcss-nested, which Starlight's code
   # blocks use at build time, on styles that ship with the theme.
