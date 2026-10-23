@@ -116,6 +116,11 @@ overrides:
   # Delete this when the server moves to Nest 12, whose adapter pins >=5.12.5.
   'fastify@<5.12.5': '^5.12.5'
 
+  # GHSA-mrhx-c7xc-m3w5 — zod below 4.6.6 can exhaust memory validating an oversized
+  # input. Our own zod is already ^4.6.7; the old one is @angular/forms' (through
+  # @angular/cdk), which the web build uses and the browser never feeds a request body.
+  'zod@<4.6.6': '^4.6.6'
+
   # GHSA-5jgf-p345-68v8, -f65p-4m7j-42xc, -fph4-wmhf-6fwf, -jqff-g426-hqxp,
   # -qw65-cvwx-89v3, -hrr3-gc8f-f4qj — fast-uri: host confusion and SSRF through
   # URL normalisation. It ships: ajv and fast-json-stringify reach it through
