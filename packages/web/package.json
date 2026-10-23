@@ -12,7 +12,7 @@
     "lint": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
-    "@angular/animations": "^22.1.0",
+    "@angular/animations": "^22.2.3",
     "@angular/cdk": "^22.2.2",
     "@angular/common": "^22.2.2",
     "@angular/compiler": "^22.2.2",
