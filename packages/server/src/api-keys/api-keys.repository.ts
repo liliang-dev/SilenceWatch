@@ -27,6 +27,8 @@ export interface StoredApiKey {
   secretHash: string;
   revokedAt: Date | null;
   expiresAt: Date | null;
+  /** Whether the project is left with nobody who may sign in: see ApiKeyService.resolve. */
+  suspended: boolean;
 }
 
 /** Every query on API keys. Only the hash of the secret half is ever stored. */
@@ -69,11 +71,27 @@ export class ApiKeysRepository {
     });
   }
 
-  findByLookupId(lookupId: string): Promise<StoredApiKey | null> {
-    return this.prisma.apiKey.findUnique({
+  async findByLookupId(lookupId: string): Promise<StoredApiKey | null> {
+    const row = await this.prisma.apiKey.findUnique({
       where: { lookupId },
-      select: { id: true, projectId: true, secretHash: true, revokedAt: true, expiresAt: true },
+      select: {
+        id: true,
+        projectId: true,
+        secretHash: true,
+        revokedAt: true,
+        expiresAt: true,
+        project: {
+          select: { members: { where: { role: 'owner' }, select: { user: { select: { disabledAt: true } } } } },
+        },
+      },
     });
+    if (row === null) return null;
+    const { project, ...key } = row;
+    // A project whose owners are all disabled is suspended with them. One with no
+    // owner at all is not: that is not something a disabled account did.
+    const suspended =
+      project.members.length > 0 && project.members.every((member) => member.user.disabledAt !== null);
+    return { ...key, suspended };
   }
 
   touch(apiKeyId: string): Promise<unknown> {

@@ -59,6 +59,8 @@ La même ligne de commande (`silencewatch <commande> --email <adresse>`, dans le
 | `reset-password` | Un nouveau mot de passe aléatoire, une seule fois ; ferme les sessions du compte. `AUTH_MODE=password` uniquement. |
 | `unlock` | Lève un verrouillage après trop de mots de passe erronés. |
 | `end-sessions` | Déconnecte le compte partout. |
+| `disable` | Ferme la porte à un compte qui ressemble à un abus. Plus aucune connexion, par aucune méthode (mot de passe, passkey, code de récupération, Google ou Microsoft), ses sessions sont fermées et les clés d’API des projets dont il est seul propriétaire sont refusées. Rien n’est supprimé. Ses checks continuent de tourner et d’alerter, et un abonnement Stripe continue d’être facturé : à traiter dans le projet et dans Stripe. |
+| `enable` | Annule `disable`. |
 | `verify-email` | Marque l’adresse comme vérifiée. Google ne se rattache qu’à un compte dont l’adresse est vérifiée, et un compte créé par passkey n’a rien pour le prouver. |
 | `set-plan --plan <nom>` | Place le compte sur un plan de `PLAN_LIMITS` ; `--plan none` retire les limites. Un compte avec un abonnement Stripe retrouve son plan au prochain événement. |
 

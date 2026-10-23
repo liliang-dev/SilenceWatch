@@ -104,6 +104,10 @@ model User {
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(3)
 
+  /// Set by the operator's `disable` command. A disabled account cannot sign in, its
+  /// sessions are gone, and API keys of the projects it alone owns stop working.
+  disabledAt DateTime? @map("disabled_at") @db.Timestamptz(3)
+
   /// Plan name. Null means unlimited, which is every self-hosted account.
   /// The limits behind the name come from PLAN_LIMITS, never from this repo.
   plan String?

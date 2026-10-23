@@ -75,6 +75,7 @@ export class SupportCommands {
     const locked = user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now();
     const lines: Array<[string, string]> = [
       ['Account', `${user.email} (${user.id})`],
+      ['Status', user.disabledAt === null ? 'active' : `DISABLED since ${user.disabledAt.toISOString()}`],
       ['Created', user.createdAt.toISOString()],
       ['Last sign-in', user.lastLoginAt?.toISOString() ?? 'never'],
       ['Email verified', user.emailVerified ? 'yes' : 'no'],
@@ -132,6 +133,37 @@ export class SupportCommands {
         ? '\nNote: this account has a Stripe subscription, and its next event sets the plan again.'
         : '';
     return `Plan of ${email}: ${user.plan ?? 'none'} → ${next ?? 'none'}.${warning}`;
+  }
+
+  /**
+   * For an account that looks like abuse. It cannot sign in by any method, the
+   * sessions it has are ended, and the API keys of the projects it alone owns stop
+   * working. Nothing is deleted, and enable undoes all of it.
+   *
+   * What it does not touch: the checks keep running and alerting, so a monitored
+   * job is not left silent by it, and a Stripe subscription keeps billing. Both
+   * are the operator's to deal with, in Stripe and with the checks.
+   */
+  async disable(email: string): Promise<string> {
+    const user = await this.existing(email);
+    if (user.disabledAt !== null) return `${email} was already disabled. Nothing changed.`;
+    const [, { count }] = await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: user.id }, data: { disabledAt: new Date() } }),
+      this.prisma.session.deleteMany({ where: { userId: user.id } }),
+    ]);
+    await this.record(user, 'disable', { sessions: count });
+    return (
+      `${email} is disabled: no sign-in, ${count} session(s) ended, API keys of its own projects refused.\n` +
+      'Its checks still run and alert, and any Stripe subscription still bills.'
+    );
+  }
+
+  async enable(email: string): Promise<string> {
+    const user = await this.existing(email);
+    if (user.disabledAt === null) return `${email} was not disabled. Nothing changed.`;
+    await this.prisma.user.update({ where: { id: user.id }, data: { disabledAt: null } });
+    await this.record(user, 'enable');
+    return `${email} can sign in again, and its API keys work again.`;
   }
 
   /** Ends a lockout early: the person typed a wrong password too many times, and asked for help. */

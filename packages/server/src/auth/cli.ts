@@ -31,6 +31,11 @@ Let someone in:
                    Only when AUTH_MODE=password. Ends the account's sessions.
   unlock           End a lockout after too many wrong passwords.
   end-sessions     Sign the account out everywhere.
+  disable          Shut an account out: no sign-in by any method, its sessions ended,
+                   the API keys of projects it alone owns refused. Deletes nothing.
+                   Its checks keep running and alerting. For an account that looks
+                   like abuse.
+  enable           Undo disable.
 
 Fix an account:
   verify-email     Mark the address as verified. Needed before Google can be linked
@@ -70,6 +75,10 @@ function dispatch(commands: SupportCommands, command: string, email: string, arg
       return commands.unlock(email);
     case 'end-sessions':
       return commands.endSessions(email);
+    case 'disable':
+      return commands.disable(email);
+    case 'enable':
+      return commands.enable(email);
     case 'verify-email':
       return commands.verifyEmail(email);
     case 'set-plan': {
