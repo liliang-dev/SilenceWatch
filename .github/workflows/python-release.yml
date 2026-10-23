@@ -1,0 +1,148 @@
+name: Python release
+
+# Publishes the Python library to PyPI, for a tag of its own.
+#
+# The library has a version of its own (0.1.0), apart from the application (0.5.2)
+# and the Spring Boot starter, so it is tagged apart too: `python-0.1.0` here,
+# `java-0.1.0` for the Spring Boot starter, `0.5.2` for the application. The strict pattern
+# means no workflow can fire on another's tags, and an unrelated tag cannot publish
+# to a registry other people install from.
+on:
+  push:
+    tags: ['python-[0-9]+.[0-9]+.[0-9]+']
+  # Releases a tag that already exists, for the same reason the Release workflow
+  # allows it: re-pushing a tag changes what a published version means.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, for example python-0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          # Through the environment rather than inlined: a tag name is
+          # attacker-influenced on a fork, and interpolating it into a shell
+          # would run it.
+          RAW_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -eu
+          case "$RAW_TAG" in
+            python-[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing to release '$RAW_TAG': expected python-N.N.N" >&2
+              exit 1
+              ;;
+          esac
+          version="${RAW_TAG#python-}"
+          # Only a final version: PyPI never lets a version be replaced, and a
+          # pre-release is better named on TestPyPI.
+          case "$version" in
+            *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$RAW_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tag, not the branch: a manual run must publish what was tagged.
+          ref: ${{ steps.version.outputs.tag }}
+          # The history, to tell whether the tagged commit is on main.
+          fetch-depth: 0
+
+      # Before anything is built, and certainly before anything is uploaded: what is
+      # published is what is on main, and it says the version it is published as.
+      # A version a package gives itself that differs from its tag is the mistake
+      # that cannot be undone on PyPI.
+      - name: Check the tagged commit is releasable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::The tagged commit is not on main. Promote dev to main, then tag." >&2
+            exit 1
+          fi
+          found="$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' clients/python/src/silencewatch/_version.py)"
+          if [ "$found" != "$VERSION" ]; then
+            echo "::error file=clients/python/src/silencewatch/_version.py::The package says $found, but the tag is $VERSION." >&2
+            exit 1
+          fi
+          if ! grep -q "^## \[$VERSION\]" clients/python/CHANGELOG.md; then
+            echo "::error file=clients/python/CHANGELOG.md::No '## [$VERSION]' section in the changelog." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            clients/python/pyproject.toml
+            clients/python/requirements-test.txt
+            clients/python/requirements-lint.txt
+
+      - name: Install
+        working-directory: clients/python
+        run: pip install -e ".[celery,apscheduler]" -r requirements-test.txt -r requirements-lint.txt
+
+      # The same checks as CI, on the tagged commit: nothing is published that did not
+      # pass them.
+      - name: Lint, types and tests
+        working-directory: clients/python
+        run: ruff check . && mypy && pytest
+
+      - name: Build the distribution
+        working-directory: clients/python
+        run: python -m build && twine check dist/*
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-distribution
+          path: clients/python/dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+
+    # A GitHub environment, so a required reviewer can be put in front of the
+    # publication. Created by hand, and named in the trusted publisher on PyPI
+    # (project `silencewatch`, this repository, this workflow, this environment):
+    # there is no token to store, PyPI trusts the identity of this run.
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distribution
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+      - name: What happens next
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          {
+            echo "### silencewatch $VERSION published"
+            echo
+            echo "https://pypi.org/project/silencewatch/$VERSION/"
+            echo
+            echo "A published version can never be replaced: a mistake is fixed by the next number."
+          } >> "$GITHUB_STEP_SUMMARY"

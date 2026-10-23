@@ -15,7 +15,7 @@ This page takes you from nothing to a first monitored job with a working alert. 
 
 2. **Create a check.** In *Checks*, click *New check* and fill in:
    - the **name** ("Nightly backup");
-   - the **schedule**, either "every N seconds" or a [cron expression](/docs/schedules-and-states/) with its time zone;
+   - the **schedule**, either an interval ("every N minutes, hours, days or weeks") or a [cron expression](/docs/schedules-and-states/) with its time zone;
    - the **grace period**: how late a run may be before you are alerted;
    - an optional **environment** (`production`, `staging`) so jobs do not get mixed up.
 
@@ -41,7 +41,7 @@ Also call `/start` at the beginning of the job: SilenceWatch then measures how l
 
 ## Next
 
-- Monitor a **Spring Boot** application without declaring anything by hand: the [Spring Boot starter](/docs/spring-boot/).
+- Monitor a **Spring Boot** application without declaring anything by hand: the [Spring Boot starter](/docs/spring-boot/). The same for a **Python** one with Celery or APScheduler: the [Python library](/docs/python/).
 - Understand [check states and schedules](/docs/schedules-and-states/).
 - Drive your checks programmatically with the [REST API](/docs/reference/api/).
 - Run SilenceWatch on your own server: [self-hosting](/docs/reference/self-hosting/).

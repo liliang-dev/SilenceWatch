@@ -83,6 +83,12 @@ See [`clients/spring-boot-starter`](clients/spring-boot-starter/README.md), and
 [`examples/spring-boot-demo`](examples/spring-boot-demo/README.md) for a runnable
 application that declares its jobs this way.
 
+**Python gets the same.** `pip install "silencewatch[celery]"` (or `[apscheduler]`),
+set `SILENCEWATCH_API_KEY`, and call `instrument(app)`: every Celery beat task or
+APScheduler job declares itself with its real schedule and reports each run. See
+[`clients/python`](clients/python/README.md); the client libraries are listed, with the
+contract they share, in [`clients`](clients/README.md).
+
 ## Self-hosting
 
 One command, one container, one database:
@@ -94,7 +100,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.5.1`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.5.2`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account with a passkey — on an
 empty instance it is the first to arrive, unless you name it with `ADMIN_EMAIL`, in
@@ -153,7 +159,7 @@ component to monitor, which would be ironic for this product.
 
 In: heartbeat ingestion (push), silence detection, alerting by email, webhook,
 Slack, Teams and Discord, checks/projects/users, ping and incident history, API
-keys and a REST API, the Spring Boot starter, one-command self-hosting.
+keys and a REST API, the Spring Boot starter and the Python library, one-command self-hosting.
 
 Not yet: pull monitoring (SilenceWatch calling your endpoints — it needs
 multi-region probes to avoid false positives), public status pages, on-call

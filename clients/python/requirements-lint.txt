@@ -1,0 +1,7 @@
+# The tools CI runs once, on a current Python, at exact versions: a library that other
+# people install should not be checked and built by whatever a tool published this
+# morning. Dependabot moves them.
+build==1.6.1
+mypy==2.4.0
+ruff==0.17.2
+twine==7.0.0

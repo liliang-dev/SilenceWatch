@@ -13,7 +13,7 @@ A check has two settings that decide everything: **when the next heartbeat is ex
 
 Two forms, never both:
 
-- **An interval**: "every N seconds". The minimum is 30 seconds. Suited to regular processing (every 5 minutes, every hour).
+- **An interval**: "every N" seconds, minutes, hours, days or weeks, in the unit you pick. The minimum is 30 seconds and the maximum one year. Suited to regular processing (every 5 minutes, every hour, once a week). For "the first of the month", use a cron expression.
 - **A cron expression**: with 5 fields (Unix) or 6 (leading seconds, as Spring and Quartz write them), and an IANA **time zone** (`Europe/Paris`). The forms `?`, `L`, `5L` and `MON#2` are accepted. Quartz's `W` (nearest weekday) is rejected: the server could not compute the deadline, and a check whose deadline cannot be computed is worse than no check.
 
 The time zone matters for cron expressions: `0 2 * * *` is not the same moment in Paris and in New York, nor before and after a clock change.

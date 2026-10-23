@@ -16,8 +16,9 @@ export function describeSchedule(check: CheckDto, t: Translate): string {
   return t(seconds > 0 && seconds % 86_400 === 0 ? 'time.everyDays' : 'time.every', { value });
 }
 
-/** 900 → "15m", 86 400 → "1d". Falls back to seconds when nothing divides evenly. */
+/** 900 → "15m", 86 400 → "1d", 1 209 600 → "2w". Falls back to seconds when nothing divides evenly. */
 export function formatSeconds(seconds: number, t: Translate): string {
+  if (seconds > 0 && seconds % 604_800 === 0) return `${seconds / 604_800}${t('time.unitWeek')}`;
   if (seconds > 0 && seconds % 86_400 === 0) return `${seconds / 86_400}${t('time.unitDay')}`;
   if (seconds > 0 && seconds % 3_600 === 0) return `${seconds / 3_600}${t('time.unitHour')}`;
   if (seconds > 0 && seconds % 60 === 0) return `${seconds / 60}${t('time.unitMinute')}`;

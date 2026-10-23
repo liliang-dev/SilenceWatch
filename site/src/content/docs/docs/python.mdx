@@ -1,0 +1,119 @@
+---
+title: "Python library: Celery and APScheduler"
+description: "Monitor Celery beat tasks and APScheduler jobs with the SilenceWatch library: one API key, automatic discovery, never disturbing your application."
+sidebar:
+  label: Python library
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The SilenceWatch **Python library** monitors your application's scheduled jobs without you declaring anything: it reads the jobs of your scheduler, declares them with their real schedule, and sends a heartbeat around every run. It is licensed under Apache 2.0, deliberately, so it can be embedded in any application.
+
+| Scheduler | Install | What it reads |
+| --- | --- | --- |
+| **Celery beat** | `pip install "silencewatch[celery]"` | the `beat_schedule` (crontab, `timedelta`, seconds) |
+| **APScheduler 3** | `pip install "silencewatch[apscheduler]"` | the jobs of the scheduler (cron and interval triggers) |
+
+Python 3.9 or later. There is no other dependency.
+
+## Setup
+
+Create the API key in your project's *Settings › API keys* and give it to the process:
+
+```bash
+export SILENCEWATCH_API_KEY=sw_...
+# export SILENCEWATCH_URL=https://watch.example.com   # only when you host SilenceWatch yourself
+```
+
+### Celery
+
+```python
+from celery import Celery
+from celery.schedules import crontab
+from silencewatch.integrations.celery import instrument
+
+app = Celery("shop")
+app.conf.beat_schedule = {
+    "nightly-backup": {"task": "shop.tasks.backup", "schedule": crontab(hour=2, minute=0)},
+    "sync-prices": {"task": "shop.tasks.sync_prices", "schedule": 900.0},
+}
+instrument(app)
+```
+
+A worker declares the schedule when it starts, in the main process before its pool forks, so every child process has the ping keys. The heartbeats are sent by the worker that runs each scheduled task.
+
+### APScheduler
+
+```python
+from apscheduler.schedulers.background import BackgroundScheduler
+from silencewatch.integrations.apscheduler import instrument
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(backup, "cron", hour=2, id="nightly-backup")
+scheduler.add_job(sync_prices, "interval", minutes=15, id="sync-prices")
+instrument(scheduler)
+scheduler.start()
+```
+
+<Aside type="tip">
+Give every job an `id`. APScheduler makes up a random one otherwise, which changes on every start and cannot tie a job to its history. Without an id the job is identified by the function it runs, which is stable.
+</Aside>
+
+## What it does
+
+At startup, in one HTTP call, every job found is declared to `POST /api/v1/checks/sync` and the returned ping keys are kept in memory. Around each run:
+
+```text
+POST /p/<key>/start                      when the run begins
+POST /p/<key>/0?duration_ms=1234         when it returns
+POST /p/<key>/fail?duration_ms=1234      when it raises
+```
+
+Each job gets a **stable identity** that ties it to its history across restarts, redeployments and renames:
+
+| Integration | Key |
+| --- | --- |
+| Celery | `celery:shop.tasks.backup` (the task name) |
+| APScheduler | `apscheduler:nightly-backup` (the job id; without one, `apscheduler:app.jobs:backup`, the function) |
+
+A job that disappears from the code is flagged **orphaned**, never deleted. If several integrations run in one process, everything they find is declared in a single request.
+
+## Configuration
+
+Every setting is a keyword argument (`instrument(app, api_key="…", environment="staging")`) and an environment variable. The keyword wins. A duration in the environment is a number of seconds.
+
+| Keyword | Environment variable | Default |
+| --- | --- | --- |
+| `api_key` | `SILENCEWATCH_API_KEY` | none: nothing is sent |
+| `base_url` | `SILENCEWATCH_URL` | `https://app.silencewatch.com` |
+| `environment` | `SILENCEWATCH_ENVIRONMENT` | `production` |
+| `enabled` | `SILENCEWATCH_ENABLED` | `true`; `false` removes everything |
+| `default_grace` | `SILENCEWATCH_DEFAULT_GRACE` | 5 minutes, for jobs that declare none |
+| `auto_register` | `SILENCEWATCH_AUTO_REGISTER` | `true`; `false` to manage checks by hand |
+| `report_start` | `SILENCEWATCH_REPORT_START` | `true`; `false` to send only the outcome |
+| `timeout` | `SILENCEWATCH_TIMEOUT` | 2 seconds per call, deliberately short |
+| `queue_capacity` | `SILENCEWATCH_QUEUE_CAPACITY` | 1000; the oldest are dropped when full |
+| `timezone` | `SILENCEWATCH_TIMEZONE` | `UTC`, for cron jobs whose own schedule carries none |
+| `prune` | `SILENCEWATCH_PRUNE` | `true` |
+
+`prune` flags as orphaned every check of the project and environment that the declaration leaves out. Use **one environment per application**; if several services share one project and one environment, set `prune=False`, or each would orphan the others' checks.
+
+## Rules it will not break
+
+- **It never fails your job.** Every network or HTTP error is swallowed and logged at `WARNING`. Your task runs exactly once, and its result and its exception are untouched.
+- **It never blocks your job.** Sending a heartbeat is a queue append handled by a daemon thread. An unreachable SilenceWatch costs your job nothing.
+- **It is bounded.** The queue holds at most `queue_capacity` heartbeats; past that the oldest are dropped, because the freshest state is the one worth reporting. Warnings are limited to one a minute.
+- **It degrades silently.** No API key, no network, no server: the application starts and runs exactly as it would without the library. A process that started while SilenceWatch was unreachable declares itself at its first heartbeat, at most once a minute.
+- **It survives a fork.** Celery's prefork pool and gunicorn fork after the library started; each child starts its own queue and thread.
+- **`enabled=False` removes the mechanism entirely**: no discovery, no hooks, no threads.
+
+## Limits
+
+- **Celery.** A task scheduled by several beat entries is declared from the one that fires most often. A **manual** `.delay()` of a scheduled task also sends a heartbeat, because a worker cannot tell it from a scheduled one. Solar schedules and schedules kept in a database (`django-celery-beat`) are not read. A crontab that restricts both the day of the month and the day of the week fires when both match in Celery and when either does in cron; the log says so.
+- **APScheduler.** Version 3 only (version 4 has another API). A job's duration includes any time it waited for an executor. One-off `date` triggers, combined `and`/`or` triggers and the `week`, `year` and "third friday" cron fields cannot be expressed and are skipped with a warning. Jobs added or removed after the scheduler started are declared again two seconds later.
+- **Sub-30-second jobs** are declared with a 30-second period, the shortest accepted, and a warning names them.
+- **Cron expressions the server cannot evaluate** are skipped with a warning rather than failing the whole declaration.
+
+<Aside type="note">
+See also the [Python job monitoring](/python/) overview page, and the [library README](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python) for how to add an integration for another scheduler.
+</Aside>

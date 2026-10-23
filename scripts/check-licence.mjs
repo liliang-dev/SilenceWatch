@@ -19,13 +19,14 @@ const expect = (condition, message) => {
   if (!condition) problems.push(message);
 };
 
-// 1. The licence text. Four copies, because the starter and the shared package are
-//    distributed on their own; all four must be the same text, and it must be the
+// 1. The licence text. Five copies, because the starter, the Python library and the shared package are
+//    distributed on their own; all five must be the same text, and it must be the
 //    Apache License 2.0 and not a paraphrase of it.
 const copies = [
   'LICENSE',
   'packages/shared/LICENSE',
   'clients/spring-boot-starter/LICENSE',
+  'clients/python/LICENSE',
   'examples/spring-boot-demo/LICENSE',
 ];
 const root = read(copies[0]);
@@ -51,6 +52,10 @@ expect(
 expect(
   /<name>Apache License, Version 2\.0<\/name>/.test(read('clients/spring-boot-starter/pom.xml')),
   'the starter pom does not declare the Apache License, Version 2.0',
+);
+expect(
+  /^license = "Apache-2\.0"$/m.test(read('clients/python/pyproject.toml')),
+  'the Python library does not declare the licence "Apache-2.0" in pyproject.toml',
 );
 
 // 3. The brand. The files NOTICE says are not licensed have to exist, or the
@@ -84,4 +89,4 @@ if (problems.length > 0) {
   console.error('Licence check failed:\n' + problems.map((p) => `  - ${p}`).join('\n'));
   process.exit(1);
 }
-console.log(`Licence check passed: Apache-2.0 in ${copies.length} LICENSE files, 4 manifests, the image label and the starter pom; ${excluded.length} brand files excluded.`);
+console.log(`Licence check passed: Apache-2.0 in ${copies.length} LICENSE files, 4 manifests, the image label, the starter pom and the Python library; ${excluded.length} brand files excluded.`);

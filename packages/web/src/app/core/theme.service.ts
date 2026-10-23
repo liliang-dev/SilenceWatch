@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { readStored, removeStored, writeStored } from './storage';
+import { readStored, writeStored } from './storage';
 
 export type ThemeChoice = 'system' | 'light' | 'dark';
 
@@ -9,12 +9,18 @@ export const THEME_CHOICES: readonly ThemeChoice[] = ['system', 'light', 'dark']
 export const THEME_STORAGE_KEY = 'silencewatch.theme';
 
 /**
+ * What someone who has not chosen gets: the dark theme. It is a default, not a
+ * choice, so it is not stored: the day it changes, those people follow it.
+ */
+export const DEFAULT_THEME: ThemeChoice = 'dark';
+
+/**
  * Light, dark, or whatever the device says.
  *
- * "System" is the default and is the absence of a choice: no attribute is set,
- * and the stylesheet's `prefers-color-scheme` rule applies, as it did before
- * this could be chosen. Only an explicit light or dark writes `data-theme`,
- * which the stylesheet lets win over the device.
+ * Dark is the default. "System" is a choice like the other two, so it is stored:
+ * its absence means "has not chosen", which is dark. A stored light or dark
+ * writes `data-theme`, which the stylesheet lets win over the device; "system"
+ * removes it, and the stylesheet's `prefers-color-scheme` rule applies.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -28,8 +34,7 @@ export class ThemeService {
 
   set(choice: ThemeChoice): void {
     this.current.set(choice);
-    if (choice === 'system') removeStored(THEME_STORAGE_KEY);
-    else writeStored(THEME_STORAGE_KEY, choice);
+    writeStored(THEME_STORAGE_KEY, choice);
     this.reflect(choice);
   }
 
@@ -43,5 +48,5 @@ export class ThemeService {
 
 function storedChoice(): ThemeChoice {
   const stored = readStored(THEME_STORAGE_KEY);
-  return stored === 'light' || stored === 'dark' ? stored : 'system';
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : DEFAULT_THEME;
 }

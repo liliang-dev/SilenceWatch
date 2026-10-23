@@ -133,8 +133,9 @@ workflow**, and give it the existing tag.
 
 The starter (`clients/spring-boot-starter`) has a version of its own, and is
 published to **Maven Central** so that anyone can add it with one dependency. It is
-tagged apart from the application: `starter-0.1.0`, not `0.1.0`. The
-[Starter release](../.github/workflows/starter-release.yml) workflow answers to
+tagged apart from the application, and named after its language: `java-0.1.0`, not
+`0.1.0` (the Python library is `python-0.1.0`). The
+[Java release](../.github/workflows/java-release.yml) workflow answers to
 that tag only, and the Release workflow never sees it.
 
 ### Once: the accounts and the key
@@ -161,11 +162,11 @@ that tag only, and the Release workflow never sees it.
 2. Tag it, from the commit on `main`:
 
    ```bash
-   git tag starter-0.1.0
-   git push origin starter-0.1.0
+   git tag java-0.1.0
+   git push origin java-0.1.0
    ```
 
-3. Watch [Actions → Starter release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/starter-release.yml).
+3. Watch [Actions → Java release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/java-release.yml).
    It checks that the commit is on `main` and that the README gives the version,
    takes the number from the tag (the repository keeps `0.1.0-SNAPSHOT`), runs the
    tests, builds the jar with its sources and javadoc, signs everything, and
@@ -178,6 +179,43 @@ that tag only, and the Release workflow never sees it.
 
 Until step 1 of "Once" is done, the dependency in the README cannot be resolved by
 anyone: the starter builds and passes its tests, but is not published.
+
+## Releasing the Python library
+
+The library (`clients/python`) has a version of its own, and is published to **PyPI**
+under the name `silencewatch`. It is tagged apart from the application and the
+starter: `python-0.1.0`. The [Python release](../.github/workflows/python-release.yml)
+workflow answers to that tag only.
+
+### Once: PyPI
+
+1. **A PyPI account** at <https://pypi.org>, with two-factor authentication.
+2. **A trusted publisher**, so that there is no token to store: in PyPI, *Publishing*
+   → *Add a new pending publisher*, with the project name `silencewatch`, the owner
+   `liliang-dev`, the repository `SilenceWatch`, the workflow `python-release.yml` and the
+   environment `pypi`. PyPI then trusts the identity of that workflow run, and only that.
+3. **A GitHub environment** named `pypi` (Settings → Environments). Add yourself as a
+   required reviewer if you want a click before each release.
+
+### Each release
+
+1. In `clients/python`, set `__version__` in `src/silencewatch/_version.py`, rename
+   `## [Unreleased]` in `CHANGELOG.md` to the version, and put the version in the
+   install snippets of the README if it names one. Land it on `main`.
+2. Tag it, from the commit on `main`:
+
+   ```bash
+   git tag python-0.1.0
+   git push origin python-0.1.0
+   ```
+
+3. Watch [Actions → Python release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/python-release.yml).
+   It checks that the commit is on `main` and that the package and the changelog give
+   the version of the tag, runs the lint, the types and the tests, builds the wheel and
+   the source archive, checks their metadata, and publishes them.
+
+A version published to PyPI can never be replaced: a mistake is answered with the next
+number. Until step 2 of "Once" is done, `pip install silencewatch` finds nothing.
 
 ## Deploying by hand
 

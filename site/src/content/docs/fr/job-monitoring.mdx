@@ -51,7 +51,7 @@ Vous déclarez la fréquence attendue (intervalle ou expression cron, avec fusea
 - Les imports et exports de données, les traitements ETL, les synchronisations.
 - Les traitements de facturation, les relances, les envois en masse.
 - Les purges, les rotations, les renouvellements de certificats.
-- Les tâches `@Scheduled` et les jobs Quartz d’une application [Spring Boot](/fr/spring-boot/), découverts automatiquement.
+- Les tâches `@Scheduled` et les jobs Quartz d’une application [Spring Boot](/fr/spring-boot/), et les tâches Celery beat et les jobs APScheduler d’une application [Python](/fr/python/), découverts automatiquement.
 - Les [crons](/fr/cron-monitoring/) d’un serveur, d’un conteneur ou d’un [CronJob Kubernetes](/fr/guides/kubernetes-cronjob-monitoring/).
 
 Pour des **files de messages** ou des traitements à la demande, un heartbeat périodique ne convient pas : SilenceWatch surveille des jobs qui doivent tourner à intervalle régulier.
@@ -91,6 +91,7 @@ Quelques questions utiles, quel que soit l’outil :
 <ul class="sw-related">
   <li><a href="/fr/cron-monitoring/">Monitoring de cron</a></li>
   <li><a href="/fr/spring-boot/">Monitoring Spring Boot</a></li>
+  <li><a href="/fr/python/">Monitoring Python</a></li>
   <li><a href="/fr/guides/backup-monitoring/">Surveiller une sauvegarde</a></li>
   <li><a href="/fr/guides/kubernetes-cronjob-monitoring/">Surveiller un CronJob Kubernetes</a></li>
   <li><a href="/fr/dead-mans-switch/">Dead man’s switch</a></li>

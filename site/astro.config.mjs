@@ -38,6 +38,7 @@ export default defineConfig({
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
       components: {
         Footer: './src/components/Footer.astro',
+        ThemeProvider: './src/components/ThemeProvider.astro',
         SocialIcons: './src/components/SocialIcons.astro',
       },
       routeMiddleware: './src/route-middleware.ts',
@@ -63,6 +64,7 @@ export default defineConfig({
             { slug: 'docs/schedules-and-states' },
             { slug: 'docs/alerting' },
             { slug: 'docs/spring-boot' },
+            { slug: 'docs/python' },
           ],
         },
         {

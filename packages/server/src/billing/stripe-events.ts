@@ -31,10 +31,19 @@ export const ENDED_STATUSES: ReadonlySet<string> = new Set([
   'paused',
 ]);
 
+/**
+ * `paused` and `resumed` are the events of a subscription whose collection of
+ * payment stops for lack of a payment method after a trial, and starts again once
+ * one is added. They carry the subscription, with its status (`paused`, then
+ * `active`), so they are read like the others: the first takes the paid plan
+ * away, the second gives it back.
+ */
 const SUBSCRIPTION_EVENTS: ReadonlySet<string> = new Set([
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',
+  'customer.subscription.paused',
+  'customer.subscription.resumed',
 ]);
 
 const asString = (value: unknown): string | null =>

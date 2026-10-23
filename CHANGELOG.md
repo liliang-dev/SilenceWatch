@@ -10,6 +10,47 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-10-23
+
+No migration and no change to an existing setting: replace the image and restart. One thing
+to do in Stripe on the hosted service (the last item under **Added**).
+
+### Changed
+
+- **The Spring Boot starter is released with a `java-N.N.N` tag** (it was `starter-N.N.N`), named
+  after its language like the Python library's `python-N.N.N`. The workflow is now
+  `java-release.yml`. Nothing was published under the old name; `docs/releasing.md` has the steps.
+- **The application and the website open in the dark theme** for someone who has not chosen
+  one. "System" (follow the device) is now a choice like Light and Dark, so it is remembered;
+  until a choice is made, nothing is stored and dark applies. People who had left the default
+  alone therefore see dark too, and can pick System in Settings. On the website the picker's
+  "Auto" is still there, and a visitor who has never used it gets dark.
+- **A check's period and grace period are written as a number and a unit** (seconds, minutes,
+  hours, days, weeks; the grace period stops at days, as it is capped at a week) instead of a
+  number of seconds. A saved value opens in the largest unit that fits it: 3600 is "1 hour".
+  Nothing changes in the API, which still takes seconds. A period that is a whole number of
+  weeks is shown as `2w` in the lists.
+
+### Added
+
+- **A Python library**, `silencewatch` on PyPI (`clients/python`), that does for Python what the
+  Spring Boot starter does for Java: it reads the Celery beat schedule or the APScheduler jobs of
+  an application, declares them with their real schedule, and sends a heartbeat around each run.
+  No dependency, never fails or blocks a job, survives the fork of Celery's workers. It is laid out
+  so that the next scheduler is one module, and `clients/README.md` states the contract every
+  client follows. Its documentation, its tests, a CI job on Python 3.9 to 3.13, a release workflow
+  for the `python-N.N.N` tags and a page on the website, in English and French, come with it. The
+  library has its own changelog and version (0.1.0); publishing it needs a PyPI account, see
+  `docs/releasing.md`.
+- **Opening a payment page is idempotent.** Two identical requests within a minute (a double
+  click, a retry after a dropped connection) get the same Stripe session instead of two.
+  Changing the plan or the language between two clicks is a different request and opens a
+  new page.
+- **Stripe: `customer.subscription.paused` and `customer.subscription.resumed`** are handled.
+  A subscription that Stripe pauses (a trial that ended with no payment method) takes the
+  paid plan away, and resuming it gives it back. **Add the two events to the webhook endpoint
+  in Stripe**; an endpoint with the first three keeps working, and only misses these two cases.
+
 ## [0.5.1] — 2026-10-22
 
 No configuration change and no migration: replace the image and restart. Nothing to do on
@@ -807,7 +848,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...HEAD
+[0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...0.4.1

@@ -129,6 +129,23 @@ updates:
         patterns: ['*']
         update-types: [minor, patch]
 
+  # The Python library is a published package too: it has no runtime dependency, so
+  # what Dependabot moves is the tools CI runs, in the requirements files.
+  - package-ecosystem: pip
+    directory: /clients/python
+    target-branch: dev
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies, python]
+    cooldown:
+      default-days: 3
+    groups:
+      python-tooling:
+        patterns: ['*']
+        update-types: [minor, patch]
+
   - package-ecosystem: docker
     directory: /
     target-branch: dev
