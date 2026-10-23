@@ -33,6 +33,11 @@ export const AUDIT_ACTIONS = [
   'quota.checks_paused',
   /** A subscription moved the account to another plan. Written by the payment webhook. */
   'billing.plan_changed',
+  /**
+   * Something done to an account from the command line by whoever runs the
+   * server: the `detail` names the command. Not shown to the account's owner.
+   */
+  'operator.change',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

@@ -47,4 +47,23 @@ Rien de ce qui suit n’est un point d’entrée de l’API : cela se fait sur l
 | `password` | Mot de passe oublié | `cli.js reset-password --email …` |
 | `full` | Passkey perdue | Ils se connectent avec Google ou Microsoft |
 
+## Commandes de support
+
+La même ligne de commande (`silencewatch <commande> --email <adresse>`, dans le conteneur, par exemple `docker compose exec silencewatch silencewatch show --email jane@example.com`) répond aux demandes courantes. Lancée sans argument, elle affiche cette liste. L’ancienne forme `node packages/server/dist/auth/cli.js` fonctionne toujours.
+
+| Commande | Ce qu’elle fait |
+| --- | --- |
+| `show` | Affiche le compte : plan, abonnement, méthodes de connexion, sessions ouvertes, verrouillage, projets. Ne change rien et n’affiche aucun secret. |
+| `create-admin` | Un lien d’installation à usage unique qui crée un compte pour l’adresse, même si les inscriptions sont fermées. |
+| `recovery-codes` | De nouveaux codes de récupération, une seule fois ; les anciens ne marchent plus. `AUTH_MODE=passkey` uniquement. |
+| `reset-password` | Un nouveau mot de passe aléatoire, une seule fois ; ferme les sessions du compte. `AUTH_MODE=password` uniquement. |
+| `unlock` | Lève un verrouillage après trop de mots de passe erronés. |
+| `end-sessions` | Déconnecte le compte partout. |
+| `disable` | Ferme la porte à un compte qui ressemble à un abus. Plus aucune connexion, par aucune méthode (mot de passe, passkey, code de récupération, Google ou Microsoft), ses sessions sont fermées et les clés d’API des projets dont il est seul propriétaire sont refusées. Rien n’est supprimé. Ses checks continuent de tourner et d’alerter, et un abonnement Stripe continue d’être facturé : à traiter dans le projet et dans Stripe. |
+| `enable` | Annule `disable`. |
+| `verify-email` | Marque l’adresse comme vérifiée. Google ne se rattache qu’à un compte dont l’adresse est vérifiée, et un compte créé par passkey n’a rien pour le prouver. |
+| `set-plan --plan <nom>` | Place le compte sur un plan de `PLAN_LIMITS` ; `--plan none` retire les limites. Un compte avec un abonnement Stripe retrouve son plan au prochain événement. |
+
+Chaque commande qui modifie quelque chose écrit une ligne `operator.change` dans le journal d’audit, avec la commande et le compte (jamais un mot de passe ni un code).
+
 Changer `AUTH_MODE` plus tard ne supprime jamais un compte ; il faut en revanche redonner à chacun un moyen d’entrer. La procédure, mode par mode, est dans le [guide complet](/docs/reference/authentication/#changing-the-mode-later).

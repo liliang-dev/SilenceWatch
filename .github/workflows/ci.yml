@@ -244,6 +244,14 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/p/nope)" = "400"
           # And the UI is actually in the image.
           curl -fsS http://localhost:8080/ | grep -q '<sw-root>'
+          # The account command line is on the PATH and reaches the database with the
+          # container's own settings: an address nobody has is the answer to expect.
+          set +e
+          out="$(docker exec sw-app silencewatch show --email nobody@example.test 2>&1)"
+          code=$?
+          set -e
+          test "$code" = "2"
+          echo "$out" | grep -q 'No account for nobody@example.test'
 
   # The showcase site and documentation (site/), which is its own project with its
   # own lockfile and is not part of the application's build or image. Built and

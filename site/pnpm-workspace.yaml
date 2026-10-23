@@ -42,6 +42,15 @@ overrides:
   # loop by a crafted indexed source map. Reached by the build only (Astro, svgo,
   # css-tree), on source maps this site's own build produces.
   source-map-js@<1.2.2: '^1.2.2'
+  # GHSA-mrhx-c7xc-m3w5 — zod below 4.6.6 can exhaust memory validating an oversized
+  # input. Reached through Astro, which validates its own content schemas at build
+  # time on files this repository wrote; nothing the published site serves.
+  zod@<4.6.6: '^4.6.6'
+  # GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472 — undici 8.0.0 to 8.12.1: a denial of service
+  # through an unbounded buffer and a subresource-integrity bypass. Reached through
+  # Astro's font loader (unifont) at build time, fetching fonts for a site whose
+  # output is static files; nothing the published site serves contains it.
+  'undici@>=8.0.0 <8.12.2': '^8.12.2'
   # GHSA-rj75-hqrm-r3gf — postcss-selector-parser below 7.1.6 takes quadratic time
   # on a long flat selector. Reached through postcss-nested, which Starlight's code
   # blocks use at build time, on styles that ship with the theme.

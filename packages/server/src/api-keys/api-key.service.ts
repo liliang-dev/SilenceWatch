@@ -83,6 +83,7 @@ export class ApiKeyService {
     if (record === null) return null;
     if (!timingSafeEqualHex(record.secretHash, parsed.secretHash)) return null;
     if (record.revokedAt !== null) return null;
+    if (record.suspended) return null;
     if (record.expiresAt !== null && record.expiresAt.getTime() <= Date.now()) return null;
 
     this.touch(record.id);

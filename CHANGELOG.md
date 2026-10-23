@@ -10,6 +10,55 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-10-23
+
+**Back up the database before deploying this one.** It applies two migrations at start:
+`20261023120000_user_disabled` adds a nullable column and is harmless, and
+`20261023130000_drop_legacy_auth` **drops** what the sign-in system before Better Auth
+left behind, which cannot be undone (see **Changed**). No setting changes.
+
+### Changed
+
+- **The old sign-in tables are dropped.** Migration `20261023130000_drop_legacy_auth`
+  removes `email_verification`, `password_reset` and `session_legacy`, and the columns
+  `user.password_hash` and `user.email_verified_at`. Nothing has read them since Better
+  Auth replaced the old sign-in: passwords live in `account.password`, and the address
+  flag is `user.email_verified`. It was written with the move to Better Auth and kept out of the history
+  until it was safe to apply; it now runs with the others. Nothing to do beyond the backup.
+
+### Added
+
+- **Support commands on the command line.** `cli.js` gains `show` (the account: plan,
+  subscription, sign-in methods, sessions, lockout, projects), `unlock`, `end-sessions`,
+  `verify-email` and `set-plan --plan <name>`, next to `create-admin`, `reset-password`
+  and `recovery-codes`. Run it with no arguments for the list. Each change writes an
+  `operator.change` line to the audit trail, and `reset-password` and `recovery-codes`
+  now do too. See [Authentication](docs/authentication.md#support-commands).
+- **`disable` and `enable` for an account that looks like abuse.** A disabled account
+  cannot sign in by any method, loses its sessions, and the API keys of the projects it
+  alone owns are refused; nothing is deleted, and its checks keep running. Adds a
+  nullable `disabled_at` column to `user` (migration `20261023120000_user_disabled`,
+  additive).
+- **`silencewatch`, a short name for that command line**, on the image's PATH:
+  `docker compose exec silencewatch silencewatch show --email …`. The long
+  `node packages/server/dist/auth/cli.js` form still works.
+
+### Security
+
+- zod is forced to 4.6.6 or later in the application and the site (GHSA-mrhx-c7xc-m3w5,
+  memory exhaustion validating an oversized input). The copy the application's own
+  validation uses was already past it; the old one came in through Angular and Astro.
+- nodemailer 10.1.7 (three moderate advisories on how addresses are parsed, GHSA-8c8m-p3m8-cjg8,
+  GHSA-m943-m63m-w62w and GHSA-85x2-q946-cp5h; this one ships in the image), fast-uri
+  3.1.9 and 4.2.3 (GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr, reached through Fastify and
+  Better Auth) and, on the site, undici 8.12.2.
+
+### Dependencies
+
+Better Auth 1.7.11, Prisma 7.10.1, jose 6.2.13, `@simplewebauthn/browser` 14 (the
+passkey sign-in was run end to end in a real browser with it), Angular animations
+22.2.3, ts-jest, and the CodeQL, artifact-upload and PyPI publishing actions.
+
 ## [0.5.2] — 2026-10-23
 
 No migration and no change to an existing setting: replace the image and restart. One thing
@@ -848,7 +897,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...HEAD
+[0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3
 [0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0

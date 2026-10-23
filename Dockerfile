@@ -91,6 +91,7 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 COPY --from=builder /app/packages/server/public ./packages/server/public
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY deploy/silencewatch /usr/local/bin/silencewatch
 
 # The server's binaries, so the entrypoint can call `prisma` by name. pnpm puts
 # them under the workspace that declared them rather than at the root.
@@ -101,8 +102,8 @@ ENV PATH=/app/packages/server/node_modules/.bin:$PATH
 # "no such file or directory" naming a file that is right there — the kernel is
 # looking for an interpreter called "/bin/sh\r". .gitattributes prevents the bad
 # checkout; this makes the image correct even when someone builds from one.
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
- && chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh /usr/local/bin/silencewatch \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/silencewatch
 
 # Migrations run at container start, so the migration engine has to be in *this*
 # image — not merely in the stage that built it. Resolving it here, as root and

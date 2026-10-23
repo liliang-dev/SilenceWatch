@@ -1,6 +1,6 @@
 {
   "name": "@silencewatch/shared",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Shared DTO types and validation schemas for SilenceWatch clients and server.",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.5",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.13",
+    "ts-jest": "^29.4.15",
     "typescript": "^6.0.3"
   },
   "module": "dist/esm/index.js",

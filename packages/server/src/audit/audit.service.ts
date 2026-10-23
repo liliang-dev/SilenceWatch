@@ -57,6 +57,14 @@ export class AuditService {
     );
   }
 
+  /**
+   * Records an event and waits for it. For a process that exits right after, the
+   * command line, where a write left in flight would be lost.
+   */
+  recordNow(event: AuditRecord): Promise<void> {
+    return this.write(event);
+  }
+
   private async write(event: AuditRecord): Promise<void> {
     // The address is denormalised so the entry still reads correctly once the
     // account is gone. Callers that already have it pass it; the rest are
