@@ -236,14 +236,15 @@ Everything below is for whoever runs the server; none of it is an endpoint.
 | `full` | Lost access to the Google or Microsoft account | Not recoverable here: that is the provider's to restore |
 | any | Nobody can sign in at all | `cli.js create-admin --email …` makes a setup link for a new account |
 
-Run them as `node packages/server/dist/auth/cli.js <command> --email <address>` in
-the server container. The password and the codes are printed to the terminal and
-nowhere else.
+Run them as `silencewatch <command> --email <address>` in the server container, for
+instance `docker compose exec silencewatch silencewatch show --email jane@example.com`.
+(The long form, `node packages/server/dist/auth/cli.js`, still works, and is the only
+one in an image older than the short name.) The password and the codes are printed to the terminal and nowhere else.
 
 ## Support commands
 
-The same command line answers the everyday requests of running a service. Run it
-with no arguments to print this list.
+The same command line answers the everyday requests of running a service. Run
+`silencewatch` with no arguments to print this list.
 
 | Command | What it does |
 | --- | --- |

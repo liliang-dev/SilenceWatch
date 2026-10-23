@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Account tasks for whoever runs the server, from the command line. Run it
- * without arguments for the list of commands and what each one does.
+ * Account tasks for whoever runs the server, from the command line. In the image it
+ * is `silencewatch` (deploy/silencewatch); anywhere else, `node dist/auth/cli.js`.
+ * Run it without arguments for the list of commands and what each one does.
  *
  * Deliberately not endpoints: each of these hands out access or changes an
  * account, and the only person entitled to ask for it is one who can already run
@@ -15,7 +16,7 @@ import { loadConfig } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
 import { SupportCommands, SupportError } from './cli/support-commands';
 
-const USAGE = `Usage: node dist/auth/cli.js <command> --email <address> [options]
+const USAGE = `Usage: silencewatch <command> --email <address> [options]
 
 Look:
   show             Print the account: plan, subscription, sign-in methods, live
