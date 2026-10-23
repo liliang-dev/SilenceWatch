@@ -48,6 +48,16 @@ left behind, which cannot be undone (see **Changed**). No setting changes.
 - zod is forced to 4.6.6 or later in the application and the site (GHSA-mrhx-c7xc-m3w5,
   memory exhaustion validating an oversized input). The copy the application's own
   validation uses was already past it; the old one came in through Angular and Astro.
+- nodemailer 10.1.7 (three moderate advisories on how addresses are parsed, GHSA-8c8m-p3m8-cjg8,
+  GHSA-m943-m63m-w62w and GHSA-85x2-q946-cp5h; this one ships in the image), fast-uri
+  3.1.9 and 4.2.3 (GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr, reached through Fastify and
+  Better Auth) and, on the site, undici 8.12.2.
+
+### Dependencies
+
+Better Auth 1.7.11, Prisma 7.10.1, jose 6.2.13, `@simplewebauthn/browser` 14 (the
+passkey sign-in was run end to end in a real browser with it), Angular animations
+22.2.3, ts-jest, and the CodeQL, artifact-upload and PyPI publishing actions.
 
 ## [0.5.2] — 2026-10-23
 

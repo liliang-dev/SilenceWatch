@@ -122,13 +122,13 @@ overrides:
   'zod@<4.6.6': '^4.6.6'
 
   # GHSA-5jgf-p345-68v8, -f65p-4m7j-42xc, -fph4-wmhf-6fwf, -jqff-g426-hqxp,
-  # -qw65-cvwx-89v3, -hrr3-gc8f-f4qj — fast-uri: host confusion and SSRF through
-  # URL normalisation. It ships: ajv and fast-json-stringify reach it through
+  # -qw65-cvwx-89v3, -hrr3-gc8f-f4qj, -w74x-v6f9-j3xg, -wjr9-j795-jxcr — fast-uri: host
+  # confusion, SSRF and scheme spoofing through URL normalisation. It ships: ajv and fast-json-stringify reach it through
   # fastify, which validates and serialises every request. Not an exact pin and
   # not a major — two lines, 3.x and 4.x, each moved to its own patched patch
   # release, because one selector would drag the 3.x users onto 4.
-  'fast-uri@>=3.0.0 <3.1.8': '^3.1.8'
-  'fast-uri@>=4.0.0 <4.1.5': '^4.1.5'
+  'fast-uri@>=3.0.0 <3.1.9': '^3.1.9'
+  'fast-uri@>=4.0.0 <4.2.3': '^4.2.3'
 
   # GHSA-3f6p-5ww8-9rcr, -rgwj-5xj2-c3m3 — mysql2 leaks credentials on an auth
   # plugin downgrade, and inflates compressed packets without a bound. It ships,
