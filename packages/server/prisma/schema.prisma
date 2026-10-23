@@ -93,12 +93,12 @@ enum AlertKind {
 }
 
 model User {
-  id    String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email String  @unique
-  name  String?
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique
+  name          String?
   /// Better Auth's own flag. Set when a provider vouches for the address (Google
   /// does); never set by anything we do, because no mail is sent to prove one.
-  emailVerified Boolean @default(false) @map("email_verified")
+  emailVerified Boolean   @default(false) @map("email_verified")
   image         String?
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -121,20 +121,12 @@ model User {
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
 
-  /// LEGACY, unused since Better Auth: dropped by prisma/pending/20261020120000_drop_legacy_auth.
-  passwordHash    String?   @map("password_hash")
-  /// LEGACY, unused since Better Auth: dropped by prisma/pending/20261020120000_drop_legacy_auth.
-  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
-
-  memberships    ProjectMember[]
-  sessions       Session[]
-  accounts       Account[]
-  passkeys       Passkey[]
-  recoveryCodes  RecoveryCode[]
-  subscription   Subscription?
-  legacySessions LegacySession[]
-  verifications  EmailVerification[]
-  passwordResets PasswordReset[]
+  memberships   ProjectMember[]
+  sessions      Session[]
+  accounts      Account[]
+  passkeys      Passkey[]
+  recoveryCodes RecoveryCode[]
+  subscription  Subscription?
 
   @@index([signupNetwork])
   @@map("user")
@@ -248,43 +240,6 @@ model StripeEvent {
   @@map("stripe_event")
 }
 
-/// LEGACY, unused since Better Auth: dropped by prisma/pending/20261020120000_drop_legacy_auth.
-/// Single-use email verification token. Only the SHA-256 is stored.
-model EmailVerification {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  /// Address the token was issued for; a later address change voids it.
-  email      String
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
-  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("email_verification")
-}
-
-/// LEGACY, unused since Better Auth: dropped by prisma/pending/20261020120000_drop_legacy_auth.
-/// Single-use password reset token.
-model PasswordReset {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  tokenHash   String    @unique @map("token_hash")
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
-  consumedAt  DateTime? @map("consumed_at") @db.Timestamptz(3)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  requestedIp String?   @map("requested_ip")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("password_reset")
-}
-
 /// Security-relevant events, append-only.
 ///
 /// Actor and project are plain columns rather than relations on purpose: an
@@ -377,25 +332,6 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("session")
-}
-
-/// LEGACY, unused since Better Auth: dropped by prisma/pending/20261020120000_drop_legacy_auth.
-/// The refresh-token sessions this application used before.
-model LegacySession {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
-  userAgent String?   @map("user_agent")
-  ip        String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("session_legacy")
 }
 
 /// Project-scoped API key. `lookupId` is the public half used to find the row;
