@@ -52,7 +52,7 @@
     "@types/pg": "^8.23.1",
     "autocannon": "^8.0.0",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.13",
+    "ts-jest": "^29.4.15",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
