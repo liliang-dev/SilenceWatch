@@ -18,6 +18,11 @@ called out under **Changed** with what to do about it.
   and `recovery-codes`. Run it with no arguments for the list. Each change writes an
   `operator.change` line to the audit trail, and `reset-password` and `recovery-codes`
   now do too. See [Authentication](docs/authentication.md#support-commands).
+- **`disable` and `enable` for an account that looks like abuse.** A disabled account
+  cannot sign in by any method, loses its sessions, and the API keys of the projects it
+  alone owns are refused; nothing is deleted, and its checks keep running. Adds a
+  nullable `disabled_at` column to `user` (migration `20261023120000_user_disabled`,
+  additive).
 - **`silencewatch`, a short name for that command line**, on the image's PATH:
   `docker compose exec silencewatch silencewatch show --email …`. The long
   `node packages/server/dist/auth/cli.js` form still works.

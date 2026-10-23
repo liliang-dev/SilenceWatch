@@ -254,6 +254,8 @@ The same command line answers the everyday requests of running a service. Run
 | `reset-password` | A new random password, once; ends the account's sessions. `AUTH_MODE=password` only. |
 | `unlock` | Ends a lockout after too many wrong passwords. |
 | `end-sessions` | Signs the account out everywhere. |
+| `disable` | Shuts an account out, for one that looks like abuse. No sign-in by any method (password, passkey, recovery code, Google or Microsoft), its sessions are ended, and the API keys of the projects it alone owns are refused. Nothing is deleted. Its checks keep running and alerting, and a Stripe subscription keeps billing: deal with those in the project and in Stripe. |
+| `enable` | Undoes `disable`. |
 | `verify-email` | Marks the address as verified. Google can only be linked to an existing account whose address is verified, and an account created with a passkey has none to prove it. |
 | `set-plan --plan <name>` | Moves the account to a plan from `PLAN_LIMITS`; `--plan none` removes the limits. An account with a Stripe subscription gets its plan set again by the next event. |
 

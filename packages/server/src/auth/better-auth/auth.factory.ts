@@ -270,6 +270,17 @@ export function createAuth(
       },
       session: {
         create: {
+          // Every way in ends here, whatever it was: a password, a passkey, a
+          // recovery code, a provider. A disabled account gets no session from any.
+          before: async (session) => {
+            const user = await deps.users.findById(session.userId);
+            if (user?.disabledAt !== null && user?.disabledAt !== undefined) {
+              throw new APIError('FORBIDDEN', {
+                message: 'This account has been disabled. Contact support.',
+                code: 'ACCOUNT_DISABLED',
+              });
+            }
+          },
           after: async (session) => {
             await deps.users.recordSuccessfulLogin(session.userId);
             await deps.users.trimSessions(session.userId, MAX_LIVE_SESSIONS_PER_USER);

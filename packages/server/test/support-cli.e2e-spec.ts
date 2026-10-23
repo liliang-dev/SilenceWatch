@@ -134,6 +134,73 @@ describe('support commands', () => {
     });
   });
 
+  describe('disable and enable', () => {
+    const signIn = (email: string, password = 'a-sufficiently-long-password') =>
+      context.app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-in/email',
+        headers: { origin: TEST_BASE_URL },
+        payload: { email, password },
+      });
+    const apiKeyOf = async (user: { token: string; projectId: string }): Promise<string> => {
+      const created = await context.app.inject({
+        method: 'POST',
+        url: `/api/v1/projects/${user.projectId}/api-keys`,
+        headers: auth(user.token),
+        payload: { name: 'ci' },
+      });
+      return created.json<{ token: string }>().token;
+    };
+    const listWith = (token: string) =>
+      context.app.inject({ method: 'GET', url: '/api/v1/checks', headers: { authorization: `Bearer ${token}` } });
+
+    it('shuts the account out of every way in, and enable lets it back', async () => {
+      const user = await registerUser(context);
+      const key = await apiKeyOf(user);
+      expect((await listWith(key)).statusCode).toBe(200);
+
+      expect(await commands.disable(user.email)).toContain('1 session(s) ended');
+
+      // The session it had, the password that was right, and the key of its own project.
+      expect((await context.app.inject({ method: 'GET', url: '/api/v1/projects', headers: auth(user.token) })).statusCode).toBe(401);
+      const refused = await signIn(user.email);
+      expect(refused.statusCode).toBe(403);
+      expect(refused.json<{ code: string }>().code).toBe('ACCOUNT_DISABLED');
+      expect((await listWith(key)).statusCode).toBe(401);
+      expect(await commands.show(user.email)).toMatch(/Status\s+DISABLED since/);
+
+      expect(await commands.enable(user.email)).toContain('can sign in again');
+
+      expect((await signIn(user.email)).statusCode).toBe(200);
+      expect((await listWith(key)).statusCode).toBe(200);
+      expect(await commands.show(user.email)).toMatch(/Status\s+active/);
+      expect((await trail(user.email)).map((entry) => entry.command)).toEqual(['disable', 'enable']);
+    });
+
+    it('says so, and writes nothing, when there is nothing to do', async () => {
+      const user = await registerUser(context);
+
+      expect(await commands.enable(user.email)).toContain('was not disabled');
+      await commands.disable(user.email);
+      expect(await commands.disable(user.email)).toContain('was already disabled');
+
+      expect((await trail(user.email)).map((entry) => entry.command)).toEqual(['disable']);
+    });
+
+    it('leaves a project that has another owner working', async () => {
+      const owner = await registerUser(context);
+      const other = await registerUser(context);
+      await context.prisma.projectMember.create({
+        data: { projectId: owner.projectId, userId: other.userId, role: 'owner' },
+      });
+      const key = await apiKeyOf(owner);
+
+      await commands.disable(owner.email);
+
+      expect((await listWith(key)).statusCode).toBe(200);
+    });
+  });
+
   describe('reset-password', () => {
     it('sets a password that works, ends the sessions, and records it', async () => {
       const user = await registerUser(context);
