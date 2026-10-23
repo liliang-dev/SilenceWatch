@@ -10,6 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-10-23
+
+No migration and no change to an existing setting: replace the image and restart. One thing
+to do in Stripe on the hosted service (the last item under **Added**).
+
 ### Changed
 
 - **The Spring Boot starter is released with a `java-N.N.N` tag** (it was `starter-N.N.N`), named
@@ -37,14 +42,14 @@ called out under **Changed** with what to do about it.
   for the `python-N.N.N` tags and a page on the website, in English and French, come with it. The
   library has its own changelog and version (0.1.0); publishing it needs a PyPI account, see
   `docs/releasing.md`.
-- **Stripe: `customer.subscription.paused` and `customer.subscription.resumed`** are handled.
-  A subscription that Stripe pauses (a trial that ended with no payment method) takes the
-  paid plan away, and resuming it gives it back. **Add the two events to the webhook endpoint
-  in Stripe**; an endpoint with the first three keeps working, and only misses these two cases.
 - **Opening a payment page is idempotent.** Two identical requests within a minute (a double
   click, a retry after a dropped connection) get the same Stripe session instead of two.
   Changing the plan or the language between two clicks is a different request and opens a
   new page.
+- **Stripe: `customer.subscription.paused` and `customer.subscription.resumed`** are handled.
+  A subscription that Stripe pauses (a trial that ended with no payment method) takes the
+  paid plan away, and resuming it gives it back. **Add the two events to the webhook endpoint
+  in Stripe**; an endpoint with the first three keeps working, and only misses these two cases.
 
 ## [0.5.1] — 2026-10-22
 
@@ -843,7 +848,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...HEAD
+[0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.0...0.4.1

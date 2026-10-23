@@ -2,9 +2,9 @@ name: Python release
 
 # Publishes the Python library to PyPI, for a tag of its own.
 #
-# The library has a version of its own (0.1.0), apart from the application (0.5.1)
+# The library has a version of its own (0.1.0), apart from the application (0.5.2)
 # and the Spring Boot starter, so it is tagged apart too: `python-0.1.0` here,
-# `java-0.1.0` for the Spring Boot starter, `0.5.1` for the application. The strict pattern
+# `java-0.1.0` for the Spring Boot starter, `0.5.2` for the application. The strict pattern
 # means no workflow can fire on another's tags, and an unrelated tag cannot publish
 # to a registry other people install from.
 on:
