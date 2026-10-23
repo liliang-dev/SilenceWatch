@@ -10,6 +10,15 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **Support commands on the command line.** `cli.js` gains `show` (the account: plan,
+  subscription, sign-in methods, sessions, lockout, projects), `unlock`, `end-sessions`,
+  `verify-email` and `set-plan --plan <name>`, next to `create-admin`, `reset-password`
+  and `recovery-codes`. Run it with no arguments for the list. Each change writes an
+  `operator.change` line to the audit trail, and `reset-password` and `recovery-codes`
+  now do too. See [Authentication](docs/authentication.md#support-commands).
+
 ## [0.5.2] — 2026-10-23
 
 No migration and no change to an existing setting: replace the image and restart. One thing
