@@ -12,6 +12,9 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **The Spring Boot starter is released with a `java-N.N.N` tag** (it was `starter-N.N.N`), named
+  after its language like the Python library's `python-N.N.N`. The workflow is now
+  `java-release.yml`. Nothing was published under the old name; `docs/releasing.md` has the steps.
 - **The application and the website open in the dark theme** for someone who has not chosen
   one. "System" (follow the device) is now a choice like Light and Dark, so it is remembered;
   until a choice is made, nothing is stored and dark applies. People who had left the default

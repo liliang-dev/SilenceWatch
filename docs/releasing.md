@@ -133,8 +133,9 @@ workflow**, and give it the existing tag.
 
 The starter (`clients/spring-boot-starter`) has a version of its own, and is
 published to **Maven Central** so that anyone can add it with one dependency. It is
-tagged apart from the application: `starter-0.1.0`, not `0.1.0`. The
-[Starter release](../.github/workflows/starter-release.yml) workflow answers to
+tagged apart from the application, and named after its language: `java-0.1.0`, not
+`0.1.0` (the Python library is `python-0.1.0`). The
+[Java release](../.github/workflows/java-release.yml) workflow answers to
 that tag only, and the Release workflow never sees it.
 
 ### Once: the accounts and the key
@@ -161,11 +162,11 @@ that tag only, and the Release workflow never sees it.
 2. Tag it, from the commit on `main`:
 
    ```bash
-   git tag starter-0.1.0
-   git push origin starter-0.1.0
+   git tag java-0.1.0
+   git push origin java-0.1.0
    ```
 
-3. Watch [Actions → Starter release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/starter-release.yml).
+3. Watch [Actions → Java release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/java-release.yml).
    It checks that the commit is on `main` and that the README gives the version,
    takes the number from the tag (the repository keeps `0.1.0-SNAPSHOT`), runs the
    tests, builds the jar with its sources and javadoc, signs everything, and
