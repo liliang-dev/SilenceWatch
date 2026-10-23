@@ -10,6 +10,22 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-10-23
+
+**Back up the database before deploying this one.** It applies two migrations at start:
+`20261023120000_user_disabled` adds a nullable column and is harmless, and
+`20261023130000_drop_legacy_auth` **drops** what the sign-in system before Better Auth
+left behind, which cannot be undone (see **Changed**). No setting changes.
+
+### Changed
+
+- **The old sign-in tables are dropped.** Migration `20261023130000_drop_legacy_auth`
+  removes `email_verification`, `password_reset` and `session_legacy`, and the columns
+  `user.password_hash` and `user.email_verified_at`. Nothing has read them since Better
+  Auth replaced the old sign-in: passwords live in `account.password`, and the address
+  flag is `user.email_verified`. It was written with the move to Better Auth and kept out of the history
+  until it was safe to apply; it now runs with the others. Nothing to do beyond the backup.
+
 ### Added
 
 - **Support commands on the command line.** `cli.js` gains `show` (the account: plan,
@@ -26,6 +42,12 @@ called out under **Changed** with what to do about it.
 - **`silencewatch`, a short name for that command line**, on the image's PATH:
   `docker compose exec silencewatch silencewatch show --email …`. The long
   `node packages/server/dist/auth/cli.js` form still works.
+
+### Security
+
+- zod is forced to 4.6.6 or later in the application and the site (GHSA-mrhx-c7xc-m3w5,
+  memory exhaustion validating an oversized input). The copy the application's own
+  validation uses was already past it; the old one came in through Angular and Astro.
 
 ## [0.5.2] — 2026-10-23
 
@@ -865,7 +887,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...HEAD
+[0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3
 [0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.4.1...0.5.0
