@@ -67,7 +67,7 @@ Nothing forces you to use the library: any job that can make an HTTP request can
     { q: 'How do I monitor Celery beat tasks?', a: 'Install the silencewatch package with the celery extra, set an API key and call instrument(app). When a worker starts it declares the beat schedule, and each scheduled task sends a heartbeat around every run.' },
     { q: 'Does it also monitor APScheduler?', a: 'Yes, APScheduler 3: cron and interval triggers are read from the scheduler, and every run is reported. Give each job an id so its identity does not change from one start to the next.' },
     { q: 'Can the library slow down or crash my application?', a: 'No. Network errors are swallowed, sending goes through a bounded queue handled in a background thread, and with no key or no network the application runs as without the library. It can be disabled entirely.' },
-    { q: 'What about Django, RQ or Dramatiq?', a: 'They are not read yet. The library is organised as one module per scheduler, so more can be added; until then, any job can be monitored by calling the ping API.' },
+    { q: 'What about Django, RQ or Dramatiq?', a: 'Periodic tasks kept in the database by django-celery-beat are read by the Celery integration, with nothing to configure. RQ and Dramatiq are not read yet. The library is organised as one module per scheduler, so more can be added; until then, any job can be monitored by calling the ping API.' },
   ]}
 />
 

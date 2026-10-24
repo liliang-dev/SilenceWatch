@@ -1,0 +1,149 @@
+name: Laravel release
+
+# Publishes the Laravel package, for a tag of its own: `laravel-0.1.0` here,
+# `python-…`, `java-…` and the application's `N.N.N` for the others. The strict
+# pattern means no workflow can fire on another's tags.
+#
+# Packagist only reads a repository whose root is the package, and takes its
+# versions from that repository's tags. So `clients/laravel` is copied, with its
+# history, to a read-only mirror, and tagged there `0.1.0`; Packagist watches the
+# mirror. Nothing is ever developed in the mirror.
+on:
+  push:
+    tags: ['laravel-[0-9]+.[0-9]+.[0-9]+']
+  # Releases a tag that already exists, for the same reason the Release workflow
+  # allows it: re-pushing a tag changes what a published version means.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, for example laravel-0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  MIRROR: liliang-dev/silencewatch-laravel
+
+jobs:
+  publish:
+    name: Test and push to the mirror
+    runs-on: ubuntu-latest
+
+    # A GitHub environment, so the key that can write to the mirror is a secret
+    # of this environment alone, and a required reviewer can be put in front of
+    # it. Created by hand, with one secret:
+    #   LARAVEL_MIRROR_DEPLOY_KEY  the private half of a deploy key of the mirror,
+    #                              with write access
+    environment: packagist
+
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          # Through the environment rather than inlined: a tag name is
+          # attacker-influenced on a fork, and interpolating it into a shell
+          # would run it.
+          RAW_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -eu
+          case "$RAW_TAG" in
+            laravel-[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing to release '$RAW_TAG': expected laravel-N.N.N" >&2
+              exit 1
+              ;;
+          esac
+          version="${RAW_TAG#laravel-}"
+          case "$version" in
+            *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$RAW_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tag, not the branch: a manual run must publish what was tagged.
+          ref: ${{ steps.version.outputs.tag }}
+          # The whole history: to tell whether the tagged commit is on main, and
+          # because the mirror receives the package's history, not a snapshot.
+          fetch-depth: 0
+
+      # Before anything is pushed: what is published is what is on main, and it
+      # says the version it is published as (the user agent it sends) and what it
+      # changes (the changelog).
+      - name: Check the tagged commit is releasable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::The tagged commit is not on main. Promote dev to main, then tag." >&2
+            exit 1
+          fi
+          found="$(sed -n "s/.*public const VERSION = '\(.*\)';/\1/p" clients/laravel/src/Client.php)"
+          if [ "$found" != "$VERSION" ]; then
+            echo "::error file=clients/laravel/src/Client.php::The package says $found, but the tag is $VERSION." >&2
+            exit 1
+          fi
+          if ! grep -q "^## \[$VERSION\]" clients/laravel/CHANGELOG.md; then
+            echo "::error file=clients/laravel/CHANGELOG.md::No '## [$VERSION]' section in the changelog." >&2
+            exit 1
+          fi
+
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      # The same checks as CI, on the tagged commit: nothing is published that did
+      # not pass them.
+      - name: Tests
+        working-directory: clients/laravel
+        run: |
+          composer validate --strict
+          composer update --no-interaction --no-progress --prefer-dist
+          vendor/bin/phpunit
+
+      # `git subtree split` gives the same commits for the same history every
+      # time, so each release is a fast-forward of the mirror's main: no force,
+      # and a tag that already exists there is refused rather than moved.
+      - name: Push to the mirror
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DEPLOY_KEY: ${{ secrets.LARAVEL_MIRROR_DEPLOY_KEY }}
+        run: |
+          set -eu
+          git subtree split --prefix=clients/laravel -b laravel-split
+          git tag "$VERSION" laravel-split
+
+          key="$RUNNER_TEMP/mirror_key"
+          hosts="$RUNNER_TEMP/known_hosts"
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          chmod 600 "$key"
+          # github.com's host key, checked against the fingerprint GitHub publishes
+          # rather than trusted on first sight.
+          ssh-keyscan -t ed25519 github.com > "$hosts" 2>/dev/null
+          if ! ssh-keygen -lf "$hosts" | grep -q 'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'; then
+            echo "::error::github.com did not present the host key GitHub publishes." >&2
+            exit 1
+          fi
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$hosts"
+
+          git push "git@github.com:$MIRROR.git" laravel-split:refs/heads/main
+          git push "git@github.com:$MIRROR.git" "refs/tags/$VERSION"
+
+      - name: What happens next
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "### silencewatch/laravel $VERSION pushed to $MIRROR"
+            echo
+            echo "Packagist picks the tag up from the mirror within minutes:"
+            echo "https://packagist.org/packages/silencewatch/laravel"
+            echo
+            echo "A tag on Packagist is the version people install: a mistake is fixed by the next number."
+          } >> "$GITHUB_STEP_SUMMARY"

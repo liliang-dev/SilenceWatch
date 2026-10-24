@@ -1,0 +1,41 @@
+{
+    "name": "silencewatch/laravel",
+    "description": "Declare and monitor the scheduled tasks of a Laravel application with SilenceWatch.",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": ["laravel", "scheduler", "cron", "monitoring", "heartbeat", "dead-mans-switch", "silencewatch"],
+    "homepage": "https://silencewatch.com",
+    "support": {
+        "source": "https://github.com/liliang-dev/SilenceWatch/tree/main/clients/laravel",
+        "issues": "https://github.com/liliang-dev/SilenceWatch/issues"
+    },
+    "authors": [
+        {"name": "The SilenceWatch authors"}
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^12.0 || ^13.0",
+        "illuminate/http": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpunit/phpunit": "^11.5 || ^12.0 || ^13.0"
+    },
+    "autoload": {
+        "psr-4": {"SilenceWatch\\Laravel\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"SilenceWatch\\Laravel\\Tests\\": "tests/"}
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["SilenceWatch\\Laravel\\SilenceWatchServiceProvider"]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
