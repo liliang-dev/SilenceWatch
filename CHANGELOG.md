@@ -10,6 +10,20 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Laravel release workflow no longer fails on `fatal: tag '0.1.0' already exists`.** It made the
+  mirror's tag locally, in a checkout that holds every tag of this repository, including the
+  application's `0.1.0`. The tag is now only pushed to the mirror, by refspec. Nothing had been
+  pushed to the mirror when it failed.
+
+### Added
+
+- **Documentation pages for Laravel and for Django** (`django-celery-beat`), each as an overview and
+  a reference page, in English and French, with links from the footer, the sidebar and the home
+  page. The site now mentions the Laravel package where it listed the Spring Boot starter and the
+  Python library.
+
 ### Changed
 
 - **The client packages are laid out by language, and tagged by language and package.**

@@ -85,7 +85,7 @@ export const onRequest = defineRouteMiddleware((context) => {
               'Cron and interval monitoring',
               'Heartbeat (dead man’s switch) endpoints',
               'Alerts by email, webhook, Slack, Microsoft Teams and Discord',
-              'Spring Boot starter and Python library that discover scheduled jobs',
+              'Spring Boot starter, Python library and Laravel package that discover scheduled jobs',
               'REST API',
               'Self-hosting with Docker',
             ]
@@ -93,7 +93,7 @@ export const onRequest = defineRouteMiddleware((context) => {
               'Monitoring de cron et d’intervalles',
               'Points d’entrée heartbeat (dead man’s switch)',
               'Alertes par e-mail, webhook, Slack, Microsoft Teams et Discord',
-              'Starter Spring Boot et bibliothèque Python qui découvrent les jobs planifiés',
+              'Starter Spring Boot, bibliothèque Python et paquet Laravel qui découvrent les jobs planifiés',
               'API REST',
               'Auto-hébergement avec Docker',
             ],

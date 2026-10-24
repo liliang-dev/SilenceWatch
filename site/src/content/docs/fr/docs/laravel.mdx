@@ -1,0 +1,97 @@
+---
+title: "Paquet Laravel : le planificateur de tâches"
+description: "Surveillez le planificateur Laravel avec le paquet SilenceWatch : une clé d’API, chaque tâche déclarée avec sa vraie expression cron, sans perturber l’application."
+sidebar:
+  label: Paquet Laravel
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Le **paquet Laravel** de SilenceWatch surveille vos tâches planifiées sans que vous déclariez quoi que ce soit : il lit la planification, déclare chaque tâche avec sa vraie expression cron, et envoie un signal autour de chaque exécution. Il est sous licence Apache 2.0, volontairement, pour pouvoir être embarqué dans n’importe quelle application.
+
+Laravel 12 et 13, PHP 8.2 ou plus récent. Aucune autre dépendance.
+
+## Mise en route
+
+```bash
+composer require silencewatch/laravel
+```
+
+Créez la clé d’API dans *Réglages › Clés d’API* de votre projet et donnez-la à l’application :
+
+```dotenv
+SILENCEWATCH_API_KEY=sw_...
+# SILENCEWATCH_URL=https://watch.example.com   # seulement si vous hébergez SilenceWatch vous-même
+```
+
+C’est tout : le service provider est découvert par Laravel, et rien ne change dans votre planification.
+
+## Ce qu’il fait
+
+Le paquet écoute les événements que le planificateur de Laravel émet déjà (`ScheduledTaskStarting`, `ScheduledTaskFinished`, `ScheduledTaskFailed`, `ScheduledBackgroundTaskFinished`). Vos tâches ne sont ni enveloppées ni modifiées.
+
+**Déclaration.** La première fois que `schedule:run` exécute une tâche, toute la planification est déclarée à `POST /api/v1/checks/sync` en une seule requête, et les clés de ping renvoyées sont gardées dans le cache. Les exécutions suivantes les réutilisent : la déclaration n’est renvoyée que si la planification a changé (un déploiement), ou une fois par jour. `php artisan silencewatch:sync` la déclare tout de suite, ce qui convient à la fin d’un script de déploiement, et liste ce qui n’est pas surveillé et pourquoi.
+
+**Signaux.** Autour de chaque exécution :
+
+```text
+POST /p/<clé>/start                      au démarrage de la tâche
+POST /p/<clé>/<code de sortie>?duration_ms=   à sa fin (0 réussit, tout autre code échoue)
+POST /p/<clé>/fail?duration_ms=          si elle lève une exception
+```
+
+Une tâche en arrière-plan (`->runInBackground()`) signale sa fin depuis le processus `schedule:finish` que Laravel lance à sa sortie, avec son code de sortie.
+
+Chaque tâche reçoit une **identité stable** qui la relie à son historique d’un déploiement et d’un serveur à l’autre :
+
+| Planifiée avec | Clé |
+| --- | --- |
+| `Schedule::command('backup:run --only-db')` | `artisan:backup:run --only-db` |
+| `Schedule::exec('/opt/scripts/export.sh')` | `exec:/opt/scripts/export.sh` |
+| `Schedule::job(new PruneOrders)` | `call:App\Jobs\PruneOrders` |
+| `Schedule::call(...)->name('refresh-rates')` | `call:refresh-rates` |
+
+Le nom affiché dans SilenceWatch est le `->description()` de la tâche quand elle en a un. Une tâche qui disparaît de la planification est marquée **orpheline**, jamais supprimée.
+
+## Configuration
+
+Des variables d’environnement. Publiez le fichier de configuration avec `php artisan vendor:publish --tag=silencewatch-config` seulement si vous devez calculer une valeur en PHP.
+
+| Variable | Défaut | |
+| --- | --- | --- |
+| `SILENCEWATCH_API_KEY` | aucun | Sans clé, rien n’est envoyé |
+| `SILENCEWATCH_URL` | `https://app.silencewatch.com` | Votre propre instance si vous hébergez |
+| `SILENCEWATCH_ENVIRONMENT` | `APP_ENV` | Fait partie de l’identité d’un check |
+| `SILENCEWATCH_ENABLED` | `true` | `false` supprime tout |
+| `SILENCEWATCH_DEFAULT_GRACE` | `300` | Secondes de retard tolérées avant une alerte |
+| `SILENCEWATCH_REPORT_START` | `true` | `false` pour n’envoyer que le résultat |
+| `SILENCEWATCH_TIMEOUT` | `2` | Secondes par requête |
+| `SILENCEWATCH_PRUNE` | `true` | `false` quand plusieurs applications partagent un projet et un environnement |
+| `SILENCEWATCH_CACHE_STORE` | le magasin par défaut | Où les clés de ping sont gardées entre deux exécutions |
+
+Les tâches limitées à certains environnements (`->environments('production')`) ne sont déclarées que depuis ceux-ci. Les fuseaux horaires sont ceux de la tâche (`->timezone()`), sinon `app.schedule_timezone`, sinon `app.timezone`.
+
+<Aside type="tip">
+Utilisez **un environnement par application**. `SILENCEWATCH_PRUNE` marque comme orphelin chaque check du projet et de l’environnement que la déclaration omet ; si plusieurs services partagent les deux, mettez-le à `false`, sinon chacun orphelinerait les checks des autres.
+</Aside>
+
+## Règles qu’il ne transgresse pas
+
+- **Il ne fait jamais échouer votre tâche.** Toute erreur est interceptée ; une tâche réussie n’est jamais signalée à Laravel comme échouée à cause du paquet.
+- **Il coûte presque rien à vos tâches.** PHP n’a pas de fil d’arrière-plan, donc un signal est une requête que le planificateur attend, au plus `SILENCEWATCH_TIMEOUT`. Dès que SilenceWatch n’a pas répondu, les autres tâches de cette exécution ne l’attendent plus.
+- **Il se dégrade en silence.** Sans clé, sans réseau, sans serveur : la planification tourne exactement comme sans le paquet, et l’exécution suivante réessaie.
+- **Aucune dépendance** en dehors de Laravel.
+
+## Non surveillé
+
+Laissé hors de la déclaration, et listé par `php artisan silencewatch:sync` :
+
+- **Une closure sans nom** n’a pas d’identité stable. Donnez-lui `->name('...')`.
+- **Une tâche avec une condition** (`->between()`, `->unlessBetween()`, `->when()`, `->skip()`) : son expression cron dit quand elle *peut* s’exécuter, pas quand elle le fait, et la surveiller déclencherait de fausses alertes. Créez son check à la main et pingez-le vous-même avec l’[API de ping](/fr/docs/ping-api/).
+- **Les expressions cron « jour ouvré le plus proche »** (`15W`), que le serveur ne sait pas évaluer.
+
+Une tâche planifiée deux fois est déclarée depuis la planification qui se déclenche le plus souvent. Un job en file d’attente (`Schedule::job()`) est signalé quand il est envoyé dans la file, pas quand un worker l’exécute.
+
+<Aside type="note">
+Voir aussi la page de présentation [Monitoring du planificateur Laravel](/fr/laravel/), et le [README du paquet](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/php/laravel).
+</Aside>

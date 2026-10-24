@@ -110,6 +110,10 @@ jobs:
       # `git subtree split` gives the same commits for the same history every
       # time, so each release is a fast-forward of the mirror's main: no force,
       # and a tag that already exists there is refused rather than moved.
+      #
+      # The tag is never created here, only pushed: this checkout has every tag of
+      # the repository, the application's `0.1.0` among them, and the mirror's tag
+      # carries the same number. A local `git tag 0.1.0` would be refused as existing.
       - name: Push to the mirror
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -117,7 +121,6 @@ jobs:
         run: |
           set -eu
           git subtree split --prefix=clients/php/laravel -b laravel-split
-          git tag "$VERSION" laravel-split
 
           key="$RUNNER_TEMP/mirror_key"
           hosts="$RUNNER_TEMP/known_hosts"
@@ -133,7 +136,7 @@ jobs:
           export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$hosts"
 
           git push "git@github.com:$MIRROR.git" laravel-split:refs/heads/main
-          git push "git@github.com:$MIRROR.git" "refs/tags/$VERSION"
+          git push "git@github.com:$MIRROR.git" "laravel-split:refs/tags/$VERSION"
 
       - name: What happens next
         env:

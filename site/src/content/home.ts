@@ -102,7 +102,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { icon: 'schedule', title: 'Cron and intervals', text: 'A period or a cron expression, with a time zone and a grace period. See [cron monitoring](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Detection every 10 seconds', text: 'A late check is spotted within seconds.' },
         { icon: 'notifications', title: 'Alerts where you are', text: 'Email, webhook, Slack, Teams and Discord, each testable in one click.' },
-        { icon: 'leaf', title: 'Spring Boot and Python', text: 'One dependency: every `@Scheduled` job, Celery task or APScheduler job declares itself. See [Spring Boot](/spring-boot/) and [Python](/python/).' },
+        { icon: 'leaf', title: 'Spring Boot, Python and Laravel', text: 'One dependency: every `@Scheduled` job, Celery, django-celery-beat or APScheduler task, and Laravel scheduled task declares itself. See [Spring Boot](/spring-boot/), [Python](/python/) and [Laravel](/laravel/).' },
         { icon: 'history', title: 'History and incidents', text: 'Every ping, incident and alert, searchable.' },
         { icon: 'key', title: 'REST API and keys', text: 'Manage checks through the API, with project-scoped keys.' },
       ],
@@ -122,7 +122,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     spring: {
       title: 'Spring Boot: nothing to declare by hand',
-      text: 'The starter reads your `@Scheduled` tasks and Quartz jobs at startup, declares them, and pings around every run. It never blocks your job. Python has the same for Celery and APScheduler: see [Python monitoring](/python/) and [Spring Boot monitoring](/spring-boot/).',
+      text: 'The starter reads your `@Scheduled` tasks and Quartz jobs at startup, declares them, and pings around every run. It never blocks your job. Python (Celery, django-celery-beat, APScheduler) and Laravel have the same: see [Python monitoring](/python/), [Laravel monitoring](/laravel/) and [Spring Boot monitoring](/spring-boot/).',
       discovered: 'Declared at startup',
       jobs: [
         { name: 'BackupJob.run', schedule: '0 0 2 * * *' },
@@ -180,7 +180,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         },
         {
           q: 'Can scheduled tasks be monitored automatically?',
-          a: 'Yes. The Spring Boot starter discovers @Scheduled methods and Quartz jobs, and the Python library reads Celery beat and APScheduler jobs; both ping around every run, with no per-job configuration.',
+          a: 'Yes. The Spring Boot starter discovers @Scheduled methods and Quartz jobs, the Python library reads Celery beat, django-celery-beat and APScheduler jobs, and the Laravel package reads the Laravel scheduler; all of them ping around every run, with no per-job configuration.',
         },
         {
           q: 'Can I self-host SilenceWatch?',
@@ -246,7 +246,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         { icon: 'schedule', title: 'Cron et intervalles', text: 'Une fréquence ou une expression cron, avec fuseau horaire et délai de grâce. Voir le [monitoring de cron](/cron-monitoring/).' },
         { icon: 'bolt', title: 'Détection toutes les 10 secondes', text: 'Un check en retard est repéré en quelques secondes.' },
         { icon: 'notifications', title: 'Alertes là où vous êtes', text: 'E-mail, webhook, Slack, Teams et Discord, chacun testable en un clic.' },
-        { icon: 'leaf', title: 'Spring Boot et Python', text: 'Une dépendance : chaque `@Scheduled`, tâche Celery ou job APScheduler se déclare tout seul. Voir [Spring Boot](/spring-boot/) et [Python](/python/).' },
+        { icon: 'leaf', title: 'Spring Boot, Python et Laravel', text: 'Une dépendance : chaque `@Scheduled`, tâche Celery, django-celery-beat ou APScheduler, et tâche planifiée Laravel se déclare toute seule. Voir [Spring Boot](/spring-boot/), [Python](/python/) et [Laravel](/laravel/).' },
         { icon: 'history', title: 'Historique et incidents', text: 'Chaque ping, incident et alerte, avec recherche.' },
         { icon: 'key', title: 'API REST et clés', text: 'Pilotez vos checks par API, avec des clés limitées à un projet.' },
       ],
@@ -266,7 +266,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     spring: {
       title: 'Spring Boot : zéro déclaration à la main',
-      text: 'Le starter lit vos tâches `@Scheduled` et vos jobs Quartz au démarrage, les déclare, et envoie un ping autour de chaque exécution. Il ne bloque jamais votre job. Python a la même chose pour Celery et APScheduler : voir le [monitoring Python](/python/) et le [monitoring Spring Boot](/spring-boot/).',
+      text: 'Le starter lit vos tâches `@Scheduled` et vos jobs Quartz au démarrage, les déclare, et envoie un ping autour de chaque exécution. Il ne bloque jamais votre job. Python (Celery, django-celery-beat, APScheduler) et Laravel font de même : voir le [monitoring Python](/python/), le [monitoring Laravel](/laravel/) et le [monitoring Spring Boot](/spring-boot/).',
       discovered: 'Déclarés au démarrage',
       jobs: [
         { name: 'BackupJob.run', schedule: '0 0 2 * * *' },
@@ -324,7 +324,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         },
         {
           q: 'Peut-on surveiller des tâches planifiées automatiquement ?',
-          a: 'Oui. Le starter Spring Boot découvre les méthodes @Scheduled et les jobs Quartz, et la bibliothèque Python lit Celery beat et APScheduler ; les deux envoient un ping autour de chaque exécution, sans configuration par job.',
+          a: 'Oui. Le starter Spring Boot découvre les méthodes @Scheduled et les jobs Quartz, la bibliothèque Python lit Celery beat, django-celery-beat et APScheduler, et le paquet Laravel lit le planificateur Laravel ; tous envoient un ping autour de chaque exécution, sans configuration par job.',
         },
         {
           q: 'Peut-on auto-héberger SilenceWatch ?',

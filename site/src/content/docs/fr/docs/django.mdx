@@ -1,0 +1,66 @@
+---
+title: "Django : tâches périodiques django-celery-beat"
+description: "Surveillez les tâches périodiques de django-celery-beat avec la bibliothèque Python SilenceWatch : rien à configurer, modifications suivies dans la minute."
+sidebar:
+  label: Django (django-celery-beat)
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Django n’a pas de planificateur à lui : ses tâches périodiques passent par **Celery beat**, et avec `django-celery-beat` elles sont gardées en base, modifiables dans l’admin. La [bibliothèque Python](/fr/docs/python/) les lit avec l’intégration Celery, sans rien configurer.
+
+| Planificateur | Installation | Ce qu’elle lit |
+| --- | --- | --- |
+| **django-celery-beat** | `pip install "silencewatch[django-celery-beat]"` | les tâches périodiques actives en base, crontab et intervalle |
+
+Python 3.9 ou plus récent, `celery` 5.2 ou plus récent, `django-celery-beat` 2.5 ou plus récent.
+
+## Mise en route
+
+Créez la clé d’API dans *Réglages › Clés d’API* de votre projet et donnez-la au processus :
+
+```bash
+export SILENCEWATCH_API_KEY=sw_...
+# export SILENCEWATCH_URL=https://watch.example.com   # seulement si vous hébergez SilenceWatch vous-même
+```
+
+Puis instrumentez l’application Celery, comme vous le feriez sans Django :
+
+```python
+# proj/celery.py
+from celery import Celery
+from silencewatch.integrations.celery import instrument
+
+app = Celery("proj")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()
+instrument(app)
+```
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    # …
+    "django_celery_beat",
+]
+```
+
+Quand `django_celery_beat` est une application Django installée, le même `instrument(app)` lit aussi les tâches périodiques actives de la base, crontab (avec son propre fuseau horaire) et intervalle, à côté du `beat_schedule`. Tout le reste (la déclaration, les signaux, l’identité d’une tâche, les réglages) est celui de l’[intégration Celery](/fr/docs/python/#celery).
+
+## Modifications pendant que les workers tournent
+
+Une modification faite pendant que les workers tournent, dans l’admin Django ou en code, est redéclarée **dans la minute**. Chaque processus worker regarde le marqueur de changement propre à django-celery-beat, une ligne, chaque minute, et ne lit et ne déclare la planification que s’il a bougé. Les exécutions de la nouvelle tâche sont signalées dès lors, sans redémarrage.
+
+C’est fait par processus worker, exprès : un enfant du pool créé avant la modification ne connaît que les clés de ping avec lesquelles il a été créé. Le thread ferme les connexions à la base qu’il ouvre, il ne peut donc pas en garder une pour le pool.
+
+## Limites
+
+- **Les tâches ponctuelles et à date fixe** s’exécutent une fois et ne sont pas une planification à surveiller : elles ne sont pas déclarées.
+- **Les tâches désactivées** sont laissées de côté. Si elles avaient été déclarées, elles sont marquées orphelines, et redéclarées quand elles sont réactivées.
+- **Une tâche présente à la fois dans le `beat_schedule` et en base** forme un seul check, déclaré depuis la planification qui se déclenche le plus souvent.
+- **Les planifications solaires** ne sont pas lues.
+- Une tâche que l’intégration Celery ne sait pas exprimer est ignorée avec un avertissement qui la nomme, plutôt que de faire échouer toute la déclaration.
+
+<Aside type="note">
+Voir aussi la page de présentation [Monitoring des tâches périodiques Django](/fr/django/), la [documentation de la bibliothèque Python](/fr/docs/python/) pour tous les réglages, et le [README de la bibliothèque](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python).
+</Aside>
