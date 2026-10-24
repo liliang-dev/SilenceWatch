@@ -1,0 +1,66 @@
+---
+title: "Django: django-celery-beat periodic tasks"
+description: "Monitor the periodic tasks kept in the database by django-celery-beat with the SilenceWatch Python library: nothing to configure, changes picked up within a minute."
+sidebar:
+  label: Django (django-celery-beat)
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Django has no scheduler of its own: its periodic tasks run through **Celery beat**, and with `django-celery-beat` they are kept in the database, editable in the admin. The [Python library](/docs/python/) reads them with the Celery integration, with nothing to configure.
+
+| Scheduler | Install | What it reads |
+| --- | --- | --- |
+| **django-celery-beat** | `pip install "silencewatch[django-celery-beat]"` | the enabled periodic tasks in the database, crontab and interval |
+
+Python 3.9 or later, `celery` 5.2 or later, `django-celery-beat` 2.5 or later.
+
+## Setup
+
+Create the API key in your project's *Settings › API keys* and give it to the process:
+
+```bash
+export SILENCEWATCH_API_KEY=sw_...
+# export SILENCEWATCH_URL=https://watch.example.com   # only when you host SilenceWatch yourself
+```
+
+Then instrument the Celery app, as you would without Django:
+
+```python
+# proj/celery.py
+from celery import Celery
+from silencewatch.integrations.celery import instrument
+
+app = Celery("proj")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()
+instrument(app)
+```
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    # …
+    "django_celery_beat",
+]
+```
+
+When `django_celery_beat` is an installed Django app, the same `instrument(app)` also reads the enabled periodic tasks of the database, crontab (with its own time zone) and interval, next to the `beat_schedule`. Everything else (the declaration, the heartbeats, the identity of a task, the settings) is that of the [Celery integration](/docs/python/#celery).
+
+## Changes while the workers run
+
+A change made while the workers run, in the Django admin or in code, is declared again **within a minute**. Each worker process looks at django-celery-beat's own change marker, one row, every minute, and reads and declares the schedule only when it moved. The new task's runs are reported from then on, without a restart.
+
+It is done per worker process, on purpose: a pool child forked before the change only knows the ping keys it was forked with. The thread closes the database connections it opens, so it cannot hold one for the pool.
+
+## Limits
+
+- **One-off and clocked tasks** run once and are not a schedule to watch: they are not declared.
+- **Disabled tasks** are left out. If they had been declared, they are flagged orphaned, and declared again when they are enabled.
+- **A task in both the `beat_schedule` and the database** is one check, declared from the schedule that fires most often.
+- **Solar schedules** are not read.
+- A task that the Celery integration cannot express is skipped with a warning naming it, rather than failing the whole declaration.
+
+<Aside type="note">
+See also the [Django periodic task monitoring](/django/) overview page, the [Python library documentation](/docs/python/) for every setting, and the [library README](https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python).
+</Aside>

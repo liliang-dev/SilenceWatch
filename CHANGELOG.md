@@ -10,6 +10,13 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **Documentation pages for Laravel and for Django** (`django-celery-beat`), each as an overview and
+  a reference page, in English and French, with links from the footer, the sidebar and the home
+  page. The site now mentions the Laravel package where it listed the Spring Boot starter and the
+  Python library.
+
 ### Changed
 
 - **The client packages are laid out by language, and tagged by language and package.**
