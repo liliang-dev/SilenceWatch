@@ -137,6 +137,12 @@ jobs:
       - name: Tests
         run: pytest
 
+      # The example applications are the library's real contract, the way the Spring
+      # Boot demo is the starter's: if one stops declaring its jobs, the integration
+      # is broken. Nothing is sent anywhere.
+      - name: Example applications
+        run: pytest ../../examples/python-demo
+
       # The tools below need a current Python (ruff and mypy no longer run on 3.9),
       # and their verdict does not depend on the interpreter, so they run once. The
       # sources are still checked as 3.9 code: the target version is in pyproject.toml.

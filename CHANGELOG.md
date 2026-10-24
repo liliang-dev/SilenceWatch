@@ -10,6 +10,12 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **`examples/python-demo`**: a runnable Celery application and a runnable APScheduler one, each
+  with two scheduled jobs and no monitoring code, next to the Spring Boot demo. CI checks that
+  both still declare their jobs with the library in this repository.
+
 ## [0.5.3] — 2026-10-23
 
 **Back up the database before deploying this one.** It applies two migrations at start:
