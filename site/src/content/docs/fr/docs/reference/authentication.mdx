@@ -62,6 +62,7 @@ La même ligne de commande (`silencewatch <commande> --email <adresse>`, dans le
 | `disable` | Ferme la porte à un compte qui ressemble à un abus. Plus aucune connexion, par aucune méthode (mot de passe, passkey, code de récupération, Google ou Microsoft), ses sessions sont fermées et les clés d’API des projets dont il est seul propriétaire sont refusées. Rien n’est supprimé. Ses checks continuent de tourner et d’alerter, et un abonnement Stripe continue d’être facturé : à traiter dans le projet et dans Stripe. |
 | `enable` | Annule `disable`. |
 | `verify-email` | Marque l’adresse comme vérifiée. Google ne se rattache qu’à un compte dont l’adresse est vérifiée, et un compte créé par passkey n’a rien pour le prouver. |
+| `reseal` | Sans `--email`. Chiffre la configuration de tous les canaux de notification avec la `SECRET_KEY` actuelle. Après un changement de `SECRET_KEY`, lancez-la avec `OLD_SECRET_KEY=<l’ancienne valeur>`, sinon les canaux sont illisibles. Sans danger si on la relance : elle indique ce qu’elle a chiffré, rechiffré ou laissé. |
 | `set-plan --plan <nom>` | Place le compte sur un plan de `PLAN_LIMITS` ; `--plan none` retire les limites. Un compte avec un abonnement Stripe retrouve son plan au prochain événement. |
 
 Chaque commande qui modifie quelque chose écrit une ligne `operator.change` dans le journal d’audit, avec la commande et le compte (jamais un mot de passe ni un code).

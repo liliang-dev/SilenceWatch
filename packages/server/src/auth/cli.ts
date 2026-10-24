@@ -37,6 +37,11 @@ Let someone in:
                    like abuse.
   enable           Undo disable.
 
+Channels (no --email):
+  reseal           Seal every notification channel's configuration under the current
+                   SECRET_KEY. After changing SECRET_KEY, run it with OLD_SECRET_KEY set
+                   to the previous value, or the channels cannot be read.
+
 Fix an account:
   verify-email     Mark the address as verified. Needed before Google can be linked
                    to an account that was created with a passkey.
@@ -46,7 +51,9 @@ Fix an account:
 async function run(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   const email = option(rest, '--email')?.toLowerCase() ?? null;
-  if (command === undefined || email === null || !/^[^@\s]+@[^@\s]+$/.test(email)) {
+  // The one command that is about no account in particular.
+  const wholeInstance = command === 'reseal';
+  if (command === undefined || (!wholeInstance && (email === null || !/^[^@\s]+@[^@\s]+$/.test(email)))) {
     throw new SupportError(USAGE);
   }
 
@@ -61,7 +68,16 @@ async function run(argv: string[]): Promise<void> {
   }
 }
 
-function dispatch(commands: SupportCommands, command: string, email: string, args: string[]): Promise<string> {
+function dispatch(
+  commands: SupportCommands,
+  command: string,
+  address: string | null,
+  args: string[],
+): Promise<string> {
+  if (command === 'reseal') return commands.reseal(process.env.OLD_SECRET_KEY);
+  if (address === null) throw new SupportError(USAGE);
+  const email = address;
+
   switch (command) {
     case 'show':
       return commands.show(email);

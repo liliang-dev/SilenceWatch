@@ -3,6 +3,8 @@ import { randomBytes } from 'node:crypto';
 import { AuditService } from '../../audit/audit.service';
 import type { AppConfig } from '../../config/config';
 import type { PrismaService } from '../../database/prisma.service';
+import { ChannelConfigVault } from '../../notifications/channel-config.vault';
+import { ChannelConfigResealer } from '../../notifications/channel-config.resealer';
 import { RecoveryCodesService } from '../recovery/recovery-codes.service';
 import { SetupLinkService } from '../signup/setup-link.service';
 import { UsersRepository } from '../users/users.repository';
@@ -180,6 +182,41 @@ export class SupportCommands {
     const { count } = await this.prisma.session.deleteMany({ where: { userId: user.id } });
     await this.record(user, 'end-sessions', { sessions: count });
     return `Ended ${count} session(s) of ${email}.`;
+  }
+
+  /**
+   * Puts every channel configuration under the current SECRET_KEY. After the key has
+   * been changed, give the previous one in `OLD_SECRET_KEY`: what was sealed with it
+   * is opened and sealed again. Without it, only what is still plaintext is sealed.
+   */
+  async reseal(previousSecret: string | undefined): Promise<string> {
+    const previous =
+      previousSecret === undefined || previousSecret === '' ? undefined : new ChannelConfigVault(previousSecret);
+    const counts = await new ChannelConfigResealer(
+      this.prisma,
+      new ChannelConfigVault(this.config.SECRET_KEY),
+      previous,
+    ).run();
+    if (counts.sealed + counts.resealed > 0) {
+      await this.audit.recordNow({
+        action: 'operator.change',
+        actor: OPERATOR,
+        targetType: 'channel_configs',
+        detail: { command: 'reseal', ...counts },
+      });
+    }
+    const lines = [
+      `Sealed ${counts.sealed} plaintext configuration(s), re-sealed ${counts.resealed} from the previous key,`,
+      `${counts.unchanged} already under this key, ${counts.failed} that could not be opened.`,
+    ];
+    if (counts.failed > 0) {
+      lines.push(
+        previous === undefined
+          ? 'Those were sealed with another SECRET_KEY: run again with OLD_SECRET_KEY set to the previous value.'
+          : 'Those could not be opened with either key; they are left as they are.',
+      );
+    }
+    return lines.join('\n');
   }
 
   private async existing(email: string) {

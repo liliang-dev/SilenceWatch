@@ -43,7 +43,7 @@ the person who is locked out.
 | --- | --- | --- |
 | `AUTH_MODE` | `passkey` | `passkey`, `password` or `full` |
 | `BASE_URL` | `http://localhost:8080` | What your users type. Must be `https://` in `passkey` and `full` unless it is `localhost` |
-| `SECRET_KEY` | — | Signs session cookies. Rotating it signs everyone out |
+| `SECRET_KEY` | — | Signs session cookies and seals the channels' webhook URLs and secrets. Rotating it signs everyone out, and needs `silencewatch reseal` |
 | `SIGNUP_ENABLED` | `true` | When false, only someone holding a [setup link](#the-first-account) can create an account |
 | `ADMIN_EMAIL` | — | The address of the first account. See [the first account](#the-first-account) |
 | `AUTH_RP_ID` | host of `BASE_URL` | The domain passkeys are bound to. Decide once: see below |
@@ -257,6 +257,7 @@ The same command line answers the everyday requests of running a service. Run
 | `disable` | Shuts an account out, for one that looks like abuse. No sign-in by any method (password, passkey, recovery code, Google or Microsoft), its sessions are ended, and the API keys of the projects it alone owns are refused. Nothing is deleted. Its checks keep running and alerting, and a Stripe subscription keeps billing: deal with those in the project and in Stripe. |
 | `enable` | Undoes `disable`. |
 | `verify-email` | Marks the address as verified. Google can only be linked to an existing account whose address is verified, and an account created with a passkey has none to prove it. |
+| `reseal` | Takes no `--email`. Seals every notification channel's configuration under the current `SECRET_KEY`. After changing `SECRET_KEY`, run it with `OLD_SECRET_KEY=<the previous value>`, or the channels cannot be read. Safe to run again: it reports what it sealed, re-sealed and left alone. |
 | `set-plan --plan <name>` | Moves the account to a plan from `PLAN_LIMITS`; `--plan none` removes the limits. An account with a Stripe subscription gets its plan set again by the next event. |
 
 Every command that changes something writes one `operator.change` line to the audit
