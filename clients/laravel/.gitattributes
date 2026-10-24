@@ -1,0 +1,4 @@
+# What `composer require` downloads: the code, not its tests.
+/tests          export-ignore
+/phpunit.xml    export-ignore
+/.gitattributes export-ignore

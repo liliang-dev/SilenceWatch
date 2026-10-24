@@ -7,7 +7,8 @@ packages/shared    validation schemas and DTO types, shared by server, UI and cl
 packages/server    NestJS + Fastify API, ingestion, detection, alerting
 packages/web       Angular UI, built into packages/server/public
 clients/spring-boot-starter   the Spring Boot starter
-clients/python               the Python library (Celery beat, APScheduler)
+clients/python               the Python library (Celery beat, django-celery-beat, APScheduler)
+clients/laravel              the Laravel package (the scheduler)
 site               showcase site and documentation (Astro + Starlight), its own project
 ```
 
@@ -207,7 +208,8 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 pnpm test              # shared, server and web unit tests, no database
 pnpm run test:e2e      # needs TEST_DATABASE_URL
 cd clients/spring-boot-starter && mvn test
-cd clients/python && pip install -e ".[celery,apscheduler]" -r requirements.txt && ruff check . && mypy && pytest
+cd clients/python && pip install -e ".[celery,django-celery-beat,apscheduler]" -r requirements.txt && ruff check . && mypy && pytest
+cd clients/laravel && composer install && vendor/bin/phpunit
 ```
 
 The web tests run on Vitest through the Angular builder; they need no browser.

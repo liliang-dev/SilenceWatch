@@ -111,6 +111,15 @@ to do in Stripe on the hosted service (the last item under **Added**).
 
 ### Added
 
+- **A Laravel package**, `silencewatch/laravel` on Packagist (`clients/laravel`): installed with
+  an API key, it declares every task of the Laravel 12 or 13 schedule with its real cron
+  expression and reports each run, background tasks included, by listening to the scheduler's
+  own events. `php artisan silencewatch:sync` declares from a deploy script. Tested in CI on the
+  oldest and newest Laravel it allows; published by the `laravel-N.N.N` tags through a read-only
+  mirror that Packagist watches, see `docs/releasing.md`.
+- **The Python library reads django-celery-beat**: the periodic tasks kept in the database are
+  declared and watched by the Celery integration, with nothing to configure, and a change made
+  while the workers run is declared again within a minute.
 - **A Python library**, `silencewatch` on PyPI (`clients/python`), that does for Python what the
   Spring Boot starter does for Java: it reads the Celery beat schedule or the APScheduler jobs of
   an application, declares them with their real schedule, and sends a heartbeat around each run.

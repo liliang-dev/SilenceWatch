@@ -217,6 +217,55 @@ workflow answers to that tag only.
 A version published to PyPI can never be replaced: a mistake is answered with the next
 number. Until step 2 of "Once" is done, `pip install silencewatch` finds nothing.
 
+## Releasing the Laravel package
+
+The package (`clients/laravel`) has a version of its own, and is published to
+**Packagist** as `silencewatch/laravel`. It is tagged apart: `laravel-0.1.0`. The
+[Laravel release](../.github/workflows/laravel-release.yml) workflow answers to that tag
+only.
+
+Packagist does not take an upload: it reads a git repository whose root is the package,
+and takes its versions from that repository's tags. So the workflow copies
+`clients/laravel`, with its history, to a **read-only mirror**,
+`liliang-dev/silencewatch-laravel`, and tags it there `0.1.0`. Nothing is developed in the
+mirror; its issues and pull requests can be turned off.
+
+### Once: the mirror and Packagist
+
+1. **The mirror**: an empty public repository `liliang-dev/silencewatch-laravel` on
+   GitHub — no README, no licence, no first commit: the workflow writes all of it.
+2. **A deploy key**: `ssh-keygen -t ed25519 -f laravel-mirror -N "" -C laravel-release`.
+   In the mirror, *Settings → Deploy keys → Add deploy key*, paste
+   `laravel-mirror.pub`, and tick **Allow write access**.
+3. **A GitHub environment** named `packagist` in *this* repository (Settings →
+   Environments), with one secret, `LARAVEL_MIRROR_DEPLOY_KEY`: the content of the
+   private key `laravel-mirror`. Then delete both files. Add yourself as a required
+   reviewer if you want a click before each release.
+4. **The first release** (below), so that the mirror has a `composer.json` at its root.
+5. **Packagist**: sign in at <https://packagist.org> with GitHub, *Submit*, and give
+   `https://github.com/liliang-dev/silencewatch-laravel`. Packagist installs its own hook
+   on the mirror when you signed in with GitHub, so later tags appear on their own.
+
+### Each release
+
+1. In `clients/laravel`, set `VERSION` in `src/Client.php` and rename `## [Unreleased]` in
+   `CHANGELOG.md` to the version. Land it on `main`.
+2. Tag it, from the commit on `main`:
+
+   ```bash
+   git tag laravel-0.1.0
+   git push origin laravel-0.1.0
+   ```
+
+3. Watch [Actions → Laravel release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/laravel-release.yml).
+   It checks that the commit is on `main` and that the package and the changelog give the
+   version of the tag, runs the tests, then pushes the package's history to the mirror's
+   `main` (a fast-forward, never forced) and the tag `0.1.0`. A tag that already exists in
+   the mirror is refused rather than moved.
+
+Packagist shows the version a few minutes later. A tag people have installed must not
+change: a mistake is answered with the next number.
+
 ## Deploying by hand
 
 For a fork without the deploy secrets, or when you want to choose the moment.

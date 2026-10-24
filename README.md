@@ -86,9 +86,14 @@ application that declares its jobs this way.
 **Python gets the same.** `pip install "silencewatch[celery]"` (or `[apscheduler]`),
 set `SILENCEWATCH_API_KEY`, and call `instrument(app)`: every Celery beat task or
 APScheduler job declares itself with its real schedule and reports each run. See
-[`clients/python`](clients/python/README.md); the client libraries are listed, with the
-contract they share, in [`clients`](clients/README.md). A runnable application for each scheduler is in
+[`clients/python`](clients/python/README.md). Periodic tasks kept in the database by
+django-celery-beat are read too. The client libraries are listed, with the contract they
+share, in [`clients`](clients/README.md), and a runnable application for each scheduler is in
 [`examples/python-demo`](examples/python-demo/README.md).
+
+**And Laravel.** `composer require silencewatch/laravel` and `SILENCEWATCH_API_KEY`: the
+whole schedule declares itself and reports each run, with nothing to write. See
+[`clients/laravel`](clients/laravel/README.md).
 
 ## Self-hosting
 
