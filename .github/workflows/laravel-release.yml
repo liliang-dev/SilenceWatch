@@ -1,22 +1,22 @@
 name: Laravel release
 
-# Publishes the Laravel package, for a tag of its own: `laravel-0.1.0` here,
-# `python-…`, `java-…` and the application's `N.N.N` for the others. The strict
+# Publishes the Laravel package, for a tag of its own: `php-laravel-0.1.0` here,
+# `python-…`, `java-spring-boot-…` and the application's `N.N.N` for the others. The strict
 # pattern means no workflow can fire on another's tags.
 #
 # Packagist only reads a repository whose root is the package, and takes its
-# versions from that repository's tags. So `clients/laravel` is copied, with its
+# versions from that repository's tags. So `clients/php/laravel` is copied, with its
 # history, to a read-only mirror, and tagged there `0.1.0`; Packagist watches the
 # mirror. Nothing is ever developed in the mirror.
 on:
   push:
-    tags: ['laravel-[0-9]+.[0-9]+.[0-9]+']
+    tags: ['php-laravel-[0-9]+.[0-9]+.[0-9]+']
   # Releases a tag that already exists, for the same reason the Release workflow
   # allows it: re-pushing a tag changes what a published version means.
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to release, for example laravel-0.1.0'
+        description: 'Existing tag to release, for example php-laravel-0.1.0'
         required: true
         type: string
 
@@ -49,13 +49,13 @@ jobs:
         run: |
           set -eu
           case "$RAW_TAG" in
-            laravel-[0-9]*.[0-9]*.[0-9]*) ;;
+            php-laravel-[0-9]*.[0-9]*.[0-9]*) ;;
             *)
-              echo "Refusing to release '$RAW_TAG': expected laravel-N.N.N" >&2
+              echo "Refusing to release '$RAW_TAG': expected php-laravel-N.N.N" >&2
               exit 1
               ;;
           esac
-          version="${RAW_TAG#laravel-}"
+          version="${RAW_TAG#php-laravel-}"
           case "$version" in
             *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
           esac
@@ -82,13 +82,13 @@ jobs:
             echo "::error::The tagged commit is not on main. Promote dev to main, then tag." >&2
             exit 1
           fi
-          found="$(sed -n "s/.*public const VERSION = '\(.*\)';/\1/p" clients/laravel/src/Client.php)"
+          found="$(sed -n "s/.*public const VERSION = '\(.*\)';/\1/p" clients/php/laravel/src/Client.php)"
           if [ "$found" != "$VERSION" ]; then
-            echo "::error file=clients/laravel/src/Client.php::The package says $found, but the tag is $VERSION." >&2
+            echo "::error file=clients/php/laravel/src/Client.php::The package says $found, but the tag is $VERSION." >&2
             exit 1
           fi
-          if ! grep -q "^## \[$VERSION\]" clients/laravel/CHANGELOG.md; then
-            echo "::error file=clients/laravel/CHANGELOG.md::No '## [$VERSION]' section in the changelog." >&2
+          if ! grep -q "^## \[$VERSION\]" clients/php/laravel/CHANGELOG.md; then
+            echo "::error file=clients/php/laravel/CHANGELOG.md::No '## [$VERSION]' section in the changelog." >&2
             exit 1
           fi
 
@@ -101,7 +101,7 @@ jobs:
       # The same checks as CI, on the tagged commit: nothing is published that did
       # not pass them.
       - name: Tests
-        working-directory: clients/laravel
+        working-directory: clients/php/laravel
         run: |
           composer validate --strict
           composer update --no-interaction --no-progress --prefer-dist
@@ -116,7 +116,7 @@ jobs:
           DEPLOY_KEY: ${{ secrets.LARAVEL_MIRROR_DEPLOY_KEY }}
         run: |
           set -eu
-          git subtree split --prefix=clients/laravel -b laravel-split
+          git subtree split --prefix=clients/php/laravel -b laravel-split
           git tag "$VERSION" laravel-split
 
           key="$RUNNER_TEMP/mirror_key"

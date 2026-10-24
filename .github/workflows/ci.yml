@@ -182,7 +182,7 @@ jobs:
             lowest: false
     defaults:
       run:
-        working-directory: clients/laravel
+        working-directory: clients/php/laravel
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -225,7 +225,7 @@ jobs:
       # `install` rather than `verify`: the example below resolves the starter
       # from the local repository.
       - name: Build and test the starter
-        working-directory: clients/spring-boot-starter
+        working-directory: clients/java/spring-boot
         run: mvn -B install
 
       # The example application is the starter's real contract: if it stops

@@ -37,7 +37,7 @@ pnpm install --frozen-lockfile
 If a Maven bump is in the backlog, add:
 
 ```bash
-cd clients/spring-boot-starter && mvn -B install
+cd clients/java/spring-boot && mvn -B install
 cd examples/spring-boot-demo && mvn -B -q compile
 ```
 

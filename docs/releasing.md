@@ -131,10 +131,13 @@ workflow**, and give it the existing tag.
 
 ## Releasing the Spring Boot starter
 
-The starter (`clients/spring-boot-starter`) has a version of its own, and is
+The starter (`clients/java/spring-boot`) has a version of its own, and is
 published to **Maven Central** so that anyone can add it with one dependency. It is
-tagged apart from the application, and named after its language: `java-0.1.0`, not
-`0.1.0` (the Python library is `python-0.1.0`). The
+tagged apart from the application, and named after its language and its package:
+`java-spring-boot-0.1.1`, not `0.1.1` (the Laravel package is `php-laravel-0.1.0`, and the
+Python library, one package for every scheduler, `python-0.1.1`). The first release, 0.1.0,
+was tagged `java-0.1.0`, before the package was part of the name; the next ones follow the
+new form. The
 [Java release](../.github/workflows/java-release.yml) workflow answers to
 that tag only, and the Release workflow never sees it.
 
@@ -157,13 +160,13 @@ that tag only, and the Release workflow never sees it.
 
 ### Each release
 
-1. Put the version in the install snippets of `clients/spring-boot-starter/README.md`
+1. Put the version in the install snippets of `clients/java/spring-boot/README.md`
    (`<version>0.1.0</version>` and the Gradle line), and land it on `main`.
 2. Tag it, from the commit on `main`:
 
    ```bash
-   git tag java-0.1.0
-   git push origin java-0.1.0
+   git tag java-spring-boot-0.1.1
+   git push origin java-spring-boot-0.1.1
    ```
 
 3. Watch [Actions → Java release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/java-release.yml).
@@ -219,14 +222,14 @@ number. Until step 2 of "Once" is done, `pip install silencewatch` finds nothing
 
 ## Releasing the Laravel package
 
-The package (`clients/laravel`) has a version of its own, and is published to
-**Packagist** as `silencewatch/laravel`. It is tagged apart: `laravel-0.1.0`. The
+The package (`clients/php/laravel`) has a version of its own, and is published to
+**Packagist** as `silencewatch/laravel`. It is tagged apart: `php-laravel-0.1.0`. The
 [Laravel release](../.github/workflows/laravel-release.yml) workflow answers to that tag
 only.
 
 Packagist does not take an upload: it reads a git repository whose root is the package,
 and takes its versions from that repository's tags. So the workflow copies
-`clients/laravel`, with its history, to a **read-only mirror**,
+`clients/php/laravel`, with its history, to a **read-only mirror**,
 `liliang-dev/silencewatch-laravel`, and tags it there `0.1.0`. Nothing is developed in the
 mirror; its issues and pull requests can be turned off.
 
@@ -248,13 +251,13 @@ mirror; its issues and pull requests can be turned off.
 
 ### Each release
 
-1. In `clients/laravel`, set `VERSION` in `src/Client.php` and rename `## [Unreleased]` in
+1. In `clients/php/laravel`, set `VERSION` in `src/Client.php` and rename `## [Unreleased]` in
    `CHANGELOG.md` to the version. Land it on `main`.
 2. Tag it, from the commit on `main`:
 
    ```bash
-   git tag laravel-0.1.0
-   git push origin laravel-0.1.0
+   git tag php-laravel-0.1.0
+   git push origin php-laravel-0.1.0
    ```
 
 3. Watch [Actions → Laravel release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/laravel-release.yml).

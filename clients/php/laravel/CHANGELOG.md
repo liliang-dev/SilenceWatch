@@ -1,7 +1,7 @@
 # Changelog
 
 The Laravel package is versioned apart from the application, and tagged
-`laravel-N.N.N`. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+`php-laravel-N.N.N`. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
