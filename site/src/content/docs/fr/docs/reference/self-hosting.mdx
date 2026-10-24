@@ -15,7 +15,7 @@ Tout se règle par variables d’environnement, dans le fichier `.env`. Le serve
 
 | Variable | À renseigner avec |
 | --- | --- |
-| `SECRET_KEY` | `openssl rand -hex 32`. Toutes les clés de signature en dérivent ; la changer déconnecte tout le monde. |
+| `SECRET_KEY` | `openssl rand -hex 32`. Toutes les clés de signature en dérivent ; la changer déconnecte tout le monde. Les URL et secrets des webhooks de vos canaux sont chiffrés avec elle : après l’avoir changée, lancez `OLD_SECRET_KEY=<ancienne> silencewatch reseal`. Gardez-en une copie avec vos sauvegardes de base : sans elle, les canaux d’une sauvegarde sont illisibles. |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Le fichier Compose en construit `DATABASE_URL`. |
 | `SMTP_URL` | `smtp://utilisateur:motdepasse@relais.exemple.fr:587` (STARTTLS requis). Ou un `POSTMARK_TOKEN` / `BREVO_API_KEY` avec le `EMAIL_PROVIDER` correspondant. |
 | `BASE_URL` | L’adresse que vos utilisateurs tapent. Les URL de ping et les liens des alertes en sont construits : une mauvaise valeur distribue des liens que personne ne peut suivre. |

@@ -10,8 +10,31 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Security
+
+- **Notification channel configuration is encrypted in the database.** A webhook URL is a
+  secret by its path (Slack, Discord, Teams) and a webhook channel has a signing secret; both
+  were readable in a backup or a dump. The whole configuration of a channel is now sealed with
+  AES-256-GCM under a key derived from `SECRET_KEY`, bound to the channel it belongs to. The
+  API and the web UI are unchanged. No migration: the column is the same JSON, holding the
+  sealed form.
+
+### Changed
+
+- **`SECRET_KEY` now also protects the channels.** Rotating it was already signing everyone
+  out; it now also needs `OLD_SECRET_KEY=<previous value> silencewatch reseal` once, or the
+  channels cannot send (the list still loads, and the failed delivery says what to do). Keep a
+  copy of `SECRET_KEY` with your database backups.
+- **A channel configuration stored by an earlier version is sealed at the first start**, with
+  nothing to do. It is one way: an older version cannot read a sealed channel, so back up the
+  database before upgrading, and do not roll back to a version without this change.
+  During a rolling update, an alert picked up by an instance not yet replaced fails and is
+  retried by the next attempt, which the new instance serves.
+
 ### Added
 
+- `silencewatch reseal`, to seal every channel configuration under the current key, or to bring
+  them across a `SECRET_KEY` change.
 - **`examples/python-demo`**: a runnable Celery application and a runnable APScheduler one, each
   with two scheduled jobs and no monitoring code, next to the Spring Boot demo. CI checks that
   both still declare their jobs with the library in this repository.

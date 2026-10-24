@@ -51,7 +51,7 @@ which one:
 
 | Variable            | Set it to                                                  |
 | ------------------- | ---------------------------------------------------------- |
-| `SECRET_KEY`        | `openssl rand -hex 32`. Session cookies are signed with it, so rotating it signs everyone out |
+| `SECRET_KEY`        | `openssl rand -hex 32`. Session cookies are signed with it, so rotating it signs everyone out, and the notification channels' webhook URLs and secrets are encrypted under it: after rotating, run `OLD_SECRET_KEY=<previous> silencewatch reseal` (see [Authentication](authentication.md#support-commands)). Keep a copy of it with your database backups: a backup is unreadable for the channels without it |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Compose builds `DATABASE_URL` from it |
 | `SMTP_URL`          | `smtp://user:password@relay.example.com:587`. Or a `POSTMARK_TOKEN` / `BREVO_API_KEY` with the matching `EMAIL_PROVIDER` |
 
