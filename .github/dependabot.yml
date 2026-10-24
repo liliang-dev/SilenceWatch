@@ -146,6 +146,27 @@ updates:
         patterns: ['*']
         update-types: [minor, patch]
 
+  # The Laravel package is a published package too, and a library: the ranges of
+  # Laravel and PHP it supports are a promise to its users, and CI tests both ends of
+  # them, so Dependabot must not move them. It looks at the tools of its tests only
+  # (PHPUnit, Testbench). A library has no lockfile, so this reads composer.json.
+  - package-ecosystem: composer
+    directory: /clients/php/laravel
+    target-branch: dev
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'deps'
+    labels: [dependencies, php]
+    allow:
+      - dependency-type: development
+    cooldown:
+      default-days: 3
+    groups:
+      php-tooling:
+        patterns: ['*']
+        update-types: [minor, patch]
+
   - package-ecosystem: docker
     directory: /
     target-branch: dev
