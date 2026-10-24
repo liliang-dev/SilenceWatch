@@ -9,6 +9,9 @@ released apart from the server.
 | [`spring-boot-starter`](spring-boot-starter/README.md) | Java | `@Scheduled`, Quartz | `com.silencewatch:silencewatch-spring-boot-starter` |
 | [`python`](python/README.md) | Python 3.9+ | Celery beat, APScheduler 3 | `pip install silencewatch` |
 
+Runnable applications for each client are in [`examples`](../examples), and CI checks them against the
+clients in this repository.
+
 ## The contract every client follows
 
 A client does two things, and the server needs nothing else from it.

@@ -1,0 +1,3 @@
+# From PyPI. To try the copy in this repository instead:
+#   pip install -e "../../clients/python[celery,apscheduler]"
+silencewatch[celery,apscheduler]

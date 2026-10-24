@@ -87,7 +87,8 @@ application that declares its jobs this way.
 set `SILENCEWATCH_API_KEY`, and call `instrument(app)`: every Celery beat task or
 APScheduler job declares itself with its real schedule and reports each run. See
 [`clients/python`](clients/python/README.md); the client libraries are listed, with the
-contract they share, in [`clients`](clients/README.md).
+contract they share, in [`clients`](clients/README.md). A runnable application for each scheduler is in
+[`examples/python-demo`](examples/python-demo/README.md).
 
 ## Self-hosting
 
