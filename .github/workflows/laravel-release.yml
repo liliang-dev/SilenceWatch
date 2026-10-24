@@ -1,7 +1,7 @@
 name: Laravel release
 
 # Publishes the Laravel package, for a tag of its own: `laravel-0.1.0` here,
-# `python-…`, `starter-…` and the application's `N.N.N` for the others. The strict
+# `python-…`, `java-…` and the application's `N.N.N` for the others. The strict
 # pattern means no workflow can fire on another's tags.
 #
 # Packagist only reads a repository whose root is the package, and takes its
