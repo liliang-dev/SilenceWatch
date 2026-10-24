@@ -2,8 +2,8 @@ name: Java release
 
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
-# The starter has a version of its own (0.1.0) and the application another (0.5.3),
-# so they are tagged apart: `java-0.1.0` here, `0.5.3` for the Release workflow.
+# The starter has a version of its own (0.1.0) and the application another (0.6.0),
+# so they are tagged apart: `java-0.1.0` here, `0.6.0` for the Release workflow.
 # The tag names the language, as the Python library's does (`python-0.1.0`): the
 # next Java client would be released the same way.
 # The strict pattern means neither workflow can fire on the other's tags, and an

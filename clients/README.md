@@ -7,7 +7,11 @@ released apart from the server.
 | Folder | Language | Reads | Install |
 | --- | --- | --- | --- |
 | [`spring-boot-starter`](spring-boot-starter/README.md) | Java | `@Scheduled`, Quartz | `com.silencewatch:silencewatch-spring-boot-starter` |
-| [`python`](python/README.md) | Python 3.9+ | Celery beat, APScheduler 3 | `pip install silencewatch` |
+| [`python`](python/README.md) | Python 3.9+ | Celery beat, django-celery-beat, APScheduler 3 | `pip install silencewatch` |
+| [`laravel`](laravel/README.md) | PHP 8.2+ | the Laravel 12 and 13 scheduler | `composer require silencewatch/laravel` |
+
+Runnable applications for each client are in [`examples`](../examples), and CI checks them against the
+clients in this repository.
 
 ## The contract every client follows
 
@@ -25,7 +29,8 @@ And the rules that make a client safe to put in a production application:
 
 - it **never fails** the job it watches, and returns the job's result and exception
   untouched;
-- it **never blocks** it: a heartbeat is a queue append, sent by another thread;
+- it **never blocks** it: a heartbeat is a queue append, sent by another thread (PHP has
+  no thread to hand it to: the Laravel package waits at most its timeout, once per run);
 - it is **bounded** (the oldest heartbeats are dropped when the queue is full) and its
   log noise is rate limited;
 - it **degrades silently**: no key, no network, no server, and the application runs as
@@ -40,9 +45,11 @@ For another scheduler in a language that already has a client, add a module to i
 `discover()` and `install()`). For another language, add a folder here with its own
 package, its own tests, its own release workflow and its own README, following the
 contract above, and a row in the table. Put a new language's CI job in
-`.github/workflows/ci.yml` and its release workflow beside `java-release.yml` and
-`python-release.yml`, with a tag named after the language (`java-N.N.N`, `python-N.N.N`) so that no workflow can
-fire on another's tags.
+`.github/workflows/ci.yml` and its release workflow beside `java-release.yml`,
+`python-release.yml` and `laravel-release.yml`, with a tag named after the package
+(`java-N.N.N`, `python-N.N.N`, `laravel-N.N.N`) so that no workflow can fire on another's tags. A
+registry that reads a repository root rather than an uploaded archive (Packagist, Go modules) gets
+a read-only mirror of the folder, pushed by the release workflow, as `laravel-release.yml` does.
 
 Licence: Apache-2.0, deliberately, so a client can be embedded in any application
 without licence consequences.

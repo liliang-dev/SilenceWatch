@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { NotificationChannel, Prisma } from '@prisma/client';
 import type { ChannelType } from '@silencewatch/shared';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { ChannelConfigError, ChannelConfigVault } from '../notifications/channel-config.vault';
 
 export type ChannelRow = NotificationChannel;
 
@@ -19,31 +21,64 @@ export interface NewChannel {
 /**
  * Every query on notification channels. Each one that takes an id also takes
  * the project, so a channel is never reached through another project's id.
+ *
+ * A channel's configuration is sealed in the database (see ChannelConfigVault): it
+ * is sealed on its way in and opened on its way out, so callers only ever see the
+ * plain configuration, and the database never does.
  */
 @Injectable()
 export class ChannelsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ChannelsRepository.name);
 
-  listForProject(projectId: string): Promise<ChannelRow[]> {
-    return this.prisma.notificationChannel.findMany({
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vault: ChannelConfigVault,
+  ) {}
+
+  async listForProject(projectId: string): Promise<ChannelRow[]> {
+    const rows = await this.prisma.notificationChannel.findMany({
       where: { projectId },
       orderBy: { createdAt: 'asc' },
     });
+    return rows.map((row) => this.opened(row));
   }
 
-  create(input: NewChannel): Promise<ChannelRow> {
-    return this.prisma.notificationChannel.create({ data: input });
+  async create(input: NewChannel): Promise<ChannelRow> {
+    // The id is chosen here, not by the database, because it is part of what is sealed.
+    const id = randomUUID();
+    const row = await this.prisma.notificationChannel.create({
+      data: { ...input, id, config: this.vault.seal(id, input.config) },
+    });
+    return this.opened(row);
   }
 
-  findInProject(projectId: string, channelId: string): Promise<ChannelRow | null> {
-    return this.prisma.notificationChannel.findFirst({ where: { id: channelId, projectId } });
+  async findInProject(projectId: string, channelId: string): Promise<ChannelRow | null> {
+    const row = await this.prisma.notificationChannel.findFirst({ where: { id: channelId, projectId } });
+    return row === null ? null : this.opened(row);
   }
 
-  findWithProject(projectId: string, channelId: string): Promise<ChannelWithProject | null> {
-    return this.prisma.notificationChannel.findFirst({
+  async findWithProject(projectId: string, channelId: string): Promise<ChannelWithProject | null> {
+    const row = await this.prisma.notificationChannel.findFirst({
       where: { id: channelId, projectId },
       include: { project: { select: { id: true, name: true } } },
     });
+    return row === null ? null : this.opened(row);
+  }
+
+  /**
+   * The row with its configuration opened. A configuration that cannot be opened
+   * (another SECRET_KEY, a damaged row) is shown as empty rather than failing the page
+   * that lists the channels: the channel still can be renamed and deleted, and the
+   * alert it cannot send says why in the delivery's error.
+   */
+  private opened<T extends ChannelRow>(row: T): T {
+    try {
+      return { ...row, config: this.vault.open(row.id, row.config) as ChannelRow['config'] };
+    } catch (error) {
+      if (!(error instanceof ChannelConfigError)) throw error;
+      this.logger.warn(`Channel ${row.id}: ${error.message}`);
+      return { ...row, config: {} };
+    }
   }
 
   /** Null when the channel is not in that project. */
@@ -60,7 +95,7 @@ export class ChannelsRepository {
       },
     });
     if (updated.count === 0) return null;
-    return this.prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } });
+    return this.opened(await this.prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } }));
   }
 
   /**

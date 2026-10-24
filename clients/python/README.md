@@ -9,6 +9,7 @@ application without licence consequences.
 | Scheduler | Install | What it reads |
 | --- | --- | --- |
 | **Celery beat** | `pip install "silencewatch[celery]"` | the `beat_schedule` (crontab, `timedelta`, seconds) |
+| **django-celery-beat** | `pip install "silencewatch[celery]"` | the periodic tasks in the database, read by the Celery integration |
 | **APScheduler 3** | `pip install "silencewatch[apscheduler]"` | the jobs of the scheduler (cron and interval triggers) |
 
 More are planned; see [Adding an integration](#adding-an-integration).
@@ -39,6 +40,17 @@ instrument(app)
 
 Workers declare the schedule when they start, and send a heartbeat from the worker
 that runs each scheduled task. Nothing else to write.
+
+### django-celery-beat
+
+Nothing to add: when `django_celery_beat` is in `INSTALLED_APPS`, the same
+`instrument(app)` also reads the enabled periodic tasks of the database, crontab
+(with its own time zone) and interval, next to `beat_schedule`.
+
+A change made while the workers run (in the Django admin, or in code) is declared
+again **within a minute**: each worker process looks at django-celery-beat's own
+change marker — one row — every minute, and reads and declares the schedule only when
+it moved. The new task's runs are reported from then on, without a restart.
 
 ### APScheduler
 
@@ -74,7 +86,7 @@ server across restarts, redeployments and renames:
 
 | Integration | Key |
 | --- | --- |
-| Celery | `celery:shop.tasks.backup` (the task name) |
+| Celery, django-celery-beat | `celery:shop.tasks.backup` (the task name) |
 | APScheduler | `apscheduler:nightly-backup` (the job id, else `apscheduler:app.jobs:backup`, the function) |
 
 Jobs that disappear from the code are **flagged orphaned on the server, never
@@ -123,18 +135,21 @@ These are the reason the library is safe to put in a production application:
 - **It survives a fork.** Celery's prefork pool and gunicorn fork after the library
   started; each child starts its own queue and thread.
 - **`enabled=False` removes the mechanism entirely**: no discovery, no hooks, no threads.
-- **No dependency.** The standard library only. `celery` and `apscheduler` are extras you
-  already have.
+- **No dependency.** The standard library only. `celery`, `django-celery-beat` and
+  `apscheduler` are extras you already have.
 
 ## Notes and limits
 
 - **Celery** — a task scheduled by several beat entries is declared from the one that
   fires most often. A **manual** `.delay()` of a scheduled task also sends a heartbeat,
   since a worker cannot tell it from a scheduled one; do not rely on a task being called
-  by hand for the check to stay green. Solar schedules and schedules kept in a database
-  (`django-celery-beat`) are not read. A crontab that restricts both the day of the month
+  by hand for the check to stay green. Solar schedules are not read. A crontab that restricts both the day of the month
   and the day of the week fires when both match in Celery and when either does in cron;
   the log says so.
+- **django-celery-beat** — one-off and clocked tasks run once and are not watched;
+  disabled ones are left out (flagged orphaned if they were declared). A task in both
+  `beat_schedule` and the database is one check, declared from the schedule that fires
+  most often.
 - **APScheduler** — version 3 only (4 has another API). A job's duration includes any time
   it waited for an executor. One-off `date` triggers, combined `and`/`or` triggers and the
   `week`, `year` and "third friday" cron fields cannot be expressed and are skipped, with a
@@ -161,6 +176,7 @@ src/silencewatch/
   integrations/
     base.py          the contract an integration follows
     celery.py
+    django_celery_beat.py   the database schedules the Celery integration also reads
     apscheduler.py   ← a new scheduler goes here, next to these
 ```
 
@@ -174,7 +190,7 @@ Nothing else changes.
 ## Development
 
 ```bash
-pip install -e ".[celery,apscheduler]" -r requirements.txt   # Python 3.10+ for the lint tools
+pip install -e ".[celery,django-celery-beat,apscheduler]" -r requirements.txt   # Python 3.10+ for the lint tools
 ruff check . && mypy && pytest
 ```
 

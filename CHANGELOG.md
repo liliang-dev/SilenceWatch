@@ -10,6 +10,51 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-10-24
+
+**Back up the database before deploying this one, and keep a copy of `SECRET_KEY` with the backups.**
+The channels' webhook URLs and secrets are now encrypted under `SECRET_KEY`, which happens at the
+first start and cannot be undone by an older version (see **Security** and **Changed**). No
+migration, no new setting.
+
+### Security
+
+- **Notification channel configuration is encrypted in the database.** A webhook URL is a
+  secret by its path (Slack, Discord, Teams) and a webhook channel has a signing secret; both
+  were readable in a backup or a dump. The whole configuration of a channel is now sealed with
+  AES-256-GCM under a key derived from `SECRET_KEY`, bound to the channel it belongs to. The
+  API and the web UI are unchanged. No migration: the column is the same JSON, holding the
+  sealed form.
+
+### Changed
+
+- **`SECRET_KEY` now also protects the channels.** Rotating it was already signing everyone
+  out; it now also needs `OLD_SECRET_KEY=<previous value> silencewatch reseal` once, or the
+  channels cannot send (the list still loads, and the failed delivery says what to do). Keep a
+  copy of `SECRET_KEY` with your database backups.
+- **A channel configuration stored by an earlier version is sealed at the first start**, with
+  nothing to do. It is one way: an older version cannot read a sealed channel, so back up the
+  database before upgrading, and do not roll back to a version without this change.
+  During a rolling update, an alert picked up by an instance not yet replaced fails and is
+  retried by the next attempt, which the new instance serves.
+
+### Added
+
+- **A Laravel package**, `silencewatch/laravel` on Packagist (`clients/laravel`): installed with
+  an API key, it declares every task of the Laravel 12 or 13 schedule with its real cron
+  expression and reports each run, background tasks included, by listening to the scheduler's
+  own events. `php artisan silencewatch:sync` declares from a deploy script. Tested in CI on the
+  oldest and newest Laravel it allows; published by the `laravel-N.N.N` tags through a read-only
+  mirror that Packagist watches, see `docs/releasing.md`.
+- **The Python library reads django-celery-beat** (library 0.1.1, tagged `python-0.1.1`): the periodic tasks kept in the database are
+  declared and watched by the Celery integration, with nothing to configure, and a change made
+  while the workers run is declared again within a minute.
+- `silencewatch reseal`, to seal every channel configuration under the current key, or to bring
+  them across a `SECRET_KEY` change.
+- **`examples/python-demo`**: a runnable Celery application and a runnable APScheduler one, each
+  with two scheduled jobs and no monitoring code, next to the Spring Boot demo. CI checks that
+  both still declare their jobs with the library in this repository.
+
 ## [0.5.3] — 2026-10-23
 
 **Back up the database before deploying this one.** It applies two migrations at start:
@@ -897,7 +942,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3
 [0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.0...0.5.1

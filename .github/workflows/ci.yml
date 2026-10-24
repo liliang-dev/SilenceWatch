@@ -127,15 +127,22 @@ jobs:
             clients/python/requirements-test.txt
             clients/python/requirements-lint.txt
 
-      # The library has no dependency of its own; Celery and APScheduler are the
-      # extras its two integrations are tested against, at whatever the range allows.
+      # The library has no dependency of its own; Celery, django-celery-beat and
+      # APScheduler are the extras its integrations are tested against, at whatever
+      # the range allows.
       - name: Install
-        run: pip install -e ".[celery,apscheduler]" -r requirements-test.txt
+        run: pip install -e ".[celery,django-celery-beat,apscheduler]" -r requirements-test.txt
 
       # The tests start a stand-in for SilenceWatch, so the real HTTP code runs, and
       # real Celery and APScheduler schedulers drive the real hooks. On every Python.
       - name: Tests
         run: pytest
+
+      # The example applications are the library's real contract, the way the Spring
+      # Boot demo is the starter's: if one stops declaring its jobs, the integration
+      # is broken. Nothing is sent anywhere.
+      - name: Example applications
+        run: pytest ../../examples/python-demo
 
       # The tools below need a current Python (ruff and mypy no longer run on 3.9),
       # and their verdict does not depend on the interpreter, so they run once. The
@@ -157,6 +164,51 @@ jobs:
       - name: Build the distribution
         if: matrix.python == '3.12'
         run: python -m build && twine check dist/*
+
+  laravel:
+    name: Laravel package (PHP ${{ matrix.php }}, Laravel ${{ matrix.laravel }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest of everything the package allows, then the newest: a range
+          # in composer.json is a promise about both ends.
+          - php: '8.2'
+            laravel: '12'
+            lowest: true
+          - php: '8.4'
+            laravel: '13'
+            lowest: false
+    defaults:
+      run:
+        working-directory: clients/laravel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      # A library has no lockfile: what it is tested against is whatever its ranges
+      # resolve to, which is what the people who install it get.
+      - name: Install
+        env:
+          LARAVEL: ${{ matrix.laravel }}
+          LOWEST: ${{ matrix.lowest }}
+        run: |
+          composer update --no-interaction --no-progress --prefer-dist \
+            --with "laravel/framework:^$LARAVEL.0" \
+            $( [ "$LOWEST" = true ] && echo --prefer-lowest )
+
+      # Laravel's real scheduler runs real tasks against a stand-in SilenceWatch.
+      - name: Tests
+        run: vendor/bin/phpunit
 
   java:
     name: Spring Boot starter

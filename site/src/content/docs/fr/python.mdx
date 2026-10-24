@@ -67,7 +67,7 @@ Rien ne vous oblige à utiliser la bibliothèque : tout job capable de faire une
     { q: 'Comment surveiller les tâches Celery beat ?', a: 'Installez le paquet silencewatch avec l’extra celery, définissez une clé d’API et appelez instrument(app). Au démarrage d’un worker, la planification beat est déclarée, et chaque tâche planifiée envoie un signal autour de chaque exécution.' },
     { q: 'Surveille-t-elle aussi APScheduler ?', a: 'Oui, APScheduler 3 : les déclencheurs cron et interval sont lus depuis le planificateur, et chaque exécution est signalée. Donnez un identifiant à chaque job pour que son identité ne change pas d’un démarrage à l’autre.' },
     { q: 'La bibliothèque peut-elle ralentir ou faire planter mon application ?', a: 'Non. Les erreurs réseau sont avalées, l’envoi passe par une file bornée traitée en arrière-plan, et sans clé ou sans réseau l’application tourne comme sans la bibliothèque. Elle peut être désactivée entièrement.' },
-    { q: 'Et Django, RQ ou Dramatiq ?', a: 'Ils ne sont pas encore lus. La bibliothèque est organisée en un module par planificateur, donc d’autres pourront s’ajouter ; en attendant, tout job se surveille en appelant l’API de ping.' },
+    { q: 'Et Django, RQ ou Dramatiq ?', a: 'Les tâches périodiques gardées en base par django-celery-beat sont lues par l’intégration Celery, sans rien configurer. RQ et Dramatiq ne sont pas encore lus. La bibliothèque est organisée en un module par planificateur, donc d’autres pourront s’ajouter ; en attendant, tout job se surveille en appelant l’API de ping.' },
   ]}
 />
 

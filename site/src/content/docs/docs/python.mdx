@@ -109,7 +109,7 @@ Every setting is a keyword argument (`instrument(app, api_key="…", environment
 
 ## Limits
 
-- **Celery.** A task scheduled by several beat entries is declared from the one that fires most often. A **manual** `.delay()` of a scheduled task also sends a heartbeat, because a worker cannot tell it from a scheduled one. Solar schedules and schedules kept in a database (`django-celery-beat`) are not read. A crontab that restricts both the day of the month and the day of the week fires when both match in Celery and when either does in cron; the log says so.
+- **Celery.** A task scheduled by several beat entries is declared from the one that fires most often. A **manual** `.delay()` of a scheduled task also sends a heartbeat, because a worker cannot tell it from a scheduled one. Solar schedules are not read. Periodic tasks kept in the database by `django-celery-beat` are read, with nothing to configure, and a change made while the workers run is declared again within a minute. A crontab that restricts both the day of the month and the day of the week fires when both match in Celery and when either does in cron; the log says so.
 - **APScheduler.** Version 3 only (version 4 has another API). A job's duration includes any time it waited for an executor. One-off `date` triggers, combined `and`/`or` triggers and the `week`, `year` and "third friday" cron fields cannot be expressed and are skipped with a warning. Jobs added or removed after the scheduler started are declared again two seconds later.
 - **Sub-30-second jobs** are declared with a 30-second period, the shortest accepted, and a warning names them.
 - **Cron expressions the server cannot evaluate** are skipped with a warning rather than failing the whole declaration.

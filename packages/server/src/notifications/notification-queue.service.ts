@@ -5,6 +5,7 @@ import { IntervalRunner } from '../common/interval-runner';
 import { AppConfig, CONFIG } from '../config/config';
 import { PgService } from '../database/pg.service';
 import type { Alert } from './alert';
+import { ChannelConfigVault } from './channel-config.vault';
 import { SenderRegistry } from './sender.registry';
 
 /**
@@ -159,6 +160,7 @@ export class NotificationQueueService implements OnApplicationBootstrap, OnModul
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly pg: PgService,
     private readonly senders: SenderRegistry,
+    private readonly vault: ChannelConfigVault,
     schedulerRegistry: SchedulerRegistry,
   ) {
     this.runner = new IntervalRunner(
@@ -325,7 +327,8 @@ export class NotificationQueueService implements OnApplicationBootstrap, OnModul
 
   private async deliver(row: ContextRow): Promise<void> {
     const sender = this.senders.get(row.channel_type);
-    await sender.send(this.toAlert(row), row.config);
+    // Sealed in the database: opened here, for this one delivery, and nowhere else.
+    await sender.send(this.toAlert(row), this.vault.open(row.channel_id, row.config));
   }
 
   private toAlert(row: ContextRow): Alert {

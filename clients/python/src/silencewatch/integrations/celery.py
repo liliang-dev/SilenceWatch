@@ -19,17 +19,21 @@ stable across restarts and renames of the beat entry. If one task is scheduled b
 several entries, it is declared from the one that fires most often, since that is
 the deadline a missed run breaches first.
 
-Not supported, and said so in the log: solar schedules, and schedules kept in a
-database (``django-celery-beat``), which are not in ``beat_schedule``.
+Schedules kept in the database by ``django-celery-beat`` are read too, when it is
+an installed Django app; see :mod:`silencewatch.integrations.django_celery_beat`.
+
+Not supported, and said so in the log: solar schedules.
 """
 
 from __future__ import annotations
 
+import contextlib
 import logging
+import os
 import threading
 import time
-from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from celery import Celery, signals
 from celery.schedules import crontab, maybe_schedule, schedule, solar
@@ -37,6 +41,7 @@ from celery.schedules import crontab, maybe_schedule, schedule, solar
 from ..cron import compact
 from ..model import DiscoveredJob
 from ..monitor import Monitor, get_monitor
+from . import django_celery_beat
 from .base import Integration
 
 log = logging.getLogger("silencewatch")
@@ -71,17 +76,18 @@ class CeleryIntegration(Integration):
         self._keys: Dict[str, str] = {}  # task name -> job key
         self._started: Dict[str, float] = {}  # task id -> monotonic start
         self._lock = threading.Lock()
+        # django-celery-beat: whether its entries were read, the change marker seen
+        # then, and the process whose thread watches the marker.
+        self._database = False
+        self._database_seen: Optional[datetime] = None
+        self._watcher_pid: Optional[int] = None
 
     # -- discovery --------------------------------------------------------------
 
     def discover(self) -> List[DiscoveredJob]:
-        # task name -> (beat entry name, cron, interval, seconds between runs)
-        chosen: Dict[str, Tuple[str, Optional[str], Optional[timedelta], float]] = {}
-        for entry_name, entry in dict(self.app.conf.beat_schedule or {}).items():
-            task = entry.get("task") if isinstance(entry, dict) else getattr(entry, "task", None)
-            raw = entry.get("schedule") if isinstance(entry, dict) else getattr(entry, "schedule", None)
-            if not task or raw is None:
-                continue
+        # task name -> (beat entry name, cron, interval, time zone, seconds between runs)
+        chosen: Dict[str, Tuple[str, Optional[str], Optional[timedelta], Optional[str], float]] = {}
+        for entry_name, task, raw in self._entries():
             try:
                 parsed = maybe_schedule(raw, app=self.app)
             except Exception:  # noqa: BLE001
@@ -91,18 +97,35 @@ class CeleryIntegration(Integration):
             if period is None:
                 continue
             kept = chosen.get(task)
-            if kept is None or period < kept[3]:
-                chosen[task] = (entry_name, cron, interval, period)
+            if kept is None or period < kept[4]:
+                # A django-celery-beat crontab carries its own time zone.
+                zone = getattr(parsed, "tz", None)
+                chosen[task] = (entry_name, cron, interval, str(zone) if zone else None, period)
 
-        zone = self._timezone()
+        default_zone = self._timezone()
         jobs: List[DiscoveredJob] = []
-        self._keys = {}
-        for task, (entry_name, cron, interval, _) in chosen.items():
+        keys: Dict[str, str] = {}
+        for task, (entry_name, cron, interval, zone, _) in chosen.items():
             key = f"{self.name}:{task}"
-            self._keys[task] = key
+            keys[task] = key
             jobs.append(DiscoveredJob(key=key, name=entry_name, cron=cron, interval=interval,
-                                      timezone=zone if cron else None))
+                                      timezone=(zone or default_zone) if cron else None))
+        self._keys = keys  # replaced whole: a worker thread may be reading it
         return jobs
+
+    def _entries(self) -> Iterator[Tuple[str, str, Any]]:
+        """``(entry name, task name, schedule)``: ``beat_schedule``, then the database's."""
+        for entry_name, entry in dict(self.app.conf.beat_schedule or {}).items():
+            task = entry.get("task") if isinstance(entry, dict) else getattr(entry, "task", None)
+            raw = entry.get("schedule") if isinstance(entry, dict) else getattr(entry, "schedule", None)
+            if task and raw is not None:
+                yield entry_name, task, raw
+
+        self._database = django_celery_beat.in_use()
+        if self._database:
+            # The marker first: a change made while the entries are read is seen next time.
+            self._database_seen = django_celery_beat.last_change()
+            yield from django_celery_beat.entries()
 
     @staticmethod
     def _describe(entry_name: str, parsed: Any) -> Tuple[Optional[str], Optional[timedelta], Optional[float]]:
@@ -132,6 +155,9 @@ class CeleryIntegration(Integration):
 
     def _on_worker_init(self, **_: Any) -> None:
         self.register()
+        if self._database:
+            # Opened in the main process before the pool forks: not to be shared.
+            django_celery_beat.close_connections()
 
     def register(self) -> None:
         """Declare the beat schedule now. Called when a worker starts; callable by hand."""
@@ -143,6 +169,8 @@ class CeleryIntegration(Integration):
             log.warning("SilenceWatch could not read the beat schedule", exc_info=True)
 
     def _on_prerun(self, task_id: Optional[str] = None, task: Any = None, **_: Any) -> None:
+        if self._database and self._watcher_pid != os.getpid():
+            self._watch_database()
         key = self._key_of(task)
         if key is None or self._monitor is None or task_id is None:
             return
@@ -174,6 +202,35 @@ class CeleryIntegration(Integration):
     def _key_of(self, task: Any) -> Optional[str]:
         name = getattr(task, "name", None)
         return self._keys.get(name) if name else None
+
+    # -- django-celery-beat ----------------------------------------------------
+
+    def _watch_database(self) -> None:
+        """Start, in this process, the thread that declares the database schedule again when it changes.
+
+        Per process because the ping keys are: a pool child forked before a change
+        knows only the keys of the schedule it was forked with.
+        """
+        self._watcher_pid = os.getpid()
+        threading.Thread(target=self._watch_loop, name="silencewatch-django-celery-beat", daemon=True).start()
+
+    def _watch_loop(self) -> None:
+        pid = os.getpid()
+        while self._watcher_pid == pid:
+            time.sleep(django_celery_beat.CHECK_EVERY_SECONDS)
+            self.check_database()
+
+    def check_database(self) -> None:
+        """Declare again if the database schedule changed since it was read. Never raises."""
+        try:
+            if django_celery_beat.last_change() != self._database_seen:
+                log.info("The django-celery-beat schedule changed; declaring it again")
+                self.register()
+        except Exception:  # noqa: BLE001
+            log.debug("SilenceWatch could not check the django-celery-beat schedule", exc_info=True)
+        finally:
+            with contextlib.suppress(Exception):
+                django_celery_beat.close_connections()
 
 
 def _crontab_period(entry: crontab) -> float:

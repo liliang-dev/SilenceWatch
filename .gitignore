@@ -46,3 +46,6 @@ __pycache__/
 .ruff_cache/
 .venv/
 clients/python/dist/
+clients/laravel/vendor/
+clients/laravel/composer.lock
+clients/laravel/.phpunit.cache/

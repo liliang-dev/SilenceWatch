@@ -165,9 +165,20 @@ Secrets never leave the server: channel configuration is never returned by the A
 bundle reports configuration as *set / not set*, never as values. Logs mask email
 addresses and carry no ping URLs.
 
+**Channel configuration is sealed in the database.** A Slack, Discord or Teams webhook
+URL is a secret by its path, and a webhook channel has a signing secret, so the whole
+configuration of a channel is stored encrypted (AES-256-GCM, a fresh random IV each time).
+A backup or a leaked dump shows none of it without the `SECRET_KEY` the server runs with.
+The channel's id is authenticated with the ciphertext, so a sealed configuration copied
+onto another row does not open. A configuration an earlier version stored in plaintext keeps
+working and is sealed when the server starts.
+
 `SECRET_KEY` is the only root secret; all other keys are derived from it with HKDF
 under distinct labels, so a signing key can never be used to verify a webhook
-HMAC. Rotating it invalidates sessions.
+HMAC. Rotating it invalidates sessions **and** leaves the channel configurations sealed
+under the old key: run `OLD_SECRET_KEY=<previous value> silencewatch reseal` once after
+changing it, or the channels can no longer send (the list still loads, and a delivery's
+error says what to do).
 
 ## Reporting a vulnerability
 

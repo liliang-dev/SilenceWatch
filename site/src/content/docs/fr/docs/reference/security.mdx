@@ -30,6 +30,7 @@ Une instance SilenceWatch connaît la planification de tout ce qu’une entrepri
 - **Web** : une Content-Security-Policy stricte (`default-src 'self'`), `nosniff`, `no-referrer` et HSTS en production. L’interface n’embarque aucune police, script ou feuille de style externe.
 - **Déni de service** : limites de débit par clé de ping, par adresse et par route d’authentification.
 - **Secrets** : la configuration d’un canal n’est jamais renvoyée par l’API, les clés d’API ne sont affichées qu’une fois, et `SECRET_KEY` est la seule clé racine : toutes les autres en sont dérivées.
+- **Configuration des canaux chiffrée en base** : l’URL d’un webhook Slack, Discord ou Teams est un secret par son chemin, et un canal webhook a un secret de signature. Toute la configuration d’un canal est donc stockée chiffrée (AES-256-GCM, un IV aléatoire à chaque fois). Une sauvegarde ou un dump qui fuite n’en montre rien sans la `SECRET_KEY` du serveur, et une configuration recopiée sur un autre canal ne s’ouvre pas. Une configuration écrite en clair par une version antérieure continue de fonctionner et est chiffrée au démarrage. Changer `SECRET_KEY` demande de lancer une fois `OLD_SECRET_KEY=<ancienne valeur> silencewatch reseal`, sinon les canaux ne peuvent plus envoyer.
 
 ## Signaler une vulnérabilité
 
