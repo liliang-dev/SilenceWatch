@@ -91,7 +91,7 @@ fails without saying that the Node version is why. See
 pnpm test        # unit tests
 pnpm run test:e2e  # needs TEST_DATABASE_URL
 pnpm run lint
-cd clients/spring-boot-starter && mvn test  # if you touched the starter
+cd clients/java/spring-boot && mvn test  # if you touched the starter
 ```
 
 See [docs/development.md](docs/development.md) for setting up a database.

@@ -25,9 +25,9 @@ const expect = (condition, message) => {
 const copies = [
   'LICENSE',
   'packages/shared/LICENSE',
-  'clients/spring-boot-starter/LICENSE',
+  'clients/java/spring-boot/LICENSE',
   'clients/python/LICENSE',
-  'clients/laravel/LICENSE',
+  'clients/php/laravel/LICENSE',
   'examples/spring-boot-demo/LICENSE',
 ];
 const root = read(copies[0]);
@@ -51,7 +51,7 @@ expect(
   'Dockerfile: the image licence label is not "Apache-2.0"',
 );
 expect(
-  /<name>Apache License, Version 2\.0<\/name>/.test(read('clients/spring-boot-starter/pom.xml')),
+  /<name>Apache License, Version 2\.0<\/name>/.test(read('clients/java/spring-boot/pom.xml')),
   'the starter pom does not declare the Apache License, Version 2.0',
 );
 expect(
@@ -59,7 +59,7 @@ expect(
   'the Python library does not declare the licence "Apache-2.0" in pyproject.toml',
 );
 expect(
-  JSON.parse(read('clients/laravel/composer.json')).license === 'Apache-2.0',
+  JSON.parse(read('clients/php/laravel/composer.json')).license === 'Apache-2.0',
   'the Laravel package does not declare the licence "Apache-2.0" in composer.json',
 );
 

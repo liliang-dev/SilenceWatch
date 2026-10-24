@@ -104,7 +104,7 @@ updates:
   # The starter is a published artifact: its dependencies end up on other
   # people's classpaths, so they are updated on their own schedule.
   - package-ecosystem: maven
-    directory: /clients/spring-boot-starter
+    directory: /clients/java/spring-boot
     target-branch: dev
     schedule:
       interval: weekly

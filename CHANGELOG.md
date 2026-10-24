@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The client packages are laid out by language, and tagged by language and package.**
+  `clients/spring-boot-starter` is now `clients/java/spring-boot` and `clients/laravel` is
+  `clients/php/laravel`; the Python library stays in `clients/python`, as it is one package for
+  every scheduler. Release tags follow: `java-spring-boot-N.N.N` and `php-laravel-N.N.N`
+  (the Laravel entry under 0.6.0 says `laravel-N.N.N`, which was never used), and
+  `python-N.N.N` as before. The starter's first release, tagged `java-0.1.0`, is untouched.
+  Nothing published changes; the 0.1.0 starter's POM keeps pointing at its old folder.
+
 ## [0.6.0] — 2026-10-24
 
 **Back up the database before deploying this one, and keep a copy of `SECRET_KEY` with the backups.**

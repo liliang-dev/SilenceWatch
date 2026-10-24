@@ -120,7 +120,7 @@ These are the reason the library is safe to put in a production application:
 ## Building from source
 
 ```bash
-cd clients/spring-boot-starter
+cd clients/java/spring-boot
 mvn test
 mvn install
 ```

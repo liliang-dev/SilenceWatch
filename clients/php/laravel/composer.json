@@ -6,7 +6,7 @@
     "keywords": ["laravel", "scheduler", "cron", "monitoring", "heartbeat", "dead-mans-switch", "silencewatch"],
     "homepage": "https://silencewatch.com",
     "support": {
-        "source": "https://github.com/liliang-dev/SilenceWatch/tree/main/clients/laravel",
+        "source": "https://github.com/liliang-dev/SilenceWatch/tree/main/clients/php/laravel",
         "issues": "https://github.com/liliang-dev/SilenceWatch/issues"
     },
     "authors": [

@@ -79,7 +79,7 @@ appears in SilenceWatch, with its real schedule, and sends a heartbeat around ea
 run — including its duration and whether it threw. No check to create by hand, no
 ping URL to copy, nothing to keep in sync when the code changes.
 
-See [`clients/spring-boot-starter`](clients/spring-boot-starter/README.md), and
+See [`clients/java/spring-boot`](clients/java/spring-boot/README.md), and
 [`examples/spring-boot-demo`](examples/spring-boot-demo/README.md) for a runnable
 application that declares its jobs this way.
 
@@ -93,7 +93,7 @@ share, in [`clients`](clients/README.md), and a runnable application for each sc
 
 **And Laravel.** `composer require silencewatch/laravel` and `SILENCEWATCH_API_KEY`: the
 whole schedule declares itself and reports each run, with nothing to write. See
-[`clients/laravel`](clients/laravel/README.md).
+[`clients/php/laravel`](clients/php/laravel/README.md).
 
 ## Self-hosting
 
