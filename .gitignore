@@ -13,7 +13,7 @@ packages/server/public/
 
 # java
 target/
-clients/spring-boot-starter/target/
+clients/java/spring-boot/target/
 
 # environment / secrets — never commit these
 .env
@@ -46,6 +46,6 @@ __pycache__/
 .ruff_cache/
 .venv/
 clients/python/dist/
-clients/laravel/vendor/
-clients/laravel/composer.lock
-clients/laravel/.phpunit.cache/
+clients/php/laravel/vendor/
+clients/php/laravel/composer.lock
+clients/php/laravel/.phpunit.cache/

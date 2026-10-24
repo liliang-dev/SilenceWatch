@@ -8,7 +8,7 @@
 
 - [ ] `pnpm test`
 - [ ] `pnpm run test:e2e` (if the server changed)
-- [ ] `mvn test` in `clients/spring-boot-starter` (if the starter changed)
+- [ ] `mvn test` in `clients/java/spring-boot` (if the starter changed)
 
 ## Checklist
 

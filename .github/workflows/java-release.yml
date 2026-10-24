@@ -3,20 +3,22 @@ name: Java release
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
 # The starter has a version of its own (0.1.0) and the application another (0.6.0),
-# so they are tagged apart: `java-0.1.0` here, `0.6.0` for the Release workflow.
-# The tag names the language, as the Python library's does (`python-0.1.0`): the
-# next Java client would be released the same way.
+# so they are tagged apart: `java-spring-boot-0.1.1` here, `0.6.0` for the Release workflow.
+# The tag names the language and the package (`java-spring-boot-`, as `php-laravel-` does
+# for Laravel); the Python library, one package for every scheduler, is `python-0.1.0`. A
+# second Java package would be released the same way, with its own prefix. The first
+# release was tagged `java-0.1.0`, before the package was part of the name.
 # The strict pattern means neither workflow can fire on the other's tags, and an
 # unrelated tag cannot publish to a registry other people build against.
 on:
   push:
-    tags: ['java-[0-9]+.[0-9]+.[0-9]+']
+    tags: ['java-spring-boot-[0-9]+.[0-9]+.[0-9]+']
   # Releases a tag that already exists, for the same reason the Release workflow
   # allows it: re-pushing a tag changes what a published version means.
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to release, for example java-0.1.0'
+        description: 'Existing tag to release, for example java-spring-boot-0.1.1'
         required: true
         type: string
 
@@ -46,15 +48,15 @@ jobs:
         run: |
           set -eu
           case "$RAW_TAG" in
-            java-[0-9]*.[0-9]*.[0-9]*) ;;
+            java-spring-boot-[0-9]*.[0-9]*.[0-9]*) ;;
             *)
-              echo "Refusing to release '$RAW_TAG': expected java-N.N.N" >&2
+              echo "Refusing to release '$RAW_TAG': expected java-spring-boot-N.N.N" >&2
               exit 1
               ;;
           esac
           # Only a final version: Central never lets a version be changed or
           # removed, and a pre-release is better named in a staging repository.
-          version="${RAW_TAG#java-}"
+          version="${RAW_TAG#java-spring-boot-}"
           case "$version" in
             *[!0-9.]*) echo "Refusing '$version': only N.N.N is published" >&2; exit 1 ;;
           esac
@@ -81,8 +83,8 @@ jobs:
             echo "::error::The tagged commit is not on main. Promote dev to main, then tag." >&2
             exit 1
           fi
-          if ! grep -q "<version>$VERSION</version>" clients/spring-boot-starter/README.md; then
-            echo "::error file=clients/spring-boot-starter/README.md::The README does not give version $VERSION." >&2
+          if ! grep -q "<version>$VERSION</version>" clients/java/spring-boot/README.md; then
+            echo "::error file=clients/java/spring-boot/README.md::The README does not give version $VERSION." >&2
             exit 1
           fi
 
@@ -103,7 +105,7 @@ jobs:
       # The repository keeps the version of work in progress (0.1.0-SNAPSHOT);
       # the release takes its number from the tag, in the build and nowhere else.
       - name: Set the version from the tag
-        working-directory: clients/spring-boot-starter
+        working-directory: clients/java/spring-boot
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -113,7 +115,7 @@ jobs:
       # Tests, sources, javadoc, signature, then the upload to the Central Portal,
       # where the version waits to be published by hand: see docs/releasing.md.
       - name: Test, sign and upload
-        working-directory: clients/spring-boot-starter
+        working-directory: clients/java/spring-boot
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}

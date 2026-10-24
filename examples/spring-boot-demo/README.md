@@ -5,7 +5,7 @@ Adding the starter and an API key is the entire integration.
 
 ```bash
 # 1. install the starter from this repository
-cd ../../clients/spring-boot-starter && mvn install -DskipTests
+cd ../../clients/java/spring-boot && mvn install -DskipTests
 
 # 2. create an API key in your project's Settings page, then
 cd ../../examples/spring-boot-demo

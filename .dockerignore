@@ -4,7 +4,7 @@ dist
 **/dist
 packages/server/public
 packages/web/.angular
-clients/spring-boot-starter/target
+clients/java/spring-boot/target
 .git
 .github
 docs

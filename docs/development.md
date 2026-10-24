@@ -6,9 +6,9 @@
 packages/shared    validation schemas and DTO types, shared by server, UI and clients
 packages/server    NestJS + Fastify API, ingestion, detection, alerting
 packages/web       Angular UI, built into packages/server/public
-clients/spring-boot-starter   the Spring Boot starter
-clients/python               the Python library (Celery beat, django-celery-beat, APScheduler)
-clients/laravel              the Laravel package (the scheduler)
+clients/java/spring-boot    the Spring Boot starter
+clients/python             the Python library (Celery beat, django-celery-beat, APScheduler)
+clients/php/laravel        the Laravel package (the scheduler)
 site               showcase site and documentation (Astro + Starlight), its own project
 ```
 
@@ -207,9 +207,9 @@ cd packages/server && BASE=http://localhost:8080 ./scripts/smoke.sh
 ```bash
 pnpm test              # shared, server and web unit tests, no database
 pnpm run test:e2e      # needs TEST_DATABASE_URL
-cd clients/spring-boot-starter && mvn test
+cd clients/java/spring-boot && mvn test
 cd clients/python && pip install -e ".[celery,django-celery-beat,apscheduler]" -r requirements.txt && ruff check . && mypy && pytest
-cd clients/laravel && composer install && vendor/bin/phpunit
+cd clients/php/laravel && composer install && vendor/bin/phpunit
 ```
 
 The web tests run on Vitest through the Angular builder; they need no browser.
@@ -266,7 +266,7 @@ jobs and no monitoring code. It is the fastest way to see — or to verify — t
 the starter does what it claims:
 
 ```bash
-cd clients/spring-boot-starter && mvn install -DskipTests
+cd clients/java/spring-boot && mvn install -DskipTests
 cd ../../examples/spring-boot-demo
 SILENCEWATCH_API_KEY=sw_… mvn spring-boot:run
 ```

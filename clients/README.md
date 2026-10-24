@@ -1,14 +1,15 @@
 # Client libraries
 
 Everything that lives next to an application and tells SilenceWatch about its
-scheduled jobs. One folder per language, each a package of its own, versioned and
-released apart from the server.
+scheduled jobs. One folder per language and, inside it, one per package: each is a package
+of its own, versioned and released apart from the server. A language with a single package
+and several schedulers (Python) has just the one folder.
 
-| Folder | Language | Reads | Install |
-| --- | --- | --- | --- |
-| [`spring-boot-starter`](spring-boot-starter/README.md) | Java | `@Scheduled`, Quartz | `com.silencewatch:silencewatch-spring-boot-starter` |
-| [`python`](python/README.md) | Python 3.9+ | Celery beat, django-celery-beat, APScheduler 3 | `pip install silencewatch` |
-| [`laravel`](laravel/README.md) | PHP 8.2+ | the Laravel 12 and 13 scheduler | `composer require silencewatch/laravel` |
+| Folder | Language | Reads | Install | Tag |
+| --- | --- | --- | --- | --- |
+| [`java/spring-boot`](java/spring-boot/README.md) | Java | `@Scheduled`, Quartz | `com.silencewatch:silencewatch-spring-boot-starter` | `java-spring-boot-N.N.N` |
+| [`python`](python/README.md) | Python 3.9+ | Celery beat, django-celery-beat, APScheduler 3 | `pip install silencewatch` | `python-N.N.N` |
+| [`php/laravel`](php/laravel/README.md) | PHP 8.2+ | the Laravel 12 and 13 scheduler | `composer require silencewatch/laravel` | `php-laravel-N.N.N` |
 
 Runnable applications for each client are in [`examples`](../examples), and CI checks them against the
 clients in this repository.
@@ -47,7 +48,7 @@ package, its own tests, its own release workflow and its own README, following t
 contract above, and a row in the table. Put a new language's CI job in
 `.github/workflows/ci.yml` and its release workflow beside `java-release.yml`,
 `python-release.yml` and `laravel-release.yml`, with a tag named after the package
-(`java-N.N.N`, `python-N.N.N`, `laravel-N.N.N`) so that no workflow can fire on another's tags. A
+(`java-spring-boot-N.N.N`, `python-N.N.N`, `php-laravel-N.N.N`) so that no workflow can fire on another's tags. A
 registry that reads a repository root rather than an uploaded archive (Packagist, Go modules) gets
 a read-only mirror of the folder, pushed by the release workflow, as `laravel-release.yml` does.
 
