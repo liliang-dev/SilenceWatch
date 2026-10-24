@@ -1,0 +1,68 @@
+---
+title: "Django task monitoring: django-celery-beat"
+description: "Monitor Django periodic tasks kept in the database by django-celery-beat: one package, one API key, schedules edited in the admin watched without a restart."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../components/Faq.astro';
+
+<p class="splash-lede">In a Django project, the schedule often lives in the database: someone adds a periodic task in the admin, and nobody updates a monitoring list. The <strong>SilenceWatch library</strong> reads the periodic tasks of <code>django-celery-beat</code>, declares them with their real schedule, and reports every run.</p>
+
+## One package, one key
+
+```bash
+pip install "silencewatch[django-celery-beat]"
+export SILENCEWATCH_API_KEY=sw_...
+```
+
+```python title="celery.py"
+from silencewatch.integrations.celery import instrument
+
+instrument(app)
+```
+
+Nothing else to write. When `django_celery_beat` is in `INSTALLED_APPS`, the same `instrument(app)` as for Celery also reads the enabled periodic tasks of the database, crontab (with its own time zone) and interval, next to the `beat_schedule`. Restart the workers: every task appears in SilenceWatch with its real schedule, and sends a heartbeat around every run, with its duration and its failures.
+
+## What sets it apart
+
+- **A change made while the workers run is picked up.** Add, edit or disable a periodic task in the Django admin, or in code: it is declared again within a minute, and its runs are reported from then on, without a restart.
+- **It reads the real schedules**, a crontab in the time zone it declares, an interval as its period.
+- **It gives each task a stable identity** (`celery:shop.tasks.backup`, the task name): history survives restarts, renames of the entry and redeployments.
+- **It never deletes anything.** A task that is removed or disabled is flagged *orphaned*; the history is kept until you delete it.
+- **It is the Celery integration.** The rules, the settings and the heartbeats are the same, so a project with both a `beat_schedule` and database entries has one check per task.
+
+## It cannot hurt you
+
+- it **never fails** your task: every error is swallowed and logged at `WARNING`, and your task runs once, its result and its exception passing through unchanged;
+- it **never blocks** it: sending goes through a bounded queue and a daemon thread, and the one query that watches for changes reads a single row;
+- it **degrades silently**: with no key, no network or no server, the workers run exactly as without it;
+- `SILENCEWATCH_ENABLED=false` **removes the whole mechanism**;
+- it has **no dependency of its own**: `celery` and `django-celery-beat` are the ones you already have.
+
+All settings and limits are in the [library documentation](/docs/django/).
+
+<div class="sw-cta">
+  <LinkButton href="/docs/django/" variant="primary" icon="right-arrow">Library documentation</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python" variant="secondary" icon="github">Library source</LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions about Django periodic task monitoring"
+  items={[
+    { q: 'How do I monitor django-celery-beat tasks?', a: 'Install the silencewatch package with the django-celery-beat extra, set an API key and call instrument(app) on your Celery app. When django_celery_beat is an installed app, its enabled periodic tasks are declared next to the beat_schedule, with nothing else to configure.' },
+    { q: 'What if I add a periodic task in the admin while the workers run?', a: 'Each worker process looks at django-celery-beat\'s own change marker once a minute, and declares the schedule again only when it moved. The new task is reported without a restart.' },
+    { q: 'Which periodic tasks are not watched?', a: 'One-off and clocked tasks run once and are not a schedule to watch, and disabled ones are left out; if they had been declared they are flagged orphaned. A task that is in both the beat_schedule and the database is one check.' },
+    { q: 'Does it work with plain Django and no Celery?', a: 'No: it reads the schedule that Celery beat runs. A Django management command run by cron can be monitored with the ping API.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/python/">Python job monitoring</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/docs/django/">Library documentation</a></li>
+</ul>

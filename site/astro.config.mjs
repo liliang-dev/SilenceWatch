@@ -65,6 +65,8 @@ export default defineConfig({
             { slug: 'docs/alerting' },
             { slug: 'docs/spring-boot' },
             { slug: 'docs/python' },
+            { slug: 'docs/django' },
+            { slug: 'docs/laravel' },
           ],
         },
         {

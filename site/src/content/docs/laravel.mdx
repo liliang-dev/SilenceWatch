@@ -1,0 +1,71 @@
+---
+title: "Laravel scheduler monitoring: every task"
+description: "Monitor the Laravel task scheduler: one composer package, one API key, every scheduled task declared with its real cron expression and reported at each run."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import Faq from '../../components/Faq.astro';
+
+<p class="splash-lede">In a Laravel application, the whole schedule runs from a single <code>schedule:run</code> every minute. If it stops, or one task stops, nothing tells you. The <strong>SilenceWatch package</strong> reads your schedule, declares every task with its real cron expression, and reports every run.</p>
+
+## One package, one key
+
+```bash
+composer require silencewatch/laravel
+```
+
+```dotenv
+SILENCEWATCH_API_KEY=sw_...
+```
+
+That is the whole setup: Laravel discovers the package, and nothing in your schedule changes. The first time `schedule:run` runs a task, the whole schedule is declared in SilenceWatch with its real cron expressions, and each task sends a heartbeat around every run, with its duration and its failures. No check to create by hand, no ping URL to copy, nothing to keep in sync when you edit `routes/console.php`.
+
+## What sets it apart
+
+- **It listens, it does not wrap.** The package uses the events Laravel's scheduler already fires, so your tasks are not changed, and background tasks (`->runInBackground()`) are reported with their exit code.
+- **It reads the real schedules**, with each task's own time zone (`->timezone()`), else the application's.
+- **It gives each task a stable identity** (`artisan:backup:run --only-db`, `exec:/opt/scripts/export.sh`, `call:App\Jobs\PruneOrders`): history survives deploys, renames and moves between servers.
+- **It never deletes anything.** A task that leaves the schedule is flagged *orphaned*; the history is kept until you delete it.
+- **It tells environments apart**, with `APP_ENV` by default: staging and production are two separate sets of checks.
+- **It tells you what it does not watch.** `php artisan silencewatch:sync` declares the schedule at the end of a deploy script and lists the tasks left out, with the reason.
+
+## It cannot hurt you
+
+- it **never fails** your task: every error is caught, and a task that succeeds is never reported to Laravel as failed because of the package;
+- it **costs almost nothing**: PHP has no background thread, so a heartbeat is a request the scheduler waits for, at most two seconds, and once SilenceWatch has not answered, the other tasks of that run do not wait for it again;
+- it **degrades silently**: with no key, no network or no server, the schedule runs exactly as without the package;
+- `SILENCEWATCH_ENABLED=false` **removes the whole mechanism**;
+- it has **no dependency** beyond Laravel itself. Laravel 12 and 13, PHP 8.2 or later.
+
+All settings and limits are in the [package documentation](/docs/laravel/).
+
+## If your job is not in the Laravel scheduler
+
+Any job that can make an HTTP request can be monitored with the [ping API](/docs/ping-api/). See [cron job monitoring](/cron-monitoring/) and the [examples](/docs/cron-examples/).
+
+<div class="sw-cta">
+  <LinkButton href="/docs/laravel/" variant="primary" icon="right-arrow">Package documentation</LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/php/laravel" variant="secondary" icon="github">Package source</LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions about Laravel scheduler monitoring"
+  items={[
+    { q: 'How do I monitor the Laravel scheduler?', a: 'Run composer require silencewatch/laravel and set SILENCEWATCH_API_KEY. The first time schedule:run runs a task, the schedule is declared with its real cron expressions, and each task sends a heartbeat around every run.' },
+    { q: 'Do I have to change my scheduled tasks?', a: 'No. The package listens to the events the scheduler already fires; your tasks are not wrapped or modified.' },
+    { q: 'Which tasks are not watched?', a: 'A closure without a name (give it ->name()), a task with a condition such as between(), when() or skip(), because its cron expression says when it may run, not when it does, and nearest-weekday cron expressions. php artisan silencewatch:sync lists them with the reason.' },
+    { q: 'Can the package slow down or break my scheduler?', a: 'No. Errors are caught, the wait is limited to the timeout (two seconds by default) and is skipped for the rest of a run once SilenceWatch has not answered, and with no key or no network the schedule runs as without the package.' },
+    { q: 'Which versions are supported?', a: 'Laravel 12 and 13 on PHP 8.2 or later. The package is tested in CI on the oldest and the newest of those.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/job-monitoring/">Job monitoring</a></li>
+  <li><a href="/cron-monitoring/">Cron job monitoring</a></li>
+  <li><a href="/docs/laravel/">Package documentation</a></li>
+</ul>
