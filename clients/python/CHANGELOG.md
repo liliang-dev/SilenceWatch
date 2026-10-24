@@ -5,6 +5,10 @@ The Python library is versioned apart from the application, and tagged
 
 ## [Unreleased]
 
+- **django-celery-beat**: the periodic tasks kept in the database are declared and
+  watched by the Celery integration, with nothing to configure. A change made while
+  the workers run is declared again within a minute.
+
 ## [0.1.0]
 
 First release.
