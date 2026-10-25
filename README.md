@@ -52,14 +52,37 @@ may be. If the heartbeat does not arrive in time, you get told.
 0 2 * * *  /usr/local/bin/backup.sh && curl -fsS -m 10 --retry 3 https://app.silencewatch.com/p/<ping-key>
 ```
 
-That is the entire integration for a shell script. For Java, there is something
-better — see below.
+That is the entire integration for a shell script. For Java, Python and PHP, there is
+something better — see below.
 
 ## What makes it different
 
-Every competitor serves the Java ecosystem badly. SilenceWatch ships a **Spring
-Boot starter that discovers and declares every scheduled job in your application
-automatically**:
+Most monitoring tools ask you to create a check for every job and paste its ping
+URL into the job. SilenceWatch also ships **client libraries that read your scheduler
+and do it for you**: add the dependency and an API key, restart, and every
+scheduled job appears in SilenceWatch with its real schedule and sends a heartbeat
+around each run, with its duration and whether it failed. No check to create by
+hand, no ping URL to copy, nothing to keep in sync when the code changes.
+
+| Language | Package | Reads |
+| --- | --- | --- |
+| Java | `silencewatch-spring-boot-starter` (Maven Central) | `@Scheduled` methods and Quartz jobs |
+| Python | `silencewatch` (PyPI) | Celery beat, django-celery-beat and APScheduler |
+| PHP | `silencewatch/laravel` (Packagist) | the Laravel 12 and 13 scheduler |
+
+All three work the same way:
+
+1. **At startup, one call declares every job found**, with its real cron expression
+   or interval. Each job has a stable identity, so its history survives restarts and
+   deploys. A job that disappears from the code is flagged *orphaned*, never deleted.
+2. **Around each run, a heartbeat is sent**: when it starts, then whether it
+   succeeded or failed, with the duration.
+
+And they follow the same rules, so they are safe to put in production: they **never
+fail or block your job**, they **do nothing when there is no key or no network**,
+and they bring no heavy dependency.
+
+### Java: Spring Boot
 
 ```xml
 <dependency>
@@ -74,26 +97,46 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-Restart the application. Every `@Scheduled` method and every Quartz job now
-appears in SilenceWatch, with its real schedule, and sends a heartbeat around each
-run — including its duration and whether it threw. No check to create by hand, no
-ping URL to copy, nothing to keep in sync when the code changes.
+At startup, the starter finds every `@Scheduled` method and every Quartz job.
+See [`clients/java/spring-boot`](clients/java/spring-boot/README.md) and the runnable
+[`examples/spring-boot-demo`](examples/spring-boot-demo/README.md).
 
-See [`clients/java/spring-boot`](clients/java/spring-boot/README.md), and
-[`examples/spring-boot-demo`](examples/spring-boot-demo/README.md) for a runnable
-application that declares its jobs this way.
+### Python: Celery, APScheduler and Django
 
-**Python gets the same.** `pip install "silencewatch[celery]"` (or `[apscheduler]`),
-set `SILENCEWATCH_API_KEY`, and call `instrument(app)`: every Celery beat task or
-APScheduler job declares itself with its real schedule and reports each run. See
-[`clients/python`](clients/python/README.md). Periodic tasks kept in the database by
-django-celery-beat are read too. The client libraries are listed, with the contract they
-share, in [`clients`](clients/README.md), and a runnable application for each scheduler is in
+```bash
+pip install "silencewatch[celery]"   # or [apscheduler], [django-celery-beat]
+export SILENCEWATCH_API_KEY=sw_...
+```
+
+```python
+from silencewatch.integrations.celery import instrument
+
+instrument(app)
+```
+
+One line reads the Celery beat schedule, the jobs of an APScheduler scheduler, or
+the periodic tasks that django-celery-beat keeps in the database (a task added in the
+Django admin is picked up within a minute). See
+[`clients/python`](clients/python/README.md) and the runnable
 [`examples/python-demo`](examples/python-demo/README.md).
 
-**And Laravel.** `composer require silencewatch/laravel` and `SILENCEWATCH_API_KEY`: the
-whole schedule declares itself and reports each run, with nothing to write. See
+### PHP: Laravel
+
+```bash
+composer require silencewatch/laravel
+```
+
+```dotenv
+SILENCEWATCH_API_KEY=sw_...
+```
+
+Nothing else to write: the package listens to the events Laravel's scheduler already
+fires, so your tasks are not wrapped or changed. `php artisan silencewatch:sync`
+declares the schedule at the end of a deploy. See
 [`clients/php/laravel`](clients/php/laravel/README.md).
+
+The client libraries are listed, with the contract they share, in
+[`clients`](clients/README.md). Anything else can check in with a plain HTTP call.
 
 ## Self-hosting
 
@@ -163,13 +206,9 @@ component to monitor, which would be ironic for this product.
 
 ## Scope
 
-In: heartbeat ingestion (push), silence detection, alerting by email, webhook,
-Slack, Teams and Discord, checks/projects/users, ping and incident history, API
-keys and a REST API, the Spring Boot starter and the Python library, one-command self-hosting.
-
-Not yet: pull monitoring (SilenceWatch calling your endpoints — it needs
-multi-region probes to avoid false positives), public status pages, on-call
-rotations, SMS and phone calls, fine-grained performance metrics.
+Heartbeat ingestion (push), silence detection, alerting by email, webhook, Slack,
+Teams and Discord, checks/projects/users, ping and incident history, API keys and a
+REST API, client libraries for Java, Python and PHP, one-command self-hosting.
 
 ## Licensing
 
