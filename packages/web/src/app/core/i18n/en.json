@@ -19,7 +19,7 @@
   "shell.checksDownAria_one": "{count} check down",
   "shell.checksDownAria_other": "{count} checks down",
   "shell.projectDown": "{count} down",
-  "shell.account": "Account",
+  "shell.account": "Account menu",
   "shell.signOut": "Sign out",
   "state.UP": "UP",
   "state.LATE": "LATE",

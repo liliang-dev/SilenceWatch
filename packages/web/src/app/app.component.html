@@ -50,7 +50,8 @@
         [matMenuTriggerFor]="userMenu"
         [attr.aria-label]="t('shell.account')"
       >
-        {{ initials() }}
+        <span class="avatar-initials">{{ initials() }}</span>
+        <sw-icon name="menu" [size]="22" class="avatar-menu" />
       </button>
       <mat-menu #userMenu="matMenu" class="sw-menu">
         <div class="menu-email">{{ auth.user()?.email }}</div>

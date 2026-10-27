@@ -19,7 +19,7 @@
   "shell.checksDownAria_one": "{count} check en panne",
   "shell.checksDownAria_other": "{count} checks en panne",
   "shell.projectDown": "{count} en panne",
-  "shell.account": "Compte",
+  "shell.account": "Menu du compte",
   "shell.signOut": "Se déconnecter",
   "state.UP": "OK",
   "state.LATE": "EN RETARD",
