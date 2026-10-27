@@ -1,9 +1,9 @@
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 18px;
-  padding: 4px 10px 4px 6px;
+  padding: 4px 8px 4px 6px;
   border-radius: var(--sw-radius-sm);
   color: var(--sw-text-muted);
   font-size: 0.8125rem;
@@ -160,13 +160,24 @@
     gap: 10px;
   }
 
-  /* Edit and Pause share the width; the menu button keeps its own square. */
+  /* Edit and Pause share the width in proportion to their words, so neither is squeezed into
+     wrapping — a label on two lines puts the icon far from half of it. The menu button keeps
+     its own square. */
   .actions {
     width: 100%;
   }
 
-  .actions .mat-mdc-stroked-button {
-    flex: 1 1 0;
+  .actions .mat-mdc-outlined-button {
+    flex: 1 1 auto;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+
+  /* A 320px phone: the French "Mettre en pause" and its icon would touch the border. */
+  @media (max-width: 359px) {
+    .actions .mat-mdc-outlined-button {
+      padding-inline: 8px;
+    }
   }
 
   .ping {

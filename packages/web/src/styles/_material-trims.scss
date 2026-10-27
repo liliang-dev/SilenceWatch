@@ -189,6 +189,15 @@ mat-tab-group[swScrollTabs] {
   flex: none;
 }
 
+/* A glyph does not fill its box: a plus leaves 3px each side, a pencil 1px, a pause 5px. With the box
+   lined up, the icon end of a button then looks padded by more than the text end and the gap to the
+   word changes from one icon to the next. The component publishes how much room it leaves on each side;
+   pulling the box in by that much lines up the ink itself — the same padding either end, the same gap.
+   The back link and the choice cards of the preferences are the same kind of row. */
+:is(.mdc-button__label, .back, .choice) > sw-icon {
+  margin-inline: calc(var(--sw-ink-l, 0px) * -1) calc(var(--sw-ink-r, 0px) * -1);
+}
+
 /* An icon next to a word.
 
    The row is centred on the line box, but the letters are not centred in their

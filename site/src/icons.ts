@@ -1,31 +1,32 @@
 /**
- * The icons of the site, from Heroicons' solid set (MIT, © Tailwind Labs), taken
- * from the `heroicons` package rather than drawn here.
+ * The icons of the site, from Heroicons' 24px outline set (MIT, © Tailwind Labs), taken
+ * from the `heroicons` package rather than drawn here. They are strokes, not filled
+ * shapes: whoever draws one sets `fill="none"` and a `stroke`.
  *
  * Each one is read as text at build time and inlined, so the page makes no request
  * for an icon font or a file and each icon takes its colour from the text around
  * it. Only the icons listed here end up in the page.
  */
-import arrow from 'heroicons/24/solid/arrow-right.svg?raw';
-import bolt from 'heroicons/24/solid/bolt.svg?raw';
-import bell from 'heroicons/24/solid/bell.svg?raw';
-import clock from 'heroicons/24/solid/clock.svg?raw';
-import code from 'heroicons/24/solid/code-bracket.svg?raw';
-import cube from 'heroicons/24/solid/cube.svg?raw';
-import envelope from 'heroicons/24/solid/envelope.svg?raw';
-import help from 'heroicons/24/solid/question-mark-circle.svg?raw';
-import history from 'heroicons/24/solid/arrow-path.svg?raw';
-import key from 'heroicons/24/solid/key.svg?raw';
-import link from 'heroicons/24/solid/link.svg?raw';
-import receipt from 'heroicons/24/solid/document-text.svg?raw';
-import settings from 'heroicons/24/solid/cog-6-tooth.svg?raw';
-import storage from 'heroicons/24/solid/circle-stack.svg?raw';
-import swap from 'heroicons/24/solid/arrows-right-left.svg?raw';
-import tag from 'heroicons/24/solid/tag.svg?raw';
-import verified from 'heroicons/24/solid/check-badge.svg?raw';
-import desktop from 'heroicons/24/solid/computer-desktop.svg?raw';
-import moon from 'heroicons/24/solid/moon.svg?raw';
-import sun from 'heroicons/24/solid/sun.svg?raw';
+import arrow from 'heroicons/24/outline/arrow-right.svg?raw';
+import bolt from 'heroicons/24/outline/bolt.svg?raw';
+import bell from 'heroicons/24/outline/bell.svg?raw';
+import clock from 'heroicons/24/outline/clock.svg?raw';
+import code from 'heroicons/24/outline/code-bracket.svg?raw';
+import cube from 'heroicons/24/outline/cube.svg?raw';
+import envelope from 'heroicons/24/outline/envelope.svg?raw';
+import help from 'heroicons/24/outline/question-mark-circle.svg?raw';
+import history from 'heroicons/24/outline/arrow-path.svg?raw';
+import key from 'heroicons/24/outline/key.svg?raw';
+import link from 'heroicons/24/outline/link.svg?raw';
+import receipt from 'heroicons/24/outline/document-text.svg?raw';
+import settings from 'heroicons/24/outline/cog-6-tooth.svg?raw';
+import storage from 'heroicons/24/outline/circle-stack.svg?raw';
+import swap from 'heroicons/24/outline/arrows-right-left.svg?raw';
+import tag from 'heroicons/24/outline/tag.svg?raw';
+import verified from 'heroicons/24/outline/check-badge.svg?raw';
+import desktop from 'heroicons/24/outline/computer-desktop.svg?raw';
+import moon from 'heroicons/24/outline/moon.svg?raw';
+import sun from 'heroicons/24/outline/sun.svg?raw';
 
 const icons = {
   arrow,

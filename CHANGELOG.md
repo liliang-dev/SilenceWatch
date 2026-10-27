@@ -12,10 +12,13 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
-- **Every icon of the application and of the website is now a Heroicons solid icon** (MIT,
-  Tailwind Labs): the buttons, the navigation, the colour-mode choice and the search field of
-  the application; the feature cards, the drawings, the theme picker and the buttons of the
-  website. The application's own set of Material icons is gone, and so is the website's
+- **Every icon of the application and of the website is now a Heroicons icon** (MIT, Tailwind
+  Labs), drawn light: the 24px outline set shown at 18px, and the 16px solid set for pause and
+  play. Inside a button the glyph is lined up by its ink rather than its box, so the padding at
+  the icon's end matches the text's and the gap to the word is the same for every icon, and the
+  icon sits level with the text. They are in the buttons, the navigation, the colour-mode
+  choice and the search field of the application; the feature cards, the drawings, the theme
+  picker and the buttons of the website. The application's own set of Material icons is gone, and so is the website's
   `@material-design-icons/svg` dependency, replaced by `heroicons`. Icons that are not ours
   stay as they are: the flags, the Google and Microsoft logos, the GitHub mark, and what
   Angular Material and Starlight draw inside their own components (the checkbox, the select
