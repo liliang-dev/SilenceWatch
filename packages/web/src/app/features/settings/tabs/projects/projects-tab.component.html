@@ -1,30 +1,39 @@
 <section class="sw-card section">
-  <div class="section-head">
-    <h2>{{ t('settings.projectsTitle') }}</h2>
-    <p class="sw-muted">{{ t('settings.projectsBody') }}</p>
-  </div>
-
-  <div class="section-body">
+  <div class="section-head with-action">
+    <div>
+      <h2>{{ t('settings.projectsTitle') }}</h2>
+      <p class="sw-muted">{{ t('settings.projectsBody') }}</p>
+    </div>
     <button
       mat-flat-button
       type="button"
+      class="sw-header-add"
       [disabled]="projectBusy()"
+      [attr.aria-label]="t('settings.newProject')"
       (click)="createProject()"
     >
-      <sw-icon name="add" /> {{ t('settings.newProject') }}
+      <sw-icon name="add" />
+      <span class="sw-header-add-label">{{ t('settings.newProject') }}</span>
     </button>
   </div>
 
   <div class="rows">
     @for (project of projects.all(); track project.id) {
       <div class="row">
+        <span class="glyph" aria-hidden="true"><sw-icon name="project" /></span>
+
         <div class="row-main">
-          <strong>{{ project.name }}</strong>
-          <span class="sw-mono sw-subtle">{{ project.slug }}</span>
+          <div class="row-title">
+            <strong>{{ project.name }}</strong>
+            @if (project.id === projects.selected()?.id) {
+              <span class="sw-tag current">{{ t('settings.currentProject') }}</span>
+            }
+          </div>
+          <span class="row-slug sw-mono">{{ project.slug }}</span>
         </div>
-        <span class="sw-tag">{{
-          plural('settings.checkCount', project.checkCount ?? 0)
-        }}</span>
+
+        <span class="row-count">{{ plural('settings.checkCount', project.checkCount ?? 0) }}</span>
+
         <div class="row-actions">
           <button
             mat-icon-button

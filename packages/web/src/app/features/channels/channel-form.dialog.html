@@ -1,0 +1,59 @@
+<h2 mat-dialog-title class="title">{{ t('channels.new') }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="form sw-form" (ngSubmit)="save()">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ t('channels.type') }}</mat-label>
+      <mat-select formControlName="type">
+        @for (type of channelTypes; track type) {
+          <mat-option [value]="type">{{ label(type) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ t('channels.name') }}</mat-label>
+      <input
+        matInput
+        formControlName="name"
+        required
+        [placeholder]="t('channels.namePlaceholder')"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{
+        form.controls.type.value === 'email' ? t('channels.emailAddress') : t('channels.webhookUrl')
+      }}</mat-label>
+      <input
+        matInput
+        formControlName="target"
+        required
+        [placeholder]="
+          form.controls.type.value === 'email'
+            ? t('channels.emailPlaceholder')
+            : t('channels.webhookPlaceholder')
+        "
+      />
+    </mat-form-field>
+
+    @if (form.controls.type.value === 'webhook') {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('channels.secret') }}</mat-label>
+        <input matInput formControlName="secret" />
+        <mat-hint>{{ t('channels.secretHint') }}</mat-hint>
+      </mat-form-field>
+    }
+
+    @if (error()) {
+      <p class="sw-error" role="alert">{{ error() }}</p>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  <button mat-button type="button" (click)="dialogRef.close()">{{ t('common.cancel') }}</button>
+  <button mat-flat-button type="button" [disabled]="busy()" (click)="save()">
+    {{ t('channels.create') }}
+  </button>
+</mat-dialog-actions>
