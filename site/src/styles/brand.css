@@ -173,24 +173,65 @@ body::before {
   color: var(--sl-color-white);
 }
 
+/* The footer is four short lists under their own headings rather than one run of links: a
+   reader looking for the Laravel page or the terms of sale finds the column, then the line. */
 .sw-footer {
   display: grid;
-  gap: 1rem;
+  gap: 1.75rem;
   margin-top: 3rem;
-  padding-top: 1.5rem;
+  padding-top: 2rem;
   border-top: 1px solid var(--sl-color-hairline);
   font-size: var(--sl-text-sm);
   color: var(--sl-color-gray-3);
 }
 
-.sw-footer nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.2rem;
+.sw-footer-columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.75rem 2rem;
+}
+
+.sw-footer-title {
+  margin: 0 0 0.75rem;
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+
+.sw-footer ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .sw-footer a {
   color: var(--sl-color-gray-2);
+  text-decoration: none;
+}
+
+.sw-footer a:hover,
+.sw-footer a:focus-visible {
+  color: var(--sl-color-white);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.sw-footer-note {
+  margin: 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sl-color-hairline);
+  font-size: var(--sl-text-xs);
+  line-height: 1.5;
+}
+
+@media (max-width: 40rem) {
+  .sw-footer-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

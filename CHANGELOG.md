@@ -10,31 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
-### Changed
+## [0.6.1] — 2026-10-27
 
-- **Every icon of the application and of the website is now a Heroicons solid icon** (MIT,
-  Tailwind Labs): the buttons, the navigation, the colour-mode choice and the search field of
-  the application; the feature cards, the drawings, the theme picker and the buttons of the
-  website. The application's own set of Material icons is gone, and so is the website's
-  `@material-design-icons/svg` dependency, replaced by `heroicons`. Icons that are not ours
-  stay as they are: the flags, the Google and Microsoft logos, the GitHub mark, and what
-  Angular Material and Starlight draw inside their own components (the checkbox, the select
-  arrows, the search box, the menu button).
-- **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
-  account button, which are 40px.
-
-### Fixed
-
-- **Choosing a tab in Settings no longer sends the tab strip back to its start.** On a phone,
-  tapping a tab far along the strip, such as Account, scrolled the strip back to the first
-  one; it now stays where it was.
-
-### Fixed
-
-- **The Laravel release workflow no longer fails on `fatal: tag '0.1.0' already exists`.** It made the
-  mirror's tag locally, in a checkout that holds every tag of this repository, including the
-  application's `0.1.0`. The tag is now only pushed to the mirror, by refspec. Nothing had been
-  pushed to the mirror when it failed.
+Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
+release is the look of the application and of the website, one fix on phones, and the layout of
+the client packages in the repository.
 
 ### Added
 
@@ -45,13 +25,54 @@ called out under **Changed** with what to do about it.
 
 ### Changed
 
+- **Every icon of the application and of the website is now a Heroicons icon** (MIT, Tailwind
+  Labs), drawn light: the 24px outline set shown at 18px (20px in icon-only buttons, which
+  Material would otherwise force to 24px), and the 16px solid set for pause and play. Inside a
+  button the glyph is lined up by its ink rather than its box, so the padding at the icon's end
+  matches the text's, the gap to the word is the same for every icon, and the icon sits level
+  with the text. They are in the buttons, the navigation, the colour-mode choice and the search
+  field of the application; the feature cards, the drawings, the theme picker and the buttons of
+  the website. The application's own set of Material icons is gone, and so is the website's
+  `@material-design-icons/svg` dependency, replaced by `heroicons`. Icons that are not ours stay
+  as they are: the flags, the Google and Microsoft logos, the GitHub mark, and what Angular
+  Material and Starlight draw inside their own components (the checkbox, the select arrows, the
+  search box, the menu button).
+- **The state chips (down, up, paused…) are centred on their capitals.** The word is in capitals,
+  which sit above the middle of their line, so the dot beside it looked 1.5px too low (2.4px on
+  the check page). The word is now trimmed to its capital height where the browser allows it, so
+  the dot and the word share one centre; elsewhere the word is nudged down by the difference.
+- **The French "Mettre en pause" button is now "Pause"**, as in English: shorter, and it no longer
+  wraps on a phone.
+- **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
+  account button, which are 40px.
+- **The footer of the website is four short lists under their own headings** (Product,
+  Integrations, Open source, Legal) instead of one run of fifteen links, in two columns on a
+  phone, with the licence note set apart below. The integrations are listed by language (Java,
+  PHP, Python); each link opens the page that says which frameworks the library covers.
+- **The Spring Boot, Django and Laravel pages name their language**: "Java Spring Boot", "Python
+  Django" and "PHP Laravel", in the title, the description and the first sentence, in English and
+  in French.
 - **The client packages are laid out by language, and tagged by language and package.**
   `clients/spring-boot-starter` is now `clients/java/spring-boot` and `clients/laravel` is
   `clients/php/laravel`; the Python library stays in `clients/python`, as it is one package for
-  every scheduler. Release tags follow: `java-spring-boot-N.N.N` and `php-laravel-N.N.N`
-  (the Laravel entry under 0.6.0 says `laravel-N.N.N`, which was never used), and
-  `python-N.N.N` as before. The starter's first release, tagged `java-0.1.0`, is untouched.
-  Nothing published changes; the 0.1.0 starter's POM keeps pointing at its old folder.
+  every scheduler. Release tags follow: `java-spring-boot-N.N.N` and `php-laravel-N.N.N` (the
+  Laravel entry under 0.6.0 says `laravel-N.N.N`, which was never used), and `python-N.N.N` as
+  before. The starter's first release, tagged `java-0.1.0`, is untouched. Nothing published
+  changes; the 0.1.0 starter's POM keeps pointing at its old folder.
+
+### Fixed
+
+- **Choosing a tab in Settings no longer sends the tab strip back to its start.** On a phone,
+  tapping a tab far along the strip, such as Account, scrolled the strip back to the first one;
+  it now stays where it was.
+- **On a phone, the Edit and Pause buttons of a check no longer wrap.** They share the width in
+  proportion to their words instead of equally.
+- **The Laravel release workflow no longer fails on `fatal: tag '0.1.0' already exists`.** It made
+  the mirror's tag locally, in a checkout that holds every tag of this repository, including the
+  application's `0.1.0`. The tag is now only pushed to the mirror, by refspec. Nothing had been
+  pushed to the mirror when it failed.
+- **The continuous integration no longer fails on Python 3.9**: `ubuntu-latest` moved to 26.04,
+  which has no 3.9 build, so that job runs on `ubuntu-24.04`.
 
 ## [0.6.0] — 2026-10-24
 
@@ -985,7 +1006,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3
 [0.5.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.1...0.5.2

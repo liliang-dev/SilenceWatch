@@ -199,22 +199,26 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     fill: rgb(255 255 255 / 55%);
   }
 
-  /* The icons nested in the drawings: filled shapes, coloured here. */
+  /* The icons nested in the drawings: strokes, coloured here. */
   .ill .gl {
-    fill: var(--acc-hi);
+    fill: none;
+    stroke: var(--acc-hi);
+    stroke-width: 1.5;
     overflow: visible;
   }
 
   .ill .gl.white {
-    fill: #fff;
+    stroke: #fff;
   }
 
   .ill .gl.bad {
-    fill: var(--bad);
+    stroke: var(--bad);
   }
 
+  /* Drawn at twice the size of the others, so the stroke is thinner to look the same. */
   .ill .gl.help {
-    fill: var(--acc);
+    stroke: var(--acc);
+    stroke-width: 0.9;
   }
 
   /* --- silence ------------------------------------------------------------- */
