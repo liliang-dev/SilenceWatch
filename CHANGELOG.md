@@ -30,6 +30,9 @@ called out under **Changed** with what to do about it.
   which sit above the middle of their line, so the dot beside it looked 1.5px too low (2.4px on
   the check page). The word is now trimmed to its capital height where the browser allows it,
   so the dot and the word share one centre; elsewhere the word is nudged down by the difference.
+- **The footer of the website is four short lists under their own headings** (Product,
+  Integrations, Open source, Legal) instead of one run of fifteen links, in two columns on a
+  phone, with the licence note set apart below.
 - **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
   account button, which are 40px.
 

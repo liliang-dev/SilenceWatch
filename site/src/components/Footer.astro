@@ -7,6 +7,8 @@ const prefix = lang === 'fr' ? '/fr' : '';
 const t = lang === 'en'
   ? {
       product: 'Product',
+      integrations: 'Integrations',
+      openSource: 'Open source',
       app: 'Try it out',
       docs: 'Documentation',
       pricing: 'Pricing',
@@ -28,6 +30,8 @@ const t = lang === 'en'
     }
   : {
       product: 'Produit',
+      integrations: 'Intégrations',
+      openSource: 'Open source',
       app: 'Essayer',
       docs: 'Documentation',
       pricing: 'Tarifs',
@@ -52,27 +56,43 @@ const t = lang === 'en'
 <Default />
 
 <footer class="sw-footer">
-  <nav aria-label={t.product}>
-    <a href={APP}>{t.app}</a>
-    <a href={`${prefix}/docs/getting-started/`}>{t.docs}</a>
-    <a href={`${prefix}/pricing/`}>{t.pricing}</a>
-    <a href={`${prefix}/job-monitoring/`}>{t.jobs}</a>
-    <a href={`${prefix}/spring-boot/`}>{t.spring}</a>
-    <a href={`${prefix}/python/`}>{t.python}</a>
-    <a href={`${prefix}/django/`}>{t.django}</a>
-    <a href={`${prefix}/laravel/`}>{t.laravel}</a>
-    <a href={`${prefix}/self-hosted/`}>{t.self}</a>
-  </nav>
-  <nav aria-label="Open source">
-    <a href={REPOSITORY}>{t.source}</a>
-    <a href={`${REPOSITORY}/blob/main/LICENSE`}>{t.licence}</a>
-    <a href={`${REPOSITORY}/blob/main/SECURITY.md`}>{t.security}</a>
-  </nav>
-  <nav aria-label={t.legalNav}>
-    <a href={`${prefix}/legal/`}>{t.legal}</a>
-    <a href={`${prefix}/privacy/`}>{t.privacy}</a>
-    <a href={`${prefix}/terms/`}>{t.terms}</a>
-    <a href={`${prefix}/sales/`}>{t.sales}</a>
-  </nav>
-  <p>{t.note}</p>
+  <div class="sw-footer-columns">
+    <nav aria-labelledby="sw-footer-product">
+      <p class="sw-footer-title" id="sw-footer-product">{t.product}</p>
+      <ul>
+        <li><a href={APP}>{t.app}</a></li>
+        <li><a href={`${prefix}/docs/getting-started/`}>{t.docs}</a></li>
+        <li><a href={`${prefix}/pricing/`}>{t.pricing}</a></li>
+        <li><a href={`${prefix}/job-monitoring/`}>{t.jobs}</a></li>
+        <li><a href={`${prefix}/self-hosted/`}>{t.self}</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="sw-footer-integrations">
+      <p class="sw-footer-title" id="sw-footer-integrations">{t.integrations}</p>
+      <ul>
+        <li><a href={`${prefix}/spring-boot/`}>{t.spring}</a></li>
+        <li><a href={`${prefix}/python/`}>{t.python}</a></li>
+        <li><a href={`${prefix}/django/`}>{t.django}</a></li>
+        <li><a href={`${prefix}/laravel/`}>{t.laravel}</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="sw-footer-open-source">
+      <p class="sw-footer-title" id="sw-footer-open-source">{t.openSource}</p>
+      <ul>
+        <li><a href={REPOSITORY}>{t.source}</a></li>
+        <li><a href={`${REPOSITORY}/blob/main/LICENSE`}>{t.licence}</a></li>
+        <li><a href={`${REPOSITORY}/blob/main/SECURITY.md`}>{t.security}</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="sw-footer-legal">
+      <p class="sw-footer-title" id="sw-footer-legal">{t.legalNav}</p>
+      <ul>
+        <li><a href={`${prefix}/legal/`}>{t.legal}</a></li>
+        <li><a href={`${prefix}/privacy/`}>{t.privacy}</a></li>
+        <li><a href={`${prefix}/terms/`}>{t.terms}</a></li>
+        <li><a href={`${prefix}/sales/`}>{t.sales}</a></li>
+      </ul>
+    </nav>
+  </div>
+  <p class="sw-footer-note">{t.note}</p>
 </footer>
