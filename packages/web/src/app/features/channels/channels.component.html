@@ -9,10 +9,10 @@
       class="sw-header-add"
       (click)="create()"
       [disabled]="projects.selected() === null"
-      [attr.aria-label]="t('channels.add')"
+      [attr.aria-label]="t('channels.new')"
     >
       <sw-icon name="add" />
-      <span class="sw-header-add-label">{{ t('channels.add') }}</span>
+      <span class="sw-header-add-label">{{ t('channels.new') }}</span>
     </button>
   </header>
 
@@ -26,7 +26,7 @@
       <p>{{ t('channels.emptyBody') }}</p>
       <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
         <sw-icon name="add" />
-        {{ t('channels.add') }}
+        {{ t('channels.new') }}
       </button>
     </div>
   } @else {

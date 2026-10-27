@@ -1,4 +1,4 @@
-<h2 mat-dialog-title class="title">{{ t('channels.addTitle') }}</h2>
+<h2 mat-dialog-title class="title">{{ t('channels.new') }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="form sw-form" (ngSubmit)="save()">
@@ -54,6 +54,6 @@
 <mat-dialog-actions align="end" class="actions">
   <button mat-button type="button" (click)="dialogRef.close()">{{ t('common.cancel') }}</button>
   <button mat-flat-button type="button" [disabled]="busy()" (click)="save()">
-    {{ t('channels.add') }}
+    {{ t('channels.create') }}
   </button>
 </mat-dialog-actions>
