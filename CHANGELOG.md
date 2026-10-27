@@ -13,7 +13,8 @@ called out under **Changed** with what to do about it.
 ## [0.6.2] — 2026-10-27
 
 Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
-release is the navigation of the application on a phone.
+release is the navigation of the application on a phone, and the alert channels, the projects and
+the API keys, which are lists with a dialog to add one.
 
 ### Changed
 
