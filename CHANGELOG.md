@@ -10,6 +10,48 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-10-27
+
+Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
+release is the navigation of the application on a phone, and the alert channels, the projects and
+the API keys, which are lists with a dialog to add one.
+
+### Changed
+
+- **On a phone, the bar at the bottom is gone: the three destinations are in the menu at the top
+  right.** The button shows three bars instead of the initials, so it reads as a menu, and opens
+  Checks, Alerts and Settings, each with an icon and the current page marked, then Sign out set
+  apart; the address of the account has an @ icon in the same column. The pages gain the room
+  the bar took (82px under the end of a page, now 28px). On a wider screen nothing changes: the
+  links are in the header, and the menu holds Settings and Sign out, with their icons.
+- **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
+  the logo (36px) and the account button (40px) on either side of it.
+- **The projects and the API keys of the settings are lists in the style of the channels.** Each
+  project and each key has a tile with its icon, its name, and under it what matters: for a project
+  its slug, how many checks it holds and, on the one being viewed, a "Selected" mark; for a key the
+  visible start of the key, when it was created and when it was last used, which is what tells a
+  key in use from one that can go. A revoked key stays in the list, faded, with its mark. The
+  button that creates a project is at the top right of its card, and "revoke" is under the key on
+  a phone, so a long name has the whole width. The table of keys, whose columns were stacked into
+  cards on a phone, is gone.
+- **The sentence under the title of the settings is shorter and says what the page is**: "All the
+  settings for your account", in place of "Keys for the client starters, and your account".
+- **A key is created from a dialog, and the "new project" and "new key" buttons are a round "+" on
+  a phone.** The form that sat above the list of keys is replaced by a "New key" button, as for a
+  channel; the key is still shown once, on the page, until it is copied.
+- **A channel is added from a dialog, like a check.** The form that sat above the list is gone: the
+  page has a button at the top right (a round "+" on a phone, where the dialog takes the whole
+  screen) and, while a project has no channel, a button in the empty card. The list is the page.
+- **The alert channels are laid out more simply.** Each one has the icon of its kind (an envelope
+  for e-mail, a hash for Slack, a link for a webhook) in place of a letter, its name, then its
+  kind and its destination on one quieter line, which is shortened with an ellipsis when it is
+  long. "Send a test" is a text button with an icon instead of an outlined one, and on a phone a
+  channel is two lines: the switch at the end of the first, "Send a test" and the bin on the
+  second.
+- **The rows of the account menu are one size.** The sign-out is a button and the other rows
+  are links, and a button keeps its own font and line height, so it looked larger. Every row is
+  44px, rounded and set in from the edge of the panel, with the divider taking less room.
+
 ## [0.6.1] — 2026-10-27
 
 Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
@@ -1006,7 +1048,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...HEAD
+[0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3

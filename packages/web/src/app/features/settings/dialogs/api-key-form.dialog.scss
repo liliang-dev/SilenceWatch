@@ -1,0 +1,21 @@
+.title {
+  padding-bottom: 4px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+}
+
+.body {
+  min-width: min(380px, 74vw);
+  padding-top: 8px;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.actions {
+  padding: 14px 24px 18px !important;
+  gap: 8px;
+}

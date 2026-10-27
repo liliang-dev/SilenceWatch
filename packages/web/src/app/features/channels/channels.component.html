@@ -4,107 +4,69 @@
       <h1>{{ t('channels.title') }}</h1>
       <p class="sw-muted">{{ t('channels.subtitle') }}</p>
     </div>
+    <button
+      mat-flat-button
+      class="sw-header-add"
+      (click)="create()"
+      [disabled]="projects.selected() === null"
+      [attr.aria-label]="t('channels.new')"
+    >
+      <sw-icon name="add" />
+      <span class="sw-header-add-label">{{ t('channels.new') }}</span>
+    </button>
   </header>
 
   @if (error()) {
     <p class="sw-error" role="alert">{{ error() }}</p>
   }
 
-  <section class="sw-card add">
-    <h2 class="add-title">{{ t('channels.addTitle') }}</h2>
-    <form [formGroup]="form" (ngSubmit)="add()" class="form">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type">
-        <mat-label>{{ t('channels.type') }}</mat-label>
-        <mat-select formControlName="type">
-          @for (type of channelTypes; track type) {
-            <mat-option [value]="type">{{ label(type) }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="name">
-        <mat-label>{{ t('channels.name') }}</mat-label>
-        <input
-          matInput
-          formControlName="name"
-          [placeholder]="t('channels.namePlaceholder')"
-          required
-        />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
-        <mat-label>{{
-          form.controls.type.value === 'email'
-            ? t('channels.emailAddress')
-            : t('channels.webhookUrl')
-        }}</mat-label>
-        <input
-          matInput
-          formControlName="target"
-          required
-          [placeholder]="
-            form.controls.type.value === 'email'
-              ? t('channels.emailPlaceholder')
-              : t('channels.webhookPlaceholder')
-          "
-        />
-      </mat-form-field>
-
-      @if (form.controls.type.value === 'webhook') {
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
-          <mat-label>{{ t('channels.secret') }}</mat-label>
-          <input matInput formControlName="secret" />
-          <mat-hint>{{ t('channels.secretHint') }}</mat-hint>
-        </mat-form-field>
-      }
-
-      <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
-        <sw-icon name="add" />
-        {{ t('channels.add') }}
-      </button>
-    </form>
-  </section>
-
   @if (channels().length === 0) {
     <div class="sw-card sw-empty">
       <h2>{{ t('channels.emptyTitle') }}</h2>
       <p>{{ t('channels.emptyBody') }}</p>
+      <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
+        <sw-icon name="add" />
+        {{ t('channels.new') }}
+      </button>
     </div>
   } @else {
     <div class="sw-card list">
       @for (channel of channels(); track channel.id) {
         <article class="channel" [class.off]="!channel.enabled">
-          <span class="glyph" [class]="'glyph-' + channel.type" aria-hidden="true">{{
-            initial(channel.type)
-          }}</span>
+          <span class="glyph" aria-hidden="true"><sw-icon [name]="icon(channel.type)" /></span>
 
           <div class="channel-info">
             <div class="channel-title">
               <strong>{{ channel.name }}</strong>
-              <span class="sw-tag">{{ label(channel.type) }}</span>
               @if (!channel.enabled) {
                 <span class="sw-tag muted-tag">{{ t('channels.disabled') }}</span>
               }
             </div>
-            <div class="target-text sw-mono sw-muted">{{ channel.target }}</div>
+            <div class="channel-target">
+              <span class="channel-type">{{ label(channel.type) }}</span>
+              <span class="target-text sw-mono">{{ channel.target }}</span>
+            </div>
           </div>
 
           <div class="channel-actions">
+            <button
+              mat-button
+              class="test"
+              (click)="test(channel)"
+              [disabled]="testing() === channel.id"
+            >
+              <sw-icon name="send" />
+              {{ testing() === channel.id ? t('channels.sending') : t('channels.sendTest') }}
+            </button>
             <mat-slide-toggle
+              class="toggle"
               [checked]="channel.enabled"
               (change)="toggle(channel, $event.checked)"
               [attr.aria-label]="t('channels.enableAria', { name: channel.name })"
             />
             <button
-              mat-stroked-button
-              (click)="test(channel)"
-              [disabled]="testing() === channel.id"
-            >
-              {{ testing() === channel.id ? t('channels.sending') : t('channels.sendTest') }}
-            </button>
-            <button
               mat-icon-button
-              class="sw-icon-button danger"
+              class="sw-icon-button danger remove"
               (click)="remove(channel)"
               [attr.aria-label]="t('channels.deleteAria')"
             >
