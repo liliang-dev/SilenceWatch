@@ -10,6 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-10-27
+
+Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
+release is the navigation of the application on a phone.
+
 ### Changed
 
 - **On a phone, the bar at the bottom is gone: the three destinations are in the menu at the top
@@ -20,6 +25,9 @@ called out under **Changed** with what to do about it.
   links are in the header, and the menu holds Settings and Sign out, with their icons.
 - **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
   the logo (36px) and the account button (40px) on either side of it.
+- **The rows of the account menu are one size.** The sign-out is a button and the other rows
+  are links, and a button keeps its own font and line height, so it looked larger. Every row is
+  44px, rounded and set in from the edge of the panel, with the divider taking less room.
 
 ## [0.6.1] — 2026-10-27
 
@@ -1017,7 +1025,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...HEAD
+[0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.2...0.5.3
