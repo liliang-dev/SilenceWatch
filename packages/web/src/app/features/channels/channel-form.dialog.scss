@@ -1,0 +1,17 @@
+.title {
+  padding-bottom: 4px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+}
+
+/* Rhythm comes from .sw-form; this only sets the dialog's own width. */
+.form {
+  min-width: min(440px, 78vw);
+  padding-block: 8px 12px;
+}
+
+.actions {
+  padding: 14px 24px 18px !important;
+  border-top: 1px solid var(--sw-border);
+  gap: 8px;
+}

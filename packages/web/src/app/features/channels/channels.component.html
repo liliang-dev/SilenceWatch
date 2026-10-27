@@ -4,71 +4,30 @@
       <h1>{{ t('channels.title') }}</h1>
       <p class="sw-muted">{{ t('channels.subtitle') }}</p>
     </div>
+    <button
+      mat-flat-button
+      class="sw-header-add"
+      (click)="create()"
+      [disabled]="projects.selected() === null"
+      [attr.aria-label]="t('channels.add')"
+    >
+      <sw-icon name="add" />
+      <span class="sw-header-add-label">{{ t('channels.add') }}</span>
+    </button>
   </header>
 
   @if (error()) {
     <p class="sw-error" role="alert">{{ error() }}</p>
   }
 
-  <section class="sw-card add">
-    <h2 class="add-title">{{ t('channels.addTitle') }}</h2>
-    <form [formGroup]="form" (ngSubmit)="add()" class="form">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type">
-        <mat-label>{{ t('channels.type') }}</mat-label>
-        <mat-select formControlName="type">
-          @for (type of channelTypes; track type) {
-            <mat-option [value]="type">{{ label(type) }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="name">
-        <mat-label>{{ t('channels.name') }}</mat-label>
-        <input
-          matInput
-          formControlName="name"
-          [placeholder]="t('channels.namePlaceholder')"
-          required
-        />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
-        <mat-label>{{
-          form.controls.type.value === 'email'
-            ? t('channels.emailAddress')
-            : t('channels.webhookUrl')
-        }}</mat-label>
-        <input
-          matInput
-          formControlName="target"
-          required
-          [placeholder]="
-            form.controls.type.value === 'email'
-              ? t('channels.emailPlaceholder')
-              : t('channels.webhookPlaceholder')
-          "
-        />
-      </mat-form-field>
-
-      @if (form.controls.type.value === 'webhook') {
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="target">
-          <mat-label>{{ t('channels.secret') }}</mat-label>
-          <input matInput formControlName="secret" />
-          <mat-hint>{{ t('channels.secretHint') }}</mat-hint>
-        </mat-form-field>
-      }
-
-      <button mat-flat-button type="submit" [disabled]="busy()" class="submit">
-        <sw-icon name="add" />
-        {{ t('channels.add') }}
-      </button>
-    </form>
-  </section>
-
   @if (channels().length === 0) {
     <div class="sw-card sw-empty">
       <h2>{{ t('channels.emptyTitle') }}</h2>
       <p>{{ t('channels.emptyBody') }}</p>
+      <button mat-flat-button (click)="create()" [disabled]="projects.selected() === null">
+        <sw-icon name="add" />
+        {{ t('channels.add') }}
+      </button>
     </div>
   } @else {
     <div class="sw-card list">

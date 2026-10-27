@@ -1,32 +1,12 @@
-.add {
-  padding: 20px;
-  margin-bottom: 24px;
-}
-
-.add-title {
-  margin-bottom: 16px;
-  font-size: 0.9375rem;
-}
-
-.form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.type { flex: 0 0 150px; }
-.name { flex: 1 1 180px; }
-.target { flex: 2 1 280px; }
-
-.submit {
-  gap: 6px;
-}
-
 /* -------------------------------------------------------------- list --- */
 
 .list {
   overflow: hidden;
+}
+
+/* The empty card's own button: under the sentence, not against it. */
+.sw-empty button {
+  margin-top: 18px;
 }
 
 /* One row per channel: what it is on the left, what can be done to it on the right. On a phone
@@ -127,25 +107,10 @@
 }
 
 /* --- phones ---------------------------------------------------------------
-   The form is one column. A channel is two lines: its tile, name and kind with the switch at the
+   A channel is two lines: its tile, name and kind with the switch at the
    end of the first, and under them a quiet "send a test" and the bin, at a size a thumb can press.
    No outlined button: three controls with a border each made a row heavier than what it said. */
 @media (max-width: 820px) {
-  .add {
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-
-  .type,
-  .name,
-  .target {
-    flex: 1 1 100%;
-  }
-
-  .submit {
-    width: 100%;
-  }
-
   .channel {
     grid-template-areas:
       'glyph info toggle'

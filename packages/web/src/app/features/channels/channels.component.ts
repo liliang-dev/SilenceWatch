@@ -1,13 +1,9 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { CHANNEL_TYPES, type ChannelType, type NotificationChannelDto } from '@silencewatch/shared';
+import { type ChannelType, type NotificationChannelDto } from '@silencewatch/shared';
 import { ChannelsApi } from '../../core/api/channels.api';
 import { errorMessage } from '../../core/http/error-message';
 import type { MessageKey } from '../../core/i18n/messages';
@@ -15,6 +11,7 @@ import { I18n } from '../../core/i18n/i18n.service';
 import { ProjectStore } from '../../core/project.store';
 import { confirmWith } from '../../shared/confirm.dialog';
 import { IconComponent } from '../../shared/icon.component';
+import { ChannelFormDialog, type ChannelFormData } from './channel-form.dialog';
 
 /**
  * Where alerts go.
@@ -26,38 +23,20 @@ import { IconComponent } from '../../shared/icon.component';
 @Component({
   selector: 'sw-channels',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    IconComponent,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatSlideToggleModule,
-  ],
+  imports: [IconComponent, MatButtonModule, MatSlideToggleModule],
   templateUrl: './channels.component.html',
   styleUrl: './channels.component.scss',
 })
 export class ChannelsComponent {
   private readonly channelsApi = inject(ChannelsApi);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly formBuilder = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
   protected readonly projects = inject(ProjectStore);
   protected readonly t = inject(I18n).t;
 
-  protected readonly channelTypes = CHANNEL_TYPES;
   protected readonly channels = signal<NotificationChannelDto[]>([]);
-  protected readonly busy = signal(false);
   protected readonly testing = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
-
-  protected readonly form = this.formBuilder.nonNullable.group({
-    type: ['email' as ChannelType, Validators.required],
-    name: ['', Validators.required],
-    target: ['', Validators.required],
-    secret: [''],
-  });
 
   constructor() {
     this.projects.load();
@@ -84,41 +63,21 @@ export class ChannelsComponent {
     });
   }
 
-  protected add(): void {
+  protected create(): void {
     const project = this.projects.selected();
-    if (project === null || this.form.invalid || this.busy()) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    if (project === null) return;
 
-    const { type, name, target, secret } = this.form.getRawValue();
-    const config =
-      type === 'email'
-        ? { address: target }
-        : type === 'webhook'
-          ? {
-              url: target,
-              ...(secret.trim() === '' ? {} : { secret: secret.trim() }),
-            }
-          : { url: target };
-
-    this.busy.set(true);
-    this.error.set(null);
-
-    this.channelsApi.create(project.id, { type, name, config } as never).subscribe({
-      next: (channel) => {
+    this.dialog
+      .open(ChannelFormDialog, {
+        data: { projectId: project.id } satisfies ChannelFormData,
+        panelClass: 'sw-sheet',
+      })
+      .afterClosed()
+      .subscribe((channel?: NotificationChannelDto) => {
+        if (!channel) return;
         this.channels.update((channels) => [...channels, channel]);
-        this.form.reset({ type, name: '', target: '', secret: '' });
-        this.busy.set(false);
-        this.snackBar.open(this.t('channels.added'), this.t('common.ok'), {
-          duration: 5000,
-        });
-      },
-      error: (failure: unknown) => {
-        this.busy.set(false);
-        this.error.set(errorMessage(failure, this.t('channels.addFailed'), this.t));
-      },
-    });
+        this.snackBar.open(this.t('channels.added'), this.t('common.ok'), { duration: 5000 });
+      });
   }
 
   protected toggle(channel: NotificationChannelDto, enabled: boolean): void {

@@ -25,6 +25,9 @@ release is the navigation of the application on a phone.
   links are in the header, and the menu holds Settings and Sign out, with their icons.
 - **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
   the logo (36px) and the account button (40px) on either side of it.
+- **A channel is added from a dialog, like a check.** The form that sat above the list is gone: the
+  page has a button at the top right (a round "+" on a phone, where the dialog takes the whole
+  screen) and, while a project has no channel, a button in the empty card. The list is the page.
 - **The alert channels are laid out more simply.** Each one has the icon of its kind (an envelope
   for e-mail, a hash for Slack, a link for a webhook) in place of a letter, its name, then its
   kind and its destination on one quieter line, which is shortened with an ellipsis when it is
