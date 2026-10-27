@@ -211,3 +211,45 @@ mat-tab-group[swScrollTabs] {
 :is(.mdc-button__label, .switcher, .back, .choice) :is(sw-icon, svg:not(sw-icon > svg), img) {
   transform: translateY(-1.25px);
 }
+
+/* The account menu.
+
+   On a phone it is the navigation, so each destination has an icon, the page being viewed is
+   marked, and the sign-out is set apart from them. On a wider screen the header holds the links,
+   and the menu is only the account: Checks and Alerts are not repeated in it. */
+.sw-menu.mat-mdc-menu-panel {
+  min-width: 232px;
+}
+
+.sw-menu .mat-mdc-menu-item .mat-mdc-menu-item-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sw-menu .mat-mdc-menu-item sw-icon {
+  flex: none;
+  color: var(--sw-text-muted);
+}
+
+.sw-menu .mat-mdc-menu-item.active {
+  color: var(--sw-accent);
+  font-weight: 600;
+  background: var(--sw-accent-soft);
+}
+
+.sw-menu .mat-mdc-menu-item.active sw-icon {
+  color: var(--sw-accent);
+}
+
+.sw-menu .menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--sw-border);
+}
+
+@media (min-width: 821px) {
+  .sw-menu .menu-phone-only {
+    display: none;
+  }
+}

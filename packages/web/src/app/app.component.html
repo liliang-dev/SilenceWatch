@@ -54,33 +54,41 @@
       </button>
       <mat-menu #userMenu="matMenu" class="sw-menu">
         <div class="menu-email">{{ auth.user()?.email }}</div>
-        <button mat-menu-item routerLink="/settings">
-          {{ t('shell.settings') }}
-        </button>
+        <!-- On a phone this menu is the navigation: the header has no room for three links, and
+             there is no bar at the bottom. On a wider screen the links are in the header, so the
+             first two are not shown again here (see the sw-menu rules in _material-trims.scss). -->
+        <a
+          mat-menu-item
+          class="menu-phone-only"
+          routerLink="/checks"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+        >
+          <sw-icon name="checks" />
+          <span>{{ t('shell.checks') }}</span>
+        </a>
+        <a
+          mat-menu-item
+          class="menu-phone-only"
+          routerLink="/channels"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+        >
+          <sw-icon name="bell" />
+          <span>{{ t('shell.alerting') }}</span>
+        </a>
+        <a mat-menu-item routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <sw-icon name="settings" />
+          <span>{{ t('shell.settings') }}</span>
+        </a>
+        <div class="menu-divider" role="separator"></div>
         <button mat-menu-item (click)="auth.logout()">
-          {{ t('shell.signOut') }}
+          <sw-icon name="signOut" />
+          <span>{{ t('shell.signOut') }}</span>
         </button>
       </mat-menu>
     </div>
   </header>
-
-  <!-- Phones: the three destinations move to the bottom, where a thumb is. The
-       header keeps what has to stay visible — which project, whether anything
-       is down — and the same links stay in it on wider screens. -->
-  <nav class="tabbar" [attr.aria-label]="t('shell.navPrimary')">
-    <a routerLink="/checks" routerLinkActive="active">
-      <sw-icon name="checks" />
-      <span>{{ t('shell.checks') }}</span>
-    </a>
-    <a routerLink="/channels" routerLinkActive="active">
-      <sw-icon name="bell" />
-      <span>{{ t('shell.alerting') }}</span>
-    </a>
-    <a routerLink="/settings" routerLinkActive="active">
-      <sw-icon name="settings" />
-      <span>{{ t('shell.settings') }}</span>
-    </a>
-  </nav>
 }
 
 <router-outlet />

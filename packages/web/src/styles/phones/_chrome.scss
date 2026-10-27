@@ -3,16 +3,12 @@
     font-size: 1.25rem;
   }
 
-  /* Room under the content for the fixed tab bar, so the end of a page can be
-     scrolled clear of it: the bar is about 66px tall plus the home-indicator
-     inset, and a last card wants air below it as well.
-     It is here, on the page, and not as padding on <body>: html and body are
-     height:100%, so padding on the body sits inside that fixed height and the
-     content simply overflows past it — it reserved nothing, and the last 42px
-     of every page stayed under the bar. Every signed-in screen is a `.sw-page`;
-     the sign-in pages have no bar and do not use it. */
+  /* Room under the end of a page, for the home-indicator inset and some air below the last card.
+     It is here, on the page, and not as padding on <body>: html and body are height:100%, so
+     padding on the body sits inside that fixed height and the content simply overflows past it.
+     Every signed-in screen is a `.sw-page`; the sign-in pages do not use it. */
   .sw-page {
-    padding: 20px 16px calc(82px + env(safe-area-inset-bottom));
+    padding: 20px 16px calc(28px + env(safe-area-inset-bottom));
   }
 
   .sw-page-header {
