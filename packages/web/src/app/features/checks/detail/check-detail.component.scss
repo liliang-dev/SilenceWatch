@@ -161,7 +161,8 @@
   }
 
   /* Edit and Pause share the width in proportion to their words, so neither is squeezed into
-     wrapping — a label on two lines puts the icon far from half of it. The menu button keeps
+     wrapping — a label on two lines puts the icon far from half of it (the pause label was long
+     enough to do it in French, before it became "Pause"). The menu button keeps
      its own square. */
   .actions {
     width: 100%;
@@ -171,13 +172,6 @@
     flex: 1 1 auto;
     padding-inline: 12px;
     white-space: nowrap;
-  }
-
-  /* A 320px phone: the French "Mettre en pause" and its icon would touch the border. */
-  @media (max-width: 359px) {
-    .actions .mat-mdc-outlined-button {
-      padding-inline: 8px;
-    }
   }
 
   .ping {

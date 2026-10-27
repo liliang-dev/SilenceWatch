@@ -170,7 +170,7 @@
   "detail.back": "Tous les checks",
   "detail.edit": "Modifier",
   "detail.resume": "Reprendre",
-  "detail.pause": "Mettre en pause",
+  "detail.pause": "Pause",
   "detail.moreActions": "Plus d'actions",
   "detail.rotate": "Renouveler l'URL de ping",
   "detail.delete": "Supprimer le check",

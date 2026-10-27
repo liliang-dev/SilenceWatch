@@ -23,6 +23,12 @@ called out under **Changed** with what to do about it.
   stay as they are: the flags, the Google and Microsoft logos, the GitHub mark, and what
   Angular Material and Starlight draw inside their own components (the checkbox, the select
   arrows, the search box, the menu button).
+- **The French "Mettre en pause" button is now "Pause"**, as in English: shorter, and it no
+  longer wraps on a phone.
+- **The state chips (down, up, paused…) are centred on their capitals.** The word is in capitals,
+  which sit above the middle of their line, so the dot beside it looked 1.5px too low (2.4px on
+  the check page). The word is now trimmed to its capital height where the browser allows it,
+  so the dot and the word share one centre; elsewhere the word is nudged down by the difference.
 - **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
   account button, which are 40px.
 
