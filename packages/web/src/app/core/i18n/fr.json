@@ -311,6 +311,7 @@
   "settings.newKeyTitle": "Copiez cette clé maintenant — elle ne sera plus jamais affichée.",
   "settings.copyKeyAria": "Copier la clé API",
   "settings.keyName": "Nom de la clé",
+  "settings.newKey": "Nouvelle clé",
   "settings.createKey": "Créer la clé",
   "settings.noKey": "Aucune clé API pour l'instant.",
   "settings.keyCreated": "Créée {when}",

@@ -81,8 +81,24 @@
     padding: 16px 16px 8px;
   }
 
-  .section-head.with-action > button {
-    width: 100%;
+  /* The action is a round "+", at the end of the first line: its label stays for a screen reader
+     (it is the button's aria-label) and is only not drawn, as on the pages' own headers. */
+  .section-head.with-action {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .section-head.with-action > div {
+    flex: 1 1 auto;
+  }
+
+  .section-head.with-action > .sw-header-add.mat-mdc-button-base {
+    flex: none;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
   }
 
   .section-body {

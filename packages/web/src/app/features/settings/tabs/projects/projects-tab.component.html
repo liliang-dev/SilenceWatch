@@ -4,8 +4,16 @@
       <h2>{{ t('settings.projectsTitle') }}</h2>
       <p class="sw-muted">{{ t('settings.projectsBody') }}</p>
     </div>
-    <button mat-flat-button type="button" [disabled]="projectBusy()" (click)="createProject()">
-      <sw-icon name="add" /> {{ t('settings.newProject') }}
+    <button
+      mat-flat-button
+      type="button"
+      class="sw-header-add"
+      [disabled]="projectBusy()"
+      [attr.aria-label]="t('settings.newProject')"
+      (click)="createProject()"
+    >
+      <sw-icon name="add" />
+      <span class="sw-header-add-label">{{ t('settings.newProject') }}</span>
     </button>
   </div>
 

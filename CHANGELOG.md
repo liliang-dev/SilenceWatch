@@ -33,6 +33,9 @@ release is the navigation of the application on a phone.
   button that creates a project is at the top right of its card, and "revoke" is under the key on
   a phone, so a long name has the whole width. The table of keys, whose columns were stacked into
   cards on a phone, is gone.
+- **A key is created from a dialog, and the "new project" and "new key" buttons are a round "+" on
+  a phone.** The form that sat above the list of keys is replaced by a "New key" button, as for a
+  channel; the key is still shown once, on the page, until it is copied.
 - **A channel is added from a dialog, like a check.** The form that sat above the list is gone: the
   page has a button at the top right (a round "+" on a phone, where the dialog takes the whole
   screen) and, while a project has no channel, a button in the empty card. The list is the page.

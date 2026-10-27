@@ -1,11 +1,24 @@
 <section class="sw-card section">
-  <div class="section-head">
-    <h2>{{ t('settings.keysTitle') }}</h2>
-    <p class="sw-muted">{{ t('settings.keysBody') }}</p>
+  <div class="section-head with-action">
+    <div>
+      <h2>{{ t('settings.keysTitle') }}</h2>
+      <p class="sw-muted">{{ t('settings.keysBody') }}</p>
+    </div>
+    <button
+      mat-flat-button
+      type="button"
+      class="sw-header-add"
+      [disabled]="projects.selected() === null"
+      [attr.aria-label]="t('settings.newKey')"
+      (click)="createKey()"
+    >
+      <sw-icon name="add" />
+      <span class="sw-header-add-label">{{ t('settings.newKey') }}</span>
+    </button>
   </div>
 
-  <div class="section-body">
-    @if (createdKey(); as created) {
+  @if (createdKey(); as created) {
+    <div class="section-body">
       <!-- Shown once, and said so plainly: the secret is not stored in a
      recoverable form and there is no second chance to copy it. -->
       <div class="new-key">
@@ -22,18 +35,8 @@
           </button>
         </div>
       </div>
-    }
-
-    <form [formGroup]="keyForm" (ngSubmit)="createKey()" class="inline-form">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ t('settings.keyName') }}</mat-label>
-        <input matInput formControlName="name" placeholder="spring-boot-starter" required />
-      </mat-form-field>
-      <button mat-flat-button type="submit" [disabled]="busy()" class="tall">
-        {{ t('settings.createKey') }}
-      </button>
-    </form>
-  </div>
+    </div>
+  }
 
   @if (apiKeys().length === 0) {
     <p class="section-note sw-muted">{{ t('settings.noKey') }}</p>

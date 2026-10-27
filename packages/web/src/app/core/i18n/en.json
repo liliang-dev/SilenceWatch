@@ -311,6 +311,7 @@
   "settings.newKeyTitle": "Copy this key now — it is never shown again.",
   "settings.copyKeyAria": "Copy API key",
   "settings.keyName": "Key name",
+  "settings.newKey": "New key",
   "settings.createKey": "Create key",
   "settings.noKey": "No API key yet.",
   "settings.keyCreated": "Created {when}",

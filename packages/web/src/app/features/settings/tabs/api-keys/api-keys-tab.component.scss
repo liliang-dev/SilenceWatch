@@ -1,17 +1,4 @@
-.inline-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.inline-form mat-form-field {
-  flex: 1 1 260px;
-  max-width: 360px;
-}
-
 .new-key {
-  margin-bottom: 18px;
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--sw-accent) 32%, transparent);
   border-radius: var(--sw-radius);
@@ -113,17 +100,7 @@
   font-size: 0.75rem;
 }
 
-/* The form stacks one field to a line with the button under it at full width. */
 @media (max-width: 820px) {
-  .inline-form mat-form-field {
-    flex: 1 1 100%;
-    max-width: none;
-  }
-
-  .inline-form button {
-    width: 100%;
-  }
-
   /* The key and what is known about it have the whole width; "revoke" is under them, at the left
      of their column, rather than taking a third of the line from the name. */
   .row {
