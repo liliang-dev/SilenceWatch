@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { Steps, LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../components/HeroIcon.astro';
 import Faq from '../../../components/Faq.astro';
 
 <p class="splash-lede">A backup nobody knows is running is not a backup. This guide shows how to <strong>monitor a cron backup</strong> so you hear about it if it does not start, fails or produces an empty file.</p>
@@ -65,7 +66,7 @@ import Faq from '../../../components/Faq.astro';
 For other environments (systemd, Docker, Kubernetes, GitHub Actions), see the [cron monitoring examples](/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my backup</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Monitor my backup <HeroIcon name="arrow" /></LinkButton>
   <LinkButton href="/docs/ping-api/" variant="secondary">Ping API</LinkButton>
 </div>
 

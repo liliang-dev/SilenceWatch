@@ -232,6 +232,13 @@
     margin-right: 0;
   }
 
+  /* With the wordmark gone, the tile is the whole brand, and 28px looked small
+     beside a 40px project switcher and a 40px avatar. */
+  .mark {
+    width: 36px;
+    height: 36px;
+  }
+
   .wordmark,
   .spacer,
   .nav,

@@ -3,6 +3,9 @@ import { DestroyRef, Directive, ElementRef, afterNextRender, inject } from '@ang
 /** Movement under this many pixels is a click, not a drag. */
 const DRAG_THRESHOLD = 5;
 
+/** How long after a choice a jump of the strip to its start is taken for Material's reset. */
+const KEEP_POSITION_MS = 600;
+
 /**
  * Lets a row of tabs that is wider than its screen be scrolled sideways: with a
  * finger, with a trackpad, with the mouse wheel, or by dragging with the mouse.
@@ -17,7 +20,9 @@ const DRAG_THRESHOLD = 5;
  *   the page scrolls on as soon as the strip reaches either end;
  * - the arrow keys bring the focused tab into view;
  * - dragging with the mouse scrolls it, and the click that ends a drag is
- *   swallowed so letting go over a tab does not select it.
+ *   swallowed so letting go over a tab does not select it;
+ * - choosing a tab leaves the strip where it was, instead of Material sending it
+ *   back to the first tab.
  *
  * It also marks the host `can-scroll-start` / `can-scroll-end` so the stylesheet
  * can fade the edge that has more behind it. Touch needs nothing: the browser
@@ -69,6 +74,24 @@ export class ScrollTabsDirective {
       queueMicrotask(() => tab?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     };
 
+    // Choosing a tab must not carry the strip back to its start. Whenever the
+    // selected tab changes, Material sets the strip's scrollLeft to 0 — the same
+    // leftover as above — so on a phone, tapping the fifth tab sent the strip back
+    // to the first. The position at the moment of the choice is remembered for a
+    // moment, and a jump to 0 inside that moment is undone. The scroll event runs
+    // before the next paint, so nothing is seen to move. Only a jump to the very
+    // start is undone: a scroll the person makes themselves is left alone.
+    let kept: { left: number; until: number } | null = null;
+    const keepPosition = (): void => {
+      kept = { left: strip.scrollLeft, until: performance.now() + KEEP_POSITION_MS };
+    };
+    const onScrolled = (): void => {
+      if (kept !== null && performance.now() < kept.until && kept.left > 1 && strip.scrollLeft === 0) {
+        strip.scrollLeft = kept.left;
+      }
+      update();
+    };
+
     let dragging = false;
     let moved = false;
     let startX = 0;
@@ -109,7 +132,10 @@ export class ScrollTabsDirective {
       event.preventDefault();
     };
 
-    strip.addEventListener('scroll', update, { passive: true });
+    strip.addEventListener('scroll', onScrolled, { passive: true });
+    // Capturing, so the position is noted before Material handles the same click or key.
+    strip.addEventListener('click', keepPosition, true);
+    strip.addEventListener('keydown', keepPosition, true);
     strip.addEventListener('wheel', onWheel, { passive: false });
     strip.addEventListener('focusin', onFocusIn);
     strip.addEventListener('pointerdown', onPointerDown);

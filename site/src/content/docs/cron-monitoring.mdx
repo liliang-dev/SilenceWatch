@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../components/HeroIcon.astro';
 import Faq from '../../components/Faq.astro';
 
 <p class="splash-lede">A cron job that fails sometimes leaves a trace. A cron job that <strong>stops starting</strong> leaves none. SilenceWatch's cron job monitoring detects that absence: every run sends a heartbeat, and you are alerted as soon as one is missing. It is the most common special case of <a href="/job-monitoring/">job monitoring</a>.</p>
@@ -44,7 +45,7 @@ The `&&` means the heartbeat is sent only if the script succeeded. To report a f
 - **Letting a failed ping fail the job.** Bound `curl` (`-m 10 --retry 3`) and, if needed, add `|| true`.
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Monitor my first cron job</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Monitor my first cron job <HeroIcon name="arrow" /></LinkButton>
   <LinkButton href="/docs/getting-started/" variant="secondary">Getting started</LinkButton>
 </div>
 

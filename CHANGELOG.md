@@ -10,6 +10,25 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every icon of the application and of the website is now a Heroicons solid icon** (MIT,
+  Tailwind Labs): the buttons, the navigation, the colour-mode choice and the search field of
+  the application; the feature cards, the drawings, the theme picker and the buttons of the
+  website. The application's own set of Material icons is gone, and so is the website's
+  `@material-design-icons/svg` dependency, replaced by `heroicons`. Icons that are not ours
+  stay as they are: the flags, the Google and Microsoft logos, the GitHub mark, and what
+  Angular Material and Starlight draw inside their own components (the checkbox, the select
+  arrows, the search box, the menu button).
+- **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
+  account button, which are 40px.
+
+### Fixed
+
+- **Choosing a tab in Settings no longer sends the tab strip back to its start.** On a phone,
+  tapping a tab far along the strip, such as Account, scrolled the strip back to the first
+  one; it now stays where it was.
+
 ### Fixed
 
 - **The Laravel release workflow no longer fails on `fatal: tag '0.1.0' already exists`.** It made the

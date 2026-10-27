@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../components/HeroIcon.astro';
 import Faq from '../../components/Faq.astro';
 
 <p class="splash-lede">SilenceWatch is an <strong>open source</strong> job monitoring tool, under the Apache 2.0 licence. You can run it yourself: one container, one PostgreSQL database, and that is all.</p>
@@ -49,8 +50,8 @@ The self-hosted edition has no reserved feature, no "enterprise edition" and no 
 - **Monitor the monitor**: the self-hosting guide explains how, including with an outbound heartbeat.
 
 <div class="sw-cta">
-  <LinkButton href="/docs/reference/self-hosting/" variant="primary" icon="right-arrow">Self-hosting guide</LinkButton>
-  <LinkButton href="https://github.com/liliang-dev/SilenceWatch" variant="secondary" icon="github">Source code</LinkButton>
+  <LinkButton href="/docs/reference/self-hosting/" variant="primary">Self-hosting guide <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch" variant="secondary">Source code <HeroIcon name="code" /></LinkButton>
 </div>
 
 ## Frequently asked questions

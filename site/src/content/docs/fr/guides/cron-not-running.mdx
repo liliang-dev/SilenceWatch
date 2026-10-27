@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
 import Faq from '../../../../components/Faq.astro';
 
 <p class="splash-lede">Vous venez de découvrir qu’un <strong>cron ne s’exécute pas</strong> depuis des jours. Voici les causes les plus fréquentes, comment les vérifier, et surtout comment faire pour que ce soit le monitoring, et pas un utilisateur, qui vous le dise la prochaine fois.</p>
@@ -33,7 +34,7 @@ Toutes ces pannes ont la même signature : **il ne se passe rien**. Aucun journa
 Avec cette seule ligne, chacune des huit causes ci-dessus déclenche une alerte à l’échéance suivante plus le délai de grâce. Voir le [monitoring de cron](/fr/cron-monitoring/) et les [exemples](/fr/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Être alerté quand un cron s’arrête</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Être alerté quand un cron s’arrête <HeroIcon name="arrow" /></LinkButton>
 </div>
 
 ## Questions fréquentes

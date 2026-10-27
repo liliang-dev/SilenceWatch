@@ -1,0 +1,22 @@
+---
+/**
+ * One of the site's icons, for use inside a button or a line of text: it takes the
+ * colour of the text around it and is as tall as the text is.
+ */
+import { iconBody, type IconName } from '../icons';
+
+interface Props {
+  name: IconName;
+}
+const { name } = Astro.props;
+---
+
+<svg class="sw-hero-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" set:html={iconBody(name)} />
+
+<style>
+  .sw-hero-icon {
+    width: 1.25em;
+    height: 1.25em;
+    flex: none;
+  }
+</style>
