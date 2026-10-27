@@ -142,7 +142,7 @@ export class IconComponent {
 
   private readonly sanitizer = inject(DomSanitizer);
 
-  protected readonly px = computed(() => this.size() ?? (this.variant() === 'outline' ? 18 : 16));
+  protected readonly px = computed(() => this.size() ?? (this.variant() === 'outline' ? 16 : 14));
   protected readonly viewBox = computed(() => (this.variant() === 'outline' ? '0 0 24 24' : '0 0 16 16'));
 
   /** Left and right empty space of the glyph in px, so a button can line up the ink rather than the box. */

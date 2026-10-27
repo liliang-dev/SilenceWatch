@@ -13,8 +13,8 @@ called out under **Changed** with what to do about it.
 ### Changed
 
 - **Every icon of the application and of the website is now a Heroicons icon** (MIT, Tailwind
-  Labs), drawn light: the 24px outline set shown at 18px, and the 16px solid set for pause and
-  play. Inside a button the glyph is lined up by its ink rather than its box, so the padding at
+  Labs), drawn light: the 24px outline set shown at 16px (18px in icon-only
+  buttons), and the 16px solid set, shown at 14px, for pause and play. Inside a button the glyph is lined up by its ink rather than its box, so the padding at
   the icon's end matches the text's and the gap to the word is the same for every icon, and the
   icon sits level with the text. They are in the buttons, the navigation, the colour-mode
   choice and the search field of the application; the feature cards, the drawings, the theme

@@ -50,6 +50,8 @@
     background-color 0.12s ease,
     color 0.12s ease;
   --mdc-icon-button-state-layer-size: 36px;
+  /* Material sizes the svg of an icon button itself, 24px, whatever the icon asks for. */
+  --mat-icon-button-icon-size: 18px;
 }
 
 .sw-icon-button.mat-mdc-icon-button:hover:not(:disabled) {
