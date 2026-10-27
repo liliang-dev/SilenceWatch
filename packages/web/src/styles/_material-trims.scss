@@ -221,10 +221,30 @@ mat-tab-group[swScrollTabs] {
   min-width: 232px;
 }
 
+/* The rows are rounded and set in from the edge of the panel, so the one being pointed at or
+   viewed reads as a button inside it rather than a band across it; and they are all the same
+   box: the sign-out is a <button> and the others are links, which Material sizes alike but the
+   browser does not (a button's line-height and font are its own until told otherwise). */
+.sw-menu .mat-mdc-menu-content {
+  padding: 6px;
+}
+
+.sw-menu .mat-mdc-menu-item {
+  min-height: 44px;
+  padding-inline: 12px;
+  border-radius: var(--sw-radius-sm);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 20px;
+}
+
 .sw-menu .mat-mdc-menu-item .mat-mdc-menu-item-text {
   display: flex;
   align-items: center;
   gap: 12px;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 20px;
 }
 
 .sw-menu .mat-mdc-menu-item sw-icon {
@@ -242,9 +262,19 @@ mat-tab-group[swScrollTabs] {
   color: var(--sw-accent);
 }
 
+.sw-menu .menu-email {
+  margin-bottom: 6px;
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--sw-border);
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sw-menu .menu-divider {
   height: 1px;
-  margin: 6px 0;
+  margin: 4px 6px;
   background: var(--sw-border);
 }
 
