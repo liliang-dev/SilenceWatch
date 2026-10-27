@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../components/HeroIcon.astro';
 import Faq from '../../../components/Faq.astro';
 
 <p class="splash-lede">You have just found out that a <strong>cron job has not been running</strong> for days. Here are the most common causes, how to check them, and above all how to make monitoring, not a user, tell you the next time.</p>
@@ -33,7 +34,7 @@ All these failures share a signature: **nothing happens**. No log is written, no
 With that single line, each of the eight causes above raises an alert at the next deadline plus the grace period. See [cron job monitoring](/cron-monitoring/) and the [examples](/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Get alerted when a cron job stops</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Get alerted when a cron job stops <HeroIcon name="arrow" /></LinkButton>
 </div>
 
 ## Frequently asked questions

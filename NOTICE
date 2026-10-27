@@ -38,3 +38,8 @@ by `pnpm licenses list --prod`. Nearly all of it is MIT, ISC, Apache-2.0 or BSD.
 One package is not: elkjs, under the Eclipse Public License 2.0, which Prisma's
 tooling depends on. It is included unmodified, and its source is available from
 https://github.com/kieler/elkjs.
+
+The icons of the web interface (packages/web/src/app/shared/icon.component.ts) and
+of the website (site/src/icons.ts) are from Heroicons, MIT License, Copyright (c)
+Tailwind Labs, Inc. https://github.com/tailwindlabs/heroicons. The interface carries
+copies of the few it shows; the website reads them from the `heroicons` package.

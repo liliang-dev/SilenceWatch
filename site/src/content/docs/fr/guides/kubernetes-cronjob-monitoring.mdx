@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
 import Faq from '../../../../components/Faq.astro';
 
 <p class="splash-lede">Un <strong>CronJob Kubernetes</strong> peut cesser de produire des Jobs sans qu’aucun Pod n’échoue : il n’y a alors rien à observer. Un ping envoyé à la fin du conteneur transforme cette absence en alerte.</p>
@@ -69,7 +70,7 @@ Le conteneur appelle `/start` au début, puis l’URL suffixée du code de sorti
 Voir aussi les [exemples pour d’autres environnements](/fr/docs/cron-examples/) et les [états d’un check](/fr/docs/schedules-and-states/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller mes CronJobs</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Surveiller mes CronJobs <HeroIcon name="arrow" /></LinkButton>
 </div>
 
 ## Questions fréquentes

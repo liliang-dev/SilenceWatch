@@ -1,5 +1,5 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
+import { iconBody } from '../icons';
 
 /**
  * Starlight's own theme provider (MIT), with one change: a visitor who has not
@@ -48,7 +48,7 @@ import { Icon } from '@astrojs/starlight/components';
 </script>
 
 <template id="theme-icons">
-	<Icon name="sun" class="light" />
-	<Icon name="moon" class="dark" />
-	<Icon name="laptop" class="auto" />
+	<svg class="light" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" set:html={iconBody('sun')} />
+	<svg class="dark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" set:html={iconBody('moon')} />
+	<svg class="auto" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" set:html={iconBody('desktop')} />
 </template>
