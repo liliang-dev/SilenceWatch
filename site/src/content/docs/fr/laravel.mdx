@@ -1,13 +1,14 @@
 ---
-title: "Monitoring du planificateur Laravel"
-description: "Surveillez le planificateur Laravel : un paquet composer, une clé d’API, chaque tâche déclarée avec sa vraie expression cron et signalée à chaque exécution."
+title: "Monitoring PHP Laravel : le planificateur"
+description: "Surveillez le planificateur PHP Laravel : un paquet composer, une clé d’API, chaque tâche déclarée avec sa vraie expression cron et signalée à chaque exécution."
 template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../components/HeroIcon.astro';
 import Faq from '../../../components/Faq.astro';
 
-<p class="splash-lede">Dans une application Laravel, toute la planification tourne depuis un seul <code>schedule:run</code> chaque minute. S’il s’arrête, ou si une tâche s’arrête, rien ne vous prévient. Le <strong>paquet SilenceWatch</strong> lit votre planification, déclare chaque tâche avec sa vraie expression cron, et signale chaque exécution.</p>
+<p class="splash-lede">Dans une application PHP Laravel, toute la planification tourne depuis un seul <code>schedule:run</code> chaque minute. S’il s’arrête, ou si une tâche s’arrête, rien ne vous prévient. Le <strong>paquet SilenceWatch</strong> lit votre planification, déclare chaque tâche avec sa vraie expression cron, et signale chaque exécution.</p>
 
 ## Un paquet, une clé
 
@@ -45,8 +46,8 @@ Tous les réglages et limites sont dans la [documentation du paquet](/fr/docs/la
 Tout job capable de faire une requête HTTP peut être surveillé avec l’[API de ping](/fr/docs/ping-api/). Voir la [surveillance de tâches cron](/fr/cron-monitoring/) et les [exemples](/fr/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="/fr/docs/laravel/" variant="primary" icon="right-arrow">Documentation du paquet</LinkButton>
-  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/php/laravel" variant="secondary" icon="github">Code du paquet</LinkButton>
+  <LinkButton href="/fr/docs/laravel/" variant="primary">Documentation du paquet <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/php/laravel" variant="secondary">Code du paquet <HeroIcon name="code" /></LinkButton>
 </div>
 
 ## Questions fréquentes

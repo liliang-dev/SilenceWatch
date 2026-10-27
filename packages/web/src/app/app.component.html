@@ -26,7 +26,7 @@
               >{{ downCount() }}</span
             >
           }
-          <sw-icon name="expand" [size]="18" class="switcher-caret" />
+          <sw-icon name="expand" [size]="16" class="switcher-caret" />
         </button>
         <mat-menu #projectMenu="matMenu" class="sw-menu">
           @for (project of projects.all(); track project.id) {
@@ -69,15 +69,15 @@
        is down — and the same links stay in it on wider screens. -->
   <nav class="tabbar" [attr.aria-label]="t('shell.navPrimary')">
     <a routerLink="/checks" routerLinkActive="active">
-      <sw-icon name="checks" [size]="20" />
+      <sw-icon name="checks" />
       <span>{{ t('shell.checks') }}</span>
     </a>
     <a routerLink="/channels" routerLinkActive="active">
-      <sw-icon name="bell" [size]="20" />
+      <sw-icon name="bell" />
       <span>{{ t('shell.alerting') }}</span>
     </a>
     <a routerLink="/settings" routerLinkActive="active">
-      <sw-icon name="settings" [size]="20" />
+      <sw-icon name="settings" />
       <span>{{ t('shell.settings') }}</span>
     </a>
   </nav>

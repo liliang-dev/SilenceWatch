@@ -105,7 +105,9 @@ jobs:
 
   python:
     name: Python library (${{ matrix.python }})
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which has no Python 3.9 build for setup-python,
+    # and 3.9 is the oldest version the library supports.
+    runs-on: ubuntu-24.04
     strategy:
       # One version failing is information about the others, not a reason to stop
       # collecting it.

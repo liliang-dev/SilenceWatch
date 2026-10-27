@@ -2,8 +2,8 @@ name: Java release
 
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
-# The starter has a version of its own (0.1.0) and the application another (0.6.0),
-# so they are tagged apart: `java-spring-boot-0.1.1` here, `0.6.0` for the Release workflow.
+# The starter has a version of its own (0.1.0) and the application another (0.6.1),
+# so they are tagged apart: `java-spring-boot-0.1.1` here, `0.6.1` for the Release workflow.
 # The tag names the language and the package (`java-spring-boot-`, as `php-laravel-` does
 # for Laravel); the Python library, one package for every scheduler, is `python-0.1.0`. A
 # second Java package would be released the same way, with its own prefix. The first

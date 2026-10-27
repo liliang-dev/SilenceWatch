@@ -20,6 +20,32 @@
   gap: 8px;
 }
 
+/* The word is in capitals, which sit above the middle of their line box: the room under the
+   baseline is for descenders that capitals do not have, so the word reads high in its pill and
+   the dot, centred on the line, reads low beside it. Where the browser can trim a box to the
+   height of its capitals, that is what is done, and the padding is the pill's own; the dot and
+   the word are then both centred on the same thing. Elsewhere the word is nudged down by the
+   difference. */
+@supports (text-box: trim-both cap alphabetic) {
+  .chip {
+    padding: 0.65em 9px 0.65em 7px;
+  }
+
+  .chip[data-size='lg'] {
+    padding: 0.73em 13px 0.73em 10px;
+  }
+
+  .text {
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+@supports not (text-box: trim-both cap alphabetic) {
+  .text {
+    transform: translateY(0.1em);
+  }
+}
+
 .dot {
   width: 6px;
   height: 6px;

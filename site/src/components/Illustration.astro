@@ -5,8 +5,7 @@ import logoDark from '../assets/logo-dark.svg';
 
 /**
  * Illustrations for the home page: shapes drawn here, in SVG, in the site's own
- * colours, with the icons taken from Google's Material Icons (see `icons.ts`)
- * rather than drawn.
+ * colours, with the icons taken from Heroicons (see `icons.ts`) rather than drawn.
  * They are original work, so there is nothing to attribute and no licence to
  * check, they follow the light and dark theme through the same variables as the
  * rest of the page, they weigh a few kilobytes each, and they can move: a pulse,
@@ -17,7 +16,7 @@ import logoDark from '../assets/logo-dark.svg';
 type Name = 'silence' | 'hub' | 'faq' | 'alerts';
 const { name } = Astro.props as { name: Name };
 
-/** A Material icon nested in the drawing: its top-left corner and its size. */
+/** An icon nested in the drawing: its top-left corner and its size. */
 const glyph = (icon: IconName, x: number, y: number, size: number) => ({
   x,
   y,
@@ -200,22 +199,26 @@ const glyph = (icon: IconName, x: number, y: number, size: number) => ({
     fill: rgb(255 255 255 / 55%);
   }
 
-  /* The Material icons nested in the drawings: filled shapes, coloured here. */
+  /* The icons nested in the drawings: strokes, coloured here. */
   .ill .gl {
-    fill: var(--acc-hi);
+    fill: none;
+    stroke: var(--acc-hi);
+    stroke-width: 1.5;
     overflow: visible;
   }
 
   .ill .gl.white {
-    fill: #fff;
+    stroke: #fff;
   }
 
   .ill .gl.bad {
-    fill: var(--bad);
+    stroke: var(--bad);
   }
 
+  /* Drawn at twice the size of the others, so the stroke is thinner to look the same. */
   .ill .gl.help {
-    fill: var(--acc);
+    stroke: var(--acc);
+    stroke-width: 0.9;
   }
 
   /* --- silence ------------------------------------------------------------- */

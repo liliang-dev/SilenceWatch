@@ -1,13 +1,14 @@
 ---
-title: "Django task monitoring: django-celery-beat"
-description: "Monitor Django periodic tasks kept in the database by django-celery-beat: one package, one API key, schedules edited in the admin watched without a restart."
+title: "Python Django task monitoring: django-celery-beat"
+description: "Monitor Python Django periodic tasks kept in the database by django-celery-beat: one package, one API key, schedules edited in the admin watched without a restart."
 template: splash
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../components/HeroIcon.astro';
 import Faq from '../../components/Faq.astro';
 
-<p class="splash-lede">In a Django project, the schedule often lives in the database: someone adds a periodic task in the admin, and nobody updates a monitoring list. The <strong>SilenceWatch library</strong> reads the periodic tasks of <code>django-celery-beat</code>, declares them with their real schedule, and reports every run.</p>
+<p class="splash-lede">In a Python Django project, the schedule often lives in the database: someone adds a periodic task in the admin, and nobody updates a monitoring list. The <strong>SilenceWatch library</strong> reads the periodic tasks of <code>django-celery-beat</code>, declares them with their real schedule, and reports every run.</p>
 
 ## One package, one key
 
@@ -43,8 +44,8 @@ Nothing else to write. When `django_celery_beat` is in `INSTALLED_APPS`, the sam
 All settings and limits are in the [library documentation](/docs/django/).
 
 <div class="sw-cta">
-  <LinkButton href="/docs/django/" variant="primary" icon="right-arrow">Library documentation</LinkButton>
-  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python" variant="secondary" icon="github">Library source</LinkButton>
+  <LinkButton href="/docs/django/" variant="primary">Library documentation <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://github.com/liliang-dev/SilenceWatch/tree/main/clients/python" variant="secondary">Library source <HeroIcon name="code" /></LinkButton>
 </div>
 
 ## Frequently asked questions

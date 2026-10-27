@@ -5,6 +5,7 @@ template: splash
 ---
 
 import { Steps, LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
 import Faq from '../../../../components/Faq.astro';
 
 <p class="splash-lede">Une sauvegarde dont personne ne sait si elle tourne n’est pas une sauvegarde. Ce guide montre comment <strong>surveiller une sauvegarde cron</strong> pour être prévenu si elle ne se lance pas, échoue ou produit un fichier vide.</p>
@@ -65,7 +66,7 @@ import Faq from '../../../../components/Faq.astro';
 Pour d’autres environnements (systemd, Docker, Kubernetes, GitHub Actions), voir les [exemples de monitoring de cron](/fr/docs/cron-examples/).
 
 <div class="sw-cta">
-  <LinkButton href="https://app.silencewatch.com/login" variant="primary" icon="right-arrow">Surveiller ma sauvegarde</LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="primary">Surveiller ma sauvegarde <HeroIcon name="arrow" /></LinkButton>
   <LinkButton href="/fr/docs/ping-api/" variant="secondary">API de ping</LinkButton>
 </div>
 

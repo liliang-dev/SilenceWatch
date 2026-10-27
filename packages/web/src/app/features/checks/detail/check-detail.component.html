@@ -21,7 +21,7 @@
           {{ t('detail.edit') }}
         </button>
         <button mat-stroked-button (click)="togglePause(current)">
-          <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" />
+          <sw-icon [name]="current.state === 'PAUSED' ? 'play' : 'pause'" variant="solid" />
           {{ current.state === 'PAUSED' ? t('detail.resume') : t('detail.pause') }}
         </button>
         <button
@@ -68,7 +68,7 @@
           [matTooltip]="t('detail.copyTip')"
           [attr.aria-label]="t('detail.copyAria')"
         >
-          <sw-icon name="copy" [size]="18" />
+          <sw-icon name="copy" />
           {{ t('common.copy') }}
         </button>
       </div>
