@@ -278,7 +278,7 @@
   "channels.deleteConfirm": "Supprimer le canal",
   "channels.deleteFailed": "Impossible de supprimer le canal.",
   "settings.title": "Réglages",
-  "settings.subtitle": "Les clés pour les starters clients, et votre compte.",
+  "settings.subtitle": "Tous les paramètres de votre compte.",
   "settings.tabProjects": "Projets",
   "settings.tabSubscription": "Abonnement",
   "settings.tabKeys": "Clés API",

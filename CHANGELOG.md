@@ -33,6 +33,8 @@ release is the navigation of the application on a phone.
   button that creates a project is at the top right of its card, and "revoke" is under the key on
   a phone, so a long name has the whole width. The table of keys, whose columns were stacked into
   cards on a phone, is gone.
+- **The sentence under the title of the settings is shorter and says what the page is**: "All the
+  settings for your account", in place of "Keys for the client starters, and your account".
 - **A key is created from a dialog, and the "new project" and "new key" buttons are a round "+" on
   a phone.** The form that sat above the list of keys is replaced by a "New key" button, as for a
   channel; the key is still shown once, on the page, until it is copied.

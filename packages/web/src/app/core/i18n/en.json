@@ -278,7 +278,7 @@
   "channels.deleteConfirm": "Delete channel",
   "channels.deleteFailed": "Could not delete the channel.",
   "settings.title": "Settings",
-  "settings.subtitle": "Keys for the client starters, and your account.",
+  "settings.subtitle": "All the settings for your account.",
   "settings.tabProjects": "Projects",
   "settings.tabSubscription": "Subscription",
   "settings.tabKeys": "API keys",
