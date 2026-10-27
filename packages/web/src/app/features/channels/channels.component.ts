@@ -71,9 +71,9 @@ export class ChannelsComponent {
     return this.t(`channels.type${type[0]?.toUpperCase()}${type.slice(1)}` as MessageKey);
   }
 
-  /** Stands in for a logo: enough to tell the rows apart at a glance. */
-  protected initial(type: ChannelType): string {
-    return (type[0] ?? '?').toUpperCase();
+  /** Stands in for a logo, which a channel's brand would own: enough to tell the rows apart at a glance. */
+  protected icon(type: ChannelType): string {
+    return `ch${type[0]?.toUpperCase()}${type.slice(1)}`;
   }
 
   private load(projectId: string): void {

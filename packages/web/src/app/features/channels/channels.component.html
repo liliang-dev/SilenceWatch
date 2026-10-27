@@ -74,37 +74,40 @@
     <div class="sw-card list">
       @for (channel of channels(); track channel.id) {
         <article class="channel" [class.off]="!channel.enabled">
-          <span class="glyph" [class]="'glyph-' + channel.type" aria-hidden="true">{{
-            initial(channel.type)
-          }}</span>
+          <span class="glyph" aria-hidden="true"><sw-icon [name]="icon(channel.type)" /></span>
 
           <div class="channel-info">
             <div class="channel-title">
               <strong>{{ channel.name }}</strong>
-              <span class="sw-tag">{{ label(channel.type) }}</span>
               @if (!channel.enabled) {
                 <span class="sw-tag muted-tag">{{ t('channels.disabled') }}</span>
               }
             </div>
-            <div class="target-text sw-mono sw-muted">{{ channel.target }}</div>
+            <div class="channel-target">
+              <span class="channel-type">{{ label(channel.type) }}</span>
+              <span class="target-text sw-mono">{{ channel.target }}</span>
+            </div>
           </div>
 
           <div class="channel-actions">
+            <button
+              mat-button
+              class="test"
+              (click)="test(channel)"
+              [disabled]="testing() === channel.id"
+            >
+              <sw-icon name="send" />
+              {{ testing() === channel.id ? t('channels.sending') : t('channels.sendTest') }}
+            </button>
             <mat-slide-toggle
+              class="toggle"
               [checked]="channel.enabled"
               (change)="toggle(channel, $event.checked)"
               [attr.aria-label]="t('channels.enableAria', { name: channel.name })"
             />
             <button
-              mat-stroked-button
-              (click)="test(channel)"
-              [disabled]="testing() === channel.id"
-            >
-              {{ testing() === channel.id ? t('channels.sending') : t('channels.sendTest') }}
-            </button>
-            <button
               mat-icon-button
-              class="sw-icon-button danger"
+              class="sw-icon-button danger remove"
               (click)="remove(channel)"
               [attr.aria-label]="t('channels.deleteAria')"
             >

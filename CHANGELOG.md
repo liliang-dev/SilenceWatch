@@ -25,6 +25,12 @@ release is the navigation of the application on a phone.
   links are in the header, and the menu holds Settings and Sign out, with their icons.
 - **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
   the logo (36px) and the account button (40px) on either side of it.
+- **The alert channels are laid out more simply.** Each one has the icon of its kind (an envelope
+  for e-mail, a hash for Slack, a link for a webhook) in place of a letter, its name, then its
+  kind and its destination on one quieter line, which is shortened with an ellipsis when it is
+  long. "Send a test" is a text button with an icon instead of an outlined one, and on a phone a
+  channel is two lines: the switch at the end of the first, "Send a test" and the bin on the
+  second.
 - **The rows of the account menu are one size.** The sign-out is a button and the other rows
   are links, and a button keeps its own font and line height, so it looked larger. Every row is
   44px, rounded and set in from the edge of the panel, with the divider taking less room.

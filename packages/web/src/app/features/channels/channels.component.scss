@@ -29,10 +29,12 @@
   overflow: hidden;
 }
 
+/* One row per channel: what it is on the left, what can be done to it on the right. On a phone
+   the same three pieces are laid out on a grid, because there is not room for them on a line. */
 .channel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 4px 14px;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--sw-border);
@@ -56,53 +58,78 @@
 .glyph {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border-radius: 9px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: var(--sw-surface-3);
   color: var(--sw-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.glyph-email {
-  background: var(--sw-accent-soft);
-  color: var(--sw-accent);
 }
 
 .channel-info {
-  flex: 1 1 220px;
   min-width: 0;
 }
 
 .channel-title {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
+.channel-title strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .muted-tag {
+  flex: none;
+  color: var(--sw-text-subtle);
+}
+
+/* The kind and the destination on one line, the destination the quieter and the one to give way. */
+.channel-target {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+}
+
+.channel-type {
+  flex: none;
+}
+
+.channel-type::after {
+  content: '·';
+  margin-left: 8px;
   color: var(--sw-text-subtle);
 }
 
 .target-text {
-  margin-top: 4px;
-  word-break: break-all;
+  overflow: hidden;
+  color: var(--sw-text-subtle);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .channel-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: auto;
+  gap: 8px;
+}
+
+.test {
+  gap: 6px;
 }
 
 /* --- phones ---------------------------------------------------------------
-   The form is one column; the channel list keeps the glyph and the name on
-   the first line and puts the controls on a second, at a size a thumb can
-   press, instead of three small controls fighting for the end of a line. */
+   The form is one column. A channel is two lines: its tile, name and kind with the switch at the
+   end of the first, and under them a quiet "send a test" and the bin, at a size a thumb can press.
+   No outlined button: three controls with a border each made a row heavier than what it said. */
 @media (max-width: 820px) {
   .add {
     padding: 16px;
@@ -120,21 +147,41 @@
   }
 
   .channel {
-    padding: 14px 16px;
-    gap: 12px;
-  }
-
-  .channel-info {
-    flex-basis: 0;
+    grid-template-areas:
+      'glyph info toggle'
+      '.     test remove';
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 2px 14px;
+    padding: 14px 16px 6px;
   }
 
   .channel-actions {
-    flex: 1 1 100%;
-    margin-left: 0;
-    padding-top: 4px;
+    display: contents;
   }
 
-  .channel-actions button.mat-mdc-stroked-button {
-    flex: 1 1 auto;
+  .glyph {
+    grid-area: glyph;
+  }
+
+  .channel-info {
+    grid-area: info;
+  }
+
+  .toggle {
+    grid-area: toggle;
+    justify-self: end;
+  }
+
+  .test {
+    grid-area: test;
+    justify-self: start;
+    min-height: 40px;
+    margin-left: -12px;
+  }
+
+  .remove {
+    grid-area: remove;
+    justify-self: end;
+    margin-right: -8px;
   }
 }
