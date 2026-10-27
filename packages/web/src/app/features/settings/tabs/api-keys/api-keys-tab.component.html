@@ -38,51 +38,32 @@
   @if (apiKeys().length === 0) {
     <p class="section-note sw-muted">{{ t('settings.noKey') }}</p>
   } @else {
-    <div class="sw-scroll-x bordered">
-      <table class="sw-table sw-stack">
-        <thead>
-          <tr>
-            <th scope="col">{{ t('settings.colName') }}</th>
-            <th scope="col">{{ t('settings.colPrefix') }}</th>
-            <th scope="col">{{ t('settings.colLastUsed') }}</th>
-            <th scope="col">{{ t('settings.colCreated') }}</th>
-            <th scope="col">
-              <span class="visually-hidden">{{ t('settings.colActions') }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (key of apiKeys(); track key.id) {
-            <tr [class.revoked]="key.revokedAt">
-              <td class="sw-cell-main">{{ key.name }}</td>
-              <td
-                class="sw-mono sw-muted sw-cell-half"
-                [attr.data-label]="t('settings.colPrefix')"
-              >
-                {{ key.prefix }}…
-              </td>
-              <td class="sw-cell-half" [attr.data-label]="t('settings.colLastUsed')">
-                {{ key.lastUsedAt | swRelativeTime }}
-              </td>
-              <td
-                class="sw-muted sw-cell-half"
-                [attr.data-label]="t('settings.colCreated')"
-              >
-                {{ key.createdAt | swRelativeTime }}
-              </td>
-              <td class="right sw-cell-aside">
-                @if (key.revokedAt) {
-                  <span class="sw-tag">{{ t('settings.revoked') }}</span>
-                } @else {
-                  <button mat-button class="danger" (click)="revoke(key)">
-                    {{ t('settings.revoke') }}
-                  </button>
-                }
-              </td>
-            </tr>
+    <div class="rows">
+      @for (key of apiKeys(); track key.id) {
+        <div class="row" [class.revoked]="key.revokedAt">
+          <span class="glyph" aria-hidden="true"><sw-icon name="apiKey" /></span>
+
+          <div class="row-main">
+            <div class="row-title">
+              <strong>{{ key.name }}</strong>
+              @if (key.revokedAt) {
+                <span class="sw-tag">{{ t('settings.revoked') }}</span>
+              }
+            </div>
+            <div class="row-meta">
+              <span class="row-prefix sw-mono">{{ key.prefix }}…</span>
+              <span>{{ t('settings.keyCreated', { when: key.createdAt | swRelativeTime }) }}</span>
+              <span>{{ t('settings.keyLastUsed', { when: key.lastUsedAt | swRelativeTime }) }}</span>
+            </div>
+          </div>
+
+          @if (!key.revokedAt) {
+            <button mat-button class="danger revoke" (click)="revoke(key)">
+              {{ t('settings.revoke') }}
+            </button>
           }
-        </tbody>
-      </table>
+        </div>
+      }
     </div>
   }
 </section>

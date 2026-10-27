@@ -21,6 +21,21 @@
   padding: 18px 20px 10px;
 }
 
+/* A head that carries an action: the text on the left and the button at the end of the line, which
+   goes under the text when the card is too narrow for both. */
+.section-head.with-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.section-head.with-action > div {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
 .section-head p {
   max-width: 64ch;
   margin: 6px 0 0;
@@ -64,6 +79,10 @@
 
   .section-head {
     padding: 16px 16px 8px;
+  }
+
+  .section-head.with-action > button {
+    width: 100%;
   }
 
   .section-body {

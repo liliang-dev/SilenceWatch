@@ -25,6 +25,14 @@ release is the navigation of the application on a phone.
   links are in the header, and the menu holds Settings and Sign out, with their icons.
 - **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
   the logo (36px) and the account button (40px) on either side of it.
+- **The projects and the API keys of the settings are lists in the style of the channels.** Each
+  project and each key has a tile with its icon, its name, and under it what matters: for a project
+  its slug, how many checks it holds and, on the one being viewed, a "Selected" mark; for a key the
+  visible start of the key, when it was created and when it was last used, which is what tells a
+  key in use from one that can go. A revoked key stays in the list, faded, with its mark. The
+  button that creates a project is at the top right of its card, and "revoke" is under the key on
+  a phone, so a long name has the whole width. The table of keys, whose columns were stacked into
+  cards on a phone, is gone.
 - **A channel is added from a dialog, like a check.** The form that sat above the list is gone: the
   page has a button at the top right (a round "+" on a phone, where the dialog takes the whole
   screen) and, while a project has no channel, a button in the empty card. The list is the page.

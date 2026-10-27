@@ -41,21 +41,76 @@
   white-space: nowrap;
 }
 
-td.right {
-  text-align: right;
+/* One key per row: its tile, its name, and under it the visible start of the key, when it was made
+   and when it was last used, which is what tells a key in use from one that can go. */
+.rows {
+  border-top: 1px solid var(--sw-border);
 }
 
-tr.revoked {
+.row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--sw-border);
+  transition: background-color 120ms ease;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--sw-surface-2);
+}
+
+/* A revoked key is a key that no longer opens anything; it stays in the list as the record. */
+.row.revoked .glyph,
+.row.revoked .row-main {
   opacity: 0.5;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--sw-surface-3);
+  color: var(--sw-text-muted);
+}
+
+.row-main {
+  min-width: 0;
+}
+
+.row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-title strong {
   overflow: hidden;
-  clip-path: inset(50%);
+  font-weight: 600;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin-top: 2px;
+  color: var(--sw-text-muted);
+  font-size: 0.8125rem;
+}
+
+.row-prefix {
+  color: var(--sw-text-subtle);
+  font-size: 0.75rem;
 }
 
 /* The form stacks one field to a line with the button under it at full width. */
@@ -67,6 +122,20 @@ tr.revoked {
 
   .inline-form button {
     width: 100%;
+  }
+
+  /* The key and what is known about it have the whole width; "revoke" is under them, at the left
+     of their column, rather than taking a third of the line from the name. */
+  .row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+    padding: 14px 16px;
+  }
+
+  .revoke {
+    grid-column: 2;
+    justify-self: start;
+    margin-left: -12px;
   }
 
   .key-row {
