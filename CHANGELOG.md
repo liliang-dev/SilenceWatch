@@ -34,6 +34,9 @@ called out under **Changed** with what to do about it.
   Integrations, Open source, Legal) instead of one run of fifteen links, in two columns on a
   phone, with the licence note set apart below. The integrations are listed by language (Java,
   PHP, Python); each link opens the page that says which frameworks the library covers.
+- **The Spring Boot, Django and Laravel pages name their language**: "Java Spring Boot", "Python
+  Django" and "PHP Laravel", in the title, the description and the first sentence, in English
+  and in French.
 - **The logo is larger on a phone** (36px, from 28px), next to the project switcher and the
   account button, which are 40px.
 
