@@ -15,9 +15,9 @@ called out under **Changed** with what to do about it.
 - **On a phone, the bar at the bottom is gone: the three destinations are in the menu at the top
   right.** The button shows three bars instead of the initials, so it reads as a menu, and opens
   Checks, Alerts and Settings, each with an icon and the current page marked, then Sign out set
-  apart. The pages gain the room the bar took
-  (82px under the end of a page, now 28px). On a wider screen nothing changes: the links are in
-  the header, and the menu holds Settings and Sign out, with their icons.
+  apart; the address of the account has an @ icon in the same column. The pages gain the room
+  the bar took (82px under the end of a page, now 28px). On a wider screen nothing changes: the
+  links are in the header, and the menu holds Settings and Sign out, with their icons.
 - **The project selector is lower on a phone** (34px, from 40px), so it is a little lower than
   the logo (36px) and the account button (40px) on either side of it.
 

@@ -104,6 +104,10 @@ const ICONS: Record<string, Record<IconVariant, string>> = {
     solid: '<path fill-rule="evenodd" d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75ZM2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8Zm0 4.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd"/>',
     outline: '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>',
   },  // bars-3
+  at: {
+    solid: '<path fill-rule="evenodd" d="M11.89 4.111a5.5 5.5 0 1 0 0 7.778.75.75 0 1 1 1.06 1.061A7 7 0 1 1 15 8a2.5 2.5 0 0 1-4.083 1.935A3.5 3.5 0 1 1 11.5 8a1 1 0 0 0 2 0 5.48 5.48 0 0 0-1.61-3.889ZM10 8a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" clip-rule="evenodd"/>',
+    outline: '<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25"/>',
+  },  // at-symbol
 };
 
 /** The empty space left and right of each glyph, in viewBox units: see `inset()`. */
@@ -129,6 +133,7 @@ const INK: Record<string, Record<IconVariant, [number, number]>> = {
   settings: { solid: [1.35,1.35], outline: [2.66,2.66] },
   signOut: { solid: [2,1], outline: [4.5,1.5] },
   menu: { solid: [2,2], outline: [3,3] },
+  at: { solid: [1,1], outline: [2.25,2.25] },
 };
 
 

@@ -54,7 +54,10 @@
         <sw-icon name="menu" [size]="22" class="avatar-menu" />
       </button>
       <mat-menu #userMenu="matMenu" class="sw-menu">
-        <div class="menu-email">{{ auth.user()?.email }}</div>
+        <div class="menu-email">
+          <sw-icon name="at" />
+          <span class="menu-email-text">{{ auth.user()?.email }}</span>
+        </div>
         <!-- On a phone this menu is the navigation: the header has no room for three links, and
              there is no bar at the bottom. On a wider screen the links are in the header, so the
              first two are not shown again here (see the sw-menu rules in _material-trims.scss). -->
