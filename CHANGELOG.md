@@ -10,6 +10,13 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The Spring Boot starter's version in the repository is the one released, 0.1.0**, no longer
+  `0.1.0-SNAPSHOT`: its `pom.xml`, and the demo application, which now takes the starter from
+  Maven Central instead of asking for it to be installed first. The release workflow still takes
+  the number of a release from its tag.
+
 ## [0.6.3] — 2026-10-28
 
 Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
