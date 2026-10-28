@@ -10,6 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-10-28
+
+Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
+release is two additions to the screens of the application.
+
 ### Added
 
 - **The checks can be filtered by environment.** A picker beside the search box lists the
@@ -1062,7 +1067,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...HEAD
+[0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
