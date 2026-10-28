@@ -5,9 +5,27 @@ sidebar:
   label: Spring Boot starter
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Steps } from '@astrojs/starlight/components';
 
 The SilenceWatch **Spring Boot starter** monitors your application's scheduled tasks without you declaring anything: it discovers every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around every run. It is licensed under Apache 2.0, deliberately, so it can be embedded in any application.
+
+## Quick start
+
+<Steps>
+
+1. **Get a SilenceWatch.** Create an account at [app.silencewatch.com](https://app.silencewatch.com/login), or [self-host it](/docs/reference/self-hosting/).
+
+2. **Create an API key** in *Settings › API keys › New key*. It is shown once: copy it.
+
+3. **Add the starter and the key** (the [installation](#installation) below), and start your application with `SILENCEWATCH_API_KEY` set.
+
+4. **Look at the log**: `SilenceWatch is watching 2 job(s)`. Every job is now in *Checks*, tagged `auto`, with its real schedule and a heartbeat at every run.
+
+5. **Try it.** Stop the application: the checks go *late*, then *down*. Add an alert channel in *Alerting › New channel* and use *Send test* to be told.
+
+</Steps>
+
+It needs **Java 17 or later** and scheduling switched on (`@EnableScheduling`, which your `@Scheduled` methods already need to run). It has been run against **Spring Boot 3.5 and 4.1**.
 
 ## Installation
 

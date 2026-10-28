@@ -55,6 +55,43 @@ may be. If the heartbeat does not arrive in time, you get told.
 That is the entire integration for a shell script. For Java, Python and PHP, there is
 something better — see below.
 
+## Quick start: Spring Boot in five minutes
+
+You have a Spring Boot application with `@Scheduled` methods or Quartz jobs. Nothing else is
+needed: no check to create, no URL to paste into a job.
+
+1. **Get a SilenceWatch.** Create an account on the hosted service,
+   [app.silencewatch.com](https://app.silencewatch.com) (there is a free plan), or
+   [self-host it](#self-hosting) with `docker compose up -d`.
+2. **Create an API key**: *Settings → API keys → New key*. It is shown once; copy it.
+3. **Add the starter** to your build, and the key to your configuration:
+
+   ```xml
+   <dependency>
+     <groupId>com.silencewatch</groupId>
+     <artifactId>silencewatch-spring-boot-starter</artifactId>
+     <version>0.1.0</version>
+   </dependency>
+   ```
+
+   ```yaml
+   silencewatch:
+     api-key: ${SILENCEWATCH_API_KEY}
+     # base-url: https://silencewatch.example.com   # only when you self-host
+   ```
+
+4. **Start the application** with `SILENCEWATCH_API_KEY` set. The log says
+   `SilenceWatch is watching 2 job(s)`, and each job is in *Checks*, tagged `auto`, with its real
+   schedule. A heartbeat is sent around every run, with its duration and whether it failed.
+5. **Try it.** Stop the application: the checks go *late*, then *down*. Add an alert channel
+   (*Alerting → New channel*, then *Send test*) to be told.
+
+It needs Java 17 or later, and scheduling switched on (`@EnableScheduling`, which your
+`@Scheduled` methods already need to run). It has been run against Spring Boot 3.5 and 4.1.
+
+To see it without touching your own code, run the [demo application](examples/spring-boot-demo/README.md):
+two scheduled jobs, one of which fails every third run.
+
 ## What makes it different
 
 Most monitoring tools ask you to create a check for every job and paste its ping
