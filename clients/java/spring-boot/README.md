@@ -27,6 +27,16 @@ silencewatch:
 
 Create the API key in your project's Settings page. That is the whole setup.
 
+## Requirements
+
+- **Java 17 or later.**
+- **Spring Boot**: the starter has been run against Spring Boot 3.5 and 4.1.
+- **Scheduling switched on.** The starter reads what Spring schedules: `@EnableScheduling` has to
+  be on your application (or, for Quartz, a scheduler present), as it must be for your
+  `@Scheduled` methods to run at all. Without it there is nothing to discover.
+- **Your instance's address** in `silencewatch.base-url` when you self-host; the default is the
+  hosted service.
+
 ## What it does at startup
 
 On `ApplicationReadyEvent`, in one HTTP call:

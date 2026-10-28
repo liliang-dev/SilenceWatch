@@ -3,14 +3,15 @@
 A plain Spring Boot application with two scheduled jobs and no monitoring code.
 Adding the starter and an API key is the entire integration.
 
-```bash
-# 1. install the starter from this repository
-cd ../../clients/java/spring-boot && mvn install -DskipTests
+The starter, 0.1.0, is downloaded from Maven Central. Create an API key in your project's
+Settings page, then:
 
-# 2. create an API key in your project's Settings page, then
-cd ../../examples/spring-boot-demo
+```bash
 SILENCEWATCH_API_KEY=sw_… SILENCEWATCH_BASE_URL=http://localhost:8080 mvn spring-boot:run
 ```
+
+To run it against the starter of this repository instead, install that first:
+`cd ../../clients/java/spring-boot && mvn install -DskipTests`.
 
 Within a second of startup the jobs appear in SilenceWatch, tagged `auto`, with
 their real schedules:

@@ -102,8 +102,8 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      # The repository keeps the version of work in progress (0.1.0-SNAPSHOT);
-      # the release takes its number from the tag, in the build and nowhere else.
+      # The repository keeps the version last released (0.1.0); the release takes
+      # its number from the tag, in the build and nowhere else.
       - name: Set the version from the tag
         working-directory: clients/java/spring-boot
         env:
