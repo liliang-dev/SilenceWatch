@@ -32,6 +32,18 @@ export class ProjectsTabComponent {
   protected readonly plural = this.i18n.plural;
   protected readonly projectBusy = signal(false);
 
+  /**
+   * Shows the project the row is of, which is what the picker in the header does.
+   *
+   * The edit and delete buttons stop their own click before it gets here; this also ignores one
+   * that comes from the end of the row, because a click on a button that is disabled (the last
+   * project cannot be deleted) is not always kept from reaching the row by the browser.
+   */
+  protected show(project: ProjectDto, event: Event): void {
+    if ((event.target as HTMLElement).closest('.row-actions') !== null) return;
+    if (this.projects.selected()?.id !== project.id) this.projects.select(project.id);
+  }
+
   protected createProject(): void {
     this.openProjectForm({}).subscribe((name) => {
       if (name === undefined) return;

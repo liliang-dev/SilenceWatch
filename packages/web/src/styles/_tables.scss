@@ -110,6 +110,29 @@
   max-width: 240px;
 }
 
+/* The picker and the search box together, at the end of the bar. A table with a picker (the checks,
+   by environment) puts them side by side; one without is the search box alone, as before. */
+.sw-toolbar .toolbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.sw-toolbar .sw-env {
+  flex: 0 0 200px;
+}
+
+/* A choice that narrows the table is drawn as one: an outline and a value in the accent colour, so
+   the box does not look like the "all" it replaces. */
+.sw-toolbar .sw-env.active {
+  --mat-form-field-outlined-outline-color: var(--sw-accent);
+  --mat-form-field-outlined-hover-outline-color: var(--sw-accent);
+  --mat-select-enabled-trigger-text-color: var(--sw-accent);
+}
+
 .sw-toolbar .sw-search-icon {
   margin: 0 8px 0 15px;
   color: var(--sw-text-subtle);

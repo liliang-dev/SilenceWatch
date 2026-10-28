@@ -71,17 +71,55 @@
           <mat-button-toggle value="PAUSED">{{ t('checks.filterPaused') }}</mat-button-toggle>
         </mat-button-toggle-group>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
-          <sw-icon name="search" matPrefix class="sw-search-icon" />
-          <input
-            matInput
-            type="search"
-            [placeholder]="t('checks.search')"
-            [ngModel]="table.search()"
-            (ngModelChange)="table.onSearch($event)"
-          />
-        </mat-form-field>
+        <div class="toolbar-fields">
+          @if (showEnvironments()) {
+            <!-- Only when the project has environments to choose between. Null is "all". -->
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="sw-env"
+              [class.active]="environment() !== ''"
+            >
+              <mat-select
+                [ngModel]="environment() === '' ? null : environment()"
+                (ngModelChange)="filterByEnvironment($event)"
+                [placeholder]="t('checks.environmentPlaceholder')"
+                [attr.aria-label]="t('checks.colEnvironment')"
+              >
+                <mat-option [value]="null">{{ t('checks.environmentAll') }}</mat-option>
+                @for (name of environments(); track name) {
+                  <mat-option [value]="name">{{ name }}</mat-option>
+                }
+                @if (hasUnset()) {
+                  <mat-option [value]="noEnvironment">{{ t('checks.environmentNone') }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sw-search">
+            <sw-icon name="search" matPrefix class="sw-search-icon" />
+            <input
+              matInput
+              type="search"
+              [placeholder]="t('checks.search')"
+              [ngModel]="table.search()"
+              (ngModelChange)="table.onSearch($event)"
+            />
+          </mat-form-field>
+        </div>
       </div>
+
+      @if (filtered()) {
+        <!-- The table is narrowed by a choice: say so, and offer the way back, since a monitoring screen
+             that quietly omits checks is the failure this product exists to prevent. -->
+        <p class="sw-table-note filters-note" role="status">
+          <span>{{ t('checks.filtersActive', { filters: filterWords() }) }}</span>
+          <button type="button" class="note-action" (click)="resetFilters()">
+            {{ t('checks.filtersReset') }}
+          </button>
+        </p>
+      }
 
       @if (truncated()) {
         <!-- A monitoring screen that quietly omits checks is the failure this

@@ -10,6 +10,25 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-10-28
+
+Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
+release is two additions to the screens of the application.
+
+### Added
+
+- **The checks can be filtered by environment.** A picker beside the search box lists the
+  environments of the project, with "All environments" and "No environment"; it is shown only when
+  some checks have an environment. It narrows the table together with the state (down, late, up,
+  paused), and the counters above count the chosen environment. While the table is narrowed, a line
+  under the bar says so, with a "Show all" link. A choice the checks no longer have is no filter
+  rather than an empty table. Nothing is kept from one visit to the next: the page opens
+  unfiltered. On a phone the picker and the search box share one row under the state segments.
+- **A click on a project of the settings shows it**, as the picker in the header does: the row is
+  marked with a bar at its edge and a tint, as well as the "Selected" mark, and the name can be
+  reached and pressed from the keyboard. The edit and delete buttons at the end of the row do not
+  select it.
+
 ## [0.6.2] — 2026-10-27
 
 Nothing to do to upgrade: no configuration variable, API response or database schema changes. The
@@ -1048,7 +1067,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...HEAD
+[0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.5.3...0.6.0
