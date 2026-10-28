@@ -14,6 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -21,6 +22,12 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import type { CheckDto, CheckState } from '@silencewatch/shared';
 import { EMPTY, type Subscription, expand, reduce } from 'rxjs';
+import {
+  NO_ENVIRONMENT,
+  effectiveEnvironment,
+  environmentsOf,
+  matchesEnvironment,
+} from './checks-filters';
 import { byUrgency, checkRules } from './checks-table';
 import { DataTable, PAGE_SIZES } from '../../../shared/data-table';
 import { ChecksApi } from '../../../core/api/checks.api';
@@ -36,6 +43,14 @@ import { IconComponent } from '../../../shared/icon.component';
 import { describeSchedule } from '../../../shared/schedule';
 
 const REFRESH_INTERVAL_MS = 15_000;
+
+/** The word of each state filter, as the segments above the table say it. */
+const STATE_WORDS: Record<string, MessageKey> = {
+  DOWN: 'checks.filterDown',
+  LATE: 'checks.filterLate',
+  UP: 'checks.filterUp',
+  PAUSED: 'checks.filterPaused',
+};
 
 /** The server's own maximum, so a project of any normal size is one request. */
 const PAGE_SIZE = 200;
@@ -61,6 +76,7 @@ const MAX_PAGES = 10;
     MatInputModule,
     MatPaginatorModule,
     MatProgressBarModule,
+    MatSelectModule,
     MatSortModule,
     MatTableModule,
     MatTooltipModule,
@@ -94,6 +110,12 @@ export class ChecksComponent implements OnDestroy {
 
   protected readonly stateFilter = signal('');
 
+  /** What the person chose; `environment` is what applies, which may be no filter (see below). */
+  private readonly chosenEnvironment = signal('');
+
+  /** The "no environment" choice, for the template. */
+  protected readonly noEnvironment = NO_ENVIRONMENT;
+
   protected readonly columns = ['name', 'environment', 'source', 'state', 'schedule', 'lastPingAt', 'nextDueAt'];
   protected readonly pageSizes = PAGE_SIZES;
 
@@ -102,6 +124,46 @@ export class ChecksComponent implements OnDestroy {
 
   /** Every check loaded, before the search box and the state filter. */
   protected readonly population = this.table.rows;
+
+  /** The environments of the project, for the filter. */
+  protected readonly environments = computed(() => environmentsOf(this.population()));
+
+  /** Whether some checks have none, which makes "no environment" a choice worth offering. */
+  protected readonly hasUnset = computed(() =>
+    this.population().some((check) => (check.environment?.trim() ?? '') === ''),
+  );
+
+  /**
+   * The environment the table is narrowed to: the one chosen, unless the checks no longer have it.
+   * A choice that no longer exists is no filter, not an empty table with no way to see why.
+   */
+  protected readonly environment = computed(() =>
+    effectiveEnvironment(this.chosenEnvironment(), this.environments(), this.hasUnset()),
+  );
+
+  /** The picker offers a choice only when there is one: a project with no environment has nothing to pick. */
+  protected readonly showEnvironments = computed(() => this.environments().length > 0);
+
+  /** True when the table is narrowed by a choice, which a person reading it should be able to see. */
+  protected readonly filtered = computed(() => this.stateFilter() !== '' || this.environment() !== '');
+
+  /** The choices that narrow the table, in words, for the line that says so. */
+  protected readonly filterWords = computed(() => {
+    const words: string[] = [];
+    const state = this.stateFilter();
+    if (state !== '') words.push(this.t(STATE_WORDS[state] ?? 'common.all'));
+    const environment = this.environment();
+    if (environment !== '') {
+      words.push(environment === NO_ENVIRONMENT ? this.t('checks.environmentNone') : environment);
+    }
+    return words.join(' · ');
+  });
+
+  /** The checks the counters count: those of the chosen environment, whatever their state. */
+  private readonly scoped = computed(() => {
+    const environment = this.environment();
+    return this.population().filter((check) => matchesEnvironment(check, environment));
+  });
 
   private readonly timer = setInterval(() => this.reload(true), REFRESH_INTERVAL_MS);
 
@@ -125,7 +187,7 @@ export class ChecksComponent implements OnDestroy {
   });
 
   protected readonly counters = computed<Counter[]>(() => {
-    const all = this.population();
+    const all = this.scoped();
     const count = (state: CheckState): number => all.filter((check) => check.state === state).length;
 
     const down = count('DOWN');
@@ -162,6 +224,16 @@ export class ChecksComponent implements OnDestroy {
 
   constructor() {
     this.projects.load();
+    // The table keeps the rows that pass both filters. Run again only when one of them changes:
+    // `environment` is a string, so the background refresh does not reset the page.
+    effect(() => {
+      const state = this.stateFilter();
+      const environment = this.environment();
+      this.table.setFilter(
+        (check) =>
+          (state === '' || check.state === state) && matchesEnvironment(check, environment),
+      );
+    });
     // Reacts to the picker in the header. Without this the page loaded once and
     // never again — and because it asked the account-wide endpoint, it was
     // showing every project's checks at once regardless of what was selected.
@@ -178,7 +250,16 @@ export class ChecksComponent implements OnDestroy {
 
   protected filterBy(state: string): void {
     this.stateFilter.set(state);
-    this.table.setFilter((check) => state === '' || check.state === state);
+  }
+
+  /** `null` is the picker's "all environments". */
+  protected filterByEnvironment(environment: string | null): void {
+    this.chosenEnvironment.set(environment ?? '');
+  }
+
+  protected resetFilters(): void {
+    this.stateFilter.set('');
+    this.chosenEnvironment.set('');
   }
 
   /**

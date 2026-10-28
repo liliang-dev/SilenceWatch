@@ -108,3 +108,24 @@
   background: var(--sw-late-soft);
   color: var(--sw-late);
 }
+
+/* --------------------------------------------- the line that says the table is narrowed --- */
+
+.filters-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.note-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sw-accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}

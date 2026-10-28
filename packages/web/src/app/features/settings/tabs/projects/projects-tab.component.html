@@ -19,18 +19,29 @@
 
   <div class="rows">
     @for (project of projects.all(); track project.id) {
-      <div class="row">
+      <!-- A click anywhere on the row shows this project, as the picker in the header would. The two
+           buttons at its end do their own thing and are not part of it (see `show`). -->
+      <div
+        class="row"
+        [class.selected]="project.id === projects.selected()?.id"
+        (click)="show(project, $event)"
+      >
         <span class="glyph" aria-hidden="true"><sw-icon name="project" /></span>
 
-        <div class="row-main">
-          <div class="row-title">
+        <button
+          type="button"
+          class="row-main"
+          [attr.aria-label]="t('settings.showProjectAria', { name: project.name })"
+          [attr.aria-pressed]="project.id === projects.selected()?.id"
+        >
+          <span class="row-title">
             <strong>{{ project.name }}</strong>
             @if (project.id === projects.selected()?.id) {
               <span class="sw-tag current">{{ t('settings.currentProject') }}</span>
             }
-          </div>
+          </span>
           <span class="row-slug sw-mono">{{ project.slug }}</span>
-        </div>
+        </button>
 
         <span class="row-count">{{ plural('settings.checkCount', project.checkCount ?? 0) }}</span>
 
@@ -41,7 +52,7 @@
             class="sw-icon-button"
             [attr.aria-label]="t('settings.renameAria')"
             [matTooltip]="t('settings.renameTip')"
-            (click)="renameProject(project)"
+            (click)="renameProject(project); $event.stopPropagation()"
           >
             <sw-icon name="edit" />
           </button>
@@ -57,7 +68,7 @@
                 : t('settings.deleteProjectTip')
             "
             matTooltipPosition="left"
-            (click)="deleteProject(project)"
+            (click)="deleteProject(project); $event.stopPropagation()"
           >
             <sw-icon name="delete" />
           </button>

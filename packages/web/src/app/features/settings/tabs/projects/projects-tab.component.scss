@@ -19,8 +19,23 @@
   border-bottom: 0;
 }
 
+.row {
+  cursor: pointer;
+}
+
 .row:hover {
   background: var(--sw-surface-2);
+}
+
+/* The project being viewed: a bar at the edge and a tint, besides the mark beside its name. */
+.row.selected {
+  background: color-mix(in srgb, var(--sw-accent) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--sw-accent);
+}
+
+.row.selected .glyph {
+  background: var(--sw-accent-soft);
+  color: var(--sw-accent);
 }
 
 .glyph {
@@ -33,8 +48,24 @@
   color: var(--sw-text-muted);
 }
 
+/* The name and the slug are a button, so the row can be reached and pressed from the keyboard; it
+   is drawn as plain text. A click on the rest of the row does the same. */
 .row-main {
+  display: block;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sw-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-main:focus-visible {
+  outline: 2px solid var(--sw-accent);
+  outline-offset: 4px;
 }
 
 .row-title {
