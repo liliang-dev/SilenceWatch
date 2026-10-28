@@ -1,0 +1,135 @@
+---
+title: "Un @Scheduled Spring s’arrête ? Soyez prévenu"
+description: "Un job @Scheduled de Spring Boot peut s’arrêter sans aucune erreur : thread bloqué, planification coupée, cron désactivé. Ce qui se passe, et comment être alerté."
+template: splash
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
+import Faq from '../../../../components/Faq.astro';
+
+<p class="splash-lede">Votre application Spring Boot tourne, son endpoint de santé répond <code>UP</code>, et un job <code>@Scheduled</code> ne s’est pas exécuté depuis mardi. Rien n’a planté, rien n’a été journalisé. Voici comment cela arrive, montré sur une exécution réelle, et comment le savoir le jour où cela commence plutôt que le jour où quelqu’un le remarque.</p>
+
+## Un job qui lève une exception est le cas facile
+
+Commençons par ce qui n’arrête *pas* un job. Une méthode qui échoue à chaque fois :
+
+```java
+@Scheduled(fixedRate = 1000)
+void failing() {
+  throw new IllegalStateException("boom");
+}
+```
+
+Exécutée sur Spring Boot 3.5.7, elle écrit ceci chaque seconde, et continue d’être appelée :
+
+```text
+ERROR 748 --- [   scheduling-1] o.s.s.s.TaskUtils$LoggingErrorHandler : Unexpected error occurred in scheduled task
+java.lang.IllegalStateException: boom
+```
+
+Spring journalise l’exception d’une tâche répétée et planifie quand même l’exécution suivante. C’est utile, et c’est aussi pourquoi un job peut échouer des semaines : l’erreur est dans un journal, que personne ne lit tant que rien ne casse en aval.
+
+Les jobs qui se taisent vraiment sont les suivants.
+
+## Comment un job s’arrête sans laisser de trace
+
+### 1. Un job bloqué fige tous les autres
+
+Par défaut, Spring Boot exécute toutes les méthodes `@Scheduled` sur **un seul thread** (`spring.task.scheduling.pool.size` vaut `1`). Si l’une d’elles ne rend jamais la main, parce qu’elle attend une socket sans délai maximal, un verrou ou une file, **aucune** des autres ne s’exécute plus.
+
+Je l’ai reproduit avec trois jobs : un signal chaque seconde, le job qui échoue ci-dessus, et un qui se bloque pour toujours à partir de la quatrième seconde :
+
+```text
+17:39:40.449  heartbeat job ran
+17:39:41.449  heartbeat job ran
+17:39:41.451  stuck job starts and never returns
+              (plus rien ensuite : ni erreur, ni avertissement, le processus continue de tourner)
+```
+
+Le job de signal et le job qui échoue s’arrêtent tous les deux à cet instant. L’application est vivante, donc une sonde de vivacité et un contrôle de santé sont satisfaits.
+
+### 2. La planification est désactivée
+
+Sans `@EnableScheduling`, une annotation `@Scheduled` n’est qu’une annotation : pas d’erreur, pas d’exécution. Elle se perd facilement dans un remaniement des classes de configuration, et l’application démarre et répond quand même.
+
+### 3. Une propriété désactive la planification
+
+`@Scheduled(cron = "${report.cron}")` accepte la valeur spéciale `-`, que Spring documente comme un déclencheur désactivé, prévue pour couper un job de l’extérieur. Une mauvaise valeur dans la configuration d’un environnement, et ce job n’y est plus planifié.
+
+### 4. L’application ne tourne pas là où vous le croyez
+
+Un job exécuté par une seule instance meurt avec elle : un déploiement réduit à zéro, une boucle de redémarrage, une instance jamais lancée dans cet environnement. Rien dans l’application ne peut le signaler, puisque l’application n’est plus là.
+
+Les quatre ont la même signature : **il ne se passe rien, donc rien ne s’écrit**.
+
+## Ce qui ne le détecte pas
+
+- **Les journaux.** Il n’y a pas de ligne à chercher. On peut alerter sur une erreur ; on ne peut pas alerter sur une ligne qui n’existe pas.
+- **Les contrôles de santé et sondes de vivacité.** Ils disent que le processus répond, pas que ses jobs s’exécutent.
+- **Les métriques.** Un chronomètre par job aide, mais repérer un job arrêté demande d’écrire une alerte sur l’*absence*, pour chaque job, et de garder ces règles à jour avec le code.
+- **La liste des tâches planifiées.** L’endpoint `scheduledtasks` d’Actuator montre ce qui est enregistré. C’est une liste d’intentions.
+
+## Chercher l’exécution qui manque : un dead man’s switch
+
+Le signal fiable est celui qui échoue dans le bon sens : le job signale **chaque exécution réussie** à un service extérieur, qui l’attend selon une planification et alerte quand elle ne vient pas. C’est un [dead man’s switch](/fr/dead-mans-switch/). Un thread bloqué, une annotation manquante, un cron désactivé et une instance morte déclenchent la même alerte : le signal n’est pas arrivé.
+
+Avec le starter Spring Boot de SilenceWatch, la mise en place tient en une dépendance et une clé :
+
+```xml title="pom.xml"
+<dependency>
+  <groupId>com.silencewatch</groupId>
+  <artifactId>silencewatch-spring-boot-starter</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+```yaml title="application.yml"
+silencewatch:
+  api-key: ${SILENCEWATCH_API_KEY}
+```
+
+Au démarrage, il trouve chaque méthode `@Scheduled` et chaque job Quartz, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution, avec sa durée et l’éventuelle exception. Le journal le dit :
+
+```text
+SilenceWatch discovered 2 Spring scheduled task(s)
+SilenceWatch is watching 2 job(s) in environment 'production'
+```
+
+Le début d’une exécution est signalé séparément de sa fin, et un début seul ne compte pas comme un succès. Une exécution qui commence et ne revient jamais laisse donc le check *en retard*, puis *en panne* une fois le délai de grâce écoulé, et vos canaux d’alerte sont prévenus. Voir le [démarrage rapide](/fr/docs/spring-boot/#démarrage-rapide) pour l’essayer en cinq minutes, et [les états et planifications](/fr/docs/schedules-and-states/) pour les règles exactes.
+
+Le starter est conçu pour ne pas gêner l’application : il ne fait jamais échouer ni attendre un job, et sans clé ni réseau l’application tourne comme sans lui. Le détail est sur la [page Spring Boot](/fr/spring-boot/).
+
+## Corrigez aussi la cause
+
+Être alerté n’est que la première moitié. Pour le cas du thread bloqué, les remèdes habituels sont :
+
+- **mettre un délai maximal sur chaque appel sortant** d’un job (client HTTP, base de données, file) : un job qui peut attendre indéfiniment finira par le faire ;
+- **donner plus d’un thread au planificateur**, pour qu’un job lent ne retienne pas les autres : `spring.task.scheduling.pool.size: 5` ;
+- **sortir les longs traitements du thread du planificateur**, en confiant le travail à un exécuteur et en rendant la main.
+
+<div class="sw-cta">
+  <LinkButton href="/fr/docs/spring-boot/" variant="primary">Démarrage rapide Spring Boot <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="secondary">Être alerté quand un job s’arrête <HeroIcon name="arrow" /></LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes : jobs @Scheduled de Spring qui s’arrêtent"
+  items={[
+    { q: 'Pourquoi ma méthode @Scheduled a-t-elle cessé de s’exécuter sans erreur ?', a: 'Les causes habituelles sont une autre méthode planifiée qui ne revient jamais (Spring Boot les exécute toutes sur un seul thread par défaut), la planification non activée, un cron désactivé avec la valeur "-", ou une instance de l’application qui ne tourne plus. Aucune n’écrit de ligne dans les journaux.' },
+    { q: 'Que se passe-t-il quand une méthode @Scheduled lève une exception ?', a: 'Pour une tâche répétée, Spring journalise l’exception au niveau ERROR et rappelle la méthode à l’heure suivante. Le job ne s’arrête pas, mais il peut échouer à chaque exécution sans que personne ne soit prévenu.' },
+    { q: 'Combien de threads Spring utilise-t-il pour les méthodes @Scheduled ?', a: 'Un seul par défaut dans Spring Boot. Augmentez spring.task.scheduling.pool.size pour qu’un job lent ne retarde pas les autres.' },
+    { q: 'Comment être alerté quand un job planifié s’arrête ?', a: 'Faites signaler chaque exécution réussie à un service qui l’attend selon une planification et alerte quand elle manque, un dead man’s switch. Le starter SilenceWatch le fait pour les jobs @Scheduled et Quartz avec une dépendance et une clé d’API.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/spring-boot/">Monitoring Java Spring Boot</a></li>
+  <li><a href="/fr/docs/spring-boot/">Documentation du starter Spring Boot</a></li>
+  <li><a href="/fr/dead-mans-switch/">Dead man’s switch</a></li>
+  <li><a href="/fr/guides/cron-not-running/">Cron qui ne s’exécute pas</a></li>
+</ul>

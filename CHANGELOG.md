@@ -20,6 +20,11 @@ called out under **Changed** with what to do about it.
   application was run for this against the starter downloaded from Maven Central, on Spring Boot
   3.5 and on 4.1.
 
+- **A guide on Spring `@Scheduled` jobs that stop without an error** (in English and in French):
+  what Spring does with a failing job, how one blocked job freezes the others on the default
+  single scheduler thread (reproduced on Spring Boot 3.5.7), and how to be alerted. It is linked
+  from the Spring Boot page and from the home page.
+
 ### Changed
 
 - **The Spring Boot starter's version in the repository is the one released, 0.1.0**, no longer
