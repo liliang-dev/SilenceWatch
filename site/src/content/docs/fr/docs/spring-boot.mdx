@@ -5,9 +5,27 @@ sidebar:
   label: Starter Spring Boot
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Steps } from '@astrojs/starlight/components';
 
 Le **starter Spring Boot** de SilenceWatch surveille les tâches planifiées de votre application sans que vous déclariez quoi que ce soit : il découvre chaque `@Scheduled` et chaque job Quartz, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution. Il est sous licence Apache 2.0, volontairement, pour pouvoir être embarqué dans n’importe quelle application.
+
+## Démarrage rapide
+
+<Steps>
+
+1. **Obtenez un SilenceWatch.** Créez un compte sur [app.silencewatch.com](https://app.silencewatch.com/login), ou [auto-hébergez-le](/fr/docs/reference/self-hosting/).
+
+2. **Créez une clé d’API** dans *Réglages › Clés API › Nouvelle clé*. Elle n’est affichée qu’une fois : copiez-la.
+
+3. **Ajoutez le starter et la clé** (l’[installation](#installation) ci-dessous), puis démarrez votre application avec `SILENCEWATCH_API_KEY` définie.
+
+4. **Regardez le journal** : `SilenceWatch is watching 2 job(s)`. Chaque job est désormais dans *Checks*, marqué `auto`, avec sa vraie planification et un signal à chaque exécution.
+
+5. **Essayez.** Arrêtez l’application : les checks passent *en retard*, puis *en panne*. Ajoutez un canal d’alerte dans *Alertes › Nouveau canal* et utilisez *Envoyer un test* pour être prévenu.
+
+</Steps>
+
+Il faut **Java 17 ou plus** et la planification activée (`@EnableScheduling`, dont vos méthodes `@Scheduled` ont déjà besoin pour s’exécuter). Il a été exécuté avec **Spring Boot 3.5 et 4.1**.
 
 ## Installation
 

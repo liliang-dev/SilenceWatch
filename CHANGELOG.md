@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **A quick start for Spring Boot**, in the README and in the documentation of the starter (in
+  English and in French): get a SilenceWatch, create a key, add the starter, look for the line
+  `SilenceWatch is watching N job(s)` in the log, then stop the application to see the checks go
+  late and down. The starter's README now says what it needs: Java 17 or later, scheduling switched
+  on (`@EnableScheduling`), and the address of the instance when self-hosting. The demo
+  application was run for this against the starter downloaded from Maven Central, on Spring Boot
+  3.5 and on 4.1.
+
 ### Changed
 
 - **The Spring Boot starter's version in the repository is the one released, 0.1.0**, no longer
