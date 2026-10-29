@@ -12,6 +12,11 @@ import { ChannelSender, InvalidChannelConfigError } from './channel-sender';
  * guard in SafeHttpService is what keeps this from becoming a proxy into the
  * host network.
  */
+// Decorated although it is never provided itself: Nest reads the constructor's
+// parameter types from a class's own metadata, and TypeScript emits it only for a
+// decorated class. Without this, Slack, Teams and Discord, which have no
+// constructor of their own, would be built with no SafeHttpService at all.
+@Injectable()
 abstract class ChatWebhookSender implements ChannelSender {
   abstract readonly type: ChannelType;
 

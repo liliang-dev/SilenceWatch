@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PgService } from '../database/pg.service';
 import { PrismaService } from '../database/prisma.service';
+import type { QuotaDb } from '../quotas/quota.service';
 
 /**
  * The statements behind `POST /api/v1/checks/sync`. The whole payload is
@@ -107,8 +108,9 @@ export class CheckSyncRepository {
     projectId: string,
     keys: string[],
     environment: string | null,
+    db: QuotaDb = this.prisma,
   ): Promise<Set<string>> {
-    const existing = await this.prisma.check.findMany({
+    const existing = await db.check.findMany({
       where: { projectId, key: { in: keys }, environment },
       select: { key: true },
     });

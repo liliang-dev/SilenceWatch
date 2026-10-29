@@ -38,8 +38,35 @@ called out under **Changed** with what to do about it.
   other account is now answered 404.
 - **fastify 5.12.7** for GHSA-389g-gv7q-r4x8 (header validation bypassed by a header name in
   another case).
+- **Plan limits held only one request at a time.** A check, a project, a channel or a starter
+  sync counted what the account had, then created; requests sent together all counted before
+  any created, and a free plan of five checks ended with eleven. Each account's
+  count-then-create now runs under a lock, on every instance.
+- **A heartbeat that is already known is answered whatever its address has spent on unknown
+  keys.** A scanner behind the same address as real jobs (a shared NAT, or a proxy that
+  `TRUST_PROXY` does not name) used to get every heartbeat from there refused for a minute,
+  which is how false alerts start. Keys in the cache cost no lookup and are no longer
+  throttled with it.
+- **Refusals from the web server no longer log a stack trace.** A path climbing out of the web
+  root, or one with a NUL in it, was answered 500 and logged in full, so anyone could fill the
+  log at will. They are answered 403 or 400, and not logged.
+- **Revoking an API key through another project answers 404**, and records nothing. It changed
+  nothing before either, but answered 204 and wrote the revocation into the caller's audit
+  trail.
+- **`Permissions-Policy`** turns off camera, microphone, geolocation, payment and USB for every
+  page.
 
 ### Fixed
+
+- **Slack, Teams and Discord alerts were never sent.** Their senders were built without their
+  HTTP client: the class they share was not decorated, so Nest did not know what to give their
+  constructor, and every alert and every test failed with "Cannot read properties of undefined
+  (reading 'send')". Email and webhook channels were not affected. The test suite replaced the
+  senders with a stand-in, which is why it never showed; a test now builds them as the
+  application does.
+- `//p/<key>`, what a base URL ending in a slash gives in a crontab, answered the web page with
+  a 200, so the job believed its heartbeat went through. It is now refused like any other
+  wrong URL.
 
 - A malformed `cursor` on `GET /api/v1/checks/:id/incidents` answered 500; it is now ignored, as
   on the pings.

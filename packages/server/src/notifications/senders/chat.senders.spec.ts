@@ -1,6 +1,7 @@
+import { Test } from '@nestjs/testing';
 import type { Alert } from '../alert';
-import type { SafeHttpService } from '../safe-http.service';
-import { DiscordSender, escapeSlack, SlackSender } from './chat.senders';
+import { SafeHttpService } from '../safe-http.service';
+import { DiscordSender, escapeSlack, SlackSender, TeamsSender } from './chat.senders';
 
 function alert(name: string): Alert {
   return {
@@ -55,5 +56,18 @@ describe('chat senders', () => {
   it('tell Discord to notify nobody, whatever the text says', async () => {
     const payload = await posted((http) => new DiscordSender(http), '@everyone backup');
     expect(payload.allowed_mentions).toEqual({ parse: [] });
+  });
+
+  // Built by Nest, as in the application: a sender constructed by hand would
+  // pass whether or not dependency injection can build it.
+  it.each([SlackSender, TeamsSender, DiscordSender])('%p is built with its HTTP client, and sends', async (Sender) => {
+    const sent: string[] = [];
+    const http = { send: (request: { url: string }) => (sent.push(request.url), Promise.resolve({ status: 200, body: '' })) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [Sender, { provide: SafeHttpService, useValue: http }],
+    }).compile();
+
+    await moduleRef.get(Sender).send(alert('Backup'), { url: 'https://hooks.example.test/x' });
+    expect(sent).toEqual(['https://hooks.example.test/x']);
   });
 });

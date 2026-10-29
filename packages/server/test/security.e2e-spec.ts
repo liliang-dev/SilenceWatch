@@ -186,6 +186,32 @@ describe('access control', () => {
       expect(otherProject.statusCode).toBe(404);
     });
 
+    it('cannot be revoked through another project, nor be recorded as revoked there', async () => {
+      const alice = await registerUser(context);
+      const bob = await registerUser(context);
+      const key = await createKey(alice.token, alice.projectId);
+
+      const foreign = await context.app.inject({
+        method: 'DELETE',
+        url: `/api/v1/projects/${bob.projectId}/api-keys/${key.id}`,
+        headers: auth(bob.token),
+      });
+      expect(foreign.statusCode).toBe(404);
+      expect((await context.prisma.apiKey.findUniqueOrThrow({ where: { id: key.id } })).revokedAt).toBeNull();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(await context.prisma.auditEvent.count({ where: { action: 'api_key.revoked' } })).toBe(0);
+
+      // Its own project revokes it, and doing it twice is not an error.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const own = await context.app.inject({
+          method: 'DELETE',
+          url: `/api/v1/projects/${alice.projectId}/api-keys/${key.id}`,
+          headers: auth(alice.token),
+        });
+        expect(own.statusCode).toBe(204);
+      }
+    });
+
     it('cannot mint or list API keys', async () => {
       const user = await registerUser(context);
       const key = await createKey(user.token, user.projectId);
@@ -414,5 +440,15 @@ describe('heartbeat ingestion under a ping-URL scan', () => {
     });
     expect(elsewhere.statusCode).toBe(200);
     expect(elsewhere.body).toBe('OK');
+
+    // Now known, the key is answered from the cache without a lookup, and so
+    // even from the address that scanned: a job behind the same NAT as a
+    // scanner keeps checking in.
+    const known = await context.app.inject({
+      method: 'GET',
+      url: `/p/${pingKey}`,
+      headers: { 'x-forwarded-for': '203.0.113.9' },
+    });
+    expect(known.statusCode).toBe(200);
   });
 });

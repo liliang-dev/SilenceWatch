@@ -81,6 +81,16 @@ export class CheckMetadataCache implements OnModuleInit {
     return load;
   }
 
+  /**
+   * The metadata of a key known and fresh in the cache, without a query; null
+   * otherwise. Costs a Map lookup, so ingestion can serve a job that is calling
+   * regularly before deciding whether its source has spent its lookup budget.
+   */
+  peek(pingKey: string): CheckMetadata | null {
+    const entry = this.entries.get(pingKey);
+    return entry !== undefined && entry.expiresAt > Date.now() ? entry.metadata : null;
+  }
+
   /** Called by write paths so an edit is visible locally without waiting for NOTIFY. */
   invalidate(pingKey: string): void {
     this.entries.delete(pingKey);

@@ -31,3 +31,30 @@ export async function serveWebUi(app: NestFastifyApplication, root: string): Pro
     },
   });
 }
+
+/** Paths owned by the server, which must keep answering 404 rather than HTML. */
+const SERVER_PREFIXES = ['/api', '/p/', '/health'];
+
+/**
+ * Maps a browser navigation to the SPA shell, and leaves everything else alone.
+ *
+ * A mistyped ping URL has to stay a 404: returning the application shell would
+ * make a broken cron entry look like a success to the script calling it.
+ */
+export function toShell(url: string): string {
+  // `//p/<key>` is what a base URL with a trailing slash produces in a crontab.
+  // Judged like `/p/<key>`, it stays a 404 that the job can see, rather than an
+  // HTML page answered 200 that tells it the heartbeat went through.
+  const routed = url.replace(/^\/{2,}/, '/');
+  for (const prefix of SERVER_PREFIXES) {
+    if (routed.startsWith(prefix)) return url;
+  }
+
+  const path = url.split('?', 1)[0] ?? '/';
+  if (path === '/') return url;
+
+  // Anything that looks like a file (an extension in its last segment) is an
+  // asset request: let @fastify/static answer, including with its own 404.
+  const lastSegment = path.slice(path.lastIndexOf('/') + 1);
+  return lastSegment.includes('.') ? url : '/index.html';
+}

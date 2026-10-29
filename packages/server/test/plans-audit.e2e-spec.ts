@@ -117,6 +117,43 @@ describe('plan quotas', () => {
     expect((await channel('second')).statusCode).toBe(402);
   });
 
+  it('holds when the requests arrive all at once', async () => {
+    const user = await registerUser(context);
+    const created = (statuses: number[]) => statuses.filter((status) => status === 201).length;
+
+    // Counting and creating are two steps: sent together, every request used to
+    // count before any had created, and the plan of three checks gave twelve.
+    const checks = await Promise.all(Array.from({ length: 12 }, (_, index) => createCheck(user, `c${index}`)));
+    expect(created(checks)).toBe(3);
+    expect(checks.filter((status) => status === 402)).toHaveLength(9);
+    expect(await context.prisma.check.count()).toBe(3);
+
+    const projects = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        context.app.inject({
+          method: 'POST',
+          url: '/api/v1/projects',
+          headers: auth(user.token),
+          payload: { name: `p${index}` },
+        }),
+      ),
+    );
+    expect(created(projects.map((response) => response.statusCode))).toBe(1);
+    expect(await context.prisma.projectMember.count({ where: { userId: user.userId, role: 'owner' } })).toBe(2);
+
+    const channels = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        context.app.inject({
+          method: 'POST',
+          url: `/api/v1/projects/${user.projectId}/channels`,
+          headers: auth(user.token),
+          payload: { type: 'email', name: `ch${index}`, config: { address: `ch${index}@example.test` } },
+        }),
+      ),
+    );
+    expect(created(channels.map((response) => response.statusCode))).toBe(1);
+  });
+
   it('holds back only the excess on a starter sync, and says which', async () => {
     // The starter runs inside somebody's application startup. Failing the whole
     // sync because the eleventh job would not fit is not an option.

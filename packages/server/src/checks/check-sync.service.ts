@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { SyncRequest, SyncResultDto } from '@silencewatch/shared';
 import { AppConfig, CONFIG } from '../config/config';
-import { QuotaService } from '../quotas/quota.service';
+import { QuotaService, type QuotaDb } from '../quotas/quota.service';
 import { computeNextDueAt, InvalidScheduleError, type Schedule } from '../schedule/next-due';
 import { syncSlug } from './check-slug';
 import { CheckSyncRepository, type SyncRow } from './check-sync.repository';
@@ -39,6 +39,16 @@ export class CheckSyncService {
   ) {}
 
   async sync(projectId: string, request: SyncRequest): Promise<SyncResultDto> {
+    // Two instances of an application starting together sync at the same moment,
+    // and each would otherwise count room for the same checks.
+    return this.quotas.serialised({ projectId }, (db) => this.syncWithinQuota(projectId, request, db));
+  }
+
+  private async syncWithinQuota(
+    projectId: string,
+    request: SyncRequest,
+    db: QuotaDb,
+  ): Promise<SyncResultDto> {
     const now = new Date();
     const environment = request.environment ?? null;
     const seen = new Set<string>();
@@ -90,7 +100,7 @@ export class CheckSyncService {
     // Plan ceiling. Applied to the rows that would be *created*: an account at
     // its limit must still be able to update the checks it already has, or a
     // schedule change would start failing for reasons nobody could guess.
-    const skipped = await this.applyCheckQuota(projectId, rows, environment);
+    const skipped = await this.applyCheckQuota(projectId, rows, environment, db);
     const accepted = skipped.length === 0 ? rows : rows.filter((row) => !skipped.includes(row.key));
 
     // Keys held back by quota are *not* orphans: pruning them would delete history
@@ -137,14 +147,16 @@ export class CheckSyncService {
     projectId: string,
     rows: Array<{ key: string }>,
     environment: string | null,
+    db: QuotaDb,
   ): Promise<string[]> {
-    const remaining = await this.quotas.remainingChecks(projectId);
+    const remaining = await this.quotas.remainingChecks(projectId, db);
     if (remaining === null) return [];
 
     const known = await this.repository.findExistingKeys(
       projectId,
       rows.map((row) => row.key),
       environment,
+      db,
     );
 
     const wouldCreate = rows.filter((row) => !known.has(row.key));

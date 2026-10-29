@@ -28,13 +28,15 @@ export class ProjectsService {
   }
 
   async create(userId: string, input: CreateProjectRequest): Promise<ProjectDto> {
-    await this.quotas.assertCanAddProject(userId);
+    return this.quotas.serialised({ userId }, async (db) => {
+      await this.quotas.assertCanAddProject(userId, db);
 
-    const slug = await uniqueSlug(input.slug ?? input.name, (candidate) =>
-      this.projects.isSlugTaken(candidate),
-    );
-    const project = await this.projects.createOwnedBy(userId, { name: input.name, slug });
-    return toProjectDto(project, 'owner', 0, 0);
+      const slug = await uniqueSlug(input.slug ?? input.name, (candidate) =>
+        this.projects.isSlugTaken(candidate, db),
+      );
+      const project = await this.projects.createOwnedBy(userId, { name: input.name, slug }, db);
+      return toProjectDto(project, 'owner', 0, 0);
+    });
   }
 
   async get(projectId: string): Promise<ProjectDto> {

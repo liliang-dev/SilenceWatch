@@ -17,7 +17,7 @@ import { loadConfig, type AppConfig } from './config/config';
 import { registerIngestRoutes } from './ingest/ingest.plugin';
 import { IngestService } from './ingest/ingest.service';
 import { SILENCEWATCH_COMMIT, SILENCEWATCH_VERSION } from './version';
-import { serveWebUi } from './web-ui';
+import { serveWebUi, toShell } from './web-ui';
 
 const LOG_LEVELS: Record<AppConfig['LOG_LEVEL'], LogLevel[]> = {
   silent: [],
@@ -139,6 +139,13 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
     referrerPolicy: { policy: 'no-referrer' },
   });
 
+  // What the pages may ask the browser for: none of these. Passkeys are not in the
+  // list, and keep the default that lets this origin use them.
+  app.getHttpAdapter().getInstance().addHook('onSend', (_request, reply, payload, done) => {
+    void reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    done(null, payload);
+  });
+
   // The UI is served same-origin, so CORS only matters for third-party API
   // consumers, which use API keys in a header — never cookies.
   const origins = [config.baseUrl, ...config.CORS_ORIGINS];
@@ -149,29 +156,6 @@ async function configureSecurity(app: NestFastifyApplication, config: AppConfig)
     allowedHeaders: ['authorization', 'content-type'],
     maxAge: 600,
   });
-}
-
-/** Paths owned by the server, which must keep answering 404 rather than HTML. */
-const SERVER_PREFIXES = ['/api', '/p/', '/health'];
-
-/**
- * Maps a browser navigation to the SPA shell, and leaves everything else alone.
- *
- * A mistyped ping URL has to stay a 404: returning the application shell would
- * make a broken cron entry look like a success to the script calling it.
- */
-export function toShell(url: string): string {
-  for (const prefix of SERVER_PREFIXES) {
-    if (url.startsWith(prefix)) return url;
-  }
-
-  const path = url.split('?', 1)[0] ?? '/';
-  if (path === '/') return url;
-
-  // Anything that looks like a file (an extension in its last segment) is an
-  // asset request: let @fastify/static answer, including with its own 404.
-  const lastSegment = path.slice(path.lastIndexOf('/') + 1);
-  return lastSegment.includes('.') ? url : '/index.html';
 }
 
 void bootstrap().catch((error: Error) => {

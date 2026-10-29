@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ProjectRole } from '@silencewatch/shared';
 import { PrismaService } from '../database/prisma.service';
+import type { QuotaDb } from '../quotas/quota.service';
 
 export interface ProjectRow {
   id: string;
@@ -57,12 +58,16 @@ export class ProjectsRepository {
     return new Map(grouped.map((row) => [row.projectId, row._count._all]));
   }
 
-  isSlugTaken(slug: string): Promise<boolean> {
-    return this.prisma.project.count({ where: { slug } }).then((count) => count > 0);
+  isSlugTaken(slug: string, db: QuotaDb = this.prisma): Promise<boolean> {
+    return db.project.count({ where: { slug } }).then((count) => count > 0);
   }
 
-  createOwnedBy(userId: string, input: { name: string; slug: string }): Promise<ProjectRow> {
-    return this.prisma.project.create({
+  createOwnedBy(
+    userId: string,
+    input: { name: string; slug: string },
+    db: QuotaDb = this.prisma,
+  ): Promise<ProjectRow> {
+    return db.project.create({
       data: { name: input.name, slug: input.slug, members: { create: { userId, role: 'owner' } } },
     });
   }
