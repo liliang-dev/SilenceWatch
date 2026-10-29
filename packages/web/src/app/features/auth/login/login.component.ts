@@ -14,6 +14,7 @@ import { errorMessage } from '../../../core/http/error-message';
 import { I18n } from '../../../core/i18n/i18n.service';
 import { ProjectStore } from '../../../core/project.store';
 import { RecoveryCodesComponent } from '../../../shared/recovery-codes.component';
+import { safeNextUrl } from './next-url';
 
 /**
  * The one way in.
@@ -232,8 +233,6 @@ export class LoginComponent implements OnInit {
   }
 
   private nextUrl(): string {
-    const next = this.route.snapshot.queryParamMap.get('next');
-    // Only same-site paths: a "next" pointing elsewhere would be an open redirect.
-    return next !== null && next.startsWith('/') && !next.startsWith('//') ? next : '/checks';
+    return safeNextUrl(this.route.snapshot.queryParamMap.get('next'));
   }
 }

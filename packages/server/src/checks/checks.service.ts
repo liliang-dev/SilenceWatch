@@ -17,7 +17,7 @@ import type { Schedule } from '../schedule/next-due';
 import { nextDueOrThrow, toSchedule, toScheduleFromRow } from './check-schedule';
 import { toCheckDto, toIncidentDto, toPingDto } from './check.mapper';
 import { ChecksRepository } from './checks.repository';
-import { paginate, parseBigIntCursor } from './pagination';
+import { paginate, parseBigIntCursor, parseUuidCursor } from './pagination';
 
 @Injectable()
 export class ChecksService {
@@ -148,7 +148,7 @@ export class ChecksService {
     limit: number,
     cursor?: string,
   ): Promise<PageDto<IncidentDto>> {
-    const rows = await this.checks.listIncidents(checkId, limit, cursor);
+    const rows = await this.checks.listIncidents(checkId, limit, parseUuidCursor(cursor));
     return paginate(rows, limit, toIncidentDto);
   }
 

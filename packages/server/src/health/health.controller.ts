@@ -1,7 +1,9 @@
-import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject, NotFoundException, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { Public } from '../access/auth.guard';
 import { assertUser, CurrentPrincipal, type Principal } from '../access/principal';
+import { UsersRepository } from '../auth/users/users.repository';
+import { AppConfig, CONFIG } from '../config/config';
 import { DetectionService } from '../detection/detection.service';
 import { PgService } from '../database/pg.service';
 import { PrismaService } from '../database/prisma.service';
@@ -19,6 +21,8 @@ import { SILENCEWATCH_VERSION } from '../version';
 @Controller()
 export class HealthController {
   constructor(
+    @Inject(CONFIG) private readonly config: AppConfig,
+    private readonly users: UsersRepository,
     private readonly prisma: PrismaService,
     private readonly pg: PgService,
     private readonly detection: DetectionService,
@@ -47,10 +51,17 @@ export class HealthController {
     });
   }
 
-  /** Full internals: for a user session only, an API key (one project's) has no business here. */
+  /**
+   * Full internals, for whoever runs the instance (see UsersRepository.isOperator).
+   * They describe every account at once — alert volumes, the last internal error,
+   * the runtime — so on an instance shared with customers they are no customer's
+   * to read; anyone else is answered as if the route did not exist. An API key
+   * (one project's) has no business here either.
+   */
   @Get('v1/status')
   async status(@CurrentPrincipal() principal: Principal): Promise<Record<string, unknown>> {
-    assertUser(principal);
+    const { userId } = assertUser(principal);
+    if (!(await this.users.isOperator(userId, this.config.ADMIN_EMAIL))) throw new NotFoundException();
     return {
       version: SILENCEWATCH_VERSION,
       time: new Date().toISOString(),

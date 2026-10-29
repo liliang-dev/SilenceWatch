@@ -114,7 +114,11 @@ overrides:
   # quiet: the whole end-to-end suite goes through Nest's adapter, and the
   # container image boots it. It also leaves one fastify instead of two.
   # Delete this when the server moves to Nest 12, whose adapter pins >=5.12.5.
-  'fastify@<5.12.5': '^5.12.5'
+  #
+  # Raised to 5.12.7 for GHSA-389g-gv7q-r4x8 (5.12.2 to 5.12.5: header validation
+  # bypassed by a header name in another case), the version our own dependency
+  # already asks for, so the adapter and the types are one copy again.
+  'fastify@<5.12.6': '^5.12.7'
 
   # GHSA-mrhx-c7xc-m3w5 — zod below 4.6.6 can exhaust memory validating an oversized
   # input. Our own zod is already ^4.6.7; the old one is @angular/forms' (through
@@ -176,3 +180,9 @@ auditConfig:
     # strings and never a user's: a development dependency that no instance runs.
     # Revisit when 1.1.4 exists: the ignore should then become an override, and go.
     - GHSA-hp3w-g68c-fv3c
+    # GHSA-gcqx-w48m-w2h4 — deepmerge up to 4.3.1 (the latest release) lets a merged
+    # object's prototype be poisoned. No patched version has been published. Reached
+    # only through jest's configuration loader and the Nest CLI's type checker, which
+    # merge this project's own configuration files: development tooling that no
+    # instance runs and that reads nothing from a user. Revisit when 4.3.2 exists.
+    - GHSA-gcqx-w48m-w2h4

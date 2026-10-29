@@ -10,6 +10,42 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Security
+
+- **An account whose passkeys were all gone could be taken over** (`AUTH_MODE=passkey`).
+  Registering a passkey with an address finishes the account of that address when it was left
+  with no way in, which is meant for a registration that stopped halfway. It was decided on
+  passkeys and providers alone, so an account that had lost its passkeys (two tabs each
+  removing one, a direct API call) went to whoever typed its address next, projects and history
+  included. An account is now finished this way only if it has never signed in and holds no
+  session and no recovery code. The server also refuses to remove the last passkey in this
+  mode, which only the settings page did before.
+- **A Microsoft sign-in is never taken as proof of the address** (`AUTH_MODE=full`). The
+  linking rules already treated Microsoft as unable to vouch for an address, but a token that
+  claimed `email_verified` was believed: an account it created counted as verified, so Google
+  could later be linked to it, and it could join an account Google had made. The account a
+  Microsoft sign-in creates is now always unverified.
+- **The guard on alert targets refuses more of the addresses that lead inside a network**:
+  IPv4-compatible IPv6 (`::127.0.0.1`), 6to4 (`2002::/16`), Teredo (`2001::/32`), local-use
+  NAT64 (`64:ff9b:1::/48`) and site-local (`fec0::/10`). Each carries an IPv4 address and can
+  reach it through a relay or a translator.
+- **A check's name can no longer notify a whole Slack or Discord channel.** `<!channel>` in a
+  name was sent to Slack as a mention, `@everyone` could reach Discord's. Slack text is now
+  escaped as Slack asks, and Discord is told to notify nobody.
+- **`GET /api/v1/status` answers only whoever runs the instance**: the account `ADMIN_EMAIL`
+  names, or the first account when none is named. It describes every account at once (alert
+  volumes, the last internal error, the runtime), so on an instance shared with customers any
+  other account is now answered 404.
+- **fastify 5.12.7** for GHSA-389g-gv7q-r4x8 (header validation bypassed by a header name in
+  another case).
+
+### Fixed
+
+- A malformed `cursor` on `GET /api/v1/checks/:id/incidents` answered 500; it is now ignored, as
+  on the pings.
+- The sign-in page's `next` refuses `/\host` and paths with control characters, which a browser
+  can read as another site. The server already refused them as a sign-in callback.
+
 ### Added
 
 - **A quick start for Spring Boot**, in the README and in the documentation of the starter (in

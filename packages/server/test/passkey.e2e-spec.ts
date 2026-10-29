@@ -193,6 +193,22 @@ describe('passkey sign-in', () => {
       expect(await context.prisma.passkey.count()).toBe(1);
     });
 
+    it('never hands an account that has been used to whoever registers its address', async () => {
+      await signUp(newBrowser(), 'victim@example.test');
+      // Its passkeys gone by whatever route: two tabs removing one each, a direct
+      // call, an operator. The account, its projects and its history are still there.
+      await context.prisma.passkey.deleteMany();
+
+      const attacker = newBrowser();
+      const options = await attacker.send(
+        'GET',
+        '/api/auth/passkey/generate-register-options?context=victim%40example.test',
+      );
+      expect(options.statusCode).toBe(400);
+      expect(attacker.signedIn).toBe(false);
+      expect(await context.prisma.passkey.count()).toBe(0);
+    });
+
     it('applies the same rules as any other way of signing up', async () => {
       const closed = await createTestApp({ AUTH_MODE: 'passkey', BASE_URL, SIGNUP_ENABLED: 'false' });
       try {
@@ -267,6 +283,18 @@ describe('passkey sign-in', () => {
         payload: { id: listed.json<Array<{ id: string }>>()[0]?.id },
       });
       expect(removed.statusCode).toBe(200);
+      expect(await context.prisma.passkey.count()).toBe(1);
+    });
+
+    it('refuses to remove the last passkey, which is the only way in', async () => {
+      const browser = newBrowser();
+      await signUp(browser, 'last@example.test');
+      const listed = await browser.send('GET', '/api/auth/passkey/list-user-passkeys');
+
+      const removed = await browser.send('POST', '/api/auth/passkey/delete-passkey', {
+        payload: { id: listed.json<Array<{ id: string }>>()[0]?.id },
+      });
+      expect(removed.statusCode).toBe(400);
       expect(await context.prisma.passkey.count()).toBe(1);
     });
 

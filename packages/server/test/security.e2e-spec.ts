@@ -43,6 +43,16 @@ describe('access control', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    it('shows the server internals to whoever runs the instance, and to no other account', async () => {
+      const operator = await registerUser(context);
+      const customer = await registerUser(context);
+
+      const own = await context.app.inject({ method: 'GET', url: '/api/v1/status', headers: auth(operator.token) });
+      expect(own.statusCode).toBe(200);
+      const other = await context.app.inject({ method: 'GET', url: '/api/v1/status', headers: auth(customer.token) });
+      expect(other.statusCode).toBe(404);
+    });
+
     it('leaves /health public so a watchdog can use it', async () => {
       expect((await context.app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
     });

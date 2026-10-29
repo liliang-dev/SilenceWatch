@@ -146,7 +146,12 @@ export function createAuth(
               disableIdTokenSignIn: true,
               // Otherwise a photo is fetched from Microsoft Graph and stored whole.
               disableProfilePhoto: true,
-              mapProfileToUser: () => ({ image: undefined }),
+              // Whatever Microsoft's token says about the address, it is not taken
+              // as proven (see accountLinking below). An account it creates is
+              // therefore unverified, and Google cannot be linked to it later: a
+              // tenant that made up someone's address cannot wait for them to sign
+              // in with Google and keep a way into their account.
+              mapProfileToUser: () => ({ image: undefined, emailVerified: false }),
             },
           }
         : {}),
@@ -312,6 +317,19 @@ export function createAuth(
             });
           }
         }
+        // Where a passkey is the only way in, the last one is not removed: the
+        // account would be left with recovery codes at best. The settings page
+        // says so too, but a page is a courtesy and this endpoint is reachable
+        // without it.
+        if (ctx.path === '/passkey/delete-passkey' && mode === 'passkey') {
+          const session = await getSessionFromCtx(ctx).catch(() => null);
+          if (session && (await deps.users.countPasskeys(session.user.id)) <= 1) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'Add another passkey before removing this one: it is your only way to sign in.',
+              code: 'LAST_PASSKEY',
+            });
+          }
+        }
         if (ctx.path === '/sign-out') {
           const session = await getSessionFromCtx(ctx).catch(() => null);
           if (session !== null && session !== undefined) {
@@ -453,10 +471,10 @@ function passkeyFirstRegistration(deps: AuthDeps): NonNullable<PasskeyOptions['r
       if (!email.success) throw new APIError('BAD_REQUEST', { message: 'Enter a valid email address.' });
 
       const existing = await deps.users.findByEmail(email.data);
-      // An address that already has a way in is not available. One that has
-      // none was left by a registration that stopped halfway; finishing it is
+      // An address that has an account is not available, unless that account is
+      // what a registration that stopped halfway left behind: finishing it is
       // what its owner would want, and no more than anyone could have done.
-      if (existing !== null && (await deps.users.hasCredential(existing.id))) {
+      if (existing !== null && !(await deps.users.isUnfinishedRegistration(existing.id))) {
         throw new APIError('BAD_REQUEST', { message: ADDRESS_UNAVAILABLE });
       }
 
@@ -478,7 +496,7 @@ function passkeyFirstRegistration(deps: AuthDeps): NonNullable<PasskeyOptions['r
 
       const email = emailSchema.parse(context);
       const existing = await deps.users.findByEmail(email);
-      if (existing !== null && (await deps.users.hasCredential(existing.id))) {
+      if (existing !== null && !(await deps.users.isUnfinishedRegistration(existing.id))) {
         throw new APIError('BAD_REQUEST', { message: ADDRESS_UNAVAILABLE });
       }
       const user =
