@@ -46,6 +46,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    // A refusal from Fastify or one of its plugins (a path that climbs out of the
+    // web root, a malformed file name): an answer about the request, not a bug of
+    // ours. Said as such, and not logged — a stack trace per request would let
+    // anyone fill the log at will.
+    const clientStatus = clientErrorStatusOf(exception);
+    if (clientStatus !== null) {
+      const body: ApiErrorBody = {
+        statusCode: clientStatus,
+        error: HttpStatus[clientStatus] ?? 'ERROR',
+        message: 'Request refused',
+      };
+      void reply.status(clientStatus).send(body);
+      return;
+    }
+
     // Anything reaching here is a bug: log everything, disclose nothing.
     const requestId = randomUUID();
     this.logger.error(
@@ -78,4 +93,13 @@ function normaliseHttpPayload(payload: unknown): { message: string; details?: un
   }
 
   return { message: 'Request failed' };
+}
+
+/** The 4xx status an error from Fastify or a plugin carries, if it carries one. */
+function clientErrorStatusOf(exception: unknown): number | null {
+  if (exception === null || typeof exception !== 'object') return null;
+  const status = (exception as { statusCode?: unknown }).statusCode;
+  return typeof status === 'number' && Number.isInteger(status) && status >= 400 && status < 500
+    ? status
+    : null;
 }

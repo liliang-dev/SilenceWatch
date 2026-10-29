@@ -12,6 +12,11 @@ import { ChannelSender, InvalidChannelConfigError } from './channel-sender';
  * guard in SafeHttpService is what keeps this from becoming a proxy into the
  * host network.
  */
+// Decorated although it is never provided itself: Nest reads the constructor's
+// parameter types from a class's own metadata, and TypeScript emits it only for a
+// decorated class. Without this, Slack, Teams and Discord, which have no
+// constructor of their own, would be built with no SafeHttpService at all.
+@Injectable()
 abstract class ChatWebhookSender implements ChannelSender {
   abstract readonly type: ChannelType;
 
@@ -36,22 +41,32 @@ abstract class ChatWebhookSender implements ChannelSender {
   }
 }
 
+/**
+ * Slack reads `<…>` as a control sequence — `<!channel>` notifies everyone in it,
+ * `<https://x|text>` is a link — and `&` as the start of an entity. A check's
+ * name is typed by anyone in the project, or by a job's code, so it is sent as
+ * text: the three characters Slack asks to be escaped, and nothing else.
+ */
+export function escapeSlack(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 @Injectable()
 export class SlackSender extends ChatWebhookSender {
   readonly type: ChannelType = 'slack';
 
   protected buildPayload(alert: Alert, rendered: RenderedAlert): unknown {
     return {
-      text: `${alert.kind === 'down' ? ':red_circle:' : ':large_green_circle:'} ${rendered.headline}`,
+      text: `${alert.kind === 'down' ? ':red_circle:' : ':large_green_circle:'} ${escapeSlack(rendered.headline)}`,
       attachments: [
         {
           color: `#${this.accentHex(alert)}`,
-          fallback: rendered.headline,
-          title: alert.check.name,
+          fallback: escapeSlack(rendered.headline),
+          title: escapeSlack(alert.check.name),
           title_link: alert.url,
           fields: rendered.fields.map((field) => ({
             title: field.label,
-            value: field.value,
+            value: escapeSlack(field.value),
             short: field.value.length <= 30,
           })),
           footer: 'SilenceWatch',
@@ -99,6 +114,8 @@ export class DiscordSender extends ChatWebhookSender {
   protected buildPayload(alert: Alert, rendered: RenderedAlert): unknown {
     return {
       username: 'SilenceWatch',
+      // Nobody is notified by an alert's text: a check called "@everyone" is a name.
+      allowed_mentions: { parse: [] },
       embeds: [
         {
           title: rendered.headline.slice(0, 256),

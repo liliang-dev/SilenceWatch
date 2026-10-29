@@ -65,16 +65,46 @@ export class UsersRepository {
   }
 
   /**
-   * Whether anything at all lets this account sign in: a passkey, a password or a
-   * provider. An account without one is what a registration that failed halfway
-   * leaves behind, and it may be finished by whoever asks next.
+   * Whether this account is what a registration that failed halfway leaves behind,
+   * and so may be finished by whoever asks next with its address.
+   *
+   * Having no way in is not enough. An account whose passkeys are all gone (two
+   * tabs each removing one, an operator) still has its projects and its history,
+   * and handing it to the next person to type its address would be handing it to
+   * a stranger. So it must also never have signed in, hold no session and no
+   * recovery code: nothing that only its owner could have done.
    */
-  async hasCredential(userId: string): Promise<boolean> {
-    const [passkeys, accounts] = await Promise.all([
+  async isUnfinishedRegistration(userId: string): Promise<boolean> {
+    const [user, passkeys, accounts, codes, sessions] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { lastLoginAt: true } }),
       this.prisma.passkey.count({ where: { userId } }),
       this.prisma.account.count({ where: { userId } }),
+      this.prisma.recoveryCode.count({ where: { userId } }),
+      this.prisma.session.count({ where: { userId } }),
     ]);
-    return passkeys + accounts > 0;
+    return user !== null && user.lastLoginAt === null && passkeys + accounts + codes + sessions === 0;
+  }
+
+  /**
+   * Whether this account runs the instance: the one ADMIN_EMAIL names, or, when
+   * none is named, the first account ever created, which is the one that set the
+   * instance up. On a shared instance everyone else is a customer.
+   */
+  async isOperator(userId: string, adminEmail: string | undefined): Promise<boolean> {
+    if (adminEmail !== undefined) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      return user !== null && user.email === adminEmail.toLowerCase();
+    }
+    const first = await this.prisma.user.findFirst({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    return first?.id === userId;
+  }
+
+  /** How many passkeys an account holds: the last one is not removed where it is the only way in. */
+  countPasskeys(userId: string): Promise<number> {
+    return this.prisma.passkey.count({ where: { userId } });
   }
 
   /** A successful sign-in: clears the lockout. */

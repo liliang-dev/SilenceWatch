@@ -4,6 +4,7 @@ import type { ChannelType } from '@silencewatch/shared';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { ChannelConfigError, ChannelConfigVault } from '../notifications/channel-config.vault';
+import type { QuotaDb } from '../quotas/quota.service';
 
 export type ChannelRow = NotificationChannel;
 
@@ -43,10 +44,10 @@ export class ChannelsRepository {
     return rows.map((row) => this.opened(row));
   }
 
-  async create(input: NewChannel): Promise<ChannelRow> {
+  async create(input: NewChannel, db: QuotaDb = this.prisma): Promise<ChannelRow> {
     // The id is chosen here, not by the database, because it is part of what is sealed.
     const id = randomUUID();
-    const row = await this.prisma.notificationChannel.create({
+    const row = await db.notificationChannel.create({
       data: { ...input, id, config: this.vault.seal(id, input.config) },
     });
     return this.opened(row);

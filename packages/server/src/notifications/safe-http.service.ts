@@ -246,12 +246,21 @@ function buildBlockList(): BlockList {
   list.addSubnet('224.0.0.0', 4, 'ipv4'); // multicast
   list.addSubnet('240.0.0.0', 4, 'ipv4'); // reserved
 
-  list.addAddress('::', 'ipv6'); // unspecified
-  list.addAddress('::1', 'ipv6'); // loopback
-  list.addSubnet('64:ff9b::', 96, 'ipv6'); // NAT64
+  // IPv4-compatible (::a.b.c.d, deprecated), which also covers the unspecified
+  // address and loopback. IPv4-mapped (::ffff:a.b.c.d) needs no entry: BlockList
+  // checks it against the IPv4 ranges above.
+  list.addSubnet('::', 96, 'ipv6');
+  list.addSubnet('64:ff9b::', 96, 'ipv6'); // NAT64, well-known prefix
+  list.addSubnet('64:ff9b:1::', 48, 'ipv6'); // NAT64, local-use prefix
   list.addSubnet('100::', 64, 'ipv6'); // discard-only
+  // Addresses that carry an IPv4 address inside them and reach it through a
+  // relay: Teredo (2001::/32) and 6to4 (2002::/16). Through either, a private
+  // IPv4 address is one prefix away.
+  list.addSubnet('2001::', 32, 'ipv6');
+  list.addSubnet('2002::', 16, 'ipv6');
   list.addSubnet('2001:db8::', 32, 'ipv6'); // documentation
   list.addSubnet('fc00::', 7, 'ipv6'); // unique local
+  list.addSubnet('fec0::', 10, 'ipv6'); // site-local (deprecated, still routed by some)
   list.addSubnet('fe80::', 10, 'ipv6'); // link-local
   list.addSubnet('ff00::', 8, 'ipv6'); // multicast
 

@@ -10,6 +10,80 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-29
+
+**Upgrade if you use Slack, Teams or Discord channels: no alert had ever been sent to them.**
+The release is the outcome of a security audit and a penetration test (see **Security**), and
+of what they found besides (see **Fixed**).
+
+No configuration variable and no database schema changes. Two API answers change, which is why
+this is a minor version: `GET /api/v1/status` now answers 404 to every account but the one that
+runs the instance (`ADMIN_EMAIL`, or the first account), and revoking an API key through a
+project it does not belong to answers 404 instead of 204.
+
+### Security
+
+- **An account whose passkeys were all gone could be taken over** (`AUTH_MODE=passkey`).
+  Registering a passkey with an address finishes the account of that address when it was left
+  with no way in, which is meant for a registration that stopped halfway. It was decided on
+  passkeys and providers alone, so an account that had lost its passkeys (two tabs each
+  removing one, a direct API call) went to whoever typed its address next, projects and history
+  included. An account is now finished this way only if it has never signed in and holds no
+  session and no recovery code. The server also refuses to remove the last passkey in this
+  mode, which only the settings page did before.
+- **A Microsoft sign-in is never taken as proof of the address** (`AUTH_MODE=full`). The
+  linking rules already treated Microsoft as unable to vouch for an address, but a token that
+  claimed `email_verified` was believed: an account it created counted as verified, so Google
+  could later be linked to it, and it could join an account Google had made. The account a
+  Microsoft sign-in creates is now always unverified.
+- **The guard on alert targets refuses more of the addresses that lead inside a network**:
+  IPv4-compatible IPv6 (`::127.0.0.1`), 6to4 (`2002::/16`), Teredo (`2001::/32`), local-use
+  NAT64 (`64:ff9b:1::/48`) and site-local (`fec0::/10`). Each carries an IPv4 address and can
+  reach it through a relay or a translator.
+- **A check's name can no longer notify a whole Slack or Discord channel.** `<!channel>` in a
+  name was sent to Slack as a mention, `@everyone` could reach Discord's. Slack text is now
+  escaped as Slack asks, and Discord is told to notify nobody.
+- **`GET /api/v1/status` answers only whoever runs the instance**: the account `ADMIN_EMAIL`
+  names, or the first account when none is named. It describes every account at once (alert
+  volumes, the last internal error, the runtime), so on an instance shared with customers any
+  other account is now answered 404.
+- **fastify 5.12.7** for GHSA-389g-gv7q-r4x8 (header validation bypassed by a header name in
+  another case).
+- **Plan limits held only one request at a time.** A check, a project, a channel or a starter
+  sync counted what the account had, then created; requests sent together all counted before
+  any created, and a free plan of five checks ended with eleven. Each account's
+  count-then-create now runs under a lock, on every instance.
+- **A heartbeat that is already known is answered whatever its address has spent on unknown
+  keys.** A scanner behind the same address as real jobs (a shared NAT, or a proxy that
+  `TRUST_PROXY` does not name) used to get every heartbeat from there refused for a minute,
+  which is how false alerts start. Keys in the cache cost no lookup and are no longer
+  throttled with it.
+- **Refusals from the web server no longer log a stack trace.** A path climbing out of the web
+  root, or one with a NUL in it, was answered 500 and logged in full, so anyone could fill the
+  log at will. They are answered 403 or 400, and not logged.
+- **Revoking an API key through another project answers 404**, and records nothing. It changed
+  nothing before either, but answered 204 and wrote the revocation into the caller's audit
+  trail.
+- **`Permissions-Policy`** turns off camera, microphone, geolocation, payment and USB for every
+  page.
+
+### Fixed
+
+- **Slack, Teams and Discord alerts were never sent.** Their senders were built without their
+  HTTP client: the class they share was not decorated, so Nest did not know what to give their
+  constructor, and every alert and every test failed with "Cannot read properties of undefined
+  (reading 'send')". Email and webhook channels were not affected. The test suite replaced the
+  senders with a stand-in, which is why it never showed; a test now builds them as the
+  application does.
+- `//p/<key>`, what a base URL ending in a slash gives in a crontab, answered the web page with
+  a 200, so the job believed its heartbeat went through. It is now refused like any other
+  wrong URL.
+
+- A malformed `cursor` on `GET /api/v1/checks/:id/incidents` answered 500; it is now ignored, as
+  on the pings.
+- The sign-in page's `next` refuses `/\host` and paths with control characters, which a browser
+  can read as another site. The server already refused them as a sign-in callback.
+
 ### Added
 
 - **A quick start for Spring Boot**, in the README and in the documentation of the starter (in
@@ -1089,7 +1163,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
 [0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1

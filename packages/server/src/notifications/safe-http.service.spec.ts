@@ -36,6 +36,19 @@ describe('SafeHttpService address vetting', () => {
       // IPv4-mapped IPv6 must be judged as IPv4, not waved through.
       '::ffff:169.254.169.254',
       '::ffff:127.0.0.1',
+      // The same, written in hex: what a URL parser turns the dotted form into.
+      '::ffff:a9fe:a9fe',
+      // IPv4-compatible, the deprecated form of the same thing.
+      '::7f00:1',
+      '::a9fe:a9fe',
+      // Prefixes that carry an IPv4 address and reach it through a relay or a
+      // translator: 6to4, Teredo and local-use NAT64.
+      '2002:7f00:1::',
+      '2002:a9fe:a9fe::1',
+      '2001:0:4136:e378:8000:63bf:3fff:fdd2',
+      '64:ff9b::a9fe:a9fe',
+      '64:ff9b:1::a9fe:a9fe',
+      'fec0::1',
     ]) {
       expect(guarded.isAllowedAddress(address)).toBe(false);
     }
@@ -96,6 +109,13 @@ describe('SafeHttpService address vetting', () => {
       'http://[fd00::1]/hook',
       // IPv4-mapped, the usual way around a naive IPv4-only check.
       'http://[::ffff:169.254.169.254]/latest/meta-data/',
+      'http://[::127.0.0.1]/hook',
+      'http://[2002:a9fe:a9fe::]/latest/meta-data/',
+      // Every way of spelling 127.0.0.1 that a URL parser understands.
+      'http://2130706433/hook',
+      'http://0x7f.1/hook',
+      'http://017700000001/hook',
+      'http://127.1/hook',
     ]) {
       await expect(guarded.send({ url })).rejects.toThrow(/private or reserved address/);
       await expect(guarded.assertTargetIsAllowed(url)).rejects.toThrow(

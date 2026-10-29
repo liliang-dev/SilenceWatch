@@ -122,13 +122,20 @@ export class IngestService {
     // report: a valid heartbeat told it is calling the wrong URL is a job that
     // looks silent, and silence is what this product turns into an alarm. A
     // throttled client is told to come back, and does.
+    //
+    // A key already in the cache is served first, whatever its source has spent:
+    // it costs no lookup, and a scanner behind the same address (a shared NAT, or
+    // a proxy TRUST_PROXY does not name) must not silence the jobs that call from
+    // there — silence is what this product raises an alarm about.
     const source = command.ip ?? 'unknown';
-    if (this.unknownKeyLimiter.exceeded(source)) return 'rate_limited';
-
-    const metadata = await this.cache.get(pingKey);
+    let metadata = this.cache.peek(pingKey);
     if (metadata === null) {
-      this.unknownKeyLimiter.hit(source);
-      return 'unknown';
+      if (this.unknownKeyLimiter.exceeded(source)) return 'rate_limited';
+      metadata = await this.cache.get(pingKey);
+      if (metadata === null) {
+        this.unknownKeyLimiter.hit(source);
+        return 'unknown';
+      }
     }
 
     const receivedAt = new Date();

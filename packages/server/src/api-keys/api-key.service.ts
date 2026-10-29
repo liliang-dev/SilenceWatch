@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ApiKeyDto, CreatedApiKeyDto } from '@silencewatch/shared';
 import { generateApiKey, parseApiKey, timingSafeEqualHex } from '../common/crypto.util';
 import { ApiKeysRepository, type ApiKeyRecord } from './api-keys.repository';
@@ -70,8 +70,13 @@ export class ApiKeyService {
     return this.keys.deleteDeadBefore(new Date(Date.now() - DEAD_KEY_RETENTION_MS));
   }
 
+  /**
+   * 404 for a key of another project, as for anything else of another project: the
+   * caller learns nothing, and the audit trail does not record a revocation that
+   * did not happen.
+   */
   async revoke(projectId: string, apiKeyId: string): Promise<void> {
-    await this.keys.revoke(projectId, apiKeyId);
+    if (!(await this.keys.revoke(projectId, apiKeyId))) throw new NotFoundException('API key not found');
   }
 
   /** Resolves a presented token, or null when it is unknown, revoked or expired. */

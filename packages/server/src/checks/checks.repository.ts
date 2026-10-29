@@ -2,14 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, type Check, type Incident, type Ping } from '@prisma/client';
 import type { ListChecksQuery } from '@silencewatch/shared';
 import { PrismaService } from '../database/prisma.service';
+import type { QuotaDb } from '../quotas/quota.service';
 
 /** Every query on checks, their pings and their incidents. */
 @Injectable()
 export class ChecksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: Prisma.CheckUncheckedCreateInput): Promise<Check> {
-    return this.prisma.check.create({ data });
+  create(data: Prisma.CheckUncheckedCreateInput, db: QuotaDb = this.prisma): Promise<Check> {
+    return db.check.create({ data });
   }
 
   findById(checkId: string): Promise<Check | null> {
@@ -46,8 +47,8 @@ export class ChecksRepository {
       .catch(() => null);
   }
 
-  isSlugTaken(projectId: string, slug: string): Promise<boolean> {
-    return this.prisma.check.count({ where: { projectId, slug } }).then((count) => count > 0);
+  isSlugTaken(projectId: string, slug: string, db: QuotaDb = this.prisma): Promise<boolean> {
+    return db.check.count({ where: { projectId, slug } }).then((count) => count > 0);
   }
 
   /** One page, plus the extra row that tells whether there is another. */

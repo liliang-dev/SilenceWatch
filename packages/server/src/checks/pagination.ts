@@ -27,3 +27,13 @@ export function parseBigIntCursor(cursor: string | undefined): bigint | null {
     return null;
   }
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Incident ids are UUIDs, and the database refuses to compare anything else with
+ * one: a malformed cursor would be a 500 rather than a first page.
+ */
+export function parseUuidCursor(cursor: string | undefined): string | undefined {
+  return cursor !== undefined && UUID.test(cursor) ? cursor : undefined;
+}
