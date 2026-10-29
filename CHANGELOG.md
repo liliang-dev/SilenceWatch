@@ -10,6 +10,17 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-29
+
+**Upgrade if you use Slack, Teams or Discord channels: no alert had ever been sent to them.**
+The release is the outcome of a security audit and a penetration test (see **Security**), and
+of what they found besides (see **Fixed**).
+
+No configuration variable and no database schema changes. Two API answers change, which is why
+this is a minor version: `GET /api/v1/status` now answers 404 to every account but the one that
+runs the instance (`ADMIN_EMAIL`, or the first account), and revoking an API key through a
+project it does not belong to answers 404 instead of 204.
+
 ### Security
 
 - **An account whose passkeys were all gone could be taken over** (`AUTH_MODE=passkey`).
@@ -1152,7 +1163,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
 [0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.0...0.6.1
