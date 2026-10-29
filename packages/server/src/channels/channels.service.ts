@@ -46,14 +46,16 @@ export class ChannelsService {
       });
     }
 
-    return toChannelDto(
-      await this.channels.create({
-        projectId,
-        type: input.type,
-        name: input.name,
-        config: input.config,
-      }),
-    );
+    // Counted again under the lock, which the DNS lookup above stays out of.
+    return this.quotas.serialised({ projectId }, async (db) => {
+      await this.quotas.assertCanAddChannel(projectId, db);
+      return toChannelDto(
+        await this.channels.create(
+          { projectId, type: input.type, name: input.name, config: input.config },
+          db,
+        ),
+      );
+    });
   }
 
   async update(

@@ -1,4 +1,4 @@
-import { paginate, parseBigIntCursor } from './pagination';
+import { paginate, parseBigIntCursor, parseUuidCursor } from './pagination';
 
 describe('paginate', () => {
   const rows = [{ id: '1' }, { id: '2' }, { id: '3' }];
@@ -26,5 +26,14 @@ describe('parseBigIntCursor', () => {
     expect(parseBigIntCursor('4 2')).toBeNull();
     expect(parseBigIntCursor('-1')).toBeNull();
     expect(parseBigIntCursor('12345678901234567890')).toBeNull();
+  });
+});
+
+describe('parseUuidCursor', () => {
+  it('keeps an incident id and drops anything the database could not compare with one', () => {
+    expect(parseUuidCursor('0b9f1c3e-4c1a-4f6e-9d2a-7b8c9d0e1f2a')).toBe('0b9f1c3e-4c1a-4f6e-9d2a-7b8c9d0e1f2a');
+    for (const cursor of [undefined, '', 'abc', "1' OR '1'='1", '0b9f1c3e-4c1a-4f6e-9d2a-7b8c9d0e1f2a-x']) {
+      expect(parseUuidCursor(cursor)).toBeUndefined();
+    }
   });
 });

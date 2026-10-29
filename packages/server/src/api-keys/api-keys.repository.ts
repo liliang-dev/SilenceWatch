@@ -64,11 +64,13 @@ export class ApiKeysRepository {
   }
 
   /** Scoped by project, so one project's admin cannot revoke another project's key by id. */
-  async revoke(projectId: string, apiKeyId: string): Promise<void> {
+  /** Whether the key is this project's. Revoking one that already was is not an error. */
+  async revoke(projectId: string, apiKeyId: string): Promise<boolean> {
     await this.prisma.apiKey.updateMany({
       where: { id: apiKeyId, projectId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    return (await this.prisma.apiKey.count({ where: { id: apiKeyId, projectId } })) > 0;
   }
 
   async findByLookupId(lookupId: string): Promise<StoredApiKey | null> {

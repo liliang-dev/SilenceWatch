@@ -1,6 +1,13 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppConfig, CONFIG, type PlanLimits } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
+
+/**
+ * Where a quota is counted and a resource created: the transaction holding the
+ * account's lock (see QuotaService.serialised), or the client itself.
+ */
+export type QuotaDb = Prisma.TransactionClient;
 
 /** Unlimited on every axis — what a self-hosted install always gets. */
 const UNLIMITED: PlanLimits = {};
@@ -57,21 +64,54 @@ export class QuotaService {
   }
 
   /**
+   * Runs a check-then-create under a lock on the account that pays for it.
+   *
+   * Counting and then creating is two statements, and two requests sent together
+   * both count before either creates: the account at four checks of five gets
+   * twelve. The lock is a PostgreSQL advisory lock held by a transaction that
+   * does nothing else, so it serialises the same account across every instance,
+   * is released when the transaction ends however it ends, and costs an account
+   * nothing but the wait for its own other request.
+   *
+   * `work` is handed that transaction and must count and write through it. On
+   * other connections it would deadlock under load: every request waiting for the
+   * lock holds a connection of the pool, and the one holding the lock would wait
+   * for a free one to do its work.
+   */
+  async serialised<T>(
+    scope: { projectId: string } | { userId: string },
+    work: (db: QuotaDb) => Promise<T>,
+  ): Promise<T> {
+    if (!this.enabled) return work(this.prisma);
+    const ownerId = 'userId' in scope ? scope.userId : (await this.ownerOf(scope.projectId))?.id;
+    if (ownerId === undefined) return work(this.prisma);
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`quota:${ownerId}`}))`;
+        return work(tx);
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
+  }
+
+  /**
    * Refuses the creation of a check when the owner's account is at its ceiling.
    *
    * Counted across every project the account owns, because that is what "your
    * plan includes N checks" means to the person paying for it.
    */
-  async assertCanAddCheck(projectId: string, adding = 1): Promise<void> {
+  async assertCanAddCheck(projectId: string, db: QuotaDb = this.prisma): Promise<void> {
     if (!this.enabled) return;
 
-    const owner = await this.ownerOf(projectId);
+    const owner = await this.ownerOf(projectId, db);
     if (owner === null) return;
 
     const limit = this.limitsFor(owner.plan).checks;
     if (limit === undefined) return;
 
-    const used = await this.countOwnedChecks(owner.id);
+    const adding = 1;
+    const used = await this.countOwnedChecks(owner.id, db);
     if (used + adding > limit) {
       throw new QuotaExceededError('checks', used, limit, owner.plan);
     }
@@ -81,29 +121,29 @@ export class QuotaService {
    * How many more checks fit. Used by the starter sync, which must not fail an
    * entire deployment because one job pushed the account over.
    */
-  async remainingChecks(projectId: string): Promise<number | null> {
+  async remainingChecks(projectId: string, db: QuotaDb = this.prisma): Promise<number | null> {
     if (!this.enabled) return null;
 
-    const owner = await this.ownerOf(projectId);
+    const owner = await this.ownerOf(projectId, db);
     if (owner === null) return null;
 
     const limit = this.limitsFor(owner.plan).checks;
     if (limit === undefined) return null;
 
-    return Math.max(0, limit - (await this.countOwnedChecks(owner.id)));
+    return Math.max(0, limit - (await this.countOwnedChecks(owner.id, db)));
   }
 
-  async assertCanAddProject(userId: string): Promise<void> {
+  async assertCanAddProject(userId: string, db: QuotaDb = this.prisma): Promise<void> {
     if (!this.enabled) return;
 
-    const user = await this.prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: { plan: true },
     });
     const limit = this.limitsFor(user?.plan ?? null).projects;
     if (limit === undefined) return;
 
-    const used = await this.prisma.projectMember.count({
+    const used = await db.projectMember.count({
       where: { userId, role: 'owner' },
     });
     if (used + 1 > limit) {
@@ -111,15 +151,15 @@ export class QuotaService {
     }
   }
 
-  async assertCanAddChannel(projectId: string): Promise<void> {
+  async assertCanAddChannel(projectId: string, db: QuotaDb = this.prisma): Promise<void> {
     if (!this.enabled) return;
 
-    const limit = (await this.limitsForProject(projectId)).channelsPerProject;
+    const owner = await this.ownerOf(projectId, db);
+    const limit = this.limitsFor(owner?.plan ?? null).channelsPerProject;
     if (limit === undefined) return;
 
-    const used = await this.prisma.notificationChannel.count({ where: { projectId } });
+    const used = await db.notificationChannel.count({ where: { projectId } });
     if (used + 1 > limit) {
-      const owner = await this.ownerOf(projectId);
       throw new QuotaExceededError('channels', used, limit, owner?.plan ?? null);
     }
   }
@@ -144,14 +184,17 @@ export class QuotaService {
   }
 
   /** Checks in every project this account owns. */
-  async countOwnedChecks(userId: string): Promise<number> {
-    return this.prisma.check.count({
+  async countOwnedChecks(userId: string, db: QuotaDb = this.prisma): Promise<number> {
+    return db.check.count({
       where: { project: { members: { some: { userId, role: 'owner' } } } },
     });
   }
 
-  private async ownerOf(projectId: string): Promise<{ id: string; plan: string | null } | null> {
-    const membership = await this.prisma.projectMember.findFirst({
+  private async ownerOf(
+    projectId: string,
+    db: QuotaDb = this.prisma,
+  ): Promise<{ id: string; plan: string | null } | null> {
+    const membership = await db.projectMember.findFirst({
       where: { projectId, role: 'owner' },
       select: { user: { select: { id: true, plan: true } } },
     });

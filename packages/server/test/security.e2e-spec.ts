@@ -43,6 +43,16 @@ describe('access control', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    it('shows the server internals to whoever runs the instance, and to no other account', async () => {
+      const operator = await registerUser(context);
+      const customer = await registerUser(context);
+
+      const own = await context.app.inject({ method: 'GET', url: '/api/v1/status', headers: auth(operator.token) });
+      expect(own.statusCode).toBe(200);
+      const other = await context.app.inject({ method: 'GET', url: '/api/v1/status', headers: auth(customer.token) });
+      expect(other.statusCode).toBe(404);
+    });
+
     it('leaves /health public so a watchdog can use it', async () => {
       expect((await context.app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
     });
@@ -174,6 +184,32 @@ describe('access control', () => {
         headers: auth(key.token),
       });
       expect(otherProject.statusCode).toBe(404);
+    });
+
+    it('cannot be revoked through another project, nor be recorded as revoked there', async () => {
+      const alice = await registerUser(context);
+      const bob = await registerUser(context);
+      const key = await createKey(alice.token, alice.projectId);
+
+      const foreign = await context.app.inject({
+        method: 'DELETE',
+        url: `/api/v1/projects/${bob.projectId}/api-keys/${key.id}`,
+        headers: auth(bob.token),
+      });
+      expect(foreign.statusCode).toBe(404);
+      expect((await context.prisma.apiKey.findUniqueOrThrow({ where: { id: key.id } })).revokedAt).toBeNull();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(await context.prisma.auditEvent.count({ where: { action: 'api_key.revoked' } })).toBe(0);
+
+      // Its own project revokes it, and doing it twice is not an error.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const own = await context.app.inject({
+          method: 'DELETE',
+          url: `/api/v1/projects/${alice.projectId}/api-keys/${key.id}`,
+          headers: auth(alice.token),
+        });
+        expect(own.statusCode).toBe(204);
+      }
     });
 
     it('cannot mint or list API keys', async () => {
@@ -404,5 +440,15 @@ describe('heartbeat ingestion under a ping-URL scan', () => {
     });
     expect(elsewhere.statusCode).toBe(200);
     expect(elsewhere.body).toBe('OK');
+
+    // Now known, the key is answered from the cache without a lookup, and so
+    // even from the address that scanned: a job behind the same NAT as a
+    // scanner keeps checking in.
+    const known = await context.app.inject({
+      method: 'GET',
+      url: `/p/${pingKey}`,
+      headers: { 'x-forwarded-for': '203.0.113.9' },
+    });
+    expect(known.statusCode).toBe(200);
   });
 });

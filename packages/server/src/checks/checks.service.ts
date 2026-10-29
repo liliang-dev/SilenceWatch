@@ -12,12 +12,12 @@ import type {
 import { uniqueSlug } from '../common/slug.util';
 import { AppConfig, CONFIG } from '../config/config';
 import { CheckMetadataCache } from '../ingest/check-metadata.cache';
-import { QuotaService } from '../quotas/quota.service';
+import { QuotaService, type QuotaDb } from '../quotas/quota.service';
 import type { Schedule } from '../schedule/next-due';
 import { nextDueOrThrow, toSchedule, toScheduleFromRow } from './check-schedule';
 import { toCheckDto, toIncidentDto, toPingDto } from './check.mapper';
 import { ChecksRepository } from './checks.repository';
-import { paginate, parseBigIntCursor } from './pagination';
+import { paginate, parseBigIntCursor, parseUuidCursor } from './pagination';
 
 @Injectable()
 export class ChecksService {
@@ -29,29 +29,40 @@ export class ChecksService {
   ) {}
 
   async create(projectId: string, input: CreateCheckRequest): Promise<CheckDto> {
+    return this.quotas.serialised({ projectId }, (db) => this.createWithinQuota(projectId, input, db));
+  }
+
+  private async createWithinQuota(
+    projectId: string,
+    input: CreateCheckRequest,
+    db: QuotaDb,
+  ): Promise<CheckDto> {
     // Before any work: a plan ceiling refused after the slug search would still
     // be correct, but it would burn a query to say no.
-    await this.quotas.assertCanAddCheck(projectId);
+    await this.quotas.assertCanAddCheck(projectId, db);
 
     const schedule = toSchedule(input);
     const nextDueAt = nextDueOrThrow(schedule, new Date());
 
     const slug = await uniqueSlug(input.slug ?? input.name, (candidate) =>
-      this.checks.isSlugTaken(projectId, candidate),
+      this.checks.isSlugTaken(projectId, candidate, db),
     );
 
-    const check = await this.checks.create({
-      projectId,
-      name: input.name,
-      slug,
-      graceSeconds: input.graceSeconds,
-      environment: input.environment ?? null,
-      tags: input.tags ?? [],
-      description: input.description ?? null,
-      source: 'api',
-      nextDueAt,
-      ...schedule,
-    });
+    const check = await this.checks.create(
+      {
+        projectId,
+        name: input.name,
+        slug,
+        graceSeconds: input.graceSeconds,
+        environment: input.environment ?? null,
+        tags: input.tags ?? [],
+        description: input.description ?? null,
+        source: 'api',
+        nextDueAt,
+        ...schedule,
+      },
+      db,
+    );
 
     return this.toDto(check);
   }
@@ -148,7 +159,7 @@ export class ChecksService {
     limit: number,
     cursor?: string,
   ): Promise<PageDto<IncidentDto>> {
-    const rows = await this.checks.listIncidents(checkId, limit, cursor);
+    const rows = await this.checks.listIncidents(checkId, limit, parseUuidCursor(cursor));
     return paginate(rows, limit, toIncidentDto);
   }
 

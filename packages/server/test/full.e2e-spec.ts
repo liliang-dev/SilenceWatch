@@ -28,8 +28,11 @@ const standIn = (options: BetterAuthOptions): BetterAuthOptions => {
     verifyIdToken: async () => true,
     getUserInfo: async (token: { idToken?: string }) => {
       const claims = JSON.parse(token.idToken ?? '{}') as { sub: string; email: string; name: string; email_verified?: boolean };
+      // Applied last, as the real providers do, so what our configuration says
+      // about a profile overrides what the provider claimed.
+      const mapped = await (provider.mapProfileToUser as ((profile: unknown) => Promise<object> | object) | undefined)?.(claims);
       return {
-        user: { id: claims.sub, email: claims.email, name: claims.name, emailVerified: verified(claims) },
+        user: { id: claims.sub, email: claims.email, name: claims.name, emailVerified: verified(claims), ...mapped },
         // Google names an account by `sub`, Microsoft by `oid`.
         data: { ...claims, oid: claims.sub },
       };
@@ -38,9 +41,10 @@ const standIn = (options: BetterAuthOptions): BetterAuthOptions => {
   return {
     ...options,
     socialProviders: {
-      // Google says whether it verified the address; Microsoft, as in life, does not.
+      // Both pass on what the token claims about the address. Microsoft's claim is
+      // one a tenant can make up, which is what the configuration has to cope with.
       google: fake(providers.google as Record<string, unknown>, (claims) => claims.email_verified === true),
-      microsoft: fake(providers.microsoft as Record<string, unknown>, () => false),
+      microsoft: fake(providers.microsoft as Record<string, unknown>, (claims) => claims.email_verified === true),
     } as never,
   };
 };
@@ -246,6 +250,42 @@ describe('passkeys, Google and Microsoft', () => {
       expect(response.statusCode).toBeGreaterThanOrEqual(400);
       expect(other.signedIn).toBe(false);
       expect(await context.prisma.user.count()).toBe(1);
+    });
+
+    it('does not take a Microsoft token at its word that the address is verified', async () => {
+      const made = await signInWithProvider(newBrowser(), 'microsoft', {
+        sub: 'm-3',
+        email: 'claimed@example.test',
+        email_verified: true,
+      });
+      expect(made.statusCode).toBe(200);
+      const user = await context.prisma.user.findUniqueOrThrow({ where: { email: 'claimed@example.test' } });
+      expect(user.emailVerified).toBe(false);
+
+      // So the address's real owner, arriving with Google, is not let into it.
+      const owner = newBrowser();
+      const response = await signInWithProvider(owner, 'google', {
+        sub: 'g-7',
+        email: 'claimed@example.test',
+        email_verified: true,
+      });
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+      expect(owner.signedIn).toBe(false);
+      expect(await context.prisma.account.count({ where: { providerId: 'google' } })).toBe(0);
+    });
+
+    it('does not let a Microsoft token that claims a verified address into a Google account', async () => {
+      await signInWithProvider(newBrowser(), 'google', { sub: 'g-8', email: 'owner@example.test', email_verified: true });
+
+      const attacker = newBrowser();
+      const response = await signInWithProvider(attacker, 'microsoft', {
+        sub: 'm-evil-2',
+        email: 'owner@example.test',
+        email_verified: true,
+      });
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+      expect(attacker.signedIn).toBe(false);
+      expect(await context.prisma.account.count({ where: { providerId: 'microsoft' } })).toBe(0);
     });
 
     it('does not trust a Google address that Google itself did not verify', async () => {
