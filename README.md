@@ -190,7 +190,8 @@ This pulls `ghcr.io/liliang-dev/silencewatch:0.7.0`; nothing is built locally.
 
 Open <http://localhost:8080> and create the first account with a passkey — on an
 empty instance it is the first to arrive, unless you name it with `ADMIN_EMAIL`, in
-which case the server prints a one-time link instead. Passkeys need `https://` or
+which case the server prints a one-time link instead. **Set `ADMIN_EMAIL` on any server
+reachable from the internet.** Passkeys need `https://` or
 `localhost`; on a plain-`http://` address set `AUTH_MODE=password`. Schema migrations
 run automatically at startup, so upgrading is: bump the tag in `docker-compose.yml`,
 `docker compose pull`, `docker compose up -d`.

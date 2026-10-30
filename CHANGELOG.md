@@ -10,6 +10,14 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Changed
+
+- **The self-hosting pages say to set `ADMIN_EMAIL` on a server reachable from the internet.**
+  Left out, the first account is whoever reaches the sign-up page first. The setting was only
+  explained in the authentication guide; it is now in the self-hosting guide's configuration
+  table and quick start, in the site's self-hosting page (in English and in French), in the
+  README and in `.env.example`.
+
 ## [0.7.0] — 2026-10-29
 
 **Upgrade if you use Slack, Teams or Discord channels: no alert had ever been sent to them.**
