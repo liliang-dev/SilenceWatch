@@ -19,7 +19,7 @@ cp .env.example .env         # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-Open `http://localhost:8080` and create the first account with a passkey (passkeys need `https://` or `localhost`; on a plain-`http://` address set `AUTH_MODE=password`). Name the first account with `ADMIN_EMAIL` and the server prints a one-time link for it instead. Sign-in methods are covered in the [authentication guide](/docs/reference/authentication/). Schema migrations run automatically at startup, so upgrading is: change the version tag in `docker-compose.yml`, then `docker compose pull` and `docker compose up -d`.
+Open `http://localhost:8080` and create the first account with a passkey (passkeys need `https://` or `localhost`; on a plain-`http://` address set `AUTH_MODE=password`). **On a server reachable from the internet, set `ADMIN_EMAIL` first**: without it, the first account is whoever reaches the sign-up page first. With it, sign-up is closed to everyone but a one-time link for that address, printed in the server log (`docker compose logs silencewatch`), valid once and for 30 minutes. Sign-in methods are covered in the [authentication guide](/docs/reference/authentication/). Schema migrations run automatically at startup, so upgrading is: change the version tag in `docker-compose.yml`, then `docker compose pull` and `docker compose up -d`.
 
 The minimum to set in `.env`:
 

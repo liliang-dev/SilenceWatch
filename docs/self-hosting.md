@@ -31,7 +31,13 @@ Then:
 docker compose up -d
 ```
 
-Create the first account at `BASE_URL`. People sign in with a passkey by default,
+**On a server reachable from the internet, set `ADMIN_EMAIL` before the first start.**
+Without it, the first account is whoever reaches the sign-up page first, and that may
+not be you. With it, sign-up is closed to everyone but a one-time link for that address,
+printed in the server log (`docker compose logs silencewatch`); it works once and expires
+after 30 minutes. On your own machine or a private network you can leave it out.
+
+Create the first account at `BASE_URL`, with that link if you set `ADMIN_EMAIL`. People sign in with a passkey by default,
 which browsers only accept on `https://` or `localhost`: on a plain-`http://` address
 set `AUTH_MODE=password`, or the server refuses to start and says why. Once your
 team is in, set `SIGNUP_ENABLED=false` and restart; more people can still be let in
@@ -124,6 +130,7 @@ what the server checks at startup.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
+| `ADMIN_EMAIL` | — | The address of the first account. While none exists, sign-up is closed to everyone but a one-time link for this address, printed in the server log. Set it on any instance reachable from the internet |
 | `SIGNUP_ENABLED` | `true` | When false, only someone holding a one-time setup link can create an account |
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |

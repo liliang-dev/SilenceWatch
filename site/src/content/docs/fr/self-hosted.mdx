@@ -19,7 +19,7 @@ cp .env.example .env         # renseignez SECRET_KEY et POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-Ouvrez `http://localhost:8080` et créez le premier compte avec une passkey (une passkey demande `https://` ou `localhost` ; sur une adresse `http://` simple, mettez `AUTH_MODE=password`). Nommez le premier compte avec `ADMIN_EMAIL` et le serveur affiche à la place un lien à usage unique. Les modes de connexion sont décrits dans le [guide d’authentification](/docs/reference/authentication/). Les migrations de schéma s’exécutent automatiquement au démarrage : mettre à jour consiste à changer le numéro de version dans `docker-compose.yml`, puis `docker compose pull` et `docker compose up -d`.
+Ouvrez `http://localhost:8080` et créez le premier compte avec une passkey (une passkey demande `https://` ou `localhost` ; sur une adresse `http://` simple, mettez `AUTH_MODE=password`). **Sur un serveur accessible depuis internet, renseignez d’abord `ADMIN_EMAIL`** : sans lui, le premier compte est créé par la première personne qui atteint la page d’inscription. Avec lui, l’inscription n’est ouverte qu’à un lien à usage unique pour cette adresse, affiché dans le journal du serveur (`docker compose logs silencewatch`), valable une fois et 30 minutes. Les modes de connexion sont décrits dans le [guide d’authentification](/docs/reference/authentication/). Les migrations de schéma s’exécutent automatiquement au démarrage : mettre à jour consiste à changer le numéro de version dans `docker-compose.yml`, puis `docker compose pull` et `docker compose up -d`.
 
 Le minimum à renseigner dans `.env` :
 
