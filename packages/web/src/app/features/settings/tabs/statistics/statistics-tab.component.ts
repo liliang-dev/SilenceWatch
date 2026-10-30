@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import type { AdminStatsDto } from '@silencewatch/shared';
+import type { AdminStatsDto, ChannelType, SignupRefusalReason } from '@silencewatch/shared';
 import { AdminApi } from '../../../../core/api/admin.api';
 import { errorMessage } from '../../../../core/http/error-message';
 import { I18n } from '../../../../core/i18n/i18n.service';
@@ -8,16 +8,49 @@ import type { MessageKey } from '../../../../core/i18n/messages';
 import { IconComponent } from '../../../../shared/icon.component';
 import { areaPath, barsPath, cumulative, linePath, SPARK_HEIGHT, SPARK_WIDTH } from './sparkline';
 
-/** One figure of the tab: its number, what changed in 30 days, and its chart. */
+/** One line of a breakdown: a channel type, a reason. */
+interface Part {
+  id: string;
+  label: string;
+  value: number;
+  /** Against the largest line of the breakdown, for its bar. */
+  share: number;
+}
+
+/** One figure of the tab: its number, what it means in 30 days, its chart, and what it is made of. */
 interface Figure {
   id: string;
   label: string;
   value: number;
-  /** "+4 in 30 days" for a total; null for a figure that is already a 30-day count. */
-  delta: number | null;
+  /** Under the number: "+4 in 30 days", "Last 30 days", "38 % of 52 accounts". */
+  caption: string;
+  /** Growth, shown as good news. */
+  up: boolean;
   note: string;
-  chart: { kind: 'line'; line: string; area: string } | { kind: 'bars'; bars: string };
+  chart:
+    | { kind: 'line'; line: string; area: string }
+    | { kind: 'bars'; bars: string; tone: 'brand' | 'down' }
+    | { kind: 'meter'; share: number }
+    | { kind: 'none' };
+  /** The lines that are not zero, largest first. */
+  parts: Part[];
 }
+
+const CHANNEL_NAMES: Record<ChannelType, MessageKey> = {
+  email: 'channels.typeEmail',
+  webhook: 'channels.typeWebhook',
+  slack: 'channels.typeSlack',
+  teams: 'channels.typeTeams',
+  discord: 'channels.typeDiscord',
+};
+
+const REASON_NAMES: Record<SignupRefusalReason, MessageKey> = {
+  admin_without_link: 'stats.reasonAdminWithoutLink',
+  signup_closed: 'stats.reasonSignupClosed',
+  email_provider: 'stats.reasonEmailProvider',
+  address_quota: 'stats.reasonAddressQuota',
+  network_quota: 'stats.reasonNetworkQuota',
+};
 
 const PLAN_NAMES: Record<string, MessageKey> = {
   pro: 'billing.planPro',
@@ -52,43 +85,89 @@ export class StatisticsTabComponent {
     const stats = this.stats();
     if (stats === null) return [];
 
-    const total = (id: string, label: MessageKey, count: AdminStatsDto['accounts'], note: MessageKey): Figure => {
+    const total = (id: string, label: string, count: AdminStatsDto['accounts'], note: MessageKey): Figure => {
       const values = cumulative(count.total, count.daily);
       return {
         id,
-        label: this.t(label),
+        label,
         value: count.total,
-        delta: count.last30Days,
+        caption: this.t('stats.delta', { count: `+${this.number(count.last30Days)}` }),
+        up: count.last30Days > 0,
         note: this.t(note),
         chart: { kind: 'line', line: linePath(values), area: areaPath(values) },
+        parts: [],
       };
     };
+    const daily = (
+      id: string,
+      label: MessageKey,
+      count: { last30Days: number; daily: number[] },
+      note: MessageKey,
+      tone: 'brand' | 'down',
+      parts: Part[] = [],
+    ): Figure => ({
+      id,
+      label: this.t(label),
+      value: count.last30Days,
+      caption: this.t('stats.last30'),
+      up: false,
+      note: this.t(note),
+      chart: { kind: 'bars', bars: barsPath(count.daily), tone },
+      parts,
+    });
 
-    const figures = [
-      total('accounts', 'stats.accounts', stats.accounts, 'stats.accountsNote'),
-      total('checks', 'stats.checks', stats.checks, 'stats.checksNote'),
-    ];
-    for (const plan of stats.subscriptions ?? []) {
-      figures.push(
+    const { active, total: accounts } = stats.activeAccounts;
+    const share = accounts === 0 ? 0 : active / accounts;
+
+    return [
+      total('accounts', this.t('stats.accounts'), stats.accounts, 'stats.accountsNote'),
+      {
+        id: 'active',
+        label: this.t('stats.active'),
+        value: active,
+        caption: this.t('stats.activeShare', { share: this.percent(share), total: this.number(accounts) }),
+        up: false,
+        note: this.t('stats.activeNote'),
+        chart: { kind: 'meter', share },
+        parts: [],
+      },
+      total('checks', this.t('stats.checks'), stats.checks, 'stats.checksNote'),
+      ...(stats.subscriptions ?? []).map((plan) =>
         total(
           `plan-${plan.plan}`,
-          'stats.subscriptions',
+          this.t('stats.subscriptions', { plan: this.planName(plan.plan) }),
           { total: plan.active, last30Days: plan.last30Days, daily: plan.daily },
           'stats.subscriptionsNote',
         ),
-      );
-      const last = figures[figures.length - 1] as Figure;
-      last.label = this.t('stats.subscriptions', { plan: this.planName(plan.plan) });
-    }
-    figures.push({
-      id: 'emails',
-      label: this.t('stats.emails'),
-      value: stats.alertEmails.last30Days,
-      delta: null,
-      note: this.t('stats.emailsNote'),
-      chart: { kind: 'bars', bars: barsPath(stats.alertEmails.daily) },
-    });
-    return figures;
+      ),
+      daily('emails', 'stats.emails', stats.alertEmails, 'stats.emailsNote', 'brand'),
+      daily(
+        'failed-alerts',
+        'stats.failedAlerts',
+        stats.failedAlerts,
+        'stats.failedAlertsNote',
+        'down',
+        this.parts(stats.failedAlerts.byType, CHANNEL_NAMES),
+      ),
+      {
+        id: 'channels',
+        label: this.t('stats.channels'),
+        value: stats.channels.total,
+        caption: '',
+        up: false,
+        note: this.t('stats.channelsNote'),
+        chart: { kind: 'none' },
+        parts: this.parts(stats.channels.byType, CHANNEL_NAMES),
+      },
+      daily(
+        'refused',
+        'stats.refused',
+        stats.refusedSignups,
+        'stats.refusedNote',
+        'down',
+        this.parts(stats.refusedSignups.byReason, REASON_NAMES),
+      ),
+    ];
   });
 
   constructor() {
@@ -118,6 +197,24 @@ export class StatisticsTabComponent {
     return new Intl.DateTimeFormat(this.i18n.language(), { dateStyle: 'medium', timeStyle: 'short' }).format(
       new Date(iso),
     );
+  }
+
+  protected meterShare(figure: Figure): number {
+    return figure.chart.kind === 'meter' ? figure.chart.share : 0;
+  }
+
+  private percent(share: number): string {
+    return new Intl.NumberFormat(this.i18n.language(), { style: 'percent', maximumFractionDigits: 0 }).format(share);
+  }
+
+  /** A breakdown's non-zero lines, largest first, each with its bar against the largest. */
+  private parts<K extends string>(counts: Record<K, number>, names: Record<K, MessageKey>): Part[] {
+    const lines = (Object.keys(names) as K[])
+      .map((id) => ({ id, label: this.t(names[id]), value: counts[id] ?? 0 }))
+      .filter((line) => line.value > 0)
+      .sort((left, right) => right.value - left.value);
+    const largest = lines[0]?.value ?? 0;
+    return lines.map((line) => ({ ...line, share: largest === 0 ? 0 : line.value / largest }));
   }
 
   private planName(id: string): string {

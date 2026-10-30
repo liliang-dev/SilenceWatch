@@ -5,6 +5,7 @@ import {
   registerAdmin,
   registerUser,
   signIn,
+  TEST_ADMIN_EMAIL,
   TEST_BASE_URL,
   type TestApp,
 } from './utils/test-app';
@@ -175,6 +176,106 @@ describe('administrator statistics', () => {
       expect(body.alertEmails.last30Days).toBe(2);
       expect(body.alertEmails.daily[29]).toBe(1);
       expect(body.alertEmails.daily[24]).toBe(1);
+
+      // The failed one, on the day it was raised and under its channel's type.
+      expect(body.failedAlerts.last30Days).toBe(1);
+      expect(body.failedAlerts.daily[29]).toBe(1);
+      expect(body.failedAlerts.byType).toEqual({ email: 0, webhook: 1, slack: 0, teams: 0, discord: 0 });
+
+      // Every type is listed, the unused ones as zero.
+      expect(body.channels).toEqual({
+        total: 2,
+        byType: { email: 1, webhook: 1, slack: 0, teams: 0, discord: 0 },
+      });
+    });
+
+    it('leaves out the alerts that failed more than 30 days ago', async () => {
+      const admin = await registerAdmin(context);
+      const check = await context.prisma.check.create({
+        data: {
+          projectId: admin.projectId,
+          name: 'job',
+          slug: 'job',
+          scheduleType: 'interval',
+          periodSeconds: 3600,
+          graceSeconds: 60,
+          nextDueAt: new Date(),
+        },
+      });
+      const incident = await context.prisma.incident.create({ data: { checkId: check.id, startedAt: new Date() } });
+      const slack = await context.prisma.notificationChannel.create({
+        data: { projectId: admin.projectId, type: 'slack', name: 'chat', config: { url: 'https://hooks.slack.com/x' } },
+      });
+      await context.prisma.notificationDelivery.createMany({
+        data: [
+          { incidentId: incident.id, channelId: slack.id, kind: 'down', status: 'failed', createdAt: new Date(Date.now() - 40 * DAY) },
+          { incidentId: incident.id, channelId: slack.id, kind: 'up', status: 'failed', createdAt: new Date(Date.now() - 3 * DAY - 3_600_000) },
+        ],
+      });
+
+      const body = (await stats(auth(admin.token))).json<AdminStatsDto>();
+      expect(body.failedAlerts.last30Days).toBe(1);
+      expect(body.failedAlerts.daily[26]).toBe(1);
+      expect(body.failedAlerts.byType.slack).toBe(1);
+    });
+
+    it('counts as active the accounts signed in or used in the last 30 days', async () => {
+      const admin = await registerAdmin(context);
+      const idle = await registerUser(context);
+      const returning = await registerUser(context);
+      const longAgo = new Date(Date.now() - 40 * DAY);
+
+      // Neither signed in nor used for 40 days.
+      await context.prisma.user.update({ where: { id: idle.userId }, data: { lastLoginAt: longAgo } });
+      await context.prisma.$executeRaw`UPDATE session SET updated_at = ${longAgo} WHERE user_id = ${idle.userId}::uuid`;
+      // Signed in long ago, but its session was used this week.
+      await context.prisma.user.update({ where: { id: returning.userId }, data: { lastLoginAt: longAgo } });
+
+      const body = (await stats(auth(admin.token))).json<AdminStatsDto>();
+      expect(body.activeAccounts).toEqual({ active: 2, total: 3 });
+    });
+
+    it('counts the refused sign-ups by reason, without keeping who was refused', async () => {
+      // The administrator's address, without the link: refused.
+      const refused = await context.app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-up/email',
+        headers: { origin: TEST_BASE_URL, 'x-forwarded-for': '203.0.113.7' },
+        payload: { email: TEST_ADMIN_EMAIL, password: 'a-sufficiently-long-password', name: '' },
+      });
+      expect(refused.statusCode).toBe(403);
+
+      // The entry is written without blocking the request.
+      let entries: Awaited<ReturnType<typeof context.prisma.auditEvent.findMany>> = [];
+      for (let attempt = 0; attempt < 20 && entries.length === 0; attempt += 1) {
+        entries = await context.prisma.auditEvent.findMany({ where: { action: 'signup.refused' } });
+        if (entries.length === 0) await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ actorEmail: null, actorUserId: null, ip: null, userAgent: null, projectId: null });
+      expect(entries[0]?.detail).toEqual({ reason: 'admin_without_link' });
+
+      const admin = await registerAdmin(context);
+
+      // One from long ago, and one from yesterday.
+      await context.prisma.auditEvent.createMany({
+        data: [
+          { action: 'signup.refused', detail: { reason: 'signup_closed' }, occurredAt: new Date(Date.now() - 40 * DAY) },
+          { action: 'signup.refused', detail: { reason: 'network_quota' }, occurredAt: new Date(Date.now() - DAY - 3_600_000) },
+        ],
+      });
+
+      const body = (await stats(auth(admin.token))).json<AdminStatsDto>();
+      expect(body.refusedSignups.last30Days).toBe(2);
+      expect(body.refusedSignups.daily[29]).toBe(1);
+      expect(body.refusedSignups.daily[28]).toBe(1);
+      expect(body.refusedSignups.byReason).toEqual({
+        admin_without_link: 1,
+        signup_closed: 0,
+        email_provider: 0,
+        address_quota: 0,
+        network_quota: 1,
+      });
     });
   });
 });

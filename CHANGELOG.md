@@ -19,11 +19,17 @@ env file before the release deploys.
 
 - **Statistics, for the administrator only.** *Settings › Statistics* shows the instance's
   figures: registered accounts and checks (with what was added in the last 30 days and a small
-  chart of their growth), live subscriptions to each paid plan, and the alert emails sent in the
-  last 30 days, day by day. Counts only: nothing names an account, a check or an address. The
+  chart of their growth), the accounts active in the last 30 days, live subscriptions to each paid
+  plan (only where the instance sells them), the alert emails sent and the alerts that failed in
+  the last 30 days, day by day, the alert channels by type, and the sign-ups refused in the last
+  30 days, by reason. Counts only: nothing names an account, a check or an address. The
   tab is shown to the administrator's account alone, and the route behind it
   (`GET /api/v1/admin/stats`) answers 404 to every other account, 401 to an API key, and is never
   cached (`Cache-Control: no-store`).
+- **Refused sign-ups are recorded** in the audit trail as `signup.refused`, with the reason
+  (sign-up closed, administrator's address without the setup link, email provider refused,
+  network quotas) and nothing else: no address, no IP. They belong to no account and are only
+  ever counted.
 
 ### Changed
 

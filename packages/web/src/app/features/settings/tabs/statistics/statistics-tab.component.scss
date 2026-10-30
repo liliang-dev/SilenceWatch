@@ -64,7 +64,77 @@
   opacity: 0.75;
 }
 
+.bars.down {
+  fill: var(--sw-down);
+  opacity: 0.7;
+}
+
+/* A share, in the same room as the charts so the cards keep one rhythm. */
+.meter {
+  display: block;
+  flex: none;
+  height: 8px;
+  margin: 26px 0 16px;
+  border-radius: 999px;
+  background: var(--sw-accent-soft);
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sw-accent);
+}
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 8px;
+  row-gap: 3px;
+  font-size: 0.8125rem;
+}
+
+.part-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-text-muted);
+}
+
+.part-value {
+  font-weight: 600;
+  color: var(--sw-text);
+}
+
+.part-bar {
+  grid-column: 1 / -1;
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--sw-border);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--sw-brand);
+    opacity: 0.75;
+  }
+}
+
+/* At the bottom of the card, so the notes of a row line up whatever is above them. */
 .note {
+  margin-top: auto;
   font-size: 0.75rem;
   line-height: 1.4;
 }

@@ -29,27 +29,46 @@
           <li class="figure">
             <span class="sw-label">{{ figure.label }}</span>
             <strong class="value sw-num">{{ number(figure.value) }}</strong>
-            @if (figure.delta !== null) {
-              <span class="delta" [class.up]="figure.delta > 0">
-                {{ t('stats.delta', { count: '+' + number(figure.delta) }) }}
-              </span>
-            } @else {
-              <span class="delta">{{ t('stats.last30') }}</span>
+            @if (figure.caption !== '') {
+              <span class="delta" [class.up]="figure.up">{{ figure.caption }}</span>
             }
-            <svg
-              class="chart"
-              [attr.viewBox]="'0 0 ' + width + ' ' + height"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-              focusable="false"
-            >
-              @if (figure.chart.kind === 'line') {
-                <path class="area" [attr.d]="figure.chart.area" />
-                <path class="line" [attr.d]="figure.chart.line" vector-effect="non-scaling-stroke" />
-              } @else {
-                <path class="bars" [attr.d]="figure.chart.bars" />
+            @switch (figure.chart.kind) {
+              @case ('meter') {
+                <span class="meter" aria-hidden="true">
+                  <span class="meter-fill" [style.width.%]="meterShare(figure) * 100"></span>
+                </span>
               }
-            </svg>
+              @case ('none') {}
+              @default {
+                <svg
+                  class="chart"
+                  [attr.viewBox]="'0 0 ' + width + ' ' + height"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  @if (figure.chart.kind === 'line') {
+                    <path class="area" [attr.d]="figure.chart.area" />
+                    <path class="line" [attr.d]="figure.chart.line" vector-effect="non-scaling-stroke" />
+                  } @else if (figure.chart.kind === 'bars') {
+                    <path class="bars" [class.down]="figure.chart.tone === 'down'" [attr.d]="figure.chart.bars" />
+                  }
+                </svg>
+              }
+            }
+            @if (figure.parts.length > 0) {
+              <ul class="parts">
+                @for (part of figure.parts; track part.id) {
+                  <li class="part">
+                    <span class="part-label">{{ part.label }}</span>
+                    <span class="part-value sw-num">{{ number(part.value) }}</span>
+                    <span class="part-bar" aria-hidden="true">
+                      <span [style.width.%]="part.share * 100"></span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
             <span class="note sw-muted">{{ figure.note }}</span>
           </li>
         }

@@ -105,6 +105,18 @@ describe('sign-up when it is closed', () => {
     expect(await register(context, 'someone@example.test')).toBe(403);
     expect(await register(context, TEST_ADMIN_EMAIL)).toBe(403);
     expect(await context.prisma.user.count()).toBe(0);
+
+    // Each refusal is counted for the administrator, with its reason and nothing more.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const refusals = await context.prisma.auditEvent.findMany({
+      where: { action: 'signup.refused' },
+      orderBy: { id: 'asc' },
+    });
+    expect(refusals.map((event) => event.detail)).toEqual([
+      { reason: 'signup_closed' },
+      { reason: 'admin_without_link' },
+    ]);
+    expect(refusals.every((event) => event.actorEmail === null && event.ip === null)).toBe(true);
   });
 
   it('lets the administrator in with the link, once, and no one else with it', async () => {

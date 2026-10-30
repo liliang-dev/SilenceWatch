@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { SignupRefusalReason } from '@silencewatch/shared';
 import { uniqueSlug } from '../../common/slug.util';
 import { AppConfig, CONFIG } from '../../config/config';
 import { ProjectsRepository } from '../../projects/projects.repository';
@@ -69,15 +70,15 @@ export class SignupPolicyService {
           signupNetwork: this.guard.signupNetworkOf(request.ip),
         };
       }
-      return {
-        ok: false,
-        status: 'FORBIDDEN',
-        message: 'This account can only be created with the setup link printed in the server log.',
-      };
+      return this.refused(
+        'admin_without_link',
+        'FORBIDDEN',
+        'This account can only be created with the setup link printed in the server log.',
+      );
     }
 
     if (!this.config.SIGNUP_ENABLED) {
-      return { ok: false, status: 'FORBIDDEN', message: 'Sign-up is disabled on this instance' };
+      return this.refused('signup_closed', 'FORBIDDEN', 'Sign-up is disabled on this instance');
     }
 
     const refusal = await this.checkAbuseRules(email, request.ip, network);
@@ -126,32 +127,50 @@ export class SignupPolicyService {
     network: string,
   ): Promise<SignupDecision | null> {
     const refuse = async (
+      reason: SignupRefusalReason,
       status: SignupRefusalStatus,
       message: string,
     ): Promise<SignupDecision> => {
       await this.guard.record(network, false);
-      return { ok: false, status, message };
+      return this.refused(reason, status, message);
     };
 
     if (!this.guard.isEmailAllowed(email)) {
       return refuse(
+        'email_provider',
         'BAD_REQUEST',
         'This email provider is not accepted. Use an address you can receive mail at.',
       );
     }
     if (!(await this.guard.isAddressWithinQuota(this.guard.signupNetworkOf(ip)))) {
       return refuse(
+        'address_quota',
         'TOO_MANY_REQUESTS',
         'An account already exists from this network. Sign in to it, or contact us if this connection is shared.',
       );
     }
     if (!(await this.guard.isNetworkWithinQuota(network))) {
       return refuse(
+        'network_quota',
         'TOO_MANY_REQUESTS',
         'Too many accounts created from this network. Try again later.',
       );
     }
     return null;
+  }
+
+  /**
+   * A refusal, counted for the administrator's statistics. The entry carries the
+   * reason and nothing else: the address and the IP are what someone was refused
+   * with, not something this instance has any reason to keep.
+   */
+  private refused(
+    reason: SignupRefusalReason,
+    status: SignupRefusalStatus,
+    message: string,
+  ): SignupDecision {
+    this.audit.record({ action: 'signup.refused', actor: {}, detail: { reason } });
+    return { ok: false, status, message };
   }
 
   private async createFirstProject(user: { id: string; name?: string | null }): Promise<void> {
