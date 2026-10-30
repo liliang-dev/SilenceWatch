@@ -5,6 +5,7 @@ function service(allowPrivate: boolean): SafeHttpService {
   const config = loadConfig({
     DATABASE_URL: 'postgresql://localhost:5432/silencewatch',
     SECRET_KEY: 'x'.repeat(32),
+    ADMIN_EMAIL: 'admin@example.test',
     ALLOW_PRIVATE_NOTIFICATION_TARGETS: allowPrivate ? 'true' : 'false',
   } as NodeJS.ProcessEnv);
   return new SafeHttpService(config);

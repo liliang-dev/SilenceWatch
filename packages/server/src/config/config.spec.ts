@@ -3,6 +3,7 @@ import { loadConfig } from './config';
 const minimal = {
   DATABASE_URL: 'postgresql://localhost:5432/silencewatch',
   SECRET_KEY: 'x'.repeat(32),
+  ADMIN_EMAIL: 'admin@example.test',
 } as NodeJS.ProcessEnv;
 
 describe('loadConfig', () => {
@@ -48,6 +49,15 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ SECRET_KEY: 'x'.repeat(32) } as NodeJS.ProcessEnv)).toThrow(
       /DATABASE_URL/,
     );
+  });
+
+  it("requires the administrator's address, and keeps it in lower case", () => {
+    const { ADMIN_EMAIL: _admin, ...withoutAdmin } = minimal;
+    expect(() => loadConfig(withoutAdmin as NodeJS.ProcessEnv)).toThrow(/ADMIN_EMAIL: required/);
+    // What Compose passes for a variable left blank.
+    expect(() => loadConfig({ ...minimal, ADMIN_EMAIL: '' })).toThrow(/ADMIN_EMAIL/);
+    expect(() => loadConfig({ ...minimal, ADMIN_EMAIL: 'not-an-address' })).toThrow(/ADMIN_EMAIL: must be an email/);
+    expect(loadConfig({ ...minimal, ADMIN_EMAIL: ' Boss@Example.TEST ' }).ADMIN_EMAIL).toBe('boss@example.test');
   });
 
   it('normalises the base URL so links never double their slashes', () => {
@@ -271,9 +281,9 @@ describe('loadConfig', () => {
     });
 
     it('treats a blank optional setting as unset', () => {
-      const config = loadConfig({ ...minimal, ADMIN_EMAIL: '', AUTH_RP_ID: '', GOOGLE_CLIENT_ID: '' });
-      expect(config.ADMIN_EMAIL).toBeUndefined();
+      const config = loadConfig({ ...minimal, AUTH_RP_ID: '', GOOGLE_CLIENT_ID: '' });
       expect(config.AUTH_RP_ID).toBeUndefined();
+      expect(config.GOOGLE_CLIENT_ID).toBeUndefined();
     });
 
     it('is not configured by the settings of the system it replaced', () => {

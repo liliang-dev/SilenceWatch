@@ -1,7 +1,8 @@
-import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import type { UserDto } from '@silencewatch/shared';
 import { AuditService } from '../../audit/audit.service';
 import { BillingService } from '../../billing/billing.service';
+import { AppConfig, CONFIG } from '../../config/config';
 import type { RequestOrigin } from '../better-auth/auth-policy';
 import { maskEmail } from '../masking';
 import { toUserDto } from '../users/user.mapper';
@@ -13,6 +14,7 @@ export class AccountService {
   private readonly logger = new Logger(AccountService.name);
 
   constructor(
+    @Inject(CONFIG) private readonly config: AppConfig,
     private readonly users: UsersRepository,
     private readonly audit: AuditService,
     private readonly billing: BillingService,
@@ -21,7 +23,7 @@ export class AccountService {
   async get(userId: string): Promise<UserDto> {
     const user = await this.users.findById(userId);
     if (user === null) throw new UnauthorizedException('Account no longer exists');
-    return toUserDto(user);
+    return toUserDto(user, user.email === this.config.ADMIN_EMAIL);
   }
 
   /**

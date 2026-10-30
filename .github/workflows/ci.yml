@@ -279,6 +279,7 @@ jobs:
             --read-only --tmpfs /tmp \
             -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
             -e SECRET_KEY=ci-secret-key-that-is-long-enough-for-the-check \
+            -e ADMIN_EMAIL=admin@example.test \
             -e BASE_URL=http://localhost:8080 \
             -e EMAIL_PROVIDER=smtp \
             -e SMTP_URL=smtp://relay.invalid:587 \
@@ -431,6 +432,7 @@ jobs:
           SILENCEWATCH_VERSION: 0.0.0-test
           BASE_URL: https://app.example.test
           SILENCEWATCH_DOMAIN: app.example.test
+          ADMIN_EMAIL: admin@example.test
         run: |
           set -eu
           # Distinct, and shaped like the real thing: 64 hex characters.
@@ -481,6 +483,7 @@ jobs:
           SILENCEWATCH_DOMAIN: app.example.test
           SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           POSTGRES_PASSWORD: fedcba9876543210fedcba9876543210fedcba9876543210
+          ADMIN_EMAIL: admin@example.test
         run: |
           set -eu
 

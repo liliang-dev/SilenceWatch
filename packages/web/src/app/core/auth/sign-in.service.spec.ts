@@ -6,7 +6,7 @@ import type { UserDto } from '@silencewatch/shared';
 import { AuthService } from './auth.service';
 import { SignInService } from './sign-in.service';
 
-const user: UserDto = { id: 'u', email: 'a@example.test', name: null, createdAt: '2026-01-01T00:00:00Z' };
+const user: UserDto = { id: 'u', email: 'a@example.test', name: null, createdAt: '2026-01-01T00:00:00Z', admin: false };
 
 describe('SignInService', () => {
   let signIn: SignInService;

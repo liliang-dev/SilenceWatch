@@ -1,11 +1,19 @@
 import { Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { SetupLinkService } from '../src/auth/signup/setup-link.service';
 import { BootstrapService } from '../src/auth/signup/bootstrap.service';
-import { createTestApp, TEST_BASE_URL, type TestApp } from './utils/test-app';
+import {
+  adminSetupCookie,
+  createTestApp,
+  registerAdmin,
+  TEST_ADMIN_EMAIL,
+  TEST_BASE_URL,
+  type TestApp,
+} from './utils/test-app';
 
 const PASSWORD = 'a-sufficiently-long-password';
 
-/** Who may create an account: the public, the one the operator names, and the one invited. */
+/** Who may create an account: the public while sign-up is open, and the administrator with its link. */
 async function register(
   context: TestApp,
   email: string,
@@ -20,12 +28,6 @@ async function register(
     payload: { email, password: PASSWORD, name: '' },
   });
   return response.statusCode;
-}
-
-/** A setup link for the address, as the one token the web UI keeps in a cookie. */
-async function setupCookie(context: TestApp, email: string): Promise<string> {
-  const { url } = await context.app.get(SetupLinkService).issue(email);
-  return `sw_setup=${url.split('#')[1]}`;
 }
 
 describe('sign-up when it is open', () => {
@@ -99,42 +101,67 @@ describe('sign-up when it is closed', () => {
     await context.reset();
   });
 
-  it('lets no one in without a link, not even the first', async () => {
-    expect(await register(context, 'first@example.test')).toBe(403);
+  it('lets no one in, the administrator included, without the link', async () => {
+    expect(await register(context, 'someone@example.test')).toBe(403);
+    expect(await register(context, TEST_ADMIN_EMAIL)).toBe(403);
     expect(await context.prisma.user.count()).toBe(0);
+
+    // Each refusal is counted for the administrator, with its reason and nothing more.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const refusals = await context.prisma.auditEvent.findMany({
+      where: { action: 'signup.refused' },
+      orderBy: { id: 'asc' },
+    });
+    expect(refusals.map((event) => event.detail)).toEqual([
+      { reason: 'signup_closed' },
+      { reason: 'admin_without_link' },
+    ]);
+    expect(refusals.every((event) => event.actorEmail === null && event.ip === null)).toBe(true);
   });
 
-  it('lets in whoever holds a link made for their address, once', async () => {
-    const cookie = await setupCookie(context, 'first@example.test');
+  it('lets the administrator in with the link, once, and no one else with it', async () => {
+    const cookie = await adminSetupCookie(context);
 
-    expect(await register(context, 'first@example.test', { cookie })).toBe(200);
+    // The link opens nothing for another address…
+    expect(await register(context, 'someone@example.test', { cookie })).toBe(403);
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie })).toBe(200);
     expect(await context.prisma.user.count()).toBe(1);
 
-    // Spent: the same link cannot make a second account for the same address…
-    expect(await register(context, 'first@example.test', { cookie })).toBeGreaterThanOrEqual(400);
-    // …and cannot be reused for anyone else.
-    expect(await register(context, 'other@example.test', { cookie })).toBe(403);
+    // …and, spent, nothing more for this one.
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie })).toBeGreaterThanOrEqual(400);
     expect(await context.prisma.user.count()).toBe(1);
   });
 
-  it('keeps a link to the address it was made for', async () => {
-    const cookie = await setupCookie(context, 'invited@example.test');
-    expect(await register(context, 'someone-else@example.test', { cookie })).toBe(403);
-    expect(await register(context, 'invited@example.test', { cookie })).toBe(200);
+  it('stays closed to everyone else once the administrator is in', async () => {
+    await registerAdmin(context);
+    expect(await register(context, 'second@example.test')).toBe(403);
+    expect(await context.prisma.user.count()).toBe(1);
   });
 
   it('refuses a link that has run out, and one that was never made', async () => {
-    const cookie = await setupCookie(context, 'late@example.test');
+    const cookie = await adminSetupCookie(context);
     await context.prisma.verification.updateMany({
       where: { identifier: { startsWith: 'setup:' } },
       data: { expiresAt: new Date(Date.now() - 1_000) },
     });
-    expect(await register(context, 'late@example.test', { cookie })).toBe(403);
-    expect(await register(context, 'late@example.test', { cookie: 'sw_setup=made-up' })).toBe(403);
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie })).toBe(403);
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie: 'sw_setup=made-up' })).toBe(403);
+  });
+
+  it('opens nothing with a link made for another address, as older versions could', async () => {
+    const token = 'a-link-from-before-for-someone-else-0123456789';
+    await context.prisma.verification.create({
+      data: {
+        identifier: `setup:${createHash('sha256').update(token).digest('hex')}`,
+        value: 'invited@example.test',
+        expiresAt: new Date(Date.now() + 600_000),
+      },
+    });
+    expect(await register(context, 'invited@example.test', { cookie: `sw_setup=${token}` })).toBe(403);
   });
 
   it('stores only a hash of the link', async () => {
-    const { url } = await context.app.get(SetupLinkService).issue('stored@example.test');
+    const { url } = await context.app.get(SetupLinkService).issue();
     const token = url.split('#')[1] as string;
 
     const rows = await context.prisma.verification.findMany();
@@ -142,20 +169,13 @@ describe('sign-up when it is closed', () => {
     // The token rides in the fragment, which a browser never sends to a server.
     expect(url.split('#')[0]).not.toContain(token);
   });
-
-  it('still lets a link create an account once others exist', async () => {
-    await register(context, 'first@example.test', { cookie: await setupCookie(context, 'first@example.test') });
-    expect(await register(context, 'second@example.test')).toBe(403);
-    const cookie = await setupCookie(context, 'second@example.test');
-    expect(await register(context, 'second@example.test', { cookie })).toBe(200);
-  });
 });
 
-describe('the first account, when the operator named it', () => {
+describe("the administrator's address", () => {
   let context: TestApp;
 
   beforeAll(async () => {
-    context = await createTestApp({ ADMIN_EMAIL: 'boss@example.test' });
+    context = await createTestApp();
   });
 
   afterAll(async () => {
@@ -166,34 +186,30 @@ describe('the first account, when the operator named it', () => {
     await context.reset();
   });
 
-  it('is closed to everyone else until it exists, because nothing proves an address', async () => {
-    expect(await register(context, 'boss@example.test')).toBe(403);
-    expect(await register(context, 'squatter@example.test')).toBe(403);
-
-    const describe = await context.app.inject({ method: 'GET', url: '/api/auth/config' });
-    expect(describe.json<{ signup: boolean }>().signup).toBe(false);
-  });
-
-  it('opens to the address named, through its link', async () => {
-    const cookie = await setupCookie(context, 'boss@example.test');
-    expect(await register(context, 'boss@example.test', { cookie })).toBe(200);
-
-    // From then on it is an ordinary instance, open as SIGNUP_ENABLED says.
+  it('is never registered without its link, even while sign-up is open to everyone else', async () => {
+    expect(await register(context, TEST_ADMIN_EMAIL)).toBe(403);
+    expect(await register(context, TEST_ADMIN_EMAIL.toUpperCase())).toBe(403);
     expect(await register(context, 'someone@example.test')).toBe(200);
+
     const describe = await context.app.inject({ method: 'GET', url: '/api/auth/config' });
     expect(describe.json<{ signup: boolean }>().signup).toBe(true);
   });
 
-  it('prints the link in the log at start, while there is no account', async () => {
+  it('is registered with its link', async () => {
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie: await adminSetupCookie(context) })).toBe(200);
+  });
+
+  it('gets its link printed at start while it has no account, whoever else has one', async () => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     try {
+      await register(context, 'someone@example.test');
       await context.app.get(BootstrapService).onApplicationBootstrap();
       const printed = warn.mock.calls.map(([message]) => String(message)).join('\n');
-      expect(printed).toContain('boss@example.test');
-      expect(printed).toMatch(/\/setup\?email=boss%40example\.test#[\w-]{40,}/);
+      expect(printed).toContain(TEST_ADMIN_EMAIL);
+      expect(printed).toMatch(/\/setup\?email=admin%40example\.test#[\w-]{40,}/);
 
       warn.mockClear();
-      await register(context, 'boss@example.test', { cookie: await setupCookie(context, 'boss@example.test') });
+      await registerAdmin(context);
       await context.app.get(BootstrapService).onApplicationBootstrap();
       expect(warn).not.toHaveBeenCalled();
     } finally {
@@ -219,7 +235,6 @@ describe('sign-up volume rules', () => {
 
   beforeEach(async () => {
     await context.reset();
-    // The first account skips the checks, but it is still an account and counts.
     await register(context, 'first@example.test', {}, '198.51.100.70');
   });
 
@@ -247,10 +262,10 @@ describe('sign-up volume rules', () => {
     expect(await attempt('real@example.test')).toBe(200);
   });
 
-  it('skips these rules for an address the operator invited', async () => {
+  it("skips these rules for the administrator's account, which comes with its link", async () => {
     expect(await attempt('a@example.test')).toBe(200);
     expect(await attempt('b@example.test')).toBe(200);
-    const cookie = await setupCookie(context, 'invited@mailinator.com');
-    expect(await register(context, 'invited@mailinator.com', { cookie }, '198.51.100.70')).toBe(200);
+    const cookie = await adminSetupCookie(context);
+    expect(await register(context, TEST_ADMIN_EMAIL, { cookie }, '198.51.100.70')).toBe(200);
   });
 });

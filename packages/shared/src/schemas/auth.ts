@@ -22,4 +22,6 @@ export interface UserDto {
   email: string;
   name: string | null;
   createdAt: string;
+  /** Whether this is the administrator's account (ADMIN_EMAIL), which sees the instance's figures. */
+  admin: boolean;
 }

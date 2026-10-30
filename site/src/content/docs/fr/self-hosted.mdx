@@ -15,11 +15,11 @@ import Faq from '../../../components/Faq.astro';
 ```bash
 git clone https://github.com/liliang-dev/SilenceWatch.git
 cd SilenceWatch
-cp .env.example .env         # renseignez SECRET_KEY et POSTGRES_PASSWORD
+cp .env.example .env         # renseignez SECRET_KEY, POSTGRES_PASSWORD et ADMIN_EMAIL
 docker compose up -d
 ```
 
-Ouvrez `http://localhost:8080` et créez le premier compte avec une passkey (une passkey demande `https://` ou `localhost` ; sur une adresse `http://` simple, mettez `AUTH_MODE=password`). **Sur un serveur accessible depuis internet, renseignez d’abord `ADMIN_EMAIL`** : sans lui, le premier compte est créé par la première personne qui atteint la page d’inscription. Avec lui, l’inscription n’est ouverte qu’à un lien à usage unique pour cette adresse, affiché dans le journal du serveur (`docker compose logs silencewatch`), valable une fois et 30 minutes. Les modes de connexion sont décrits dans le [guide d’authentification](/docs/reference/authentication/). Les migrations de schéma s’exécutent automatiquement au démarrage : mettre à jour consiste à changer le numéro de version dans `docker-compose.yml`, puis `docker compose pull` et `docker compose up -d`.
+Créez votre compte avec le lien à usage unique que le serveur affiche dans son journal (`docker compose logs silencewatch`) : c’est le seul moyen de créer le compte de `ADMIN_EMAIL`, celui de l’administrateur, le seul à voir les statistiques de l’instance. Le lien vaut une fois et 30 minutes, et un nouveau est affiché à chaque démarrage tant que ce compte n’existe pas. Une passkey demande `https://` ou `localhost` ; sur une adresse `http://` simple, mettez `AUTH_MODE=password`. Les modes de connexion sont décrits dans le [guide d’authentification](/docs/reference/authentication/). Les migrations de schéma s’exécutent automatiquement au démarrage : mettre à jour consiste à changer le numéro de version dans `docker-compose.yml`, puis `docker compose pull` et `docker compose up -d`.
 
 Le minimum à renseigner dans `.env` :
 
@@ -28,6 +28,7 @@ SECRET_KEY=…                 # openssl rand -hex 32
 POSTGRES_PASSWORD=…          # openssl rand -hex 24
 SMTP_URL=smtp://user:password@relais.exemple.fr:587
 BASE_URL=https://watch.exemple.fr
+ADMIN_EMAIL=vous@exemple.fr  # votre compte : celui de l’administrateur
 ```
 
 `BASE_URL` est l’adresse que vos utilisateurs tapent : les URL de ping et les liens des alertes en sont construits. Le serveur **refuse de démarrer** sur une configuration dangereuse ou incohérente plutôt que de tourner en mode dégradé, et dit laquelle.

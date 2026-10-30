@@ -142,8 +142,8 @@ pnpm run dev:web        # UI on :4200, proxying /api and /p to :8080
 `EMAIL_PROVIDER=console` prints alerts to the log. The server refuses to start
 with it when `NODE_ENV=production`.
 
-The first account on an empty instance is whoever signs up first (set `ADMIN_EMAIL`
-to reserve it for one address, and the server prints a one-time link instead). With
+`ADMIN_EMAIL` is required: the server prints a one-time link for that account at
+start, and it is the only way to create it (other addresses sign up as usual). With
 the default `AUTH_MODE=passkey`, Chrome's DevTools can stand in for a device: see
 [Testing by hand](authentication.md#testing-by-hand).
 

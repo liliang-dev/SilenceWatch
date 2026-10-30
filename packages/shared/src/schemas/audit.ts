@@ -12,6 +12,11 @@ export const AUDIT_ACTIONS = [
   'passkey.added',
   'passkey.removed',
   'account.registered',
+  /**
+   * An account that was not created, with the reason and nothing else: no
+   * address, no IP. It belongs to no one, so it is only ever counted.
+   */
+  'signup.refused',
   'account.deleted',
   'api_key.created',
   'api_key.revoked',

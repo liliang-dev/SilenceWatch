@@ -219,11 +219,18 @@ describe('passkey sign-in', () => {
         );
         expect(refused.statusCode).toBe(403);
 
-        const { url } = await closed.app.get(SetupLinkService).issue('invited@example.test');
+        // Only the administrator's account, and only with its link.
+        const { url } = await closed.app.get(SetupLinkService).issue();
         const cookie = `sw_setup=${url.split('#')[1]}`;
+        const stranger = await browser.send(
+          'GET',
+          '/api/auth/passkey/generate-register-options?context=nope%40example.test',
+          { headers: { cookie } },
+        );
+        expect(stranger.statusCode).toBe(403);
         const invited = await browser.send(
           'GET',
-          '/api/auth/passkey/generate-register-options?context=invited%40example.test',
+          `/api/auth/passkey/generate-register-options?context=${encodeURIComponent(closed.config.ADMIN_EMAIL)}`,
           { headers: { cookie } },
         );
         expect(invited.statusCode).toBe(200);
