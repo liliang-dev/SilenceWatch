@@ -11,7 +11,7 @@ separate system and are not affected by anything on this page.
 - [Choosing a mode](#choosing-a-mode)
 - [Settings](#settings)
 - [Passkeys](#passkeys-auth_modepasskey) · [Passwords](#passwords-auth_modepassword) · [Passkeys, Google and Microsoft](#passkeys-google-and-microsoft-auth_modefull)
-- [The first account](#the-first-account)
+- [The administrator account](#the-administrator-account)
 - [Sessions and sensitive actions](#sessions-and-sensitive-actions)
 - [When someone is locked out](#when-someone-is-locked-out)
 - [Changing the mode later](#changing-the-mode-later)
@@ -44,8 +44,8 @@ the person who is locked out.
 | `AUTH_MODE` | `passkey` | `passkey`, `password` or `full` |
 | `BASE_URL` | `http://localhost:8080` | What your users type. Must be `https://` in `passkey` and `full` unless it is `localhost` |
 | `SECRET_KEY` | — | Signs session cookies and seals the channels' webhook URLs and secrets. Rotating it signs everyone out, and needs `silencewatch reseal` |
-| `SIGNUP_ENABLED` | `true` | When false, only someone holding a [setup link](#the-first-account) can create an account |
-| `ADMIN_EMAIL` | — | The address of the first account. See [the first account](#the-first-account) |
+| `ADMIN_EMAIL` | — | **Required.** The administrator's address. See [the administrator account](#the-administrator-account) |
+| `SIGNUP_ENABLED` | `true` | Whether anyone may create an account. When false, the [administrator's](#the-administrator-account) is the only one that can be |
 | `AUTH_RP_ID` | host of `BASE_URL` | The domain passkeys are bound to. Decide once: see below |
 | `AUTH_RP_NAME` | `SilenceWatch` | The name the browser shows when asking for a passkey |
 | `AUTH_TRUSTED_ORIGINS` | — | Extra browser origins that may sign in (a development server, say), comma-separated |
@@ -170,33 +170,38 @@ administrator of that tenant set, so trusting it would let anyone who runs a ten
 sign in as anyone. Better Auth identifies a Microsoft account by its immutable `oid`,
 which is what keeps it from being confused with another.
 
-## The first account
+## The administrator account
 
-An instance with no account has nobody to invite the first one, and nothing proves
-that an address typed into the sign-up form is its owner's. So while there is no
-account, and `ADMIN_EMAIL` is set or `SIGNUP_ENABLED=false`, sign-up is closed to
-everyone except a **one-time link**:
+`ADMIN_EMAIL` is required: the server does not start without it. The account with
+that address is the administrator's. It is the only one that sees the instance's
+figures (*Settings › Statistics*: accounts, checks, subscriptions, alert emails) and
+its internals (`GET /api/v1/status`); to every other account those answer 404, and
+to an API key 401.
+
+Nothing proves that an address typed into a sign-up form is its owner's, and this
+account sees what no other does. So it is created with a **one-time link**, and in no
+other way, whether sign-up is open or not:
 
 ```
-No account yet. Create the first one for jane@example.com with this link, once, before 2026-10-17T10:30:00.000Z:
+No administrator account yet. Create it for jane@example.com with this link, once, before 2026-10-17T10:30:00.000Z:
   https://watch.example.com/setup?email=jane%40example.com#Tkj3…
 ```
 
-- It is printed in the server log at every start while there is no account. It
-  expires after **30 minutes** and works **once**, for that address only. The token
-  is in the part of the URL after `#`, which a browser never sends to a server.
-- Without `ADMIN_EMAIL` and with `SIGNUP_ENABLED=true`, the first account is simply
-  whoever gets there first — fine on a private network, not on a public one.
-- You can make a link at any time, for any address, whether or not sign-up is open —
-  to add one more person to an instance that is closed:
+- It is printed in the server log (`docker compose logs silencewatch`) at every start
+  while that account does not exist. It expires after **30 minutes** and works
+  **once**, for that address only. The token is in the part of the URL after `#`,
+  which a browser never sends to a server.
+- Missed it? Restart the server, or print one now:
 
   ```bash
-  docker compose exec silencewatch node packages/server/dist/auth/cli.js \
-    create-admin --email jane@example.com
+  docker compose exec silencewatch silencewatch create-admin
   ```
 
-A link also skips the abuse limits in [`abuse-prevention.md`](abuse-prevention.md):
-it is you saying that this person may join.
+Everyone else: anyone may create an account while `SIGNUP_ENABLED=true`, through the
+abuse limits in [`abuse-prevention.md`](abuse-prevention.md). With
+`SIGNUP_ENABLED=false`, the administrator's account is the only one that can be
+created. To let more people in to a closed instance, open sign-up for the time it
+takes, then close it again.
 
 Opening the link takes the person to the sign-in page with the address fixed; they
 create their account in whichever way the mode allows.
@@ -234,7 +239,7 @@ Everything below is for whoever runs the server; none of it is an endpoint.
 | `password` | Forgot the password | `cli.js reset-password --email …` |
 | `full` | Lost their passkey | They sign in with Google or Microsoft |
 | `full` | Lost access to the Google or Microsoft account | Not recoverable here: that is the provider's to restore |
-| any | Nobody can sign in at all | `cli.js create-admin --email …` makes a setup link for a new account |
+| any | The administrator account does not exist yet | `cli.js create-admin` prints its setup link (the server also prints one at every start) |
 
 Run them as `silencewatch <command> --email <address>` in the server container, for
 instance `docker compose exec silencewatch silencewatch show --email jane@example.com`.
@@ -249,7 +254,7 @@ The same command line answers the everyday requests of running a service. Run
 | Command | What it does |
 | --- | --- |
 | `show` | Prints the account: plan, subscription, sign-in methods, live sessions, lockout and projects. Changes nothing, and prints no secret. |
-| `create-admin` | A one-time setup link that creates an account for the address, whether or not sign-up is open. |
+| `create-admin` | A one-time setup link that creates the administrator's account (`ADMIN_EMAIL`), the only way to create it. Takes no `--email`. |
 | `recovery-codes` | A new set of recovery codes, once; the old ones stop working. `AUTH_MODE=passkey` only. |
 | `reset-password` | A new random password, once; ends the account's sessions. `AUTH_MODE=password` only. |
 | `unlock` | Ends a lockout after too many wrong passwords. |

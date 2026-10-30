@@ -10,6 +10,7 @@ import { AUTH } from '../../src/auth/better-auth/auth.provider';
 import { AuditService } from '../../src/audit/audit.service';
 import { LoginLockoutService } from '../../src/auth/lockout/login-lockout.service';
 import { RecoveryCodesService } from '../../src/auth/recovery/recovery-codes.service';
+import { SetupLinkService } from '../../src/auth/signup/setup-link.service';
 import { SignupPolicyService } from '../../src/auth/signup/signup-policy.service';
 import { UsersRepository } from '../../src/auth/users/users.repository';
 import type { BetterAuthOptions } from 'better-auth';
@@ -133,6 +134,9 @@ export class FakeStripeApi extends StripeApi {
 /** Where the tests pretend the web UI is served from: the origin a browser would send. */
 export const TEST_BASE_URL = 'http://test.silencewatch.local';
 
+/** The administrator's address every test app runs with, unless a test names another. */
+export const TEST_ADMIN_EMAIL = 'admin@example.test';
+
 export interface TestApp {
   app: NestFastifyApplication;
   prisma: PrismaService;
@@ -160,6 +164,7 @@ export async function createTestApp(
     DATABASE_URL: databaseUrl,
     SECRET_KEY: 'test-secret-key-that-is-long-enough',
     BASE_URL: TEST_BASE_URL,
+    ADMIN_EMAIL: TEST_ADMIN_EMAIL,
     NODE_ENV: 'test',
     // Passwords, because a test can type one: a passkey needs a browser.
     AUTH_MODE: 'password',
@@ -318,6 +323,19 @@ export async function registerUser(
     projectId: projects.json<Array<{ id: string }>>()[0]?.id as string,
     email,
   };
+}
+
+/** The setup link for the administrator's account, as the cookie the web UI keeps it in. */
+export async function adminSetupCookie(context: TestApp): Promise<string> {
+  const { url } = await context.app.get(SetupLinkService).issue();
+  return `sw_setup=${url.split('#')[1]}`;
+}
+
+/** Creates the administrator's account, the way an operator does: with the link from the log. */
+export async function registerAdmin(
+  context: TestApp,
+): Promise<{ token: string; userId: string; projectId: string; email: string }> {
+  return registerUser(context, context.config.ADMIN_EMAIL, { cookie: await adminSetupCookie(context) });
 }
 
 /**

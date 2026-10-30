@@ -20,8 +20,8 @@ const EXACT: ReadonlyArray<readonly [string, MessageKey]> = [
   ['This account cannot be created. Sign in if you already have one.', 'server.addressUnavailable'],
   ['User already exists. Use another email.', 'server.addressUnavailable'],
   [
-    'This instance has no account yet. Open the setup link printed in the server log.',
-    'server.noAccountYet',
+    'This account can only be created with the setup link printed in the server log.',
+    'server.adminNeedsLink',
   ],
   ['Enter a valid email address.', 'server.emailInvalid'],
   ['Sign in again to do this.', 'server.signInAgain'],

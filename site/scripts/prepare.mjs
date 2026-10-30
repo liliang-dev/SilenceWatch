@@ -50,7 +50,7 @@ const REFERENCE = {
   authentication: {
     file: 'authentication.md',
     description:
-      'How people sign in to SilenceWatch: passkeys, passwords, or Google and Microsoft; the first account, sessions and what to do when someone is locked out.',
+      'How people sign in to SilenceWatch: passkeys, passwords, or Google and Microsoft; the administrator account, sessions and what to do when someone is locked out.',
   },
   security: {
     file: 'security.md',

@@ -34,9 +34,18 @@ export class SupportCommands {
     this.audit = new AuditService(prisma);
   }
 
-  async createAdmin(email: string): Promise<string> {
-    const { url, expiresAt } = await new SetupLinkService(this.config, this.prisma).issue(email);
-    return `Open this link once, before ${expiresAt.toISOString()}:\n\n  ${url}`;
+  /** A setup link for the administrator's account (ADMIN_EMAIL), the only way to create it. */
+  async createAdmin(): Promise<string> {
+    const email = this.config.ADMIN_EMAIL;
+    if ((await this.users.findByEmail(email)) !== null) {
+      throw new SupportError(
+        `The administrator account (${email}) already exists. To get back into it, use ` +
+          (this.config.AUTH_MODE === 'password' ? 'reset-password' : 'recovery-codes') +
+          ` --email ${email}.`,
+      );
+    }
+    const { url, expiresAt } = await new SetupLinkService(this.config, this.prisma).issue();
+    return `Open this link once, before ${expiresAt.toISOString()}, to create the administrator account (${email}):\n\n  ${url}`;
   }
 
   async resetPassword(email: string): Promise<string> {

@@ -8,4 +8,5 @@ export * from './api-keys';
 export * from './sync';
 export * from './audit';
 export * from './billing';
+export * from './admin';
 export * from './errors';

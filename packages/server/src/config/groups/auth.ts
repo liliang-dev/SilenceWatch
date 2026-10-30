@@ -12,7 +12,7 @@ export const authShape = {
    * values derived from it, so rotating it signs everyone out at once.
    */
   SECRET_KEY: z.string().min(32, 'SECRET_KEY must be at least 32 characters'),
-  /** When false only the very first account can be created (bootstrap). */
+  /** When false, the administrator's account is the only one that can be created. */
   SIGNUP_ENABLED: booleanish.prefault('true'),
 
   /**
@@ -45,11 +45,18 @@ export const authShape = {
    */
   AUTH_TRUSTED_ORIGINS: csv.prefault(''),
   /**
-   * Email of the first account. While no account exists, sign-up is closed to
-   * everyone but a one-time link printed in the server log, which stands in for
-   * proving that the address is yours.
+   * The administrator's address. Required. The account with this address is the
+   * only one that sees the instance's statistics and internals, and it can only be
+   * created with a one-time link printed in the server log, which stands in for
+   * proving that the address is yours: nothing else may register it.
    */
-  ADMIN_EMAIL: optional(z.string().email()),
+  ADMIN_EMAIL: z
+    .string({
+      error: 'required: the address of the administrator account, which gets a one-time link in the log',
+    })
+    .trim()
+    .toLowerCase()
+    .pipe(z.email({ error: 'must be an email address' })),
 
   /** Google sign-in (AUTH_MODE=full); the button shows only when both are set. */
   GOOGLE_CLIENT_ID: optional(z.string().min(1)),

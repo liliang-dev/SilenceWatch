@@ -1,0 +1,81 @@
+<section class="sw-card section">
+  <div class="section-head with-action">
+    <div>
+      <h2>{{ t('stats.title') }}</h2>
+      <p class="sw-muted">{{ t('stats.body') }}</p>
+    </div>
+    <!-- Round and without its words on a phone, as the other tabs' header actions. -->
+    <button
+      mat-stroked-button
+      type="button"
+      class="sw-header-add"
+      [disabled]="loading()"
+      [attr.aria-label]="t('stats.refresh')"
+      (click)="load()"
+    >
+      <sw-icon name="refresh" />
+      <span class="sw-header-add-label">{{ t('stats.refresh') }}</span>
+    </button>
+  </div>
+
+  <div class="section-body">
+    @if (error(); as message) {
+      <p class="sw-error" role="alert">{{ message }}</p>
+    } @else if (loading() && figures().length === 0) {
+      <p class="sw-muted" role="status">{{ t('stats.loading') }}</p>
+    } @else {
+      <ul class="figures">
+        @for (figure of figures(); track figure.id) {
+          <li class="figure">
+            <span class="sw-label">{{ figure.label }}</span>
+            <strong class="value sw-num">{{ number(figure.value) }}</strong>
+            @if (figure.caption !== '') {
+              <span class="delta" [class.up]="figure.up">{{ figure.caption }}</span>
+            }
+            @switch (figure.chart.kind) {
+              @case ('meter') {
+                <span class="meter" aria-hidden="true">
+                  <span class="meter-fill" [style.width.%]="meterShare(figure) * 100"></span>
+                </span>
+              }
+              @case ('none') {}
+              @default {
+                <svg
+                  class="chart"
+                  [attr.viewBox]="'0 0 ' + width + ' ' + height"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  @if (figure.chart.kind === 'line') {
+                    <path class="area" [attr.d]="figure.chart.area" />
+                    <path class="line" [attr.d]="figure.chart.line" vector-effect="non-scaling-stroke" />
+                  } @else if (figure.chart.kind === 'bars') {
+                    <path class="bars" [class.down]="figure.chart.tone === 'down'" [attr.d]="figure.chart.bars" />
+                  }
+                </svg>
+              }
+            }
+            @if (figure.parts.length > 0) {
+              <ul class="parts">
+                @for (part of figure.parts; track part.id) {
+                  <li class="part">
+                    <span class="part-label">{{ part.label }}</span>
+                    <span class="part-value sw-num">{{ number(part.value) }}</span>
+                    <span class="part-bar" aria-hidden="true">
+                      <span [style.width.%]="part.share * 100"></span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+            <span class="note sw-muted">{{ figure.note }}</span>
+          </li>
+        }
+      </ul>
+      @if (stats(); as current) {
+        <p class="updated sw-muted">{{ t('stats.updated', { date: updated(current.generatedAt) }) }}</p>
+      }
+    }
+  </div>
+</section>

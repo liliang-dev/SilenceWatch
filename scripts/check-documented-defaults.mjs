@@ -41,9 +41,10 @@ let checked = 0;
 
 // Only three-column tables — `| `VAR` | default | meaning |`. The two-column
 // ones list meanings, not defaults, and reading them here would compare a
-// sentence against a value.
+// sentence against a value. No part of the pattern may cross a line, or a
+// two-column row would borrow its third cell from the row below.
 for (const m of readFileSync(DOC, 'utf8').matchAll(
-  /^\|\s*`([A-Z][A-Z0-9_]*)`\s*\|\s*`?([^|`]*)`?\s*\|[^|]*\|/gm,
+  /^\|[ \t]*`([A-Z][A-Z0-9_]*)`[ \t]*\|[ \t]*`?([^|`\n]*)`?[ \t]*\|[^|\n]*\|/gm,
 )) {
   const [, name, raw] = m;
   // Deploy-time secrets (SWARM_*) are not application configuration.

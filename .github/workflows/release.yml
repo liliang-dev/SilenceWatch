@@ -158,6 +158,7 @@ jobs:
             --read-only --tmpfs /tmp \
             -e DATABASE_URL=postgres://silencewatch:silencewatch@sw-db:5432/silencewatch \
             -e SECRET_KEY=release-secret-key-that-is-long-enough-for-the-check \
+            -e ADMIN_EMAIL=admin@example.test \
             -e BASE_URL=http://localhost:8080 \
             -e EMAIL_PROVIDER=smtp \
             -e SMTP_URL=smtp://relay.invalid:587 \
@@ -339,7 +340,7 @@ jobs:
           set -eu
 
           if [ ! -r "$ENV_FILE" ]; then
-            echo "No readable env file at $ENV_FILE — the stack needs SECRET_KEY and POSTGRES_PASSWORD." >&2
+            echo "No readable env file at $ENV_FILE — the stack needs SECRET_KEY, POSTGRES_PASSWORD and ADMIN_EMAIL." >&2
             exit 1
           fi
 

@@ -32,10 +32,6 @@ export interface MembershipWithPeers {
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async isEmpty(): Promise<boolean> {
-    return (await this.prisma.user.count({ take: 1 })) === 0;
-  }
-
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
@@ -86,20 +82,13 @@ export class UsersRepository {
   }
 
   /**
-   * Whether this account runs the instance: the one ADMIN_EMAIL names, or, when
-   * none is named, the first account ever created, which is the one that set the
-   * instance up. On a shared instance everyone else is a customer.
+   * Whether this account is the administrator's: the one ADMIN_EMAIL names. That
+   * address can only be registered through the setup link (see SignupPolicyService),
+   * and an address cannot be changed afterwards, so holding it is holding the link.
    */
-  async isOperator(userId: string, adminEmail: string | undefined): Promise<boolean> {
-    if (adminEmail !== undefined) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-      return user !== null && user.email === adminEmail.toLowerCase();
-    }
-    const first = await this.prisma.user.findFirst({
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      select: { id: true },
-    });
-    return first?.id === userId;
+  async isAdministrator(userId: string, adminEmail: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    return user !== null && user.email === adminEmail.toLowerCase();
   }
 
   /** How many passkeys an account holds: the last one is not removed where it is the only way in. */
