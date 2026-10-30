@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import type { AdminStatsDto, ChannelType, SignupRefusalReason } from '@silencewatch/shared';
+import type { AdminStatsDto, ChannelType, PingKind, SignupRefusalReason } from '@silencewatch/shared';
 import { AdminApi } from '../../../../core/api/admin.api';
 import { errorMessage } from '../../../../core/http/error-message';
 import { I18n } from '../../../../core/i18n/i18n.service';
@@ -42,6 +42,12 @@ const CHANNEL_NAMES: Record<ChannelType, MessageKey> = {
   slack: 'channels.typeSlack',
   teams: 'channels.typeTeams',
   discord: 'channels.typeDiscord',
+};
+
+const PING_NAMES: Record<PingKind, MessageKey> = {
+  success: 'detail.kindSuccess',
+  start: 'detail.kindStart',
+  fail: 'detail.kindFail',
 };
 
 const REASON_NAMES: Record<SignupRefusalReason, MessageKey> = {
@@ -131,7 +137,24 @@ export class StatisticsTabComponent {
         chart: { kind: 'meter', share },
         parts: [],
       },
-      total('checks', this.t('stats.checks'), stats.checks, 'stats.checksNote'),
+      {
+        ...total('checks', this.t('stats.checks'), stats.checks, 'stats.checksNote'),
+        // Whatever made a check by hand, the web interface or the API, against what a client library declared.
+        parts: this.parts(
+          { manual: stats.checks.bySource.manual + stats.checks.bySource.api, auto: stats.checks.bySource.auto },
+          { manual: 'stats.checksManual', auto: 'stats.checksAuto' },
+        ),
+      },
+      {
+        id: 'pings',
+        label: this.t('stats.pings'),
+        value: stats.pings.last24Hours,
+        caption: this.t('stats.last24'),
+        up: false,
+        note: this.t('stats.pingsNote'),
+        chart: { kind: 'bars', bars: barsPath(stats.pings.hourly), tone: 'brand' },
+        parts: this.parts(stats.pings.byKind, PING_NAMES),
+      },
       ...(stats.subscriptions ?? []).map((plan) =>
         total(
           `plan-${plan.plan}`,

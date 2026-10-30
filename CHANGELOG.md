@@ -19,7 +19,9 @@ env file before the release deploys.
 
 - **Statistics, for the administrator only.** *Settings › Statistics* shows the instance's
   figures: registered accounts and checks (with what was added in the last 30 days and a small
-  chart of their growth), the accounts active in the last 30 days, live subscriptions to each paid
+  chart of their growth), how many checks were made by hand and how many were discovered by a
+  client library, the signals received in the past 24 hours (hour by hour and by kind), the
+  accounts active in the last 30 days, live subscriptions to each paid
   plan (only where the instance sells them), the alert emails sent and the alerts that failed in
   the last 30 days, day by day, the alert channels by type, and the sign-ups refused in the last
   30 days, by reason. Counts only: nothing names an account, a check or an address. The

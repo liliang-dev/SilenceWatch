@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   CHANNEL_TYPES,
+  CHECK_SOURCES,
+  PING_KINDS,
   SIGNUP_REFUSAL_REASONS,
   type AdminCountDto,
   type AdminPlanCountDto,
@@ -11,6 +13,7 @@ import { AppConfig, CONFIG } from '../config/config';
 import { PrismaService } from '../database/prisma.service';
 
 const DAYS = 30;
+const HOURS = 24;
 
 /** Rows of a count by age: `age` is how many whole days ago, 0 being the past 24 hours. */
 type AgeRow = { age: number; n: number };
@@ -30,10 +33,11 @@ export class AdminStatsService {
   ) {}
 
   async stats(): Promise<AdminStatsDto> {
-    const [accounts, checks, alertEmails, activeAccounts, failedAlerts, channels, refusedSignups, subscriptions] =
+    const [accounts, checks, pings, alertEmails, activeAccounts, failedAlerts, channels, refusedSignups, subscriptions] =
       await Promise.all([
         this.accounts(),
         this.checks(),
+        this.pings(),
         this.alertEmails(),
         this.activeAccounts(),
         this.failedAlerts(),
@@ -45,6 +49,7 @@ export class AdminStatsService {
       generatedAt: new Date().toISOString(),
       accounts,
       checks,
+      pings,
       alertEmails,
       activeAccounts,
       failedAlerts,
@@ -66,16 +71,38 @@ export class AdminStatsService {
     return withDaily(total, recent);
   }
 
-  private async checks(): Promise<AdminCountDto> {
-    const [total, recent] = await Promise.all([
-      this.prisma.check.count(),
+  private async checks(): Promise<AdminStatsDto['checks']> {
+    const [sources, recent] = await Promise.all([
+      this.prisma.check.groupBy({ by: ['source'], _count: { _all: true } }),
       this.prisma.$queryRaw<AgeRow[]>`
         SELECT floor(extract(epoch FROM (now() - created_at)) / 86400)::int AS age, count(*)::int AS n
           FROM "check"
          WHERE created_at > now() - make_interval(days => ${DAYS})
          GROUP BY 1`,
     ]);
-    return withDaily(total, recent);
+    const bySource = countBy(
+      CHECK_SOURCES,
+      sources.map((row) => ({ source: row.source, n: row._count._all })),
+      (row) => row.source,
+    );
+    return { ...withDaily(sum(Object.values(bySource)), recent), bySource };
+  }
+
+  /** Every signal received in the past 24 hours, whatever its check, by hour and by kind. */
+  private async pings(): Promise<AdminStatsDto['pings']> {
+    const recent = await this.prisma.$queryRaw<Array<AgeRow & { kind: string }>>`
+      SELECT kind::text AS kind,
+             floor(extract(epoch FROM (now() - received_at)) / 3600)::int AS age,
+             count(*)::int AS n
+        FROM ping
+       WHERE received_at > now() - make_interval(hours => ${HOURS})
+       GROUP BY 1, 2`;
+    const hourly = new Array<number>(HOURS).fill(0);
+    for (const { age, n } of recent) {
+      const index = HOURS - 1 - age;
+      if (index >= 0 && index < HOURS) hourly[index] = (hourly[index] ?? 0) + n;
+    }
+    return { last24Hours: sum(hourly), hourly, byKind: countBy(PING_KINDS, recent, (row) => row.kind) };
   }
 
   /** Alert emails actually handed to the provider: test alerts and quota notices are not deliveries. */

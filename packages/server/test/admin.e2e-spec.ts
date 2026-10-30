@@ -117,9 +117,14 @@ describe('administrator statistics', () => {
       await context.prisma.check.updateMany({ where: { name: 'one' }, data: { createdAt: new Date(Date.now() - 40 * DAY) } });
       await context.prisma.check.updateMany({ where: { name: 'two' }, data: { createdAt: new Date(Date.now() - 2 * DAY - 3_600_000) } });
 
+      // One of them declared by a client library.
+      await context.prisma.check.updateMany({ where: { name: 'three' }, data: { source: 'auto' } });
+
       const body = (await stats(auth(admin.token))).json<AdminStatsDto>();
 
       expect(body.accounts).toMatchObject({ total: 2, last30Days: 1 });
+      // Created through the API (which is what the web interface uses too), and by a client library.
+      expect(body.checks.bySource).toEqual({ manual: 0, api: 2, auto: 1 });
       expect(body.checks).toMatchObject({ total: 3, last30Days: 2 });
       expect(body.checks.daily).toHaveLength(30);
       // Oldest first: the last day is today's check, two days before it the other.
@@ -187,6 +192,38 @@ describe('administrator statistics', () => {
         total: 2,
         byType: { email: 1, webhook: 1, slack: 0, teams: 0, discord: 0 },
       });
+    });
+
+    it('counts the signals of the past 24 hours, hour by hour and by kind', async () => {
+      const admin = await registerAdmin(context);
+      const check = await context.prisma.check.create({
+        data: {
+          projectId: admin.projectId,
+          name: 'job',
+          slug: 'job',
+          scheduleType: 'interval',
+          periodSeconds: 3600,
+          graceSeconds: 60,
+          nextDueAt: new Date(),
+        },
+      });
+      const HOUR = 3_600_000;
+      await context.prisma.ping.createMany({
+        data: [
+          { checkId: check.id, kind: 'success', receivedAt: new Date() },
+          { checkId: check.id, kind: 'start', receivedAt: new Date(Date.now() - 60_000) },
+          { checkId: check.id, kind: 'fail', receivedAt: new Date(Date.now() - 3 * HOUR - 60_000) },
+          // A day and more ago: not counted.
+          { checkId: check.id, kind: 'success', receivedAt: new Date(Date.now() - 25 * HOUR) },
+        ],
+      });
+
+      const body = (await stats(auth(admin.token))).json<AdminStatsDto>();
+      expect(body.pings.last24Hours).toBe(3);
+      expect(body.pings.hourly).toHaveLength(24);
+      expect(body.pings.hourly[23]).toBe(2);
+      expect(body.pings.hourly[20]).toBe(1);
+      expect(body.pings.byKind).toEqual({ start: 1, success: 1, fail: 1 });
     });
 
     it('leaves out the alerts that failed more than 30 days ago', async () => {

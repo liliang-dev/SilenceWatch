@@ -1,4 +1,4 @@
-import type { ChannelType } from '../enums';
+import type { ChannelType, CheckSource, PingKind } from '../enums';
 
 /**
  * The instance's figures, for its administrator only (ADMIN_EMAIL). Counts, never
@@ -42,8 +42,10 @@ export interface AdminStatsDto {
   generatedAt: string;
   /** Accounts on the instance. */
   accounts: AdminCountDto;
-  /** Checks on the instance, in every project. */
-  checks: AdminCountDto;
+  /** Checks on the instance, in every project, and how each was declared. */
+  checks: AdminCountDto & { bySource: Record<CheckSource, number> };
+  /** Signals (pings) received in the past 24 hours, hour by hour, oldest first, and of which kind. */
+  pings: { last24Hours: number; hourly: number[]; byKind: Record<PingKind, number> };
   /**
    * Alert emails sent in the last 30 days. Deliveries are kept for 30 days, so
    * there is no total from the beginning to give.
