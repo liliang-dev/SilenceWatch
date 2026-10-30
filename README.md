@@ -186,7 +186,7 @@ cp .env.example .env         # set SECRET_KEY, POSTGRES_PASSWORD and ADMIN_EMAIL
 docker compose up -d
 ```
 
-This pulls `ghcr.io/liliang-dev/silencewatch:0.7.0`; nothing is built locally.
+This pulls `ghcr.io/liliang-dev/silencewatch:0.8.0`; nothing is built locally.
 
 Create your account with the one-time link the server prints in its log
 (`docker compose logs silencewatch`): it is the only way to create the account of

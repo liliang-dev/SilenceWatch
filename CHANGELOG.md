@@ -10,6 +10,8 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-10-30
+
 **Set `ADMIN_EMAIL` before upgrading: the server no longer starts without it.** Put your
 own address, the one of the account you sign in with if it exists already. In Compose and
 Swarm the deploy stops and names the variable; on the hosted service, add it to the server's
@@ -52,6 +54,8 @@ env file before the release deploys.
 - The self-hosting guide, the site's self-hosting pages (in English and in French), the README
   and `.env.example` say all this where people start, and `.env.example` lists `ADMIN_EMAIL`
   among the required settings.
+- 0.8.0 in the manifests, the Compose file, the README and the release workflows' comments. A
+  minor version because the server no longer starts without `ADMIN_EMAIL`.
 
 ## [0.7.0] — 2026-10-29
 
@@ -1206,7 +1210,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
 [0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.1...0.6.2
