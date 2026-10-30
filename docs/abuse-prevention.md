@@ -104,8 +104,9 @@ A short list of known throwaway mailbox domains, plus any you add. It is the
 cheapest control here and permanently out of date, as said above; it is useful mostly
 because it removes the laziest way to make a fresh account for every limit you reach.
 
-A **setup link** (see [`authentication.md`](authentication.md#the-first-account))
-skips all three: it is you saying that this person may join.
+The **administrator's account** skips all three: it is created with its setup link
+(see [`authentication.md`](authentication.md#the-administrator-account)), which is
+you saying that this person may join.
 
 ## Once the account exists
 
@@ -135,9 +136,9 @@ SIGNUP_ENABLED=false     # after the team is in: the strongest control there is
 ```
 
 That deserves its own sentence. **For a self-hosted instance, the best protection
-against bot sign-ups is not having open sign-up.** Bootstrap the first account,
-invite the rest, set `SIGNUP_ENABLED=false`, and none of the machinery above is
-load-bearing.
+against bot sign-ups is not having open sign-up.** Create the administrator account
+with its link, let the rest of the team sign up, set `SIGNUP_ENABLED=false`, and none
+of the machinery above is load-bearing.
 
 If your sign-up form is reachable by strangers, use `AUTH_MODE=full`, turn on the
 per-network and per-connection limits, and watch the `signup_attempt` table: layers,

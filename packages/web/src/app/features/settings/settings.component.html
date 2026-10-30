@@ -52,5 +52,11 @@
     <mat-tab [label]="t('settings.tabAccount')">
       <ng-template matTabContent><sw-account-tab /></ng-template>
     </mat-tab>
+
+    @if (admin()) {
+      <mat-tab [label]="t('settings.tabStatistics')">
+        <ng-template matTabContent><sw-statistics-tab /></ng-template>
+      </mat-tab>
+    }
   </mat-tab-group>
 </div>

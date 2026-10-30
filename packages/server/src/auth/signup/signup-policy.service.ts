@@ -47,45 +47,41 @@ export class SignupPolicyService {
   ) {}
 
   /**
-   * Decides before the account exists.
+   * Decides before the account exists. Two rules, whichever way the person signs in:
    *
-   * The first account is the one nobody can invite, so while there is none and
-   * the operator has said who it is (ADMIN_EMAIL) or has closed sign-up, only the
-   * setup link opens the door. A setup link is the operator's own word that this
-   * person may join, so it also skips the abuse rules, as the very first account
-   * always did.
+   *  - **The administrator's address** (ADMIN_EMAIL) is created with the one-time
+   *    link printed in the server log, and in no other way, whether sign-up is open
+   *    or not. Nothing else proves that an address typed into a form is its
+   *    owner's, and this account sees what no other does. The link is the
+   *    operator's own word, so it also skips the abuse rules.
+   *  - **Any other address** is created only while SIGNUP_ENABLED is on, and goes
+   *    through the abuse rules.
    */
   async decide(request: SignupRequest): Promise<SignupDecision> {
     const email = request.email.toLowerCase();
     const network = networkOf(request.ip);
 
-    if (await this.links.accepts(request.setupToken, email)) {
-      return {
-        ok: true,
-        plan: this.quotas.defaultPlan,
-        signupNetwork: this.guard.signupNetworkOf(request.ip),
-      };
-    }
-
-    const bootstrapping = await this.users.isEmpty();
-    const closed = !this.config.SIGNUP_ENABLED || (bootstrapping && this.config.ADMIN_EMAIL !== undefined);
-    if (closed) {
+    if (email === this.config.ADMIN_EMAIL) {
+      if (await this.links.accepts(request.setupToken, email)) {
+        return {
+          ok: true,
+          plan: this.quotas.defaultPlan,
+          signupNetwork: this.guard.signupNetworkOf(request.ip),
+        };
+      }
       return {
         ok: false,
         status: 'FORBIDDEN',
-        message: bootstrapping
-          ? 'This instance has no account yet. Open the setup link printed in the server log.'
-          : 'Sign-up is disabled on this instance',
+        message: 'This account can only be created with the setup link printed in the server log.',
       };
     }
 
-    // Nothing below applies to the first account: it is created before anyone
-    // could have configured a rule, and gating it would make a fresh instance
-    // impossible to bootstrap.
-    if (!bootstrapping) {
-      const refusal = await this.checkAbuseRules(email, request.ip, network);
-      if (refusal !== null) return refusal;
+    if (!this.config.SIGNUP_ENABLED) {
+      return { ok: false, status: 'FORBIDDEN', message: 'Sign-up is disabled on this instance' };
     }
+
+    const refusal = await this.checkAbuseRules(email, request.ip, network);
+    if (refusal !== null) return refusal;
 
     return {
       ok: true,

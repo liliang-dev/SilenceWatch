@@ -23,8 +23,6 @@ Look:
                    sessions, lockout and projects. Changes nothing.
 
 Let someone in:
-  create-admin     Print a one-time link that creates an account for the address,
-                   whether or not sign-up is open. Use it for the first account.
   recovery-codes   Replace the account's recovery codes and print the new set once.
                    Only when AUTH_MODE=passkey.
   reset-password   Set a new random password for the account and print it once.
@@ -37,7 +35,10 @@ Let someone in:
                    like abuse.
   enable           Undo disable.
 
-Channels (no --email):
+The instance (no --email):
+  create-admin     Print a one-time link that creates the administrator's account,
+                   the one ADMIN_EMAIL names. It is the only way to create it; the
+                   server also prints one at every start until it exists.
   reseal           Seal every notification channel's configuration under the current
                    SECRET_KEY. After changing SECRET_KEY, run it with OLD_SECRET_KEY set
                    to the previous value, or the channels cannot be read.
@@ -51,8 +52,8 @@ Fix an account:
 async function run(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   const email = option(rest, '--email')?.toLowerCase() ?? null;
-  // The one command that is about no account in particular.
-  const wholeInstance = command === 'reseal';
+  // The commands that are about no account named on the command line.
+  const wholeInstance = command === 'reseal' || command === 'create-admin';
   if (command === undefined || (!wholeInstance && (email === null || !/^[^@\s]+@[^@\s]+$/.test(email)))) {
     throw new SupportError(USAGE);
   }
@@ -75,14 +76,13 @@ function dispatch(
   args: string[],
 ): Promise<string> {
   if (command === 'reseal') return commands.reseal(process.env.OLD_SECRET_KEY);
+  if (command === 'create-admin') return commands.createAdmin();
   if (address === null) throw new SupportError(USAGE);
   const email = address;
 
   switch (command) {
     case 'show':
       return commands.show(email);
-    case 'create-admin':
-      return commands.createAdmin(email);
     case 'recovery-codes':
       return commands.recoveryCodes(email);
     case 'reset-password':

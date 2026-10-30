@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AccessModule } from './access/access.module';
+import { AdminModule } from './admin/admin.module';
 import { AuthGuard } from './access/auth.guard';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { AuthModule } from './auth/auth.module';
@@ -40,6 +41,7 @@ import { RetentionModule } from './retention/retention.module';
     BillingModule,
     RetentionModule,
     HealthModule,
+    AdminModule,
   ],
   providers: [
     // Order matters: rate limiting runs before authentication, so an unauthenticated

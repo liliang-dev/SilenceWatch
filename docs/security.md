@@ -73,11 +73,13 @@ and making new recovery codes need a sign-in from the last ten minutes.** A sess
 that lasts a month proves little about who is at the keyboard now; this makes the
 destructive and the access-granting actions ask again.
 
-The **first account** is the one nobody can invite, and no email proves its address,
-so while it is unclaimed sign-up is closed except to a one-time link that reaches only
-the person who can read the server log. The token in it is high-entropy, stored only
-as its SHA-256, sent in the part of the URL a browser never transmits, valid for 30
-minutes and spent on use.
+The **administrator account** (`ADMIN_EMAIL`, required) sees the instance's figures
+and internals, and no email proves its address, so it can only be created with a
+one-time link that reaches only the person who can read the server log, whether
+sign-up is open or not. The token in it is high-entropy, stored only as its SHA-256,
+sent in the part of the URL a browser never transmits, valid for 30 minutes, spent on
+use, and opens nothing for any other address. Its routes answer 404 to every other
+account and 401 to an API key, and send `Cache-Control: no-store`.
 
 The client address that rate limits and sign-up rules depend on is written by the
 server into a header of its own on every request, replacing whatever the caller sent;

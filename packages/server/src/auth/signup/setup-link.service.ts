@@ -9,14 +9,13 @@ const SETUP_LINK_TTL_MS = 30 * 60_000;
 const identifierOf = (token: string): string => `setup:${sha256Hex(token)}`;
 
 /**
- * The one-time link that lets a given address create an account when sign-up is
- * otherwise closed.
+ * The one-time link that creates the administrator's account (ADMIN_EMAIL), and the
+ * only way to create it.
  *
- * Two uses, one mechanism. The first account of an instance has no one to invite
- * it, and nothing proves the address it claims is its owner's: no mail is sent. The
- * link, printed in the server log or by the command line, stands in for that proof,
- * because only whoever runs the server can read it. And an instance that has closed
- * sign-up (SIGNUP_ENABLED=false) opens it for one more person the same way.
+ * Nothing proves that an address typed into a form is its owner's: no mail is sent.
+ * The link, printed in the server log or by the command line, stands in for that
+ * proof, because only whoever runs the server can read it. It is made for the
+ * administrator's address and for no other.
  *
  * The token is high-entropy and stored only as its SHA-256. It rides in the URL
  * fragment, which a browser never sends, so it reaches neither an access log nor a
@@ -29,19 +28,25 @@ export class SetupLinkService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async issue(email: string): Promise<{ url: string; expiresAt: Date }> {
+  /** A link for the administrator's address. */
+  async issue(): Promise<{ email: string; url: string; expiresAt: Date }> {
+    const email = this.config.ADMIN_EMAIL;
     const token = randomToken(32);
     const expiresAt = new Date(Date.now() + SETUP_LINK_TTL_MS);
     await this.prisma.verification.create({
-      data: { identifier: identifierOf(token), value: email.toLowerCase(), expiresAt },
+      data: { identifier: identifierOf(token), value: email, expiresAt },
     });
-    const query = new URLSearchParams({ email: email.toLowerCase() });
-    return { url: `${this.config.baseUrl}/setup?${query.toString()}#${token}`, expiresAt };
+    const query = new URLSearchParams({ email });
+    return { email, url: `${this.config.baseUrl}/setup?${query.toString()}#${token}`, expiresAt };
   }
 
-  /** Whether the token is live and was issued for this address. Does not spend it. */
+  /**
+   * Whether the token is live, was issued for this address, and this address is the
+   * administrator's: a link left from a version that issued them for anyone, or one
+   * for an address ADMIN_EMAIL no longer names, opens nothing. Does not spend it.
+   */
   async accepts(token: string | null, email: string): Promise<boolean> {
-    if (token === null || token === '') return false;
+    if (token === null || token === '' || email.toLowerCase() !== this.config.ADMIN_EMAIL) return false;
     const row = await this.prisma.verification.findFirst({
       where: { identifier: identifierOf(token), expiresAt: { gt: new Date() } },
     });

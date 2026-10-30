@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from 'better-auth';
 import { SetupLinkService } from '../src/auth/signup/setup-link.service';
 import { Browser } from './utils/browser';
-import { createTestApp, type TestApp } from './utils/test-app';
+import { createTestApp, TEST_ADMIN_EMAIL, type TestApp } from './utils/test-app';
 import { VirtualAuthenticator } from './utils/virtual-authenticator';
 
 const BASE_URL = 'http://localhost:8080';
@@ -192,7 +192,7 @@ describe('passkeys, Google and Microsoft', () => {
       const closed = await createTestApp({ ...ENV, SIGNUP_ENABLED: 'false' }, standIn);
       try {
         const browser = new Browser(closed.app, BASE_URL);
-        const claims = { sub: 'g-3', email: 'invited@example.test', email_verified: true };
+        const claims = { sub: 'g-3', email: TEST_ADMIN_EMAIL, email_verified: true };
         const refused = await browser.send('POST', '/api/auth/sign-in/social', {
           payload: { provider: 'google', idToken: { token: JSON.stringify({ name: 'x', ...claims }) } },
         });
@@ -200,7 +200,7 @@ describe('passkeys, Google and Microsoft', () => {
         expect(await closed.prisma.user.count()).toBe(0);
 
         // The link travels in a cookie, which survives the trip to the provider and back.
-        const { url } = await closed.app.get(SetupLinkService).issue('invited@example.test');
+        const { url } = await closed.app.get(SetupLinkService).issue();
         const accepted = await browser.send('POST', '/api/auth/sign-in/social', {
           headers: { cookie: `sw_setup=${url.split('#')[1]}` },
           payload: { provider: 'google', idToken: { token: JSON.stringify({ name: 'x', ...claims }) } },

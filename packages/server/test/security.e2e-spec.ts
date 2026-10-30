@@ -1,6 +1,12 @@
 import type { CheckDto, CreatedApiKeyDto, NotificationChannelDto } from '@silencewatch/shared';
 import { randomUUID } from 'node:crypto';
-import { auth, createTestApp, registerUser, type TestApp } from './utils/test-app';
+import {
+  auth,
+  createTestApp,
+  registerAdmin,
+  registerUser,
+  type TestApp,
+} from './utils/test-app';
 
 /**
  * Authentication and tenant isolation. These are the tests that must never go
@@ -43,9 +49,10 @@ describe('access control', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it('shows the server internals to whoever runs the instance, and to no other account', async () => {
-      const operator = await registerUser(context);
+    it('shows the server internals to the administrator, and to no other account', async () => {
+      // Created first, which once was what made an account the operator's.
       const customer = await registerUser(context);
+      const operator = await registerAdmin(context);
 
       const own = await context.app.inject({ method: 'GET', url: '/api/v1/status', headers: auth(operator.token) });
       expect(own.statusCode).toBe(200);
@@ -390,7 +397,8 @@ describe('heartbeat ingestion under a ping-URL scan', () => {
   });
 
   it('stops paying for the scan, without ever calling a real key unknown', async () => {
-    const user = await registerUser(context);
+    // The administrator, who alone may read the cache counters below.
+    const user = await registerAdmin(context);
     const check = await context.app.inject({
       method: 'POST',
       url: `/api/v1/projects/${user.projectId}/checks`,

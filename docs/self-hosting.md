@@ -23,6 +23,7 @@ Fill in at least:
 SECRET_KEY=$(openssl rand -hex 32)        # all signing keys derive from this
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 BASE_URL=https://watch.example.com        # what your users actually type
+ADMIN_EMAIL=you@example.com               # your address: the administrator account
 ```
 
 Then:
@@ -31,18 +32,19 @@ Then:
 docker compose up -d
 ```
 
-**On a server reachable from the internet, set `ADMIN_EMAIL` before the first start.**
-Without it, the first account is whoever reaches the sign-up page first, and that may
-not be you. With it, sign-up is closed to everyone but a one-time link for that address,
-printed in the server log (`docker compose logs silencewatch`); it works once and expires
-after 30 minutes. On your own machine or a private network you can leave it out.
+Then create your account with the one-time link the server prints in its log
+(`docker compose logs silencewatch`): it is the only way to create the account of
+`ADMIN_EMAIL`, works once and expires after 30 minutes, and a new one is printed at
+every start until the account exists. That account is the administrator's, the only
+one that sees the instance's statistics (*Settings › Statistics*).
 
-Create the first account at `BASE_URL`, with that link if you set `ADMIN_EMAIL`. People sign in with a passkey by default,
-which browsers only accept on `https://` or `localhost`: on a plain-`http://` address
-set `AUTH_MODE=password`, or the server refuses to start and says why. Once your
-team is in, set `SIGNUP_ENABLED=false` and restart; more people can still be let in
-one at a time. [`authentication.md`](authentication.md) has the sign-in methods, the
-first account and what to do when someone is locked out.
+People sign in with a passkey by default, which browsers only accept on `https://` or
+`localhost`: on a plain-`http://` address set `AUTH_MODE=password`, or the server
+refuses to start and says why. Anyone else may then sign up while `SIGNUP_ENABLED=true`;
+once your team is in, set `SIGNUP_ENABLED=false` and restart, and no account but the
+administrator's can be created any more. [`authentication.md`](authentication.md) has
+the sign-in methods, the administrator account and what to do when someone is locked
+out.
 
 ## Configuration
 
@@ -130,8 +132,8 @@ what the server checks at startup.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `ADMIN_EMAIL` | — | The address of the first account. While none exists, sign-up is closed to everyone but a one-time link for this address, printed in the server log. Set it on any instance reachable from the internet |
-| `SIGNUP_ENABLED` | `true` | When false, only someone holding a one-time setup link can create an account |
+| `ADMIN_EMAIL` | — | **Required.** The administrator's address. Its account sees the instance's statistics, and can only be created with the one-time link printed in the server log |
+| `SIGNUP_ENABLED` | `true` | Whether anyone may create an account. When false, the administrator's is the only one that can be |
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |
 | `SIGNUP_MAX_PER_NETWORK_PER_HOUR` | `0` | Accounts per hour per network prefix; 0 disables it |

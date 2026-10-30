@@ -10,13 +10,40 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+**Set `ADMIN_EMAIL` before upgrading: the server no longer starts without it.** Put your
+own address, the one of the account you sign in with if it exists already. In Compose and
+Swarm the deploy stops and names the variable; on the hosted service, add it to the server's
+env file before the release deploys.
+
+### Added
+
+- **Statistics, for the administrator only.** *Settings › Statistics* shows the instance's
+  figures: registered accounts and checks (with what was added in the last 30 days and a small
+  chart of their growth), live subscriptions to each paid plan, and the alert emails sent in the
+  last 30 days, day by day. Counts only: nothing names an account, a check or an address. The
+  tab is shown to the administrator's account alone, and the route behind it
+  (`GET /api/v1/admin/stats`) answers 404 to every other account, 401 to an API key, and is never
+  cached (`Cache-Control: no-store`).
+
 ### Changed
 
-- **The self-hosting pages say to set `ADMIN_EMAIL` on a server reachable from the internet.**
-  Left out, the first account is whoever reaches the sign-up page first. The setting was only
-  explained in the authentication guide; it is now in the self-hosting guide's configuration
-  table and quick start, in the site's self-hosting page (in English and in French), in the
-  README and in `.env.example`.
+- **`ADMIN_EMAIL` is required, and names the administrator.** The account with that address is
+  the only one that sees the statistics and the server internals (`GET /api/v1/status`). It can
+  be created only with the one-time link the server prints in its log, whether sign-up is open or
+  not, so nobody else can register the address. The server prints a new link at every start
+  until that account exists, and `silencewatch create-admin` prints one on demand.
+- **Sign-up has two rules instead of four.** The administrator's address: with its link only.
+  Every other address: while `SIGNUP_ENABLED=true`. With `SIGNUP_ENABLED=false`, the
+  administrator's account is the only one that can be created. What these replace:
+  - the first account of an empty instance is no longer whoever arrives first;
+  - setup links are no longer made for other addresses: `create-admin` takes no `--email` and
+    makes the administrator's link, and a link made by an earlier version for another address
+    opens nothing. To let someone into a closed instance, open sign-up for the time it takes;
+  - the first account no longer skips the abuse limits; the administrator's, created with its
+    link, does.
+- The self-hosting guide, the site's self-hosting pages (in English and in French), the README
+  and `.env.example` say all this where people start, and `.env.example` lists `ADMIN_EMAIL`
+  among the required settings.
 
 ## [0.7.0] — 2026-10-29
 

@@ -10,6 +10,7 @@ const user: UserDto = {
   email: 'a@example.test',
   name: null,
   createdAt: '2026-01-01T00:00:00Z',
+  admin: false,
 };
 
 describe('AuthService', () => {

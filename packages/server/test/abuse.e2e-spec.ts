@@ -23,7 +23,6 @@ describe('one account per connection', () => {
 
   beforeEach(async () => {
     await context.reset();
-    // The first account of an instance is exempt from every check.
     await register('first@example.test', '198.51.100.1');
   });
 

@@ -1,5 +1,5 @@
 import { SupportCommands, SupportError } from '../src/auth/cli/support-commands';
-import { auth, createTestApp, registerUser, TEST_BASE_URL, type TestApp } from './utils/test-app';
+import { auth, createTestApp, registerAdmin, registerUser, TEST_BASE_URL, type TestApp } from './utils/test-app';
 
 /**
  * The command line of whoever runs the server, against a real database: what it
@@ -31,6 +31,17 @@ describe('support commands', () => {
     });
     return rows.map((row) => ({ command: (row.detail as { command: string }).command, detail: row.detail }));
   };
+
+  describe('create-admin', () => {
+    it("prints a link for the administrator's account, and only while it does not exist", async () => {
+      const text = await commands.createAdmin();
+      expect(text).toContain(context.config.ADMIN_EMAIL);
+      expect(text).toMatch(/\/setup\?email=admin%40example\.test#[\w-]{40,}/);
+
+      await registerAdmin(context);
+      await expect(commands.createAdmin()).rejects.toThrow(/already exists/);
+    });
+  });
 
   it('refuses an address that has no account, and changes nothing', async () => {
     await expect(commands.show('nobody@example.test')).rejects.toThrow(SupportError);

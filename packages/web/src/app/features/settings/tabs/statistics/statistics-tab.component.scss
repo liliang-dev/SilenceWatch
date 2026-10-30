@@ -1,0 +1,83 @@
+/* Five figures fit on one line of the page; fewer when the screen is narrower. */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A column, so every card puts its number at the same height whatever the length
+   of its note, and the chart keeps its own room above the note. */
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius);
+  background: var(--sw-surface);
+  min-width: 0;
+}
+
+.value {
+  font-size: 1.875rem;
+  line-height: 1.15;
+  font-weight: 700;
+  color: var(--sw-text);
+}
+
+.delta {
+  font-size: 0.8125rem;
+  color: var(--sw-text-muted);
+}
+
+.delta.up {
+  color: var(--sw-up);
+  font-weight: 600;
+}
+
+.chart {
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 44px;
+  margin: 8px 0 6px;
+}
+
+.area {
+  fill: var(--sw-accent-soft);
+  opacity: 0.8;
+}
+
+.line {
+  fill: none;
+  stroke: var(--sw-accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.bars {
+  fill: var(--sw-brand);
+  opacity: 0.75;
+}
+
+.note {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.updated {
+  margin: 14px 0 0;
+  font-size: 0.75rem;
+}
+
+/* Side by side, a label that takes two lines would push its number below its
+   neighbours'; every label keeps room for two, so the numbers line up. */
+@media (min-width: 821px) {
+  .figure > .sw-label {
+    min-height: 2lh;
+  }
+}
