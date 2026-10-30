@@ -54,7 +54,7 @@ in a degraded state you would discover during an incident.
 
 ### The minimum
 
-Three values. With any of them missing the instance does not start, and says
+Four values. With any of them missing the instance does not start, and says
 which one:
 
 | Variable            | Set it to                                                  |
@@ -62,6 +62,7 @@ which one:
 | `SECRET_KEY`        | `openssl rand -hex 32`. Session cookies are signed with it, so rotating it signs everyone out, and the notification channels' webhook URLs and secrets are encrypted under it: after rotating, run `OLD_SECRET_KEY=<previous> silencewatch reseal` (see [Authentication](authentication.md#support-commands)). Keep a copy of it with your database backups: a backup is unreadable for the channels without it |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Compose builds `DATABASE_URL` from it |
 | `SMTP_URL`          | `smtp://user:password@relay.example.com:587`. Or a `POSTMARK_TOKEN` / `BREVO_API_KEY` with the matching `EMAIL_PROVIDER` |
+| `ADMIN_EMAIL`       | Your own address. It names the administrator, whose account sees the instance's statistics and can only be created with the one-time link printed in the server log |
 
 `SMTP_URL` is in that list because `docker-compose.yml` defaults
 `EMAIL_PROVIDER` to `smtp`, and a mail provider with no transport is a
@@ -132,7 +133,6 @@ what the server checks at startup.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `ADMIN_EMAIL` | — | **Required.** The administrator's address. Its account sees the instance's statistics, and can only be created with the one-time link printed in the server log |
 | `SIGNUP_ENABLED` | `true` | Whether anyone may create an account. When false, the administrator's is the only one that can be |
 | `SIGNUP_BLOCK_DISPOSABLE_EMAIL` | `false` | Reject known throwaway mailbox domains |
 | `SIGNUP_BLOCKED_EMAIL_DOMAINS` | — | Extra domains to reject, comma-separated |

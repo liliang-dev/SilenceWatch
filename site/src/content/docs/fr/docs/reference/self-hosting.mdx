@@ -9,7 +9,7 @@ import { Aside } from '@astrojs/starlight/components';
 
 Cette page résume la configuration d’une instance auto-hébergée. Pour l’installation en quatre commandes, voir la [page Auto-hébergement](/fr/self-hosted/) ; pour tout le reste (HTTPS avec Docker Swarm, sauvegardes, mises à jour, surveillance de l’instance), voir le **[guide complet, en anglais](/docs/reference/self-hosting/)**.
 
-## Les quatre valeurs à renseigner
+## Les cinq valeurs à renseigner
 
 Tout se règle par variables d’environnement, dans le fichier `.env`. Le serveur **refuse de démarrer** sur une configuration dangereuse ou incohérente, et dit laquelle, plutôt que de tourner en mode dégradé.
 
@@ -19,6 +19,7 @@ Tout se règle par variables d’environnement, dans le fichier `.env`. Le serve
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`. Le fichier Compose en construit `DATABASE_URL`. |
 | `SMTP_URL` | `smtp://utilisateur:motdepasse@relais.exemple.fr:587` (STARTTLS requis). Ou un `POSTMARK_TOKEN` / `BREVO_API_KEY` avec le `EMAIL_PROVIDER` correspondant. |
 | `BASE_URL` | L’adresse que vos utilisateurs tapent. Les URL de ping et les liens des alertes en sont construits : une mauvaise valeur distribue des liens que personne ne peut suivre. |
+| `ADMIN_EMAIL` | Votre propre adresse. Elle désigne l’administrateur, dont le compte voit les statistiques de l’instance et ne peut être créé qu’avec le lien à usage unique affiché dans le journal du serveur. |
 
 Le fournisseur d’e-mail `console` (qui écrit les alertes dans le journal) n’est pas utilisable en production : le serveur refuse de démarrer avec.
 
@@ -27,7 +28,6 @@ Le fournisseur d’e-mail `console` (qui écrit les alertes dans le journal) n�
 | Variable | Défaut | Effet |
 | --- | --- | --- |
 | `AUTH_MODE` | `passkey` | Comment on se connecte : `passkey`, `password` ou `full` (Google, Microsoft et passkey). Une passkey exige `https://` ou `localhost`. Voir le [guide d’authentification](/docs/reference/authentication/). |
-| `ADMIN_EMAIL` | — | **Obligatoire.** L’adresse de l’administrateur. Son compte voit les statistiques de l’instance, et ne peut être créé qu’avec le lien à usage unique affiché dans le journal du serveur. |
 | `SIGNUP_ENABLED` | `true` | Si n’importe qui peut créer un compte. À `false`, seul le compte administrateur peut l’être. À fixer une fois votre équipe inscrite. |
 | `PING_RETENTION_DAYS` | `90` | Durée de conservation de l’historique des pings. |
 | `AUDIT_RETENTION_DAYS` | `365` | Durée de conservation de l’historique de sécurité. |
