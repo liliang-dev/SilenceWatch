@@ -3,6 +3,7 @@
 namespace SilenceWatch\Laravel\Tests;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -173,5 +174,84 @@ final class MonitorTest extends TestCase
         $this->schedule()->command('inspire')->daily();
 
         $this->artisan('silencewatch:sync')->assertFailed();
+    }
+
+    public function test_servers_share_one_check_per_task_by_default(): void
+    {
+        $this->schedule()->exec('true')->everyMinute();
+
+        $this->artisan('schedule:run');
+
+        $this->assertCount(1, $this->syncs);
+        $this->assertSame('production', $this->syncs[0]['environment']);
+    }
+
+    public function test_per_server_tasks_are_declared_in_the_server_environment(): void
+    {
+        config()->set('silencewatch.per_instance_tasks', 'exec:true');
+        config()->set('silencewatch.instance_id', 'web-1');
+        $this->schedule()->exec('true')->everyMinute();
+        $this->schedule()->command('inspire')->daily();
+
+        $this->artisan('schedule:run');
+
+        $declared = array_column(array_map(fn ($sync) => [$sync['environment'], array_column($sync['checks'], 'key')], $this->syncs), 1, 0);
+        $this->assertSame(['production' => ['artisan:inspire'], 'production.web-1' => ['exec:true']], $declared);
+        $this->assertSame(['pk-exec:true/start', 'pk-exec:true/0'], $this->pings);
+    }
+
+    public function test_servers_sharing_a_cache_do_not_declare_again_at_every_run(): void
+    {
+        config()->set('silencewatch.per_instance_tasks', 'exec:*');
+        $this->schedule()->exec('true')->everyMinute();
+
+        foreach (['web-1', 'web-2', 'web-1', 'web-2'] as $server) {
+            config()->set('silencewatch.instance_id', $server);
+            $this->newProcess();
+            $this->artisan('schedule:run');
+        }
+
+        // One declaration per server, then the cache: not one per run.
+        $this->assertSame(['production.web-1', 'production.web-2'], array_column($this->syncs, 'environment'));
+    }
+
+    public function test_a_task_on_one_server_is_never_watched_per_server(): void
+    {
+        Log::spy();
+        config()->set('silencewatch.per_instance_tasks', '*');
+        config()->set('silencewatch.instance_id', 'web-1');
+        $this->schedule()->exec('true')->everyMinute()->onOneServer();
+
+        $this->artisan('schedule:run');
+
+        $this->assertSame(['production'], array_column($this->syncs, 'environment'));
+        Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains($message, 'onOneServer()'));
+    }
+
+    public function test_per_server_tasks_stay_shared_without_an_instance_id(): void
+    {
+        Log::spy();
+        config()->set('silencewatch.per_instance_tasks', ['exec:true']);
+        $this->schedule()->exec('true')->everyMinute();
+
+        $this->artisan('schedule:run');
+
+        $this->assertSame(['production'], array_column($this->syncs, 'environment'));
+        Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains($message, 'instance_id is missing'));
+    }
+
+    public function test_the_server_environment_is_one_silencewatch_accepts(): void
+    {
+        config()->set('silencewatch.per_instance_tasks', 'exec:true');
+        config()->set('silencewatch.instance_id', 'billing-reconciliation@worker-statefulset-12');
+        $this->schedule()->exec('true')->everyMinute();
+
+        $this->artisan('schedule:run');
+
+        $environment = $this->syncs[0]['environment'];
+        $this->assertSame(40, strlen($environment));
+        $this->assertStringStartsWith('production.', $environment);
+        $this->assertStringEndsWith('worker-statefulset-12', $environment);
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9._-]+$/', $environment);
     }
 }

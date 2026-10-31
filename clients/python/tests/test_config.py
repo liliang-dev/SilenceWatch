@@ -59,3 +59,24 @@ def test_an_unknown_keyword_is_a_programming_error_and_says_so():
 
 def test_disabled_is_not_usable_even_with_a_key():
     assert not Config.resolve(environ={}, api_key="k", enabled=False).usable
+
+
+def test_per_instance_settings_come_from_the_environment():
+    config = Config.resolve(environ={
+        "SILENCEWATCH_PER_INSTANCE_JOBS": "apscheduler:evict, apscheduler:tmp-*",
+        "SILENCEWATCH_INSTANCE_ID": "web-1",
+    })
+    assert config.per_instance_jobs == ("apscheduler:evict", "apscheduler:tmp-*")
+    assert config.is_per_instance("apscheduler:evict")
+    assert config.is_per_instance("apscheduler:tmp-sweep")
+    assert not config.is_per_instance("apscheduler:evict-all")
+    assert config.instance_environment == "production.web-1"
+
+
+def test_the_instance_environment_is_one_the_server_accepts():
+    assert Config.resolve(environ={}).instance_environment is None
+    assert Config.resolve(environ={}, instance_id="web@host:80").instance_environment == "production.web-host-80"
+    long_name = Config.resolve(environ={}, instance_id="billing-reconciliation-worker-statefulset-12")
+    assert len(long_name.instance_environment) == 40
+    assert long_name.instance_environment.endswith("statefulset-12")
+    assert Config.resolve(environ={}, environment="e" * 39, instance_id="x").instance_environment is None

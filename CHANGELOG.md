@@ -20,6 +20,12 @@ called out under **Changed** with what to do about it.
   each instance then declares them in an environment of its own (`production.app-0`) and has its
   own checks. No default for the instance's name, since one that changes at every deploy would
   leave a check behind each time. Without it, the listed jobs stay shared, with a warning.
+- **The same for the Python library and the Laravel package.** APScheduler runs in every process
+  and a Laravel task without `->onOneServer()` on every server, with the same blind spot:
+  `per_instance_jobs` / `instance_id` (Python) and `SILENCEWATCH_PER_INSTANCE_TASKS` /
+  `SILENCEWATCH_INSTANCE_ID` (Laravel) do what the starter's settings do. Celery tasks and
+  `->onOneServer()` tasks, which one worker or server runs at a time, are never watched per
+  instance: the libraries say so and keep them shared.
 
 ### Changed
 

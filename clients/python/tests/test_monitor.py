@@ -110,3 +110,41 @@ def test_a_failed_declaration_is_tried_again_at_the_next_heartbeat_but_not_every
     monitor.succeeded("celery:a", 1)  # a minute later the declaration goes through, then the heartbeat
     assert len(server.syncs) == 2
     assert server.wait_pings(1) == [("pk-celery:a", "/0")]
+
+
+def test_replicas_share_one_check_by_default(monitor, server):
+    monitor.attach(Fake("apscheduler", [job("apscheduler:evict"), job("apscheduler:report")]))
+    assert len(server.syncs) == 1
+    assert server.syncs[0]["environment"] == "test"
+
+
+def test_per_instance_jobs_are_declared_in_the_instance_environment(server):
+    config = Config.resolve(environ={}, api_key="k", base_url=server.url, environment="production",
+                            per_instance_jobs=["apscheduler:evict"], instance_id="web-1", timeout=3.0)
+    monitor = Monitor(config)
+    monitor.attach(Fake("apscheduler", [job("apscheduler:evict"), job("apscheduler:report")]))
+
+    by_environment = {sync["environment"]: [c["key"] for c in sync["checks"]] for sync in server.syncs}
+    assert by_environment == {"production": ["apscheduler:report"], "production.web-1": ["apscheduler:evict"]}
+
+    monitor.succeeded("apscheduler:evict", 5)
+    assert server.wait_pings(1) == [("pk-apscheduler:evict", "/0")]
+
+
+def test_per_instance_jobs_stay_shared_without_an_instance_id(server, caplog):
+    config = Config.resolve(environ={}, api_key="k", base_url=server.url, environment="production",
+                            per_instance_jobs=["apscheduler:*"], timeout=3.0)
+    with caplog.at_level(logging.WARNING, logger="silencewatch"):
+        Monitor(config).attach(Fake("apscheduler", [job("apscheduler:evict")]))
+    assert [sync["environment"] for sync in server.syncs] == ["production"]
+    assert "instance_id is missing" in caplog.text
+
+
+def test_a_celery_task_is_never_watched_per_instance(server, caplog):
+    # One worker runs each run: on every other worker the check would go down.
+    config = Config.resolve(environ={}, api_key="k", base_url=server.url, environment="production",
+                            per_instance_jobs=["*"], instance_id="worker-1", timeout=3.0)
+    with caplog.at_level(logging.WARNING, logger="silencewatch"):
+        Monitor(config).attach(Fake("celery", [job("celery:shop.tasks.nightly")]))
+    assert [sync["environment"] for sync in server.syncs] == ["production"]
+    assert "cannot be watched per instance" in caplog.text

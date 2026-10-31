@@ -34,6 +34,18 @@ return [
     // declaration leaves out. Set to false when several applications share one.
     'prune' => (bool) env('SILENCEWATCH_PRUNE', true),
 
+    // Tasks that have to run on every server (a local cache to clear, temporary
+    // files to delete), each watched on its own: keys as declared
+    // (artisan:cache:prune-local), comma-separated, a trailing * for a prefix.
+    // Every other task is one check for all the servers, up while any of them
+    // reports it. Needs instance_id. Tasks with onOneServer() stay shared.
+    'per_instance_tasks' => env('SILENCEWATCH_PER_INSTANCE_TASKS', ''),
+
+    // This server's name, for per_instance_tasks. It must stay the same across
+    // restarts and deploys: one that changes would leave checks behind that go
+    // down. So there is no default.
+    'instance_id' => env('SILENCEWATCH_INSTANCE_ID'),
+
     // Where the ping keys are kept between two runs of the scheduler. null is the
     // default cache store.
     'cache_store' => env('SILENCEWATCH_CACHE_STORE'),

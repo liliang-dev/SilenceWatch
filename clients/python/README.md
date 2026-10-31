@@ -111,11 +111,46 @@ number of seconds.
 | `queue_capacity` | `SILENCEWATCH_QUEUE_CAPACITY` | `1000` | Bounded, oldest dropped when full |
 | `timezone` | `SILENCEWATCH_TIMEZONE` | `UTC` | For cron jobs whose own schedule carries none |
 | `prune` | `SILENCEWATCH_PRUNE` | `true` | See below |
+| `per_instance_jobs` | `SILENCEWATCH_PER_INSTANCE_JOBS` | — | Jobs watched on each instance, see [Several instances](#several-instances) |
+| `instance_id` | `SILENCEWATCH_INSTANCE_ID` | — | This instance's stable name, for `per_instance_jobs` |
 
 `prune` flags as orphaned every check of the project and environment that the
 declaration leaves out. Use **one environment per application**; if several services
 share one project and environment, set `prune=False`, or each would orphan the
 others' checks.
+
+## Several instances
+
+When an application runs as several processes or servers, they all declare the same jobs in the
+same environment, so each job is **one check for all of them: it is up while any of them reports
+it**.
+
+- **Celery** (and django-celery-beat): beat hands each run to one worker, whichever it is, and the
+  check hears from it. That is the right rule, and the only one.
+- **APScheduler** runs inside each process. Started in every Gunicorn worker or every replica, a
+  job runs once per process, and the check stays up while one of them runs it: a process whose
+  scheduler is stuck goes unnoticed while another works. If the job should run once, start the
+  scheduler in one process only; if it has to run in every one, read on.
+
+**Jobs that have to run in every instance** (clearing a local cache, deleting temporary files)
+can be monitored on each one:
+
+```python
+instrument(scheduler, per_instance_jobs=["apscheduler:evict-cache", "apscheduler:tmp-*"],
+           instance_id=os.environ["HOSTNAME"])
+```
+
+or `SILENCEWATCH_PER_INSTANCE_JOBS=apscheduler:evict-cache,apscheduler:tmp-*` and
+`SILENCEWATCH_INSTANCE_ID`. Those jobs are declared in an environment of the instance's own,
+`production.web-1`, so each instance has its own check and one going quiet is seen while the
+others report. A trailing `*` matches a prefix; every other job stays shared. Celery tasks are
+never watched per instance, since one worker runs each run: the library says so and keeps them
+shared.
+
+`instance_id` has **no default, and must stay the same across restarts and deploys** (a
+StatefulSet pod's name, a server's hostname): a name that changes at every deploy would leave
+checks behind that nothing reports to, and they would go down. Without it, the listed jobs are
+watched as shared, with a warning. When you remove an instance for good, delete its checks.
 
 ## Rules it will not break
 
