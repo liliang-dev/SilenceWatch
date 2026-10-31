@@ -62,6 +62,8 @@ export default defineConfig({
       head: [
         // Sends a browser set to French to /fr/, unless a language was chosen.
         { tag: 'script', attrs: { src: '/lang-redirect.js' } },
+        // The window's width without its scrollbar, for the full-width sections.
+        { tag: 'script', attrs: { src: '/viewport-width.js' } },
         // The text face, fetched with the page rather than after the stylesheet.
         {
           tag: 'link',

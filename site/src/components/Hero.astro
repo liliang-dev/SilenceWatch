@@ -410,8 +410,8 @@ const after = index;
     --f-base: 0.5;
     position: relative;
     isolation: isolate;
-    width: 100vw;
-    margin-inline: calc(50% - 50vw);
+    width: var(--sw-vw, 100vw);
+    margin-inline: calc(50% - var(--sw-vw, 100vw) / 2);
     /* Under the see-through header: the field starts at the top of the window. */
     margin-top: calc(-1 * var(--sw-hero-lift));
     padding-top: var(--sw-hero-lift);

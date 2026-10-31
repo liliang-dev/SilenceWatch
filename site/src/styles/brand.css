@@ -100,6 +100,14 @@ body::before {
 
 /* The fonts are served by the site itself: nothing here fetches from a third party. */
 
+/* Nothing on the site is meant to scroll sideways. The full-width sections are
+   sized to the window without its scrollbar (public/viewport-width.js); this is
+   the guarantee if that script has not run. Clip, unlike hidden, leaves sticky
+   elements working. */
+html {
+  overflow-x: clip;
+}
+
 /* --- the home page (its hero is src/components/Hero.astro) ------------------- */
 
 /* The opening paragraph of a landing page, under its title. */
@@ -715,8 +723,8 @@ starlight-theme-select svg.label-icon {
 /* On the home page, whose sections are laid out on a wider column (Home.astro),
    the footer takes the same column, so that its edges line up with theirs. */
 [data-has-hero] .sw-footer {
-  width: min(100vw, 84rem);
-  margin-inline: calc(50% - min(50vw, 42rem));
+  width: min(var(--sw-vw, 100vw), 84rem);
+  margin-inline: calc(50% - min(var(--sw-vw, 100vw) / 2, 42rem));
   padding-inline: clamp(1.25rem, 4vw, 3.5rem);
   border-top: 0;
   background: linear-gradient(var(--sl-color-hairline), var(--sl-color-hairline)) no-repeat top / calc(100% - 2 * clamp(1.25rem, 4vw, 3.5rem)) 1px;

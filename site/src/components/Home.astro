@@ -316,8 +316,8 @@ const runs = ['1 min 12 s', '1 min 09 s', '1 min 15 s'];
     --pad: clamp(1.25rem, 4vw, 3.5rem);
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
-    width: 100vw;
-    margin-inline: calc(50% - 50vw);
+    width: var(--sw-vw, 100vw);
+    margin-inline: calc(50% - var(--sw-vw, 100vw) / 2);
   }
 
   :root[data-theme='light'] .sw-home {
