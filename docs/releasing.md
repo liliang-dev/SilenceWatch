@@ -171,7 +171,7 @@ that tag only, and the Release workflow never sees it.
 
 3. Watch [Actions → Java release](https://github.com/liliang-dev/SilenceWatch/actions/workflows/java-release.yml).
    It checks that the commit is on `main` and that the README gives the version,
-   takes the number from the tag (the repository keeps the version last released, `0.1.0`), runs the
+   takes the number from the tag (the repository keeps the version last released, `0.2.0`), runs the
    tests, builds the jar with its sources and javadoc, signs everything, and
    uploads it to the Portal.
 4. **Publish it by hand**: open <https://central.sonatype.com/publishing/deployments>,

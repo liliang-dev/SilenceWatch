@@ -70,7 +70,7 @@ needed: no check to create, no URL to paste into a job.
    <dependency>
      <groupId>com.silencewatch</groupId>
      <artifactId>silencewatch-spring-boot-starter</artifactId>
-     <version>0.1.0</version>
+     <version>0.2.0</version>
    </dependency>
    ```
 
@@ -125,7 +125,7 @@ and they bring no heavy dependency.
 <dependency>
   <groupId>com.silencewatch</groupId>
   <artifactId>silencewatch-spring-boot-starter</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 

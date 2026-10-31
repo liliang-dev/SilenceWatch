@@ -3,7 +3,7 @@
 A plain Spring Boot application with two scheduled jobs and no monitoring code.
 Adding the starter and an API key is the entire integration.
 
-The starter, 0.1.0, is downloaded from Maven Central. Create an API key in your project's
+The starter, 0.2.0, is downloaded from Maven Central. Create an API key in your project's
 Settings page, then:
 
 ```bash

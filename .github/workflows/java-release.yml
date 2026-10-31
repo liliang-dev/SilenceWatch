@@ -2,7 +2,7 @@ name: Java release
 
 # Publishes the Spring Boot starter to Maven Central, for a tag of its own.
 #
-# The starter has a version of its own (0.1.0) and the application another (0.8.0),
+# The starter has a version of its own (0.2.0) and the application another (0.8.0),
 # so they are tagged apart: `java-spring-boot-0.1.1` here, `0.8.0` for the Release workflow.
 # The tag names the language and the package (`java-spring-boot-`, as `php-laravel-` does
 # for Laravel); the Python library, one package for every scheduler, is `python-0.1.0`. A
@@ -102,7 +102,7 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      # The repository keeps the version last released (0.1.0); the release takes
+      # The repository keeps the version last released (0.2.0); the release takes
       # its number from the tag, in the build and nowhere else.
       - name: Set the version from the tag
         working-directory: clients/java/spring-boot
