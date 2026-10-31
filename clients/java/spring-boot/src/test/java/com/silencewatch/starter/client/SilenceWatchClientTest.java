@@ -101,6 +101,15 @@ class SilenceWatchClientTest {
     }
 
     @Test
+    void declaresInTheEnvironmentItIsGiven() {
+        client.sync(List.of(DiscoveredJob.interval(
+                "com.acme.Cache#evict", "Cache.evict", Duration.ofMinutes(5), Duration.ofMinutes(1))),
+                "production.app-0");
+
+        assertThat(bodies.get(0)).startsWith("{\"environment\":\"production.app-0\"");
+    }
+
+    @Test
     void declaresIntervalJobsInSeconds() {
         client.sync(List.of(DiscoveredJob.interval(
                 "com.acme.PollJob#poll", "PollJob.poll", Duration.ofMinutes(15), Duration.ofMinutes(1))));

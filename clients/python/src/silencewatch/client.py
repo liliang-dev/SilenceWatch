@@ -33,7 +33,9 @@ class SilenceWatchClient:
     def __init__(self, config: Config) -> None:
         self._config = config
 
-    def sync(self, jobs: Sequence[DiscoveredJob], source: str = "python") -> dict[str, str]:
+    def sync(
+        self, jobs: Sequence[DiscoveredJob], source: str = "python", environment: Optional[str] = None
+    ) -> dict[str, str]:
         """Declare the jobs; return their ping keys, indexed by job key.
 
         An empty result means the declaration did not go through. The caller
@@ -41,7 +43,7 @@ class SilenceWatchClient:
         """
         if not jobs:
             return {}
-        body = json.dumps(self.build_payload(jobs, source)).encode("utf-8")
+        body = json.dumps(self.build_payload(jobs, source, environment)).encode("utf-8")
         request = urllib.request.Request(
             self._config.normalised_base_url + "/api/v1/checks/sync",
             data=body,
@@ -79,9 +81,12 @@ class SilenceWatchClient:
         except (OSError, ValueError):
             return False
 
-    def build_payload(self, jobs: Sequence[DiscoveredJob], source: str) -> dict[str, object]:
+    def build_payload(
+        self, jobs: Sequence[DiscoveredJob], source: str, environment: Optional[str] = None
+    ) -> dict[str, object]:
+        """The declaration, in ``environment`` or else the configured one."""
         return {
-            "environment": self._config.environment,
+            "environment": environment or self._config.environment,
             "source": source[:60],
             "prune": self._config.prune,
             "checks": [self._job(job) for job in jobs],

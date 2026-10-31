@@ -68,12 +68,48 @@ Des variables d’environnement. Publiez le fichier de configuration avec `php a
 | `SILENCEWATCH_TIMEOUT` | `2` | Secondes par requête |
 | `SILENCEWATCH_PRUNE` | `true` | `false` quand plusieurs applications partagent un projet et un environnement |
 | `SILENCEWATCH_CACHE_STORE` | le magasin par défaut | Où les clés de ping sont gardées entre deux exécutions |
+| `SILENCEWATCH_PER_INSTANCE_TASKS` | aucun | Tâches surveillées sur chaque serveur, voir plus bas |
+| `SILENCEWATCH_INSTANCE_ID` | aucun | Le nom stable du serveur, pour ces tâches |
 
 Les tâches limitées à certains environnements (`->environments('production')`) ne sont déclarées que depuis ceux-ci. Les fuseaux horaires sont ceux de la tâche (`->timezone()`), sinon `app.schedule_timezone`, sinon `app.timezone`.
 
 <Aside type="tip">
 Utilisez **un environnement par application**. `SILENCEWATCH_PRUNE` marque comme orphelin chaque check du projet et de l’environnement que la déclaration omet ; si plusieurs services partagent les deux, mettez-le à `false`, sinon chacun orphelinerait les checks des autres.
 </Aside>
+
+## Plusieurs serveurs
+
+Quand le planificateur tourne sur plusieurs serveurs, tous déclarent les mêmes tâches dans le
+même environnement : chaque tâche est donc **un seul check pour tous, en bonne santé tant que l’un
+d’eux la signale**.
+
+- Une tâche avec **`->onOneServer()`** tourne sur un serveur à la fois, et le check l’entend quel
+  qu’il soit. C’est la bonne règle.
+- Une tâche **sans** elle tourne sur chaque serveur. Le check reste en bonne santé tant que l’un
+  d’eux l’exécute : un serveur dont le planificateur est bloqué (son entrée cron disparue, par
+  exemple) passe inaperçu pendant qu’un autre travaille. Si la tâche doit tourner une seule fois,
+  ajoutez `->onOneServer()` ; si elle doit tourner partout, lisez la suite.
+
+**Les tâches qui doivent tourner sur chaque serveur** (vider un cache local, supprimer des
+fichiers temporaires) peuvent être surveillées sur chacun :
+
+```dotenv
+SILENCEWATCH_PER_INSTANCE_TASKS=artisan:cache:prune-local,exec:*
+SILENCEWATCH_INSTANCE_ID=web-1
+```
+
+Ces tâches sont déclarées dans un environnement propre au serveur, `production.web-1` : chaque
+serveur a son check, et celui qui se tait est vu pendant que les autres signalent. Un `*` final
+désigne un préfixe ; les autres tâches restent partagées. Une tâche avec `->onOneServer()` n’est
+jamais surveillée par serveur, puisqu’un seul serveur exécute chaque exécution : le paquet le
+signale et la garde partagée. Les clés de ping sont mises en cache par serveur, si bien que des
+serveurs qui partagent un cache ne redéclarent pas à chaque exécution.
+
+`SILENCEWATCH_INSTANCE_ID` n’a **pas de valeur par défaut, et doit rester le même d’un redémarrage
+et d’un déploiement à l’autre** (le nom d’hôte d’un serveur) : un nom qui change laisserait des
+checks que plus rien ne signale, et qui tomberaient en panne. Sans lui, les tâches listées sont
+surveillées comme partagées, avec un avertissement. Quand vous retirez un serveur pour de bon,
+supprimez ses checks.
 
 ## Règles qu’il ne transgresse pas
 

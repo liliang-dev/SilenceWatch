@@ -5,6 +5,14 @@ The Laravel package is versioned apart from the application, and tagged
 
 ## [Unreleased]
 
+- **Tasks watched on each server.** Servers running the scheduler declare the same tasks, so
+  each task is one check, up while any of them reports it: right for `->onOneServer()`, but a
+  server whose scheduler stopped went unnoticed while another worked, for tasks that run
+  everywhere. `SILENCEWATCH_PER_INSTANCE_TASKS` with a stable `SILENCEWATCH_INSTANCE_ID`
+  declares the listed tasks in an environment of the server's own (`production.web-1`), and the
+  ping keys are cached per server. No default name; without one, or for an `->onOneServer()`
+  task, the task stays shared, with a warning. The README says what a check means across servers.
+
 ## [0.1.0]
 
 First release.

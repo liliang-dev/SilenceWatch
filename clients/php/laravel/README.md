@@ -76,10 +76,43 @@ you need to compute one in PHP.
 | `SILENCEWATCH_TIMEOUT` | `2` | Seconds per request |
 | `SILENCEWATCH_PRUNE` | `true` | `false` when several applications share a project and environment |
 | `SILENCEWATCH_CACHE_STORE` | default store | Where the ping keys are kept between runs |
+| `SILENCEWATCH_PER_INSTANCE_TASKS` | — | Tasks watched on each server, see [Several servers](#several-servers) |
+| `SILENCEWATCH_INSTANCE_ID` | — | This server's stable name, for the tasks above |
 
 Tasks limited to some environments (`->environments('production')`) are declared only
 from those environments. Time zones are the task's own (`->timezone()`), else
 `app.schedule_timezone`, else `app.timezone`.
+
+## Several servers
+
+When the scheduler runs on several servers, they all declare the same tasks in the same
+environment, so each task is **one check for all of them: it is up while any of them reports
+it**.
+
+- A task with **`->onOneServer()`** runs on one server at a time, and the check hears from
+  whichever it is. That is the right rule.
+- A task **without** it runs on every server. The check stays up while one of them runs it, so a
+  server whose scheduler is stuck (its cron entry gone, say) goes unnoticed while another works.
+  If the task should run once, add `->onOneServer()`; if it has to run everywhere, read on.
+
+**Tasks that have to run on every server** (clearing a local cache, deleting temporary files) can
+be watched on each one:
+
+```dotenv
+SILENCEWATCH_PER_INSTANCE_TASKS=artisan:cache:prune-local,exec:*
+SILENCEWATCH_INSTANCE_ID=web-1
+```
+
+Those tasks are declared in an environment of the server's own, `production.web-1`, so each
+server has its own check and one going quiet is seen while the others report. A trailing `*`
+matches a prefix; every other task stays shared. A task with `->onOneServer()` is never watched
+per server, since one server runs each run: the package says so and keeps it shared. The ping
+keys are cached per server, so servers sharing a cache store do not declare again at every run.
+
+`SILENCEWATCH_INSTANCE_ID` has **no default, and must stay the same across restarts and deploys**
+(a server's hostname): a name that changes would leave checks behind that nothing reports to,
+and they would go down. Without it, the listed tasks are watched as shared, with a warning. When
+you remove a server for good, delete its checks.
 
 ## Rules it will not break
 

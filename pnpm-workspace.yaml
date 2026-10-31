@@ -186,3 +186,15 @@ auditConfig:
     # merge this project's own configuration files: development tooling that no
     # instance runs and that reads nothing from a user. Revisit when 4.3.2 exists.
     - GHSA-gcqx-w48m-w2h4
+    # GHSA-3g3m-2fjr-6pw4 — glob 9 to 14.0.1 keeps walking a directory tree after its
+    # AbortSignal fired, so timed-out walks of an attacker's patterns pile up.
+    # GHSA-g3hv-75wg-m249 — minimatch below 11.0.1 expands an attacker's `**/..`
+    # pattern quadratically. Both need a pattern, or a signal, from a user. The only
+    # call at run time is @fastify/static's, once at startup: glob('**/**') over the
+    # web UI's own build, with no signal. Everything else is build and test tooling
+    # (Nest CLI, jest, ts-jest) reading this repository. The fixes exist only as new
+    # majors (glob 14, minimatch 11) that the packages depending on them do not
+    # accept yet, and forcing a major under them is a worse risk than this one.
+    # Revisit when @fastify/static and the Nest CLI move: then remove both.
+    - GHSA-3g3m-2fjr-6pw4
+    - GHSA-g3hv-75wg-m249

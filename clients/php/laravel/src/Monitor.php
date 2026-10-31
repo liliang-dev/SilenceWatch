@@ -25,6 +25,9 @@ final class Monitor
 
     private const CACHE_SECONDS = 86400;
 
+    /** The longest environment name the server accepts. */
+    private const MAX_ENVIRONMENT_LENGTH = 40;
+
     /** @var array<string, string>|null task key => ping key, once known in this process */
     private ?array $pingKeys = null;
 
@@ -32,7 +35,7 @@ final class Monitor
     private WeakMap $reported;
 
     /**
-     * @param  array{environment: string, prune: bool, default_grace: int, report_start: bool}  $settings
+     * @param  array{environment: string, prune: bool, default_grace: int, report_start: bool, per_instance_tasks?: list<string>, instance_id?: ?string}  $settings
      */
     public function __construct(
         private readonly Client $client,
@@ -58,9 +61,22 @@ final class Monitor
                 return 0;
             }
 
-            $payload = $this->payload($tasks);
-            $hash = sha1((string) json_encode($payload));
-            $cached = $force ? null : $this->cache->get(self::CACHE_KEY);
+            [$shared, $perInstance, $notes] = $this->split($tasks);
+            $instanceEnvironment = $this->instanceEnvironment();
+            // Two declarations, each in its own environment: the shared one never
+            // orphans another server's checks, nor this server's the shared ones.
+            $payloads = [];
+            if ($shared !== []) {
+                $payloads[] = $this->payload($shared, $this->settings['environment']);
+            }
+            if ($perInstance !== []) {
+                $payloads[] = $this->payload($perInstance, (string) $instanceEnvironment);
+            }
+            $hash = sha1((string) json_encode($payloads));
+            // Per server when there is an instance: in a cache the servers share,
+            // each one's declaration would otherwise look like a change to the other.
+            $cacheKey = self::CACHE_KEY.($instanceEnvironment === null ? '' : ':'.$instanceEnvironment);
+            $cached = $force ? null : $this->cache->get($cacheKey);
             if (is_array($cached) && ($cached['hash'] ?? null) === $hash && is_array($cached['keys'] ?? null)) {
                 $this->pingKeys = $cached['keys'];
 
@@ -72,16 +88,23 @@ final class Monitor
             foreach ($this->reader->skipped() as $reason) {
                 $this->log->warning('SilenceWatch is not watching a scheduled task. '.$reason);
             }
-
-            $keys = $this->client->sync($payload, $error);
-            if ($keys === null) {
-                $this->log->warning('SilenceWatch could not declare the schedule: '.$error);
-                $this->pingKeys = [];
-
-                return null;
+            foreach ($notes as $note) {
+                $this->log->warning($note);
             }
 
-            $this->cache->put(self::CACHE_KEY, ['hash' => $hash, 'keys' => $keys], self::CACHE_SECONDS);
+            $keys = [];
+            foreach ($payloads as $payload) {
+                $found = $this->client->sync($payload, $error);
+                if ($found === null) {
+                    $this->log->warning('SilenceWatch could not declare the schedule: '.$error);
+                    $this->pingKeys = [];
+
+                    return null;
+                }
+                $keys += $found;
+            }
+
+            $this->cache->put($cacheKey, ['hash' => $hash, 'keys' => $keys], self::CACHE_SECONDS);
             $this->pingKeys = $keys;
 
             return count($keys);
@@ -169,13 +192,82 @@ final class Monitor
     }
 
     /**
+     * The tasks watched for all the servers, the ones watched on this server
+     * alone (per_instance_tasks), and what to warn about.
+     *
+     * @param  list<array{key: string, name: string, cron: string, timezone: string}>  $tasks
+     * @return array{0: list<array{key: string, name: string, cron: string, timezone: string}>, 1: list<array{key: string, name: string, cron: string, timezone: string}>, 2: list<string>}
+     */
+    private function split(array $tasks): array
+    {
+        $shared = [];
+        $perInstance = [];
+        $notes = [];
+        foreach ($tasks as $task) {
+            if (! $this->isPerInstance($task['key'])) {
+                $shared[] = $task;
+            } elseif ($this->reader->runsOnOneServer($task['key'])) {
+                // One server runs each run: on every other one its check would go down.
+                $notes[] = "SilenceWatch watches {$task['key']} for all servers: it runs onOneServer(), so it cannot be watched per server.";
+                $shared[] = $task;
+            } else {
+                $perInstance[] = $task;
+            }
+        }
+
+        if ($perInstance !== [] && $this->instanceEnvironment() === null) {
+            // Better one check for all the servers than none at all.
+            $notes[] = 'SilenceWatch per_instance_tasks is set but instance_id is missing, or leaves no room in the environment name; '
+                .count($perInstance).' task(s) are watched as one check for all servers.';
+
+            return [[...$shared, ...$perInstance], [], $notes];
+        }
+
+        return [$shared, $perInstance, $notes];
+    }
+
+    private function isPerInstance(string $key): bool
+    {
+        foreach ($this->settings['per_instance_tasks'] ?? [] as $pattern) {
+            $pattern = trim($pattern);
+            if (str_ends_with($pattern, '*') ? str_starts_with($key, substr($pattern, 0, -1)) : ($pattern !== '' && $key === $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Where the per-server tasks are declared: `production.web-1`. The server
+     * accepts 40 letters, digits, dots, dashes and underscores: anything else
+     * becomes a dash, and a name too long is cut from the front, where servers
+     * tend to look alike. Null when there is no usable name.
+     */
+    private function instanceEnvironment(): ?string
+    {
+        $id = trim((string) ($this->settings['instance_id'] ?? ''));
+        if ($id === '') {
+            return null;
+        }
+        $environment = $this->settings['environment'];
+        $room = self::MAX_ENVIRONMENT_LENGTH - strlen($environment) - 1;
+        if ($room <= 0) {
+            return null;
+        }
+        $name = (string) preg_replace('/[^A-Za-z0-9._-]/', '-', $id);
+
+        return $environment.'.'.substr($name, -$room);
+    }
+
+    /**
      * @param  list<array{key: string, name: string, cron: string, timezone: string}>  $tasks
      * @return array<string, mixed>
      */
-    private function payload(array $tasks): array
+    private function payload(array $tasks, string $environment): array
     {
         return [
-            'environment' => $this->settings['environment'],
+            'environment' => $environment,
             'source' => 'laravel',
             'prune' => $this->settings['prune'],
             'checks' => array_map(fn (array $task) => $task + [
