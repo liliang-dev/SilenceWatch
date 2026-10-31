@@ -5,12 +5,31 @@
  * paler #bc95fc on a dark one (where a mid purple would sink into the page).
  * Neutrals are Starlight's own.
  */
+/* The site's typefaces, Geist and Geist Mono (SIL Open Font License, see
+   public/fonts/Geist-LICENSE.txt), served from the site itself. Variable fonts:
+   one file each covers every weight. Until they arrive the system font shows. */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --sl-color-accent-low: #e9dcfd;
   --sl-color-accent: #7a35e8;
   --sl-color-accent-high: #4a14a8;
-  --sl-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --sl-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --sl-font: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sl-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 :root[data-theme='dark'] {
@@ -409,4 +428,12 @@ starlight-theme-select svg.label-icon {
 :root[data-theme='light'] .sw-pricing .btn:not(.primary),
 :root[data-theme='light'] .sw-home .path .btn:not(.primary):not(.ghost) {
   background: #ffffff;
+}
+
+/* The home page's hero draws its own field of dots (Hero.astro); the page's grid
+   would sit under it, out of step. The glows stay. */
+[data-has-hero] body::before {
+  background:
+    radial-gradient(60rem 30rem at 12% -8%, var(--sw-glow-a), transparent 70%),
+    radial-gradient(50rem 26rem at 100% 4%, var(--sw-glow-b), transparent 68%);
 }

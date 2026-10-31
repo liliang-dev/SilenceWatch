@@ -5,100 +5,548 @@ import LiveDemo from './LiveDemo.astro';
 
 /**
  * The first screen of the site, replacing Starlight's hero (only the home page
- * has one). Minimal on purpose: the slogan, large and plain, a sentence, one
- * button and one link; then a single thin heartbeat across the page, the only
- * thing that moves, which goes flat and red for a moment (a job gone quiet, an
- * alert sent) and beats again; then the product, as it is.
+ * has one).
+ *
+ * Every dot in the field behind the title is a job. A scan crosses the field
+ * from left to right and each dot lights as it is reached: it checked in. One dot
+ * does not light; a moment later it turns red, a label says how long it has been
+ * silent and that an alert went out, and on the next pass it lights green and
+ * the label says it is back. That is the whole product, told without a word of
+ * explanation, behind a large title that says it in words. Dots near the pointer
+ * swell, so the field answers the hand.
+ *
+ * The field is a canvas drawn by the script below: about three thousand dots,
+ * paused whenever the hero is off screen or the tab hidden, its pixel ratio
+ * capped, its colours read from the theme. Where the dot that goes silent sits is
+ * the layout's decision, not the script's: an empty `.spot` element is placed by
+ * the stylesheet (to the right of the title on a wide screen, between the title
+ * and the buttons on a phone) and the script picks the dot nearest to it. With
+ * reduced motion requested the field is drawn once, at the moment of the alert,
+ * and nothing moves.
  *
  * The words are the page's frontmatter (`hero.title`, `hero.tagline`,
- * `hero.actions`); the proof points and the heartbeat's two notes come from
- * `content/home.ts`. With reduced motion requested the line is still and the page
- * appears at once; the demo has its own rule.
+ * `hero.actions`); the kicker, the proof points and the field's labels come from
+ * `content/home.ts`. The title is split into words server-side so that each can
+ * rise into place; it is still one heading, read as one sentence.
  */
 const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
 const { hero } = home[lang];
 const { data } = Astro.locals.starlightRoute.entry;
 const { title = data.title, tagline, actions = [] } = data.hero || {};
 
-// Three beats, a silence, two beats: the story of one job, as a line.
-const beat = (x: number) => `L${x} 60l10 0l8 -10l8 10l8 0l7 -34l9 62l8 -38l7 10l12 0`;
-const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map(beat).join('')}L1600 60`;
+// "Words <span class='sw-answer'>Answer.</span>" → each word in its own masked
+// box, the answer's words inside the answer's span, an index for the stagger.
+let index = 0;
+const words = (text: string) =>
+  text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => `<span class="w"><span style="--i:${index++}">${word}</span></span>`)
+    .join(' ');
+const match = /^([\s\S]*?)<span class=['"]sw-answer['"]>([\s\S]*?)<\/span>([\s\S]*)$/.exec(title);
+const titleHtml = match
+  ? `${words(match[1])} <span class="sw-answer">${words(match[2])}</span> ${words(match[3])}`
+  : words(title);
+const after = index;
 ---
 
-<div class="sw-hero">
-  <div class="copy">
-    <h1 id="_top" data-page-title class="in" style="--d:0" set:html={title} />
+<section class="sw-hero" data-hero style={`--after:${after}`}>
+  <div class="field" aria-hidden="true">
+    <canvas></canvas>
+    <div class="tag" data-tag>
+      <span class="tag-dot"></span>
+      <b>{hero.field.job}</b>
+      <span class="tag-text">
+        <span class="t-silent">{hero.field.silent}</span>
+        <span class="t-alert">{hero.field.alert}</span>
+        <span class="t-back">{hero.field.back}</span>
+      </span>
+    </div>
+  </div>
 
-    {tagline && <p class="tagline in" style="--d:1" set:html={tagline} />}
+  <div class="inner">
+    <p class="kicker rise" style="--d:0"><span class="live"></span>{hero.kicker}</p>
 
-    {actions.length > 0 && (
-      <div class="actions in" style="--d:2">
-        {actions.map(({ attrs: { class: className, ...attrs } = {}, icon, link: href, text, variant }) => (
-          <LinkButton {href} {variant} icon={icon?.name} class:list={[className]} {...attrs}>
-            {text}
-            {icon?.html && <Fragment set:html={icon.html} />}
-          </LinkButton>
-        ))}
+    <h1 id="_top" data-page-title set:html={titleHtml} />
+
+    <span class="spot" data-spot aria-hidden="true"></span>
+
+    <div class="foot">
+      <div class="lead">
+        {tagline && <p class="tagline rise" style="--d:1" set:html={tagline} />}
+
+        {actions.length > 0 && (
+          <div class="actions rise" style="--d:2">
+            {actions.map(({ attrs: { class: className, ...attrs } = {}, icon, link: href, text, variant }) => (
+              <LinkButton {href} {variant} icon={icon?.name} class:list={[className]} {...attrs}>
+                {text}
+                {icon?.html && <Fragment set:html={icon.html} />}
+              </LinkButton>
+            ))}
+          </div>
+        )}
       </div>
-    )}
 
-    <p class="proof in" style="--d:3">
-      {hero.proof.map((point, index) => (
-        <>
-          {index > 0 && <span class="sep" aria-hidden="true">·</span>}
-          <span>{point}</span>
-        </>
-      ))}
-    </p>
+      <div class="meta rise" style="--d:3">
+        <p class="caption">{hero.field.caption}</p>
+        <ul class="legend" aria-hidden="true">
+          <li class="l-alive">{hero.field.legend.alive}</li>
+          <li class="l-silent">{hero.field.legend.silent}</li>
+          <li class="l-back">{hero.field.legend.back}</li>
+        </ul>
+        <ul class="proof">
+          {hero.proof.map((point) => <li>{point}</li>)}
+        </ul>
+      </div>
+    </div>
   </div>
+</section>
 
-  <!-- One thin line: it beats, goes flat and red, an alert goes out, it beats again. -->
-  <div class="pulse in" style="--d:4" aria-hidden="true">
-    <svg viewBox="0 0 1600 120" preserveAspectRatio="none">
-      <path class="base" d={ecg} />
-      <path class="comet" d={ecg} pathLength="1" />
-    </svg>
-    <p class="note n-down"><i></i>{hero.pulse.down}</p>
-    <p class="note n-up"><i></i>{hero.pulse.up}</p>
-  </div>
-
-  <div class="product in" style="--d:5" aria-hidden="true">
-    <LiveDemo />
-  </div>
+<div class="sw-hero-product rise" style="--d:4" aria-hidden="true">
+  <LiveDemo />
 </div>
+
+<script>
+  type Rgb = [number, number, number];
+
+  const section = document.querySelector<HTMLElement>('[data-hero]');
+  const canvas = section?.querySelector('canvas');
+  const tag = section?.querySelector<HTMLElement>('[data-tag]');
+  const spot = section?.querySelector<HTMLElement>('[data-spot]');
+  const ctx = canvas?.getContext('2d');
+
+  if (section && canvas && tag && spot && ctx) {
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Colours come from the stylesheet, so they follow the theme.
+    const rgb = (value: string): Rgb => {
+      const probe = document.createElement('i');
+      probe.style.color = value;
+      section.append(probe);
+      const parts = getComputedStyle(probe).color.match(/[\d.]+/g)?.map(Number) ?? [128, 128, 128];
+      probe.remove();
+      return [parts[0], parts[1], parts[2]];
+    };
+    let colours: { dot: Rgb; lit: Rgb; red: Rgb; green: Rgb; base: number };
+    const readColours = () => {
+      const css = getComputedStyle(section);
+      colours = {
+        dot: rgb(css.getPropertyValue('--f-dot')),
+        lit: rgb(css.getPropertyValue('--f-lit')),
+        red: rgb(css.getPropertyValue('--f-red')),
+        green: rgb(css.getPropertyValue('--f-green')),
+        base: parseFloat(css.getPropertyValue('--f-base')) || 0.3,
+      };
+    };
+
+    // The grid. Each dot has a slight random weight so the field is not a print.
+    let width = 0;
+    let height = 0;
+    let gap = 22;
+    let xs = new Float32Array(0);
+    let ys = new Float32Array(0);
+    let weight = new Float32Array(0);
+    let ping = new Float32Array(0); // time of a random check-in, for a flicker of life
+    let silent = -1;
+
+    const layout = () => {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      gap = width < 640 ? 18 : 22;
+      const cols = Math.ceil(width / gap) + 1;
+      const rows = Math.ceil(height / gap) + 1;
+      const ox = (width - (cols - 1) * gap) / 2;
+      const oy = (height - (rows - 1) * gap) / 2;
+      const n = cols * rows;
+      xs = new Float32Array(n);
+      ys = new Float32Array(n);
+      weight = new Float32Array(n);
+      ping = new Float32Array(n).fill(-10);
+      for (let r = 0, i = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++, i++) {
+          xs[i] = ox + c * gap;
+          ys[i] = oy + r * gap;
+          weight[i] = 0.55 + Math.random() * 0.45;
+        }
+      }
+      // The dot that goes silent: the one nearest the spot the layout keeps for it.
+      const box = canvas.getBoundingClientRect();
+      const at = spot.getBoundingClientRect();
+      const sx = at.left + at.width / 2 - box.left;
+      const sy = at.top + at.height / 2 - box.top;
+      let best = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = (xs[i] - sx) ** 2 + (ys[i] - sy) ** 2;
+        if (d < best) {
+          best = d;
+          silent = i;
+        }
+      }
+      section.style.setProperty('--x', `${xs[silent]}px`);
+      section.style.setProperty('--y', `${ys[silent]}px`);
+      // The label goes to the right of the dot, or to its left if there is no
+      // room, or under it on a phone.
+      tag.dataset.place = width < 640 ? 'below' : xs[silent] > width - 340 ? 'left' : 'right';
+    };
+
+    // The pointer, eased, so the swell follows the hand without jitter.
+    const pointer = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, on: 0, target: 0 };
+    addEventListener(
+      'pointermove',
+      (event) => {
+        const box = canvas.getBoundingClientRect();
+        pointer.tx = event.clientX - box.left;
+        pointer.ty = event.clientY - box.top;
+        if (pointer.target === 0) {
+          pointer.x = pointer.tx;
+          pointer.y = pointer.ty;
+        }
+        pointer.target = event.pointerType === 'mouse' ? 1 : 0;
+      },
+      { passive: true },
+    );
+    document.documentElement.addEventListener('pointerleave', () => (pointer.target = 0));
+
+    // The story, three passes long: the dot stays dark and turns red; on the next
+    // pass it lights green; on the third it is a dot like the others.
+    const PASS = 3.8; // seconds for the scan to cross the field
+    const TRAIL = 150; // how far behind the scan a dot stays lit, in pixels
+    const mix = (a: Rgb, b: Rgb, t: number) =>
+      `${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)}`;
+
+    let state = '';
+    const setState = (next: string) => {
+      if (next !== state) tag.dataset.state = state = next;
+    };
+
+    const draw = (now: number) => {
+      const t = now / 1000;
+      const span = width + TRAIL * 2;
+      const passes = t / PASS;
+      const pass = Math.floor(passes) % 3;
+      const scan = (passes % 1) * span - TRAIL;
+
+      pointer.on += (pointer.target - pointer.on) * 0.08;
+      pointer.x += (pointer.tx - pointer.x) * 0.18;
+      pointer.y += (pointer.ty - pointer.y) * 0.18;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // A few random check-ins, so the field is never quite still.
+      if (!still.matches && Math.random() < 0.5) ping[(Math.random() * xs.length) | 0] = t;
+
+      // Where the silent dot is in its story.
+      const sx = xs[silent];
+      const passed = scan - sx; // > 0 once the scan has gone by
+      const since = passed / (span / PASS); // seconds since the scan went by
+      let red = 0;
+      let green = 0;
+      if (still.matches) {
+        red = 1;
+        setState('alert');
+      } else if (pass === 0) {
+        red = passed > 0 ? Math.min(1, since / 0.35) : 0;
+        setState(since > 1.4 ? 'alert' : passed > 0 ? 'silent' : '');
+      } else if (pass === 1) {
+        red = passed > 0 ? 0 : 1;
+        green = passed > 0 ? Math.max(0, 1 - Math.max(0, since - 1.2) / 1.2) : 0;
+        setState(passed > 0 ? (since < 2.4 ? 'back' : '') : 'alert');
+      } else {
+        setState('');
+      }
+
+      const R = 120;
+      for (let i = 0; i < xs.length; i++) {
+        const x = xs[i];
+        const y = ys[i];
+        let lit = 0;
+        if (!still.matches) {
+          const d = scan - x;
+          lit = d >= 0 ? Math.exp(-d / 90) : Math.exp(d / 6);
+          const p = t - ping[i];
+          if (p < 0.9) lit = Math.max(lit, 1 - p / 0.9);
+        }
+        let swell = 0;
+        if (pointer.on > 0.01) {
+          const dx = x - pointer.x;
+          const dy = y - pointer.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < R) swell = (1 - dist / R) ** 2 * pointer.on;
+        }
+
+        if (i === silent) continue; // drawn last, on top
+
+        const alpha = Math.min(1, colours.base * weight[i] + lit * 0.75 + swell * 0.6);
+        const r = 1.15 + lit * 0.6 + swell * 1.8;
+        ctx.fillStyle = `rgba(${mix(colours.dot, colours.lit, Math.min(1, lit + swell * 0.5))},${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // The silent dot: dark while its neighbours light, then red with rings
+      // going out (the alert), then green as it checks in again.
+      const y = ys[silent];
+      if (red > 0) {
+        const rings = still.matches ? [0.45] : [(t % 1.6) / 1.6, ((t + 0.8) % 1.6) / 1.6];
+        for (const k of rings) {
+          ctx.strokeStyle = `rgba(${mix(colours.red, colours.red, 0)},${(1 - k) * 0.6 * red})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(sx, y, 4 + k * 34, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.fillStyle = `rgba(${mix(colours.red, colours.red, 0)},${red})`;
+        ctx.beginPath();
+        ctx.arc(sx, y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (green > 0) {
+        ctx.fillStyle = `rgba(${mix(colours.green, colours.green, 0)},${green * 0.25})`;
+        ctx.beginPath();
+        ctx.arc(sx, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(${mix(colours.dot, colours.green, green)},${Math.max(colours.base, green)})`;
+        ctx.beginPath();
+        ctx.arc(sx, y, 1 + green * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Silent: a hollow ring where a dot should be lit.
+        ctx.strokeStyle = `rgba(${mix(colours.dot, colours.dot, 0)},${colours.base * 1.6})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, y, 2.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    };
+
+    // Run only while the hero is on screen and the tab visible.
+    let frame = 0;
+    let visible = true;
+    const loop = (now: number) => {
+      draw(now);
+      frame = requestAnimationFrame(loop);
+    };
+    const start = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (still.matches) draw(performance.now());
+      else if (visible && !document.hidden) frame = requestAnimationFrame(loop);
+    };
+
+    readColours();
+    layout();
+    start();
+
+    new ResizeObserver(() => {
+      layout();
+      if (still.matches) draw(performance.now());
+    }).observe(canvas);
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      start();
+    }).observe(section);
+    document.addEventListener('visibilitychange', start);
+    still.addEventListener('change', start);
+    new MutationObserver(() => {
+      readColours();
+      if (still.matches) draw(performance.now());
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+</script>
 
 <style>
   .sw-hero {
-    --red: #e5484d;
-    --green: #30a46c;
-    --cycle: 8s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 68rem;
-    margin-inline: auto;
-    padding-top: clamp(2.5rem, 7vw, 5.5rem);
-    text-align: center;
+    /* The header's height and the content panel's top padding: the hero moves up
+       by that much so its field starts at the very top of the window. */
+    --sw-hero-lift: calc(var(--sl-nav-height) + 1.5rem);
+    --f-dot: #9aa0c4;
+    --f-lit: #c9adff;
+    --f-red: #ff5a63;
+    --f-green: #3ddc97;
+    --f-base: 0.5;
+    position: relative;
+    isolation: isolate;
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    /* Under the see-through header: the field starts at the top of the window. */
+    margin-top: calc(-1 * var(--sw-hero-lift));
+    padding-top: var(--sw-hero-lift);
+    text-align: start;
   }
 
-  /* ---- The words ------------------------------------------------------------- */
+  :global(:root[data-theme='light']) .sw-hero {
+    --f-dot: #5b6190;
+    --f-lit: #6a2be0;
+    --f-red: #e5484d;
+    --f-green: #1f9d63;
+    --f-base: 0.42;
+  }
 
-  .copy {
+  /* ---- The field -------------------------------------------------------------- */
+
+  .field {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* Quiet behind the words, full on the right, gone at the bottom. */
+    -webkit-mask-image:
+      linear-gradient(to right, rgb(0 0 0 / 0.3) 0%, rgb(0 0 0 / 0.38) 38%, #000 66%),
+      linear-gradient(to bottom, transparent 0, #000 14%, #000 70%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, rgb(0 0 0 / 0.3) 0%, rgb(0 0 0 / 0.38) 38%, #000 66%),
+      linear-gradient(to bottom, transparent 0, #000 14%, #000 70%, transparent 100%);
+    mask-composite: intersect;
+  }
+
+  /* The label beside the dot that went silent. */
+  .tag {
+    --c: var(--f-red);
+    position: absolute;
+    left: var(--x, -100px);
+    top: var(--y, -100px);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--c) 35%, var(--sl-color-hairline));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 94%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 30px -16px rgb(0 0 0 / 0.5);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--sl-color-gray-2);
+    opacity: 0;
+    translate: 2.25rem -50%;
+    scale: 0.96;
+    transition:
+      opacity 350ms ease,
+      scale 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 350ms ease;
+  }
+
+  .tag[data-place='left'] {
+    translate: calc(-100% - 2.25rem) -50%;
+  }
+
+  .tag[data-place='below'] {
+    translate: -50% 2.1rem;
+  }
+
+  .tag b {
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .tag-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent);
+    transition: background 350ms ease;
+  }
+
+  .tag-text {
+    display: grid;
+  }
+
+  .tag-text > span {
+    grid-area: 1 / 1;
+    opacity: 0;
+    translate: 0 0.35rem;
+    transition:
+      opacity 300ms ease,
+      translate 300ms ease;
+  }
+
+  .tag[data-state='silent'],
+  .tag[data-state='alert'],
+  .tag[data-state='back'] {
+    opacity: 1;
+    scale: 1;
+  }
+
+  .tag[data-state='back'] {
+    --c: var(--f-green);
+  }
+
+  .tag[data-state='silent'] .t-silent,
+  .tag[data-state='alert'] .t-alert,
+  .tag[data-state='back'] .t-back {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* ---- The words -------------------------------------------------------------- */
+
+  .inner {
+    position: relative;
     display: flex;
     flex-direction: column;
+    max-width: 84rem;
+    min-height: min(calc(100svh - var(--sw-hero-lift)), 56rem);
+    margin-inline: auto;
+    padding: clamp(2.5rem, 7vh, 5rem) clamp(1.25rem, 4vw, 3.5rem) clamp(2rem, 6vh, 3.5rem);
+  }
+
+  .kicker {
+    display: inline-flex;
     align-items: center;
-    gap: 1.75rem;
-    padding-inline: 1rem;
+    gap: 0.6rem;
+    margin: 0 0 clamp(1.5rem, 4vh, 2.5rem);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  .live {
+    position: relative;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--f-green);
+  }
+
+  .live::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: live 2s ease-out infinite;
+  }
+
+  @keyframes live {
+    to { scale: 3.2; opacity: 0; }
   }
 
   h1 {
-    max-width: 21ch;
+    max-width: 15.5ch;
     margin: 0;
-    font-size: clamp(2.6rem, 0.8rem + 4.2vw, 4.75rem);
-    font-weight: 700;
-    line-height: 1.02;
-    letter-spacing: -0.045em;
-    text-wrap: balance;
+    font-size: clamp(2.7rem, 0.6rem + 5.9vw, 7rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
     color: var(--sl-color-white);
   }
 
@@ -111,47 +559,96 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     color: var(--sl-color-accent);
   }
 
+  /* Each word rises out of its own box. */
+  h1 :global(.w) {
+    display: inline-block;
+    overflow: clip;
+    padding: 0.12em 0.04em 0.1em;
+    margin: -0.12em -0.04em -0.1em;
+    vertical-align: top;
+  }
+
+  h1 :global(.w > span) {
+    display: inline-block;
+    animation: word 1100ms calc(var(--i) * 55ms + 150ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes word {
+    from { transform: translateY(110%) rotate(4deg); }
+  }
+
+  /* Where the silent dot goes: right of the title on a wide screen. */
+  .spot {
+    position: absolute;
+    top: 46%;
+    right: 16%;
+    width: 1px;
+    height: 1px;
+  }
+
+  .foot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 2rem 4rem;
+    margin-top: auto;
+    padding-top: clamp(2rem, 6vh, 4rem);
+  }
+
+  .lead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
   .tagline {
-    max-width: 34rem;
+    max-width: 31rem;
     margin: 0;
-    font-size: clamp(var(--sl-text-base), 0.95rem + 0.4vw, var(--sl-text-lg));
-    line-height: 1.6;
+    font-size: clamp(var(--sl-text-base), 0.9rem + 0.35vw, 1.2rem);
+    line-height: 1.55;
     text-wrap: pretty;
-    color: var(--sl-color-gray-3);
+    color: var(--sl-color-gray-2);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem 1.75rem;
   }
 
   .actions :global(.sl-link-button) {
     margin: 0;
     font-size: var(--sl-text-base);
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .actions :global(.sl-link-button.primary) {
-    padding: 0.8rem 1.5rem;
+    padding: 0.85rem 1.6rem;
     border-color: transparent;
-    background: var(--sl-color-accent);
-    color: #fff;
-    transition: background 150ms ease;
+    background: var(--sl-color-white);
+    color: var(--sl-color-black);
+    transition:
+      background 150ms ease,
+      transform 150ms ease;
   }
 
   .actions :global(.sl-link-button.primary:hover) {
     background: var(--sl-color-accent-high);
+    transform: translateY(-1px);
   }
 
-  :global(:root[data-theme='dark']) .actions :global(.sl-link-button.primary:hover) {
-    background: #7a35e8;
+  :global(:root[data-theme='light']) .actions :global(.sl-link-button.primary) {
+    background: var(--sl-color-gray-1);
+    color: #fff;
+  }
+
+  :global(:root[data-theme='light']) .actions :global(.sl-link-button.primary:hover) {
+    background: var(--sl-color-accent);
   }
 
   .actions :global(.sl-link-button.minimal) {
-    padding: 0.8rem 0.25rem;
+    padding: 0.85rem 0.25rem;
     color: var(--sl-color-white);
   }
 
@@ -163,182 +660,185 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     transform: translateX(3px);
   }
 
-  .proof {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.25rem 0.6rem;
-    margin: 0;
-    font-size: var(--sl-text-sm);
+  .meta {
+    display: grid;
+    gap: 0.9rem;
+    justify-items: end;
+    text-align: end;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
     color: var(--sl-color-gray-3);
   }
 
-  .sep {
-    color: var(--sl-color-gray-5);
+  .caption {
+    max-width: 17rem;
+    margin: 0;
+    line-height: 1.5;
+    color: var(--sl-color-gray-2);
   }
 
-  /* ---- The line --------------------------------------------------------------- */
-
-  .pulse {
-    position: relative;
-    width: 100vw;
-    height: 6rem;
-    margin-top: clamp(2.5rem, 5vw, 4rem);
+  .legend,
+  .proof {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem 1.1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .pulse svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .pulse path {
-    vector-effect: non-scaling-stroke;
-  }
-
-  .base {
-    stroke: var(--sl-color-hairline);
-    stroke-width: 1;
-  }
-
-  .comet {
-    stroke: var(--sl-color-white);
-    stroke-width: 1.5;
-    stroke-dasharray: 0.12 1.2;
-    stroke-dashoffset: 0.12;
-    animation:
-      run var(--cycle) linear infinite,
-      tint var(--cycle) linear infinite;
-  }
-
-  .note {
-    position: absolute;
-    top: -0.25rem;
+  .legend li,
+  .proof li {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
     margin: 0;
-    font-size: var(--sl-text-xs);
-    white-space: nowrap;
-    color: var(--sl-color-gray-3);
-    opacity: 0;
-    translate: -50% 0;
   }
 
-  .note i {
+  .legend li::before {
+    content: '';
     width: 0.4rem;
     height: 0.4rem;
     border-radius: 50%;
-    background: var(--colour);
+    background: var(--c);
   }
 
-  .n-down {
-    --colour: var(--red);
-    left: 61%;
-    animation: note-down var(--cycle) linear infinite;
+  .l-alive { --c: var(--f-lit); }
+  .l-silent { --c: var(--f-red); }
+  .l-back { --c: var(--f-green); }
+
+  .proof {
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.6875rem;
   }
 
-  .n-up {
-    --colour: var(--green);
-    left: 82%;
-    animation: note-up var(--cycle) linear infinite;
+  .proof li + li::before {
+    content: '/';
+    margin-inline-end: 0.65rem;
+    color: var(--sl-color-gray-5);
   }
 
-  /* ---- The product ------------------------------------------------------------ */
+  /* ---- The product, after the first screen --------------------------------------- */
 
-  .product {
-    width: min(42rem, 100%);
-    margin-top: clamp(1rem, 3vw, 2rem);
+  .sw-hero-product {
+    width: min(44rem, 100%);
+    margin: clamp(1rem, 4vw, 3rem) auto 0;
     padding-inline: 1rem;
   }
 
-  .product :global(.demo) {
+  .sw-hero-product :global(.demo) {
     max-width: none;
     padding-inline: 0;
   }
 
-  .product :global(.demo .frame) {
+  .sw-hero-product :global(.demo .frame) {
     background: var(--sl-color-bg-nav);
     backdrop-filter: none;
-    box-shadow: 0 30px 60px -40px rgb(0 0 0 / 0.45);
+    box-shadow: 0 40px 80px -50px rgb(0 0 0 / 0.55);
   }
 
-  .product :global(figcaption) {
+  .sw-hero-product :global(figcaption) {
     display: none;
   }
 
-  /* ---- Motion ---------------------------------------------------------------- */
+  /* ---- Motion ------------------------------------------------------------------ */
 
-  /* Everything fades up once, in order; afterwards only the line moves. */
-  .in {
-    animation: in 900ms calc(var(--d) * 110ms + 100ms) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* The rest arrives once the title has risen. */
+  .rise {
+    animation: rise 900ms calc(var(--after) * 55ms + var(--d) * 90ms + 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  @keyframes in {
-    from { opacity: 0; transform: translateY(0.75rem); }
+  .sw-hero-product.rise {
+    --after: 12;
   }
 
-  /* The comet's offset runs over 1.24 (its dash, 0.12, plus the line's length,
-     1, plus 0.12 so it leaves entirely), so its head is at 1.24 × the time: the
-     silence, 48 to 73 % of the line, passes between 39 and 59 % of the cycle.
-     Red then, green as the beats come back. */
-  @keyframes run {
-    from { stroke-dashoffset: 0.12; }
-    to { stroke-dashoffset: -1.12; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(0.9rem); }
   }
 
-  @keyframes tint {
-    0%, 37% { stroke: var(--sl-color-white); }
-    40%, 59% { stroke: var(--red); }
-    62%, 80% { stroke: var(--green); }
-    86%, 100% { stroke: var(--sl-color-white); }
-  }
+  /* ---- Smaller screens --------------------------------------------------------- */
 
-  @keyframes note-down {
-    0%, 42% { opacity: 0; }
-    45%, 59% { opacity: 1; }
-    62%, 100% { opacity: 0; }
-  }
+  @media (max-width: 56rem) {
+    .foot {
+      grid-template-columns: 1fr;
+    }
 
-  @keyframes note-up {
-    0%, 63% { opacity: 0; }
-    66%, 80% { opacity: 1; }
-    83%, 100% { opacity: 0; }
-  }
+    .meta {
+      justify-items: start;
+      text-align: start;
+    }
 
-  @media (max-width: 50rem) {
-    .n-down,
-    .n-up {
-      left: 50%;
+    .legend,
+    .proof {
+      justify-content: flex-start;
     }
   }
 
-  @media (max-width: 30rem) {
+  @media (max-width: 64rem) {
+    /* The field gathers around the dot that goes silent, wherever it is. */
+    canvas {
+      -webkit-mask-image:
+        radial-gradient(18rem 9rem at var(--x) var(--y), #000, rgb(0 0 0 / 0.32)),
+        linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
+      mask-image:
+        radial-gradient(18rem 9rem at var(--x) var(--y), #000, rgb(0 0 0 / 0.32)),
+        linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
+    }
+
+    .inner {
+      min-height: 0;
+    }
+
+    /* On a narrower screen the silent dot gets a band of its own, under the
+       title, where nothing is written. */
+    .spot {
+      position: static;
+      align-self: center;
+      height: 11rem;
+    }
+
+    .foot {
+      padding-top: 0;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .inner {
+      padding-top: 1.5rem;
+    }
+
+    .caption {
+      display: none;
+    }
+
+    .proof {
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .proof li + li::before {
+      content: none;
+    }
+
     .actions {
       flex-direction: column;
-      width: 100%;
+      align-items: stretch;
     }
 
-    .actions :global(.sl-link-button.primary) {
-      width: 100%;
+    .actions :global(.sl-link-button) {
       justify-content: center;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .in,
-    .comet,
-    .note {
+    .rise,
+    h1 :global(.w > span),
+    .live::after {
       animation: none;
-    }
-
-    .comet {
-      stroke-dasharray: none;
-      stroke: var(--sl-color-gray-4);
     }
   }
 </style>

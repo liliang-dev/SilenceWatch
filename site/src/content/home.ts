@@ -15,9 +15,17 @@ export interface HomeCopy {
   app: string;
   /** Around the hero's title and tagline, which are the page's frontmatter. */
   hero: {
+    kicker: string;
     proof: string[];
-    /** What the heartbeat line under the buttons says when it goes flat, then when it comes back. */
-    pulse: { down: string; up: string };
+    /** The field of dots behind the title: what it is, and the story one dot tells. */
+    field: {
+      caption: string;
+      legend: { alive: string; silent: string; back: string };
+      job: string;
+      silent: string;
+      alert: string;
+      back: string;
+    };
   };
   demo: {
     caption: string;
@@ -59,8 +67,16 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
     hero: {
+      kicker: 'Job monitoring · open source',
+      field: {
+        caption: 'Every dot is a job. When one goes quiet, you know.',
+        legend: { alive: 'running', silent: 'silent', back: 'back' },
+        job: 'backup.sh',
+        silent: 'no signal for 26 h',
+        alert: 'alert sent to Slack',
+        back: 'signal received, back up',
+      },
       proof: ['Free up to 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
-      pulse: { down: 'backup.sh went quiet · alert sent', up: 'backup.sh is back' },
     },
     demo: {
       caption: 'A job goes quiet. You know within seconds.',
@@ -208,8 +224,16 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
   fr: {
     app: 'Essayer',
     hero: {
+      kicker: 'Monitoring de jobs · open source',
+      field: {
+        caption: 'Chaque point est un job. Quand l’un se tait, vous le savez.',
+        legend: { alive: 'actif', silent: 'silencieux', back: 'reparti' },
+        job: 'backup.sh',
+        silent: 'aucun signal depuis 26 h',
+        alert: 'alerte envoyée sur Slack',
+        back: 'signal reçu, reparti',
+      },
       proof: ['Gratuit jusqu’à 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
-      pulse: { down: 'backup.sh ne répond plus · alerte envoyée', up: 'backup.sh est reparti' },
     },
     demo: {
       caption: 'Un job se tait. Vous le savez en quelques secondes.',
