@@ -5,8 +5,13 @@ import Faq from './Faq.astro';
 
 /**
  * The plans of the hosted service side by side, then what is the same on all of
- * them, then the way out: self-hosting, which has no plan. Built from
- * `content/plans.ts`, so the numbers and the two languages are written once.
+ * them, then the way out: self-hosting, which has no plan; then the questions.
+ * Built from `content/plans.ts`, so the numbers and the two languages are
+ * written once.
+ *
+ * In the home page's manner: the plans are columns of one panel, divided by
+ * hairlines, with large prices; each part after them opens on a hairline with
+ * its number in small capitals.
  */
 const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
 const copy = pricing[lang];
@@ -27,48 +32,64 @@ const login = `${APP}/login`;
 
   <ul class="plans">
     {PLANS.map((plan) => (
-      <li class="plan">
+      <li class:list={['plan', plan.id === 'free' && 'first']}>
         <h2>{copy.names[plan.id]}</h2>
         <p class="price">
           <strong>{euros(plan.price)}</strong>
           <span>{copy.perMonth}</span>
         </p>
-        <ul class="limits">
+        <ul class="checks">
           <li>{copy.limits.checks(plan.checks)}</li>
           <li>{copy.limits.projects(plan.projects)}</li>
           <li>{copy.limits.channels(plan.channelsPerProject)}</li>
           <li>{copy.limits.retention(plan.retentionDays)}</li>
         </ul>
-        <a class:list={['btn', plan.id === 'free' && 'primary']} href={login}>{copy.cta[plan.id]}</a>
+        <a class:list={['btn', plan.id === 'free' && 'primary']} href={login}>
+          {copy.cta[plan.id]}<span aria-hidden="true">→</span>
+        </a>
       </li>
     ))}
   </ul>
 
   <p class="note">{copy.note}</p>
 
-  <section class="same">
-    <h2>{copy.same.title}</h2>
-    <ul>
-      {copy.same.items.map((item) => <li>{item}</li>)}
-    </ul>
+  <section class="part">
+    <p class="part-n">01</p>
+    <div class="part-grid">
+      <h2>{copy.same.title}</h2>
+      <ul class="checks same">
+        {copy.same.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
   </section>
 
-  <section class="self">
-    <h2>{copy.selfHosted.title}</h2>
-    <p>{copy.selfHosted.text}</p>
-    <a class="btn" href={`${prefix}/self-hosted/`}>{copy.selfHosted.link}</a>
+  <section class="part">
+    <p class="part-n">02</p>
+    <div class="part-grid">
+      <h2>{copy.selfHosted.title}</h2>
+      <div>
+        <p class="text">{copy.selfHosted.text}</p>
+        <a class="btn" href={`${prefix}/self-hosted/`}>{copy.selfHosted.link}<span aria-hidden="true">→</span></a>
+      </div>
+    </div>
   </section>
 
-  <section class="faq">
-    <h2>{copy.faq.heading}</h2>
-    <Faq title={copy.faq.title} items={copy.faq.items} />
+  <section class="part">
+    <p class="part-n">03</p>
+    <div class="part-grid">
+      <h2 class="sticky">{copy.faq.heading}</h2>
+      <Faq title={copy.faq.title} items={copy.faq.items} />
+    </div>
   </section>
 </div>
 
 <style is:global>
   .sw-pricing {
-    max-width: 62rem;
-    margin-inline: auto;
+    --green: #3ddc97;
+  }
+
+  :root[data-theme='light'] .sw-pricing {
+    --green: #1f9d63;
   }
 
   .sw-pricing h2,
@@ -79,137 +100,238 @@ const login = `${APP}/login`;
   }
 
   .sw-pricing .lede {
-    max-width: 44rem;
-    font-size: var(--sl-text-lg);
-    line-height: 1.55;
+    max-width: 40rem;
+    font-size: clamp(var(--sl-text-base), 0.95rem + 0.4vw, 1.25rem);
+    line-height: 1.6;
     color: var(--sl-color-gray-2);
   }
 
+  /* ---- The plans: columns of one panel ------------------------------------------ */
+
   .sw-pricing .plans {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 60%, transparent);
     list-style: none;
+    overflow: hidden;
   }
 
   .sw-pricing .plan {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1.5rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 1rem;
-    background: var(--sl-color-bg-nav);
+    gap: 1.25rem;
+    margin: 0;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  .sw-pricing .plan + .plan {
+    border-inline-start: 1px solid var(--sl-color-hairline);
+  }
+
+  /* The free plan, where everyone starts, carries the light. */
+  .sw-pricing .plan.first {
+    background: radial-gradient(26rem 16rem at 0% 0%, color-mix(in srgb, var(--sl-color-accent) 16%, transparent), transparent 70%);
   }
 
   .sw-pricing .plan h2 {
-    font-size: var(--sl-text-xl);
-    color: var(--sl-color-white);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-2);
   }
 
   .sw-pricing .price strong {
-    font-size: var(--sl-text-4xl);
+    font-size: clamp(2.5rem, 1.8rem + 2vw, 3.75rem);
+    font-weight: 600;
     line-height: 1;
+    letter-spacing: -0.05em;
     color: var(--sl-color-white);
   }
 
   .sw-pricing .price span {
-    margin-left: 0.3rem;
-    color: var(--sl-color-gray-3);
-  }
-
-  .sw-pricing .limits,
-  .sw-pricing .same ul {
-    display: grid;
-    gap: 0.6rem;
-    list-style: none;
-  }
-
-  .sw-pricing .limits {
-    flex: 1;
-    padding-top: 1rem;
-    border-top: 1px solid var(--sl-color-hairline);
-  }
-
-  .sw-pricing .limits li,
-  .sw-pricing .same li {
-    display: flex;
-    gap: 0.6rem;
-    color: var(--sl-color-gray-1);
-  }
-
-  .sw-pricing .limits li::before,
-  .sw-pricing .same li::before {
-    content: '';
-    flex: none;
-    width: 0.4rem;
-    height: 0.75rem;
-    margin: 0.15rem 0.3rem 0 0.2rem;
-    border: solid #47cd89;
-    border-width: 0 2px 2px 0;
-    transform: rotate(40deg);
-  }
-
-  .sw-pricing .btn {
-    display: inline-flex;
-    justify-content: center;
-    padding: 0.65rem 1.2rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 999px;
-    background: var(--sl-color-bg);
-    font-weight: 600;
-    text-decoration: none;
-    color: var(--sl-color-white);
-    transition:
-      transform 150ms ease,
-      border-color 150ms ease;
-  }
-
-  .sw-pricing .btn:hover {
-    transform: translateY(-2px);
-    border-color: var(--sl-color-accent);
-  }
-
-  .sw-pricing .btn.primary {
-    border-color: transparent;
-    background: #7a35e8;
-    color: #fff;
-  }
-
-  .sw-pricing .btn.primary:hover {
-    background: #6c1bee;
-  }
-
-  .sw-pricing .note {
-    margin-top: 1rem;
+    margin-inline-start: 0.35rem;
     font-size: var(--sl-text-sm);
     color: var(--sl-color-gray-3);
   }
 
-  .sw-pricing section {
-    margin-top: 3.5rem;
+  .sw-pricing .checks {
+    display: grid;
+    gap: 0.65rem;
+    list-style: none;
   }
 
-  .sw-pricing section h2 {
-    margin-bottom: 1rem;
-    font-size: var(--sl-text-2xl);
+  .sw-pricing .plan .checks {
+    flex: 1;
+    align-content: start;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-pricing .checks li {
+    display: flex;
+    gap: 0.6rem;
+    margin: 0;
+    font-size: var(--sl-text-sm);
+    line-height: 1.5;
+    color: var(--sl-color-gray-1);
+  }
+
+  .sw-pricing .checks li::before {
+    content: '';
+    flex: none;
+    width: 0.35rem;
+    height: 0.65rem;
+    margin: 0.2rem 0.25rem 0 0.15rem;
+    border: solid var(--green);
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(40deg);
+  }
+
+  .sw-pricing .note {
+    max-width: 44rem;
+    margin-top: 1.25rem;
+    font-size: var(--sl-text-sm);
+    line-height: 1.55;
+    color: var(--sl-color-gray-3);
+  }
+
+  /* ---- Buttons ---------------------------------------------------------------------- */
+
+  .sw-pricing .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.35rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--sl-color-white);
+    transition:
+      background 200ms ease,
+      border-color 200ms ease,
+      transform 200ms ease;
+  }
+
+  .sw-pricing .btn:hover {
+    border-color: var(--sl-color-gray-3);
+    transform: translateY(-1px);
+  }
+
+  .sw-pricing .btn.primary {
+    border-color: transparent;
+    background: var(--sl-color-white);
+    color: var(--sl-color-black);
+  }
+
+  .sw-pricing .btn.primary:hover {
+    background: var(--sl-color-accent-high);
+  }
+
+  :root[data-theme='light'] .sw-pricing .btn.primary {
+    background: var(--sl-color-gray-1);
+    color: #fff;
+  }
+
+  :root[data-theme='light'] .sw-pricing .btn.primary:hover {
+    background: var(--sl-color-accent);
+  }
+
+  .sw-pricing .btn span {
+    transition: transform 200ms ease;
+  }
+
+  .sw-pricing .btn:hover span {
+    transform: translateX(3px);
+  }
+
+  /* ---- The parts after the plans ------------------------------------------------------ */
+
+  .sw-pricing .part {
+    margin-top: clamp(4rem, 8vw, 6.5rem);
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-pricing .part-n {
+    margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--sl-color-accent-high);
+  }
+
+  :root[data-theme='light'] .sw-pricing .part-n {
+    color: var(--sl-color-accent);
+  }
+
+  .sw-pricing .part-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: 2rem clamp(2rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .sw-pricing .part h2 {
+    max-width: 14ch;
+    font-size: clamp(1.9rem, 1.1rem + 2vw, 3rem);
+    font-weight: 600;
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
     color: var(--sl-color-white);
   }
 
-  .sw-pricing .sw-faq {
-    margin-top: 0;
+  .sw-pricing .part h2.sticky {
+    position: sticky;
+    top: calc(var(--sl-nav-height) + 2rem);
   }
 
-  .sw-pricing .self p {
-    max-width: 44rem;
-    margin-bottom: 1.2rem;
-    line-height: 1.55;
+  .sw-pricing .same {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem 2rem;
+  }
+
+  .sw-pricing .text {
+    max-width: 36rem;
+    margin-bottom: 1.5rem;
+    font-size: var(--sl-text-lg);
+    line-height: 1.6;
     color: var(--sl-color-gray-2);
   }
 
+  /* ---- Smaller screens ------------------------------------------------------------------ */
+
+  @media (max-width: 56rem) {
+    .sw-pricing .plans {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sw-pricing .plan + .plan {
+      border-inline-start: 0;
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+
+    .sw-pricing .part-grid,
+    .sw-pricing .same {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sw-pricing .part h2.sticky {
+      position: static;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .sw-pricing .btn {
+    .sw-pricing .btn,
+    .sw-pricing .btn span {
       transition: none;
     }
   }

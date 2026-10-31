@@ -1,0 +1,205 @@
+---
+import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+import { home } from '../content/home';
+import { APP } from '../site';
+
+/**
+ * The body of a page, replacing Starlight's wrapper.
+ *
+ * Unchanged on the documentation and on the home page. On a landing page (no
+ * sidebar, no hero) the text keeps a readable measure on the left of the home
+ * page's wide column, and the right of it, otherwise empty, holds the page's
+ * sections, numbered as their headings are (brand.css), and kept in view while
+ * the page scrolls: the one being read is marked. Under them, the way into the
+ * application. The list is the page's own second-level headings, so it follows
+ * the page without being written twice; with fewer than two there is no list.
+ */
+const { hasSidebar, entry, headings, lang } = Astro.locals.starlightRoute;
+const landing = !hasSidebar && !entry.data.hero;
+const sections = headings.filter((heading) => heading.depth === 2);
+const fr = lang === 'fr';
+const copy = home[fr ? 'fr' : 'en'];
+const two = (n: number) => String(n).padStart(2, '0');
+const aside = sections.length > 1;
+---
+
+{landing ? (
+  <div class:list={['sw-article', aside && 'has-aside']}>
+    <Default {...Astro.props}><slot /></Default>
+    {aside && (
+      <aside class="sw-aside">
+        <nav aria-label={fr ? 'Sur cette page' : 'On this page'} data-aside>
+          <p class="sw-aside-title">{fr ? 'Sur cette page' : 'On this page'}</p>
+          <ol>
+            {sections.map((section, index) => (
+              <li>
+                <a href={`#${section.slug}`}>
+                  <span>{two(index + 1)}</span>
+                  {section.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <a class="sw-aside-cta" href={`${APP}/login`}>
+          <strong>{copy.app}<span aria-hidden="true">→</span></strong>
+          <span>{copy.hero.proof[0]}</span>
+        </a>
+      </aside>
+    )}
+  </div>
+) : (
+  <Default {...Astro.props}><slot /></Default>
+)}
+
+<script>
+  // Marks the section being read in the list beside the text.
+  const nav = document.querySelector<HTMLElement>('[data-aside]');
+  if (nav && 'IntersectionObserver' in window) {
+    const links = new Map<string, HTMLElement>();
+    nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((link) => {
+      links.set(decodeURIComponent(link.hash.slice(1)), link);
+    });
+    const headings = [...links.keys()]
+      .map((id) => document.getElementById(id))
+      .filter((heading): heading is HTMLElement => Boolean(heading));
+    const mark = () => {
+      const line = window.innerHeight * 0.35;
+      let current: HTMLElement | undefined;
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top < line) current = heading;
+      }
+      links.forEach((link, id) => link.toggleAttribute('aria-current', id === current?.id));
+    };
+    mark();
+    window.addEventListener('scroll', mark, { passive: true });
+  }
+</script>
+
+<style>
+  /* Without the list (a page with a layout of its own, such as pricing, or with
+     one section), the text keeps its measure and anything else the full column. */
+  .sw-article:not(.has-aside) :global(.sl-markdown-content > :not(.not-content)) {
+    max-width: 44rem;
+  }
+
+  .sw-article.has-aside {
+    display: grid;
+    grid-template-columns: minmax(0, 44rem) minmax(0, 16rem);
+    justify-content: space-between;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .sw-aside {
+    position: sticky;
+    top: calc(var(--sl-nav-height) + 2.5rem);
+    display: grid;
+    gap: 2rem;
+    margin-top: clamp(3.5rem, 7vw, 5.5rem);
+  }
+
+  .sw-aside-title {
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  ol {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    margin: 0;
+  }
+
+  nav a {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    gap: 0.25rem;
+    padding: 0.4rem 0;
+    font-size: var(--sl-text-sm);
+    line-height: 1.4;
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+    transition: color 200ms ease;
+  }
+
+  nav a span {
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    line-height: 1.75;
+    color: var(--sl-color-gray-4);
+    transition: color 200ms ease;
+  }
+
+  nav a:hover,
+  nav a[aria-current] {
+    color: var(--sl-color-white);
+  }
+
+  nav a[aria-current] span {
+    color: var(--sl-color-accent-high);
+  }
+
+  :global(:root[data-theme='light']) nav a[aria-current] span {
+    color: var(--sl-color-accent);
+  }
+
+  .sw-aside-cta {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
+    border-radius: 1rem;
+    background:
+      radial-gradient(12rem 8rem at 100% 0%, color-mix(in srgb, var(--sl-color-accent) 16%, transparent), transparent 70%),
+      color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
+    text-decoration: none;
+    transition: border-color 200ms ease;
+  }
+
+  .sw-aside-cta strong {
+    display: inline-flex;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .sw-aside-cta strong span {
+    transition: transform 200ms ease;
+  }
+
+  .sw-aside-cta:hover {
+    border-color: var(--sl-color-accent);
+  }
+
+  .sw-aside-cta:hover strong span {
+    transform: translateX(3px);
+  }
+
+  .sw-aside-cta > span {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  @media (max-width: 64rem) {
+    .sw-article.has-aside {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sw-aside {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,137 @@
+---
+/**
+ * The title at the top of a page, replacing Starlight's.
+ *
+ * On the documentation (pages with a sidebar) it is Starlight's own heading,
+ * unchanged. On the landing pages (pricing, the integrations, self-hosting, the
+ * guides, the legal pages) it opens the page the way the home page's sections
+ * open: a small label in capitals saying what kind of page it is, then the title,
+ * large and left-aligned, whose words rise into place. The label is worked out
+ * from the page's address, so that a new page under /guides/ is labelled without
+ * anyone having to remember to.
+ */
+const { hasSidebar, entry, lang } = Astro.locals.starlightRoute;
+const fr = lang === 'fr';
+const title = entry.data.title;
+
+const slug = entry.id.replace(/^fr\//, '').replace(/\.mdx?$/, '');
+const kinds: [RegExp, string, string][] = [
+  [/^guides\//, 'Guide', 'Guide'],
+  [/^pricing$/, 'Pricing', 'Tarifs'],
+  [/^(spring-boot|python|django|laravel)$/, 'Integration', 'Intégration'],
+  [/^self-hosted$/, 'Self-hosting', 'Auto-hébergement'],
+  [/^(job-monitoring|cron-monitoring|dead-mans-switch)$/, 'Job monitoring', 'Monitoring de jobs'],
+  [/^(legal|privacy|terms|sales)$/, 'Legal', 'Informations légales'],
+];
+const kind = kinds.find(([pattern]) => pattern.test(slug));
+const label = kind ? (fr ? kind[2] : kind[1]) : 'SilenceWatch';
+
+const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const words = escape(title)
+  .split(/\s+/)
+  .filter(Boolean)
+  .map((word, i) => `<span class="w"><span style="--i:${i}">${word}</span></span>`)
+  .join(' ');
+---
+
+{hasSidebar ? (
+  <h1 id="_top" class="sl-title">{title}</h1>
+) : (
+  <div class="sw-pagehead">
+    <p class="kicker"><span class="live"></span>{label}</p>
+    <h1 id="_top" set:html={words} />
+  </div>
+)}
+
+<style>
+  @layer starlight.core {
+    .sl-title {
+      margin-top: 1rem;
+      font-size: var(--sl-text-h1);
+      line-height: var(--sl-line-height-headings);
+      font-weight: 600;
+      color: var(--sl-color-white);
+    }
+  }
+
+  .sl-title {
+    letter-spacing: -0.03em;
+  }
+
+  .sw-pagehead {
+    padding-block: clamp(2rem, 6vw, 4.5rem) clamp(1rem, 3vw, 2rem);
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 clamp(1.25rem, 3vw, 2rem);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  .live {
+    position: relative;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #3ddc97;
+  }
+
+  :global(:root[data-theme='light']) .live {
+    background: #1f9d63;
+  }
+
+  .live::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: pagehead-live 2s ease-out infinite;
+  }
+
+  @keyframes pagehead-live {
+    to { scale: 3.2; opacity: 0; }
+  }
+
+  h1 {
+    max-width: 20ch;
+    margin: 0;
+    font-size: clamp(2.4rem, 0.9rem + 4vw, 5rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+    color: var(--sl-color-white);
+  }
+
+  h1 :global(.w) {
+    display: inline-block;
+    overflow: clip;
+    padding: 0.1em 0.04em 0.12em;
+    margin: -0.1em -0.04em -0.12em;
+    vertical-align: top;
+  }
+
+  h1 :global(.w > span) {
+    display: inline-block;
+    animation: pagehead-word 1000ms calc(var(--i) * 45ms + 100ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes pagehead-word {
+    from { transform: translateY(110%) rotate(3deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    h1 :global(.w > span),
+    .live::after {
+      animation: none;
+    }
+  }
+</style>
