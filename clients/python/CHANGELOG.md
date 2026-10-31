@@ -5,6 +5,8 @@ The Python library is versioned apart from the application, and tagged
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-31
+
 - **Jobs watched on each instance.** Processes and servers declare the same jobs, so each job is
   one check, up while any of them reports it: right for Celery, where one worker runs each run,
   but an APScheduler process whose scheduler is stuck went unnoticed while another worked.
