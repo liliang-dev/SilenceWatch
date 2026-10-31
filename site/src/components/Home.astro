@@ -45,11 +45,6 @@ const login = `${APP}/login`;
 ---
 
 <div class="sw-home not-content">
-  <!-- The heartbeat, running under the hero. -->
-  <svg class="ecg" viewBox="0 0 1200 80" preserveAspectRatio="none" aria-hidden="true">
-    <path class="base" d="M0 40H430L452 40L470 14L492 66L512 24L528 40H1200" />
-    <path class="live" pathLength="1" d="M0 40H430L452 40L470 14L492 66L512 24L528 40H1200" />
-  </svg>
 
 
   <section class="works" aria-label={copy.works.label}>
@@ -230,44 +225,6 @@ const login = `${APP}/login`;
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
-  }
-
-  /* --- the heartbeat under the hero ------------------------------------- */
-  .sw-home .ecg {
-    display: block;
-    width: 100vw;
-    height: 4rem;
-    margin: 0 calc(50% - 50vw) clamp(2.5rem, 6vw, 4.5rem);
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    overflow: visible;
-  }
-
-  .sw-home .ecg path {
-    vector-effect: non-scaling-stroke;
-  }
-
-  .sw-home .ecg .base {
-    stroke: color-mix(in srgb, var(--sl-color-accent) 30%, transparent);
-    stroke-width: 1.5;
-  }
-
-  .sw-home .ecg .live {
-    stroke: var(--sl-color-accent-high);
-    stroke-width: 2.5;
-    stroke-dasharray: 0.12 1;
-    filter: drop-shadow(0 0 6px var(--sl-color-accent));
-    animation: sw-travel 4.2s linear infinite;
-  }
-
-  @keyframes sw-travel {
-    from {
-      stroke-dashoffset: 0.12;
-    }
-    to {
-      stroke-dashoffset: -1;
-    }
   }
 
   /* --- the marquee: it works with everything ---------------------------- */
@@ -914,10 +871,6 @@ const login = `${APP}/login`;
     .sw-home *::after {
       animation: none !important;
       transition: none !important;
-    }
-
-    .sw-home .ecg .live {
-      stroke-dasharray: none;
     }
 
     .sw-home .marquee {
