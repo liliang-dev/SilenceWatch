@@ -95,12 +95,11 @@ body::before {
 
 /* Cards and panels sit on the page rather than melting into it. */
 .sw-facts li,
-.sw-home .card,
 .sw-pricing .plan {
   box-shadow: var(--sw-lift);
 }
 
-/* No web font is loaded: nothing here fetches from a third party. */
+/* The fonts are served by the site itself: nothing here fetches from a third party. */
 
 /* --- the home page (its hero is src/components/Hero.astro) ------------------- */
 
@@ -647,8 +646,7 @@ starlight-theme-select svg.label-icon {
 
 /* A plain button inside a white card was filled with the page colour, which on
    the lavender page is a grey patch; it reads better as white with an edge. */
-:root[data-theme='light'] .sw-pricing .btn:not(.primary),
-:root[data-theme='light'] .sw-home .path .btn:not(.primary):not(.ghost) {
+:root[data-theme='light'] .sw-pricing .btn:not(.primary) {
   background: #ffffff;
 }
 
@@ -675,4 +673,14 @@ starlight-theme-select svg.label-icon {
 .header .sw-menu starlight-theme-select .caret {
   display: block;
   inset-inline-end: 0;
+}
+
+/* On the home page, whose sections are laid out on a wider column (Home.astro),
+   the footer takes the same column, so that its edges line up with theirs. */
+[data-has-hero] .sw-footer {
+  width: min(100vw, 84rem);
+  margin-inline: calc(50% - min(50vw, 42rem));
+  padding-inline: clamp(1.25rem, 4vw, 3.5rem);
+  border-top: 0;
+  background: linear-gradient(var(--sl-color-hairline), var(--sl-color-hairline)) no-repeat top / calc(100% - 2 * clamp(1.25rem, 4vw, 3.5rem)) 1px;
 }
