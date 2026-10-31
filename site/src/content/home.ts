@@ -37,14 +37,23 @@ export interface HomeCopy {
     toastDown: { title: string; text: string };
     toastUp: { title: string; text: string };
   };
+  /** The short name of each section, shown above its title with its number. */
+  labels: { problem: string; how: string; features: string; spring: string; which: string; pricing: string; faq: string };
   works: { label: string; items: string[] };
-  problem: { title: string; paragraphs: string[] };
+  /** `log`: a week of one job's runs, which stop without a word, and the alert. */
+  problem: {
+    title: string;
+    paragraphs: string[];
+    log: { days: string[]; done: string; nothing: string; alert: string };
+  };
   how: {
     title: string;
     lead: string;
     steps: { title: string; text: string }[];
     note: string;
     codeLabel: string;
+    /** The labels of the first step's little form. */
+    form: { schedule: string; timezone: string; grace: string };
   };
   /** `icon` is the name of an icon in `src/icons.ts`. */
   features: { title: string; items: { icon: string; title: string; text: string }[] };
@@ -59,13 +68,22 @@ export interface HomeCopy {
     hosted: { title: string; text: string; cta: string; details: string };
     note: string;
   };
-  cta: { title: string; text: string };
+  cta: { title: string; text: string; primary: string; secondary: string };
   faq: { title: string; heading: string; items: { q: string; a: string }[] };
 }
 
 export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
+    labels: {
+      problem: 'The problem',
+      how: 'How it works',
+      features: 'Features',
+      spring: 'Integrations',
+      which: 'Use cases',
+      pricing: 'Pricing',
+      faq: 'Questions',
+    },
     hero: {
       kicker: 'Job monitoring · open source',
       field: {
@@ -101,6 +119,12 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         'Backups, exports, renewals, billing runs: when a **scheduled job** stops, no error is raised and nobody is told.',
         'SilenceWatch is a *dead man’s switch*. It watches for **what did not happen**: if a job does not check in on time, the alert goes out.',
       ],
+      log: {
+        days: ['Mon', 'Tue', 'Wed', 'Thu'],
+        done: 'done',
+        nothing: 'no error, no log',
+        alert: 'no signal: alert sent',
+      },
     },
     how: {
       title: 'Job monitoring in three steps',
@@ -121,6 +145,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
       ],
       note: 'Ready-to-copy [examples](/docs/cron-examples/) for crontab, systemd, Docker, Kubernetes and GitHub Actions.',
       codeLabel: 'crontab',
+      form: { schedule: 'Schedule', timezone: 'Time zone', grace: 'Grace' },
     },
     features: {
       title: 'What SilenceWatch does',
@@ -183,7 +208,9 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     cta: {
       title: 'Your next silent failure shouldn’t be silent',
-      text: 'Get alerted by email or on any webhook.',
+      text: 'Get alerted by email, Slack, Teams, Discord or any webhook.',
+      primary: 'Start for free',
+      secondary: 'Read the documentation',
     },
     faq: {
       title: 'Frequently asked questions about SilenceWatch',
@@ -223,6 +250,15 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
 
   fr: {
     app: 'Essayer',
+    labels: {
+      problem: 'Le problème',
+      how: 'Comment ça marche',
+      features: 'Fonctionnalités',
+      spring: 'Intégrations',
+      which: 'Cas d’usage',
+      pricing: 'Tarifs',
+      faq: 'Questions',
+    },
     hero: {
       kicker: 'Monitoring de jobs · open source',
       field: {
@@ -258,6 +294,12 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
         'Sauvegardes, exports, renouvellements, facturation : quand un **job planifié** s’arrête, aucune erreur n’est levée et personne n’est prévenu.',
         'SilenceWatch est un *dead man’s switch*. Il surveille **ce qui ne s’est pas passé** : si un job ne donne pas signe de vie à temps, l’alerte part.',
       ],
+      log: {
+        days: ['Lun', 'Mar', 'Mer', 'Jeu'],
+        done: 'terminé',
+        nothing: 'aucune erreur, aucun log',
+        alert: 'aucun signal : alerte envoyée',
+      },
     },
     how: {
       title: 'Le monitoring de jobs en trois étapes',
@@ -278,6 +320,7 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
       ],
       note: 'Des [exemples](/docs/cron-examples/) à copier pour crontab, systemd, Docker, Kubernetes et GitHub Actions.',
       codeLabel: 'crontab',
+      form: { schedule: 'Planning', timezone: 'Fuseau', grace: 'Tolérance' },
     },
     features: {
       title: 'Ce que fait SilenceWatch',
@@ -340,7 +383,9 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
     },
     cta: {
       title: 'Votre prochaine panne silencieuse ne le sera plus',
-      text: 'Soyez alerté par mail ou sur n’importe quel webhook.',
+      text: 'Soyez alerté par e‑mail, Slack, Teams, Discord ou sur n’importe quel webhook.',
+      primary: 'Commencer gratuitement',
+      secondary: 'Lire la documentation',
     },
     faq: {
       title: 'Questions fréquentes sur SilenceWatch',

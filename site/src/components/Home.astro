@@ -3,23 +3,28 @@ import { home } from '../content/home';
 import { APP, REPOSITORY } from '../site';
 import Faq from './Faq.astro';
 import { iconBody, type IconName } from '../icons';
-import Illustration from './Illustration.astro';
 import { PLANS, pricing } from '../content/plans';
 
 /**
- * The home page below its hero: the product in motion, how it works in three steps,
- * what it does, and — repeatedly, and without being pushy about it — the way into
- * the application, which has a free plan.
+ * The home page below its hero, in the hero's own manner: wide, left-aligned
+ * and typographic. Each section opens on a hairline with its number and its name
+ * in small capitals, then a large title, which rises into place word by word as
+ * the section scrolls in; lines rather than boxes divide what is inside.
  *
- * Laid out here rather than in Markdown because it needs a grid, a few animations
- * and cards, and written once for both languages from `content/home.ts`. Motion is
- * CSS, with a few lines of script for revealing sections as they scroll in; with
- * reduced motion requested, or without script, everything is simply there.
+ * The order tells the story: what it works with, the problem (a week of one job's
+ * runs, which stop without a word), how it works (three steps, each with the
+ * piece of the product it is about), what it does, the integrations, the jobs it
+ * is for, the price, the questions, and a last, large call to action.
+ *
+ * Written once for both languages from `content/home.ts`. The motion is CSS, with
+ * a few lines of script that mark sections as they scroll in; with reduced motion
+ * requested, or without script, everything is simply there.
  */
 const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
 const copy = home[lang];
 const plans = pricing[lang];
 const prefix = lang === 'fr' ? '/fr' : '';
+const { hero, demo } = copy;
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -32,7 +37,16 @@ const md = (text: string): string =>
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>');
 
+/** A title, each word in its own masked box so that it can rise into place. */
+const words = (text: string): string =>
+  escape(text)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, i) => `<span class="w"><span style="--i:${i}">${word}</span></span>`)
+    .join(' ');
+
 const url = (path: string) => `${prefix}${path}`;
+const two = (n: number) => String(n).padStart(2, '0');
 
 const money = new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', {
   style: 'currency',
@@ -42,179 +56,283 @@ const money = new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', {
 });
 const formatPrice = (amount: number) => money.format(amount);
 const login = `${APP}/login`;
+
+// The sections, numbered in the order they appear.
+const n = { problem: 1, how: 2, features: 3, spring: 4, which: 5, pricing: 6, faq: 7 };
+
+// The problem's week: three nights that ran, one that did not.
+const runs = ['1 min 12 s', '1 min 09 s', '1 min 15 s'];
 ---
 
 <div class="sw-home not-content">
-
-
   <section class="works" aria-label={copy.works.label}>
-    <p class="works-label">{copy.works.label}</p>
+    <div class="wrap">
+      <p class="works-label">{copy.works.label}</p>
+    </div>
     <div class="marquee" aria-hidden="true">
       <div class="track">
-        {[0, 1].map(() => copy.works.items.map((item) => <span>{item}</span>))}
+        {[0, 1].map(() => copy.works.items.map((item) => <span>{item}<i></i></span>))}
       </div>
     </div>
     <p class="sr-only">{copy.works.items.join(', ')}</p>
   </section>
 
-  <section class="band split" data-reveal>
-    <div class="copy">
-      <h2>{copy.problem.title}</h2>
-      {copy.problem.paragraphs.map((p) => <p set:html={md(p)} />)}
-    </div>
-    <Illustration name="silence" />
-  </section>
-
-  <section class="band" id="how-it-works" data-reveal>
-    <div class="head">
-      <h2>{copy.how.title}</h2>
-      <p>{copy.how.lead}</p>
-    </div>
-    <ol class="steps">
-      {copy.how.steps.map((step, index) => (
-        <li class="card" data-spot>
-          <span class="num">{index + 1}</span>
-          <h3>{step.title}</h3>
-          <p set:html={md(step.text)} />
-          {index === 1 && (
-            <div class="code" role="img" aria-label={copy.how.codeLabel}>
-              <span class="label">{copy.how.codeLabel}</span>
-              <code><span class="mute">0 2 * * *</span>  backup.sh <span class="op">&amp;&amp;</span> curl -fsS <span class="str">https://app.silencewatch.com/p/&lt;ping-key&gt;</span><i class="caret"></i></code>
-            </div>
-          )}
-        </li>
-      ))}
-    </ol>
-    <p class="note" set:html={md(copy.how.note)} />
-  </section>
-
-  <section class="band pricing" id="pricing" data-reveal>
-    <div class="head">
-      <h2>{copy.pricing.title}</h2>
-      <p>{copy.pricing.lead}</p>
-    </div>
-
-    <div class="paths">
-      <article class="card path self" data-spot>
-        <span class="tag">{copy.pricing.self.badge}</span>
-        <h3>{copy.pricing.self.title}</h3>
-        <p class="amount"><strong>{copy.pricing.self.price}</strong></p>
-        <ul class="points">
-          {copy.pricing.self.points.map((point) => <li>{point}</li>)}
-        </ul>
-        <div class="actions">
-          <a class="btn" href={url('/self-hosted/')}>{copy.pricing.self.guide}</a>
-          <a class="btn ghost" href={REPOSITORY}>{copy.pricing.self.source}</a>
+  <!-- 01 · The problem -->
+  <section class="sec" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.problem)}</span>{copy.labels.problem}</p>
+      <div class="problem">
+        <h2 class="display" set:html={words(copy.problem.title)} />
+        <div class="problem-body">
+          {copy.problem.paragraphs.map((p, i) => <p class="body rise" style={`--d:${i}`} set:html={md(p)} />)}
+          <figure class="panel log rise" style="--d:2" aria-hidden="true">
+            <div class="bar"><i></i><i></i><i></i><span>{hero.field.job} · 0 2 * * *</span></div>
+            <ol>
+              {runs.map((time, i) => (
+                <li class="ok rise" style={`--d:${i + 3}`}>
+                  <span class="day">{copy.problem.log.days[i]}</span>
+                  <span>02:00</span>
+                  <span class="state">✓ {copy.problem.log.done}</span>
+                  <span class="meta">{time}</span>
+                </li>
+              ))}
+              <li class="none rise" style="--d:6">
+                <span class="day">{copy.problem.log.days[3]}</span>
+                <span>02:00</span>
+                <span class="state">— {copy.problem.log.nothing}</span>
+                <span class="meta"></span>
+              </li>
+              <li class="alert rise" style="--d:7">
+                <span class="day">{copy.problem.log.days[3]}</span>
+                <span>02:15</span>
+                <span class="state"><i></i>{copy.problem.log.alert}</span>
+                <span class="meta">SilenceWatch</span>
+              </li>
+            </ol>
+          </figure>
         </div>
-      </article>
-
-      <span class="or" aria-hidden="true">{copy.pricing.or}</span>
-
-      <article class="card path hosted" data-spot>
-        <span class="tag">{copy.pricing.hosted.title}</span>
-        <p class="hosted-text">{copy.pricing.hosted.text}</p>
-        <ul class="plans">
-          {PLANS.map((plan) => (
-            <li class="plan">
-              <h3>{plans.names[plan.id]}</h3>
-              <p class="amount">
-                <strong>{formatPrice(plan.price)}</strong>
-                <span>{plans.perMonth}</span>
-              </p>
-              <ul class="limits">
-                <li>{plans.limits.checks(plan.checks)}</li>
-                <li>{plans.limits.projects(plan.projects)}</li>
-                <li>{plans.limits.channels(plan.channelsPerProject)}</li>
-                <li>{plans.limits.retention(plan.retentionDays)}</li>
-              </ul>
-            </li>
-          ))}
-        </ul>
-        <div class="actions">
-          <a class="btn primary" href={login}>{copy.pricing.hosted.cta}<span aria-hidden="true">→</span></a>
-          <a class="btn ghost" href={url('/pricing/')}>{copy.pricing.hosted.details}</a>
-          <span class="note">{copy.pricing.note}</span>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="band" data-reveal>
-    <div class="head">
-      <h2>{copy.features.title}</h2>
-    </div>
-    <div class="grid">
-      {copy.features.items.map((item) => (
-        <article class="card feature" data-spot>
-          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" set:html={iconBody(item.icon as IconName)} />
-          <h3>{item.title}</h3>
-          <p set:html={md(item.text)} />
-        </article>
-      ))}
-    </div>
-  </section>
-
-  <section class="band split flip" data-reveal>
-    <div class="copy">
-      <h2>{copy.which.title}</h2>
-      <p set:html={md(copy.which.text)} />
-      <ul class="chips">
-        {copy.which.chips.map((chip) => <li><a href={url(chip.href)}>{chip.text}</a></li>)}
-      </ul>
-    </div>
-    <Illustration name="hub" />
-  </section>
-
-  <section class="band spring" data-reveal>
-    <div class="spring-text">
-      <h2>{copy.spring.title}</h2>
-      <p set:html={md(copy.spring.text)} />
-    </div>
-    <div class="spring-code" aria-hidden="true">
-      <div class="code">
-        <span class="label">application.yml</span>
-        <code>silencewatch:<br />  api-key: <span class="str">$&#123;SILENCEWATCH_API_KEY&#125;</span></code>
       </div>
-      <p class="discovered">{copy.spring.discovered}</p>
-      <ul class="jobs">
-        {copy.spring.jobs.map((job, index) => (
-          <li style={`--i:${index}`}><span>{job.name}</span><em>{job.schedule}</em></li>
+    </div>
+  </section>
+
+  <!-- 02 · How it works -->
+  <section class="sec" id="how-it-works" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.how)}</span>{copy.labels.how}</p>
+      <div class="sec-title">
+        <h2 class="display" set:html={words(copy.how.title)} />
+        <p class="lead rise">{copy.how.lead}</p>
+      </div>
+      <ol class="steps">
+        {copy.how.steps.map((step, index) => (
+          <li class="step rise" style={`--d:${index + 1}`}>
+            <span class="step-n">{two(index + 1)}</span>
+            <h3>{step.title}</h3>
+            <p set:html={md(step.text)} />
+            <div class="mock">
+              {index === 0 && (
+                <dl class="panel form" aria-hidden="true">
+                  <div><dt>{copy.how.form.schedule}</dt><dd>0 2 * * *</dd></div>
+                  <div><dt>{copy.how.form.timezone}</dt><dd>Europe/Paris</dd></div>
+                  <div><dt>{copy.how.form.grace}</dt><dd>15 min</dd></div>
+                </dl>
+              )}
+              {index === 1 && (
+                <div class="panel code" role="img" aria-label={copy.how.codeLabel}>
+                  <span class="label">{copy.how.codeLabel}</span>
+                  <code><span class="mute">0 2 * * *</span>  backup.sh <span class="op">&amp;&amp;</span> curl -fsS <span class="str">https://app.silencewatch.com/p/&lt;ping-key&gt;</span><i class="caret"></i></code>
+                </div>
+              )}
+              {index === 2 && (
+                <div class="panel toast" aria-hidden="true">
+                  <span class="toast-dot"></span>
+                  <div>
+                    <b>{hero.field.job} · {demo.states.down}</b>
+                    <span>{hero.field.silent}</span>
+                    <span>{hero.field.alert}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p class="note rise" style="--d:4" set:html={md(copy.how.note)} />
+    </div>
+  </section>
+
+  <!-- 03 · What it does -->
+  <section class="sec" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.features)}</span>{copy.labels.features}</p>
+      <h2 class="display" set:html={words(copy.features.title)} />
+      <ul class="rows">
+        {copy.features.items.map((item, index) => (
+          <li class="row rise" style={`--d:${index}`}>
+            <span class="row-n">{two(index + 1)}</span>
+            <svg class="row-ico" viewBox="0 0 24 24" aria-hidden="true" set:html={iconBody(item.icon as IconName)} />
+            <h3>{item.title}</h3>
+            <p set:html={md(item.text)} />
+          </li>
         ))}
       </ul>
     </div>
   </section>
 
-  <section class="cta split" data-reveal>
-    <div class="copy">
-      <h2>{copy.cta.title}</h2>
-      <p>{copy.cta.text}</p>
+  <!-- 04 · Integrations -->
+  <section class="sec" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.spring)}</span>{copy.labels.spring}</p>
+      <div class="spring">
+        <div>
+          <h2 class="display" set:html={words(copy.spring.title)} />
+          <p class="body rise" style="--d:1" set:html={md(copy.spring.text)} />
+        </div>
+        <div class="panel term rise" style="--d:2" aria-hidden="true">
+          <div class="bar"><i></i><i></i><i></i><span>application.yml</span></div>
+          <code class="yml">silencewatch:<br />  api-key: <span class="str">$&#123;SILENCEWATCH_API_KEY&#125;</span></code>
+          <p class="discovered">{copy.spring.discovered}</p>
+          <ul class="jobs">
+            {copy.spring.jobs.map((job, index) => (
+              <li class="rise" style={`--d:${index + 3}`}><i></i><span>{job.name}</span><em>{job.schedule}</em></li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
-    <Illustration name="alerts" />
   </section>
 
-  <section class="band split" data-reveal>
-    <div class="copy">
-      <h2>{copy.faq.heading}</h2>
-      <Faq title={copy.faq.title} items={copy.faq.items} />
+  <!-- 05 · Which jobs -->
+  <section class="sec" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.which)}</span>{copy.labels.which}</p>
+      <div class="which">
+        <div>
+          <h2 class="display" set:html={words(copy.which.title)} />
+          <p class="body rise" style="--d:1" set:html={md(copy.which.text)} />
+        </div>
+        <ul class="tags">
+          {copy.which.chips.map((chip, index) => (
+            <li class="rise" style={`--d:${index * 0.5 + 1}`}>
+              <a href={url(chip.href)}>
+                {chip.text}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
-    <Illustration name="faq" />
+  </section>
+
+  <!-- 06 · Pricing -->
+  <section class="sec" id="pricing" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.pricing)}</span>{copy.labels.pricing}</p>
+      <div class="sec-title">
+        <h2 class="display" set:html={words(copy.pricing.title)} />
+        <p class="lead rise">{copy.pricing.lead}</p>
+      </div>
+
+      <div class="paths">
+        <article class="path self rise" style="--d:1">
+          <p class="path-tag">{copy.pricing.self.badge}</p>
+          <h3>{copy.pricing.self.title}</h3>
+          <p class="price">{copy.pricing.self.price}</p>
+          <ul class="checks">
+            {copy.pricing.self.points.map((point) => <li>{point}</li>)}
+          </ul>
+          <div class="path-actions">
+            <a class="btn" href={url('/self-hosted/')}>{copy.pricing.self.guide}</a>
+            <a class="link" href={REPOSITORY}>{copy.pricing.self.source}<span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+
+        <span class="or" aria-hidden="true">{copy.pricing.or}</span>
+
+        <article class="path hosted rise" style="--d:2">
+          <p class="path-tag">{copy.pricing.hosted.title}</p>
+          <p class="hosted-text">{copy.pricing.hosted.text}</p>
+          <ul class="plans">
+            {PLANS.map((plan) => (
+              <li class="plan">
+                <h3>{plans.names[plan.id]}</h3>
+                <p class="amount">
+                  <strong>{formatPrice(plan.price)}</strong>
+                  <span>{plans.perMonth}</span>
+                </p>
+                <ul class="checks small">
+                  <li>{plans.limits.checks(plan.checks)}</li>
+                  <li>{plans.limits.projects(plan.projects)}</li>
+                  <li>{plans.limits.channels(plan.channelsPerProject)}</li>
+                  <li>{plans.limits.retention(plan.retentionDays)}</li>
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <div class="path-actions">
+            <a class="btn primary" href={login}>{copy.pricing.hosted.cta}<span aria-hidden="true">→</span></a>
+            <a class="link" href={url('/pricing/')}>{copy.pricing.hosted.details}<span aria-hidden="true">→</span></a>
+            <span class="fine">{copy.pricing.note}</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 · Questions -->
+  <section class="sec" data-reveal>
+    <div class="wrap">
+      <p class="sec-head"><span>{two(n.faq)}</span>{copy.labels.faq}</p>
+      <div class="faq">
+        <h2 class="display" set:html={words(copy.faq.heading)} />
+        <div class="rise" style="--d:1">
+          <Faq title={copy.faq.title} items={copy.faq.items} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The last word -->
+  <section class="closing" data-reveal>
+    <div class="closing-field" aria-hidden="true"><span class="beacon"></span></div>
+    <div class="wrap">
+      <h2 class="giant" set:html={words(copy.cta.title)} />
+      <div class="closing-foot rise" style="--d:2">
+        <p>{copy.cta.text}</p>
+        <div class="closing-actions">
+          <a class="btn primary big" href={login}>{copy.cta.primary}<span aria-hidden="true">→</span></a>
+          <a class="link" href={url('/docs/getting-started/')}>{copy.cta.secondary}<span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
 <style is:global>
   .sw-home {
-    --gap: clamp(3rem, 7vw, 5.5rem);
-    max-width: 68rem;
-    margin-inline: auto;
-    padding-inline: 1rem;
+    --red: #ff5a63;
+    --green: #3ddc97;
+    --pad: clamp(1.25rem, 4vw, 3.5rem);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    width: var(--sw-vw, 100vw);
+    margin-inline: calc(50% - var(--sw-vw, 100vw) / 2);
+  }
+
+  :root[data-theme='light'] .sw-home {
+    --red: #e5484d;
+    --green: #1f9d63;
   }
 
   .sw-home h2,
   .sw-home h3,
   .sw-home p,
   .sw-home ul,
-  .sw-home ol {
+  .sw-home ol,
+  .sw-home dl,
+  .sw-home dd,
+  .sw-home figure {
     margin: 0;
   }
 
@@ -227,125 +345,21 @@ const login = `${APP}/login`;
     white-space: nowrap;
   }
 
-  /* --- the marquee: it works with everything ---------------------------- */
-  .sw-home .works {
-    margin-top: var(--gap);
-    text-align: center;
+  /* The same column as the hero's words. */
+  .sw-home .wrap {
+    max-width: 84rem;
+    margin-inline: auto;
+    padding-inline: var(--pad);
   }
 
-  .sw-home .works-label {
-    font-size: var(--sl-text-sm);
-    letter-spacing: 0.04em;
-    color: var(--sl-color-gray-3);
-  }
-
-  .sw-home .marquee {
-    margin-top: 1rem;
-    overflow: hidden;
-    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-  }
-
-  .sw-home .track {
-    display: flex;
-    width: max-content;
-    gap: 0.75rem;
-    animation: sw-marquee 38s linear infinite;
-  }
-
-  .sw-home .marquee:hover .track {
-    animation-play-state: paused;
-  }
-
-  .sw-home .track span {
-    padding: 0.4rem 0.9rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 0.6rem;
-    background: var(--sl-color-bg-nav);
-    font-family: var(--sl-font-mono);
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-2);
-    white-space: nowrap;
-  }
-
-  @keyframes sw-marquee {
-    to {
-      transform: translateX(calc(-50% - 0.375rem));
-    }
-  }
-
-  /* --- sections ---------------------------------------------------------- */
-  .sw-home .band {
-    margin-top: var(--gap);
-  }
-
-  /* Text on one side, a picture on the other: nothing is left empty beside a
-     paragraph. The picture goes under the text on a narrow screen. */
-  .sw-home .split {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: clamp(1.5rem, 5vw, 4rem);
-    align-items: center;
-  }
-
-  .sw-home .split.flip {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  }
-
-  .sw-home .split.flip .copy {
-    order: 2;
-  }
-
-  .sw-home .split .ill {
-    max-width: 28rem;
-  }
-
-  @media (max-width: 52rem) {
-    .sw-home .split,
-    .sw-home .split.flip {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .sw-home .split.flip .copy {
-      order: 0;
-    }
-
-    .sw-home .split .ill {
-      max-width: 20rem;
-    }
-  }
-
-  .sw-home h2 {
-    font-size: clamp(var(--sl-text-2xl), 1.2rem + 1.8vw, var(--sl-text-4xl));
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-    color: var(--sl-color-white);
-  }
-
-  .sw-home .band > p,
-  .sw-home .copy > p,
-  .sw-home .head p {
-    margin-top: 1rem;
-    font-size: var(--sl-text-lg);
-    line-height: 1.6;
-    color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .band > p {
-    text-wrap: pretty;
-  }
-
-  .sw-home .band > p + p,
-  .sw-home .copy > p + p {
-    margin-top: 0.9rem;
-  }
-
-  .sw-home .head {
-    margin-bottom: 2rem;
-  }
-
-  .sw-home a {
+  /* Links in running text; buttons, links set apart and tags have their own. */
+  .sw-home p a {
     color: var(--sl-color-accent-high);
+    text-underline-offset: 0.2em;
+  }
+
+  :root[data-theme='light'] .sw-home p a {
+    color: var(--sl-color-text-accent);
   }
 
   .sw-home code {
@@ -353,144 +367,364 @@ const login = `${APP}/login`;
     font-size: 0.9em;
   }
 
-  /* --- cards, with a light that follows the pointer --------------------- */
-  .sw-home .card {
-    position: relative;
-    padding: 1.4rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 1rem;
-    background: var(--sl-color-bg-nav);
-    overflow: hidden;
-    transition:
-      transform 180ms ease,
-      border-color 180ms ease;
+  /* ---- What it works with: a slow line of large names ------------------------------ */
+
+  .sw-home .works {
+    padding-top: clamp(4rem, 9vw, 7rem);
   }
 
-  .sw-home .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      22rem circle at var(--mx, 50%) var(--my, 0%),
-      color-mix(in srgb, var(--sl-color-accent) 10%, transparent),
-      transparent 60%
-    );
-    opacity: 0;
-    transition: opacity 200ms ease;
-    pointer-events: none;
-  }
-
-  .sw-home .card:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-hairline));
-  }
-
-  .sw-home .card:hover::before {
-    opacity: 1;
-  }
-
-  .sw-home .card > * {
-    position: relative;
-  }
-
-  .sw-home .card h3 {
-    font-size: var(--sl-text-lg);
-    line-height: 1.3;
-    color: var(--sl-color-white);
-  }
-
-  .sw-home .card p {
-    margin-top: 0.5rem;
-    line-height: 1.55;
-    color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .steps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: 1rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  .sw-home .num {
-    display: grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    margin-bottom: 0.9rem;
-    border-radius: 50%;
-    background: var(--sl-color-accent);
-    font-weight: 700;
-    color: #fff;
-  }
-
-  .sw-home .note {
-    margin-top: 1.5rem;
-    font-size: var(--sl-text-sm);
+  .sw-home .works-label,
+  .sw-home .sec-head {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--sl-color-gray-3);
   }
 
-  .sw-home .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  .sw-home .marquee {
+    margin-top: 1.25rem;
+    padding-block: clamp(1.1rem, 2.5vw, 1.75rem);
+    border-block: 1px solid var(--sl-color-hairline);
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .sw-home .track {
+    display: flex;
+    width: max-content;
+    animation: sw-marquee 70s linear infinite;
+  }
+
+  .sw-home .track span {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 2.75rem);
+    padding-inline-end: clamp(1.5rem, 3vw, 2.75rem);
+    font-size: clamp(1.5rem, 0.9rem + 1.8vw, 2.75rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+    color: var(--sl-color-gray-4);
+    transition: color 250ms ease;
+  }
+
+  .sw-home .track span:hover {
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .track i {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+  }
+
+  @keyframes sw-marquee {
+    to { transform: translateX(-50%); }
+  }
+
+  /* ---- A section: a hairline, its number and name, a large title -------------------- */
+
+  .sw-home .sec {
+    padding-top: clamp(5.5rem, 11vw, 10rem);
+  }
+
+  .sw-home .sec-head {
+    display: flex;
     gap: 1rem;
+    padding-top: 1rem;
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+    border-top: 1px solid var(--sl-color-hairline);
   }
 
-  .sw-home .ico {
-    width: 2.2rem;
-    height: 2.2rem;
-    margin-bottom: 0.9rem;
-    padding: 0.55rem;
-    border-radius: 0.7rem;
-    background: color-mix(in srgb, var(--sl-color-accent) 16%, transparent);
-    fill: none;
-    stroke: var(--sl-color-accent-high);
-    stroke-width: 1.5;
+  .sw-home .sec-head span {
+    color: var(--sl-color-accent-high);
   }
 
-  /* --- a command, in a window of its own -------------------------------- */
-  .sw-home .code {
+  :root[data-theme='light'] .sw-home .sec-head span {
+    color: var(--sl-color-accent);
+  }
+
+  .sw-home .display {
+    max-width: 17ch;
+    font-size: clamp(2.25rem, 0.9rem + 3.6vw, 4.5rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.048em;
+    text-wrap: balance;
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .sec-title {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 1.5rem clamp(2rem, 6vw, 6rem);
+  }
+
+  .sw-home .lead,
+  .sw-home .body {
+    font-size: clamp(var(--sl-text-base), 0.95rem + 0.3vw, 1.2rem);
+    line-height: 1.6;
+    text-wrap: pretty;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .lead {
+    max-width: 26rem;
+  }
+
+  .sw-home .body + .body {
     margin-top: 1rem;
-    padding: 0.7rem 0.85rem;
+  }
+
+  .sw-home strong {
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  /* Something drawn from the product: a panel with a hairline edge. */
+  .sw-home .panel {
     border: 1px solid var(--sl-color-hairline);
-    border-radius: 0.7rem;
-    background: var(--sl-color-black);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 80%, transparent);
+    box-shadow: 0 30px 60px -45px rgb(0 0 0 / 0.6);
+    font-family: var(--sl-font-mono);
+    font-size: 0.8rem;
+  }
+
+  .sw-home .panel .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-home .panel .bar i {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--sl-color-gray-5);
+  }
+
+  .sw-home .panel .bar span {
+    margin-inline-start: 0.6rem;
+  }
+
+  /* ---- 01 · The problem ------------------------------------------------------- */
+
+  .sw-home .problem {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 2.5rem clamp(2rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .sw-home .log {
+    margin-top: 2.25rem;
+  }
+
+  .sw-home .log ol {
+    padding: 0.4rem 0;
+    list-style: none;
+  }
+
+  .sw-home .log li {
+    display: grid;
+    grid-template-columns: 2.75rem 3.25rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-home .log .day {
+    color: var(--sl-color-gray-4);
+  }
+
+  .sw-home .log .ok .state {
+    color: var(--green);
+  }
+
+  .sw-home .log .none .state {
+    color: var(--sl-color-gray-4);
+    font-style: italic;
+  }
+
+  .sw-home .log .alert {
+    margin: 0.35rem 0.5rem 0.1rem;
+    padding-inline: 0.5rem;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--red) 12%, transparent);
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .log .alert .state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .sw-home .log .alert i,
+  .sw-home .toast-dot {
+    position: relative;
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--red);
+  }
+
+  .sw-home .log .alert i::after,
+  .sw-home .toast-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: sw-ring 1.8s ease-out infinite;
+  }
+
+  @keyframes sw-ring {
+    to { scale: 3.2; opacity: 0; }
+  }
+
+  .sw-home .log .meta {
+    color: var(--sl-color-gray-4);
+  }
+
+  .sw-home .log .alert .meta {
+    color: var(--red);
+  }
+
+  /* ---- 02 · How it works ------------------------------------------------------- */
+
+  .sw-home .steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: clamp(2.5rem, 6vw, 4.5rem);
+    padding: 0;
+    border-top: 1px solid var(--sl-color-hairline);
+    list-style: none;
+  }
+
+  /* A light runs along the line above the steps, from the first to the last. */
+  .sw-home .steps::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 22%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sl-color-accent-high), transparent);
+    animation: sw-run 5s linear infinite;
+  }
+
+  @keyframes sw-run {
+    0% { translate: 0 0; opacity: 0; }
+    10%, 90% { opacity: 1; }
+    100% { translate: 355% 0; opacity: 0; }
+  }
+
+  .sw-home .step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 2rem clamp(1rem, 2.5vw, 2.25rem) 0;
+    border-inline-start: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-home .step:first-child {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .sw-home .step:last-child {
+    padding-inline-end: 0;
+  }
+
+  .sw-home .step-n {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-color-accent-high);
+  }
+
+  :root[data-theme='light'] .sw-home .step-n {
+    color: var(--sl-color-accent);
+  }
+
+  .sw-home .step h3 {
+    font-size: clamp(1.3rem, 1rem + 0.6vw, 1.6rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .step p {
+    line-height: 1.6;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .mock {
+    margin-top: auto;
+    padding-top: 1.25rem;
+  }
+
+  .sw-home .form > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .sw-home .form > div + div {
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-home .form dt {
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-home .form dd {
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .code {
+    padding: 0.8rem 1rem;
     overflow-x: auto;
   }
 
   .sw-home .code .label {
     display: block;
-    margin-bottom: 0.35rem;
-    font-size: var(--sl-text-xs);
-    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--sl-color-gray-3);
   }
 
   .sw-home .code code {
     display: block;
-    font-size: var(--sl-text-sm);
-    line-height: 1.6;
+    font-size: 0.8rem;
+    line-height: 1.65;
     color: var(--sl-color-gray-1);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
-  .sw-home .code .mute {
-    color: var(--sl-color-gray-3);
-  }
-
+  .sw-home .code .mute,
   .sw-home .code .op {
     color: var(--sl-color-gray-3);
   }
 
-  .sw-home .code .str {
-    color: #47cd89;
-  }
-
-  :root[data-theme='light'] .sw-home .code .str {
-    color: #067647;
+  .sw-home .str {
+    color: var(--green);
   }
 
   .sw-home .caret {
@@ -504,365 +738,741 @@ const login = `${APP}/login`;
   }
 
   @keyframes sw-blink {
-    50% {
-      opacity: 0;
-    }
+    50% { opacity: 0; }
   }
 
-  /* --- chips ------------------------------------------------------------- */
-  .sw-home .chips {
+  .sw-home .toast {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    margin-top: 1.4rem;
+    gap: 0.8rem;
+    align-items: flex-start;
+    padding: 0.9rem 1rem;
+    border-color: color-mix(in srgb, var(--red) 40%, var(--sl-color-hairline));
+  }
+
+  .sw-home .toast .toast-dot {
+    margin-top: 0.3rem;
+  }
+
+  .sw-home .toast div {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-home .toast b {
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .note {
+    margin-top: 2.5rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  /* ---- 03 · What it does: an index, one line per feature --------------------------- */
+
+  .sw-home .rows {
+    margin-top: clamp(2.5rem, 6vw, 4.5rem);
     padding: 0;
+    border-top: 1px solid var(--sl-color-hairline);
     list-style: none;
   }
 
-  .sw-home .chips a {
-    display: inline-block;
-    padding: 0.4rem 0.9rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 999px;
-    background: var(--sl-color-bg-nav);
-    text-decoration: none;
-    color: var(--sl-color-gray-1);
-    transition:
-      border-color 150ms ease,
-      transform 150ms ease,
-      color 150ms ease;
-  }
-
-  .sw-home .chips a:hover {
-    border-color: var(--sl-color-accent);
-    color: var(--sl-color-white);
-    transform: translateY(-2px);
-  }
-
-  /* --- Spring Boot ------------------------------------------------------- */
-  .sw-home .spring {
+  .sw-home .row {
+    position: relative;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-    gap: 2rem 3rem;
+    grid-template-columns: 3rem 2rem minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 0.5rem clamp(1rem, 3vw, 2.5rem);
     align-items: center;
+    padding: clamp(1.25rem, 2.5vw, 1.75rem) 0;
+    border-bottom: 1px solid var(--sl-color-hairline);
   }
 
-  .sw-home .spring-text p {
-    margin-top: 1rem;
-    font-size: var(--sl-text-lg);
-    line-height: 1.6;
+  .sw-home .row::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * min(var(--pad), 1.25rem));
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, var(--sl-color-white) 4%, transparent);
+    opacity: 0;
+    transition: opacity 250ms ease;
+    pointer-events: none;
+  }
+
+  .sw-home .row:hover::before {
+    opacity: 1;
+  }
+
+  .sw-home .row-n {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+  }
+
+  .sw-home .row-ico {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: var(--sl-color-accent-high);
+    stroke-width: 1.5;
+    transition: transform 300ms var(--ease);
+  }
+
+  :root[data-theme='light'] .sw-home .row-ico {
+    stroke: var(--sl-color-accent);
+  }
+
+  .sw-home .row h3 {
+    font-size: clamp(1.25rem, 0.95rem + 0.8vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    color: var(--sl-color-white);
+    transition: translate 300ms var(--ease);
+  }
+
+  .sw-home .row p {
+    line-height: 1.55;
     color: var(--sl-color-gray-2);
   }
 
+  .sw-home .row:hover h3 {
+    translate: 0.4rem 0;
+  }
+
+  .sw-home .row:hover .row-ico {
+    transform: rotate(-8deg) scale(1.1);
+  }
+
+  /* ---- 04 · Integrations ---------------------------------------------------------- */
+
+  .sw-home .spring,
+  .sw-home .which {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2.5rem clamp(2rem, 6vw, 6rem);
+    align-items: center;
+  }
+
+  .sw-home .which {
+    align-items: start;
+  }
+
+  .sw-home .spring .body,
+  .sw-home .which .body {
+    max-width: 34rem;
+    margin-top: 1.75rem;
+  }
+
+  .sw-home .term .yml {
+    display: block;
+    padding: 1rem 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    white-space: pre;
+    color: var(--sl-color-gray-1);
+  }
+
   .sw-home .discovered {
-    margin-top: 1.1rem;
-    font-size: var(--sl-text-xs);
-    letter-spacing: 0.06em;
+    padding: 0.9rem 1.1rem 0.5rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--sl-color-gray-3);
   }
 
   .sw-home .jobs {
-    margin-top: 0.6rem;
-    padding: 0;
+    padding: 0 0.6rem 0.6rem;
     list-style: none;
   }
 
   .sw-home .jobs li {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.6rem 0.85rem;
-    margin-bottom: 0.45rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-left: 3px solid #47cd89;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.65rem 0.5rem;
     border-radius: 0.6rem;
-    background: var(--sl-color-bg-nav);
-    font-size: var(--sl-text-sm);
-    animation: sw-slide 7s ease-out infinite;
-    animation-delay: calc(var(--i) * 0.45s);
   }
 
-  .sw-home .jobs li span {
-    font-family: var(--sl-font-mono);
-    font-weight: 600;
+  .sw-home .jobs li + li {
+    border-top: 1px solid color-mix(in srgb, var(--sl-color-hairline) 60%, transparent);
+  }
+
+  .sw-home .jobs i {
+    position: relative;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .sw-home .jobs i::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: sw-ring 2.4s ease-out infinite;
+  }
+
+  .sw-home .jobs li:nth-child(2) i::after {
+    animation-delay: 0.8s;
+  }
+
+  .sw-home .jobs li:nth-child(3) i::after {
+    animation-delay: 1.6s;
+  }
+
+  .sw-home .jobs span {
     color: var(--sl-color-white);
   }
 
-  .sw-home .jobs li em {
+  .sw-home .jobs em {
     font-style: normal;
     color: var(--sl-color-gray-3);
     white-space: nowrap;
   }
 
-  @keyframes sw-slide {
-    0% {
-      opacity: 0;
-      transform: translateX(-0.75rem);
-    }
-    8%,
-    88% {
-      opacity: 1;
-      transform: none;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
+  /* ---- 05 · Which jobs: links in large type ---------------------------------------- */
 
-  /* --- buttons ----------------------------------------------------------- */
-  .sw-home .actions {
+  .sw-home .tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.6rem;
+    gap: 0.6rem;
+    padding: 0;
+    list-style: none;
   }
 
-  .sw-home .btn {
+  .sw-home .tags a {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.65rem 1.2rem;
+    padding: 0.75rem 1.15rem;
     border: 1px solid var(--sl-color-hairline);
     border-radius: 999px;
-    background: var(--sl-color-bg-nav);
-    font-weight: 600;
+    font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.1rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
     text-decoration: none;
-    color: var(--sl-color-white);
+    color: var(--sl-color-gray-1);
     transition:
-      transform 150ms ease,
-      box-shadow 150ms ease,
-      border-color 150ms ease;
+      background 250ms ease,
+      border-color 250ms ease,
+      color 250ms ease;
   }
 
-  .sw-home .btn:hover {
-    transform: translateY(-2px);
-    border-color: var(--sl-color-accent);
+  .sw-home .tags svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--sl-color-gray-4);
+    transition:
+      transform 300ms var(--ease),
+      color 250ms ease;
   }
 
-  .sw-home .btn.ghost {
-    border-color: transparent;
-    background: none;
-    color: var(--sl-color-gray-2);
+  .sw-home .tags a:hover {
+    border-color: var(--sl-color-white);
+    background: var(--sl-color-white);
+    color: var(--sl-color-black);
   }
 
-  .sw-home .btn.primary {
-    border-color: transparent;
-    background: #7a35e8;
-    color: #fff;
-    box-shadow: 0 10px 24px -12px #7a35e8;
+  .sw-home .tags a:hover svg {
+    color: inherit;
+    transform: rotate(45deg);
   }
 
-  .sw-home .btn.primary:hover {
-    background: #6c1bee;
-    box-shadow: 0 14px 30px -12px #7a35e8;
-  }
+  /* ---- 06 · Pricing ----------------------------------------------------------------- */
 
-  .sw-home .btn.primary span {
-    transition: transform 150ms ease;
-  }
-
-  .sw-home .btn.primary:hover span {
-    transform: translateX(4px);
-  }
-
-  /* --- the closing call to action: a flat panel, text and picture ------- */
-  .sw-home .cta {
-    margin-top: var(--gap);
-    padding: clamp(1.8rem, 5vw, 3.2rem);
-    border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
-    border-radius: 1.4rem;
-    background: var(--sl-color-bg-nav);
-  }
-
-  /* On the panel, cards and secondary buttons take the page's own colour so that
-     they read as objects on it rather than as part of it. */
-  .sw-home .cta .ill {
-    --card: var(--sl-color-bg);
-  }
-
-  .sw-home .cta p {
-    margin-top: 1rem;
-    font-size: var(--sl-text-lg);
-    color: var(--sl-color-gray-2);
-  }
-
-  /* --- open source, or hosted: the choice, and the plans ------------------ */
   .sw-home .paths {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 2.4fr);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2.1fr);
     gap: 1rem;
     align-items: stretch;
-    margin-top: 2rem;
+    margin-top: clamp(2.5rem, 6vw, 4.5rem);
   }
 
   .sw-home .path {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: clamp(1.2rem, 3vw, 1.8rem);
+    gap: 1.25rem;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 55%, transparent);
   }
 
   .sw-home .path.hosted {
     border-color: color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
+    background:
+      radial-gradient(30rem 16rem at 100% 0%, color-mix(in srgb, var(--sl-color-accent) 14%, transparent), transparent 70%),
+      color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
   }
 
-  .sw-home .path .tag {
-    align-self: flex-start;
-    padding: 0.25rem 0.7rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
-    font-size: var(--sl-text-sm);
-    font-weight: 600;
+  .sw-home .path-tag {
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--sl-color-accent-high);
   }
 
-  .sw-home .path h3 {
-    margin: 0;
-    font-size: var(--sl-text-2xl);
+  :root[data-theme='light'] .sw-home .path-tag {
+    color: var(--sl-color-accent);
   }
 
-  /* The card's own paragraph rule adds a top margin; here the gap is the card's. */
-  .sw-home .path p {
-    margin-top: 0;
-  }
-
-  .sw-home .path .btn:not(.primary):not(.ghost) {
-    background: var(--sl-color-bg);
-  }
-
-  .sw-home .amount {
-    margin: 0;
-  }
-
-  .sw-home .amount strong {
-    font-size: var(--sl-text-3xl);
-    line-height: 1;
+  .sw-home .path.self h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
     color: var(--sl-color-white);
   }
 
-  .sw-home .amount span {
-    margin-left: 0.3rem;
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-3);
+  .sw-home .price {
+    font-size: clamp(2.75rem, 2rem + 2vw, 3.75rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--sl-color-white);
   }
 
-  .sw-home .points,
-  .sw-home .limits {
+  .sw-home .hosted-text {
+    max-width: 34rem;
+    line-height: 1.55;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .checks {
     display: grid;
-    gap: 0.5rem;
-    margin: 0;
+    gap: 0.6rem;
     padding: 0;
     list-style: none;
   }
 
-  .sw-home .points {
+  .sw-home .path.self .checks {
     flex: 1;
+    align-content: start;
   }
 
-  .sw-home .points li,
-  .sw-home .limits li {
+  .sw-home .checks li {
     display: flex;
-    gap: 0.55rem;
+    gap: 0.6rem;
     font-size: var(--sl-text-sm);
     line-height: 1.45;
     color: var(--sl-color-gray-1);
   }
 
-  .sw-home .points li::before,
-  .sw-home .limits li::before {
+  .sw-home .checks.small li {
+    font-size: 0.8rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .checks li::before {
     content: '';
     flex: none;
     width: 0.35rem;
     height: 0.65rem;
     margin: 0.1rem 0.25rem 0 0.15rem;
-    border: solid #47cd89;
-    border-width: 0 2px 2px 0;
+    border: solid var(--green);
+    border-width: 0 1.5px 1.5px 0;
     transform: rotate(40deg);
-  }
-
-  /* "or", between the two ways of having it. */
-  .sw-home .or {
-    align-self: center;
-    display: grid;
-    place-items: center;
-    width: 2.6rem;
-    height: 2.6rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 50%;
-    background: var(--sl-color-bg);
-    font-size: var(--sl-text-sm);
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--sl-color-gray-2);
-  }
-
-  .sw-home .hosted-text {
-    margin: 0;
-    max-width: 40rem;
-    line-height: 1.55;
-    color: var(--sl-color-gray-2);
   }
 
   .sw-home .plans {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
-    gap: 0.75rem;
-    margin: 0;
-    padding: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 1.25rem 0 0;
+    border-top: 1px solid var(--sl-color-hairline);
     list-style: none;
   }
 
   .sw-home .plan {
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
-    padding: 1rem;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 0.8rem;
-    background: var(--sl-color-bg);
+    gap: 0.85rem;
+    padding-inline: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .sw-home .plan:first-child {
+    padding-inline-start: 0;
+  }
+
+  .sw-home .plan + .plan {
+    border-inline-start: 1px solid var(--sl-color-hairline);
   }
 
   .sw-home .plan h3 {
-    margin: 0;
-    font-size: var(--sl-text-lg);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-2);
   }
 
-  .sw-home .plan .amount strong {
-    font-size: var(--sl-text-2xl);
+  .sw-home .amount strong {
+    font-size: clamp(1.75rem, 1.3rem + 1.2vw, 2.4rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
   }
 
-  .sw-home .path .actions {
-    align-items: center;
-    margin-top: auto;
-    padding-top: 0.6rem;
-  }
-
-  .sw-home .path .note {
+  .sw-home .amount span {
+    margin-inline-start: 0.3rem;
     font-size: var(--sl-text-xs);
     color: var(--sl-color-gray-3);
   }
 
+  .sw-home .path-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+
+  .sw-home .fine {
+    flex-basis: 100%;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+
+  /* "or", between the two ways of having it: a word on a line. */
+  .sw-home .or {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-home .or::before,
+  .sw-home .or::after {
+    content: '';
+    flex: 1;
+    width: 1px;
+    background: var(--sl-color-hairline);
+  }
+
+  /* ---- Buttons and links ------------------------------------------------------------- */
+
+  .sw-home .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.35rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--sl-color-white);
+    transition:
+      background 200ms ease,
+      border-color 200ms ease,
+      transform 200ms ease;
+  }
+
+  .sw-home .btn:hover {
+    border-color: var(--sl-color-gray-3);
+    transform: translateY(-1px);
+  }
+
+  .sw-home .btn.primary {
+    border-color: transparent;
+    background: var(--sl-color-white);
+    color: var(--sl-color-black);
+  }
+
+  .sw-home .btn.primary:hover {
+    background: var(--sl-color-accent-high);
+  }
+
+  :root[data-theme='light'] .sw-home .btn.primary {
+    background: var(--sl-color-gray-1);
+    color: #fff;
+  }
+
+  :root[data-theme='light'] .sw-home .btn.primary:hover {
+    background: var(--sl-color-accent);
+  }
+
+  .sw-home .btn span,
+  .sw-home .link span {
+    transition: transform 200ms ease;
+  }
+
+  .sw-home .btn:hover span,
+  .sw-home .link:hover span {
+    transform: translateX(3px);
+  }
+
+  .sw-home .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--sl-color-white);
+  }
+
+  /* ---- 07 · Questions ------------------------------------------------------------------ */
+
+  .sw-home .faq {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: 2.5rem clamp(2rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .sw-home .faq .display {
+    position: sticky;
+    top: calc(var(--sl-nav-height) + 2rem);
+  }
+
+  /* ---- The last word ---------------------------------------------------------------------- */
+
+  .sw-home .closing {
+    position: relative;
+    isolation: isolate;
+    margin-top: clamp(6rem, 12vw, 10rem);
+    padding-block: clamp(5rem, 12vw, 10rem) clamp(3rem, 7vw, 5rem);
+    border-top: 1px solid var(--sl-color-hairline);
+    overflow: hidden;
+  }
+
+  /* The hero's field, quietly, and one dot telling its story again: red, then green. */
+  .sw-home .closing-field {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--sl-color-gray-3) 55%, transparent) 1px, transparent 1.5px) 0 0 / 22px 22px;
+    -webkit-mask-image: radial-gradient(60% 70% at 78% 40%, #000, transparent);
+    mask-image: radial-gradient(60% 70% at 78% 40%, #000, transparent);
+  }
+
+  .sw-home .beacon {
+    position: absolute;
+    top: 38%;
+    right: 18%;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--red);
+    animation: sw-beacon 8s linear infinite;
+  }
+
+  .sw-home .beacon::before,
+  .sw-home .beacon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    color: var(--red);
+    animation: sw-beacon-ring 1.6s ease-out infinite;
+  }
+
+  .sw-home .beacon::after {
+    animation-delay: 0.8s;
+  }
+
+  @keyframes sw-beacon {
+    0%, 55% { background: var(--red); box-shadow: 0 0 0 0 transparent; }
+    60%, 100% { background: var(--green); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 25%, transparent); }
+  }
+
+  @keyframes sw-beacon-ring {
+    from { scale: 1; opacity: 0.8; }
+    to { scale: 7; opacity: 0; }
+  }
+
+  .sw-home .giant {
+    max-width: 13ch;
+    font-size: clamp(2.75rem, 0.8rem + 6.2vw, 7.5rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+    color: var(--sl-color-white);
+  }
+
+  .sw-home .closing-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem 3rem;
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .sw-home .closing-foot p {
+    max-width: 28rem;
+    font-size: clamp(var(--sl-text-base), 0.95rem + 0.3vw, 1.2rem);
+    line-height: 1.6;
+    color: var(--sl-color-gray-2);
+  }
+
+  .sw-home .closing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.75rem;
+  }
+
+  .sw-home .btn.big {
+    padding: 1rem 1.75rem;
+    font-size: var(--sl-text-lg);
+  }
+
+  /* ---- Arrival ------------------------------------------------------------------------- */
+
+  /* A title's words rise out of their boxes; the rest follows, in order. Only for a
+     section the script has marked as below the fold (see the script). */
+  .sw-home .w {
+    display: inline-block;
+    overflow: clip;
+    padding: 0.1em 0.04em 0.12em;
+    margin: -0.1em -0.04em -0.12em;
+    vertical-align: top;
+  }
+
+  .sw-home .w > span {
+    display: inline-block;
+    transition: transform 1000ms var(--ease);
+    transition-delay: calc(var(--i) * 45ms);
+  }
+
+  .sw-home [data-reveal='pending'] .w > span {
+    transform: translateY(110%) rotate(3deg);
+  }
+
+  .sw-home .rise {
+    transition:
+      opacity 900ms ease,
+      transform 900ms var(--ease);
+    transition-delay: calc(var(--d, 0) * 90ms + 250ms);
+  }
+
+  .sw-home [data-reveal='pending'] .rise {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+
+  /* ---- Smaller screens ------------------------------------------------------------------ */
+
   @media (max-width: 62rem) {
+    .sw-home .sec-title,
+    .sw-home .problem,
+    .sw-home .spring,
+    .sw-home .which,
+    .sw-home .faq {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sw-home .faq .display {
+      position: static;
+    }
+
     .sw-home .paths {
       grid-template-columns: minmax(0, 1fr);
     }
 
     .sw-home .or {
-      justify-self: center;
+      flex-direction: row;
+    }
+
+    .sw-home .or::before,
+    .sw-home .or::after {
+      width: auto;
+      height: 1px;
+    }
+
+    .sw-home .steps {
+      grid-template-columns: minmax(0, 1fr);
+      border-top: 0;
+    }
+
+    .sw-home .steps::before {
+      display: none;
+    }
+
+    .sw-home .step,
+    .sw-home .step:first-child {
+      padding: 1.75rem 0 2.25rem;
+      border-inline-start: 0;
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+
+    .sw-home .row {
+      grid-template-columns: 2.5rem minmax(0, 1fr);
+    }
+
+    .sw-home .row-ico {
+      display: none;
+    }
+
+    .sw-home .row p {
+      grid-column: 2;
     }
   }
 
-  /* --- scroll reveal: only when the script has marked the section ------- */
-  .sw-home [data-reveal='pending'] {
-    opacity: 0;
-    transform: translateY(1.5rem);
-  }
+  @media (max-width: 40rem) {
+    .sw-home .plans {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
 
-  .sw-home [data-reveal] {
-    transition:
-      opacity 650ms ease,
-      transform 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    .sw-home .plan,
+    .sw-home .plan:first-child {
+      padding: 0;
+    }
+
+    .sw-home .plan + .plan {
+      padding-top: 1.25rem;
+      border-inline-start: 0;
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+
+    .sw-home .log li {
+      grid-template-columns: 2.25rem 2.75rem minmax(0, 1fr);
+    }
+
+    .sw-home .log .meta {
+      display: none;
+    }
+
+    /* Above the title, where there is room on a phone. */
+    .sw-home .beacon {
+      top: 2.5rem;
+      right: 2.25rem;
+    }
+
+    .sw-home .closing-field {
+      -webkit-mask-image: radial-gradient(70% 30% at 85% 5%, #000, transparent);
+      mask-image: radial-gradient(70% 30% at 85% 5%, #000, transparent);
+    }
+
+    .sw-home .closing-actions,
+    .sw-home .closing-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .sw-home .path-actions .btn {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -877,24 +1487,18 @@ const login = `${APP}/login`;
       overflow-x: auto;
     }
 
-    .sw-home [data-reveal='pending'] {
+    .sw-home [data-reveal='pending'] .w > span,
+    .sw-home [data-reveal='pending'] .rise {
       opacity: 1;
       transform: none;
-    }
-  }
-
-  @media (max-width: 34rem) {
-    .sw-home .actions .btn {
-      flex: 1 1 100%;
-      justify-content: center;
     }
   }
 </style>
 
 <script>
-  // Sections fade in as they scroll into view, and cards light up under the pointer.
-  // Both are decoration: without this script, or with reduced motion requested,
-  // the page is complete as it stands.
+  // Sections below the fold are marked, and their titles and contents arrive as
+  // they scroll in. Decoration only: without this script, or with reduced motion
+  // requested, the page is complete as it stands.
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (!calm && 'IntersectionObserver' in window) {
@@ -908,21 +1512,11 @@ const login = `${APP}/login`;
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.08 },
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
     );
     for (const section of below) {
       section.setAttribute('data-reveal', 'pending');
       observer.observe(section);
-    }
-  }
-
-  if (!calm) {
-    for (const card of document.querySelectorAll<HTMLElement>('.sw-home [data-spot]')) {
-      card.addEventListener('pointermove', (event) => {
-        const box = card.getBoundingClientRect();
-        card.style.setProperty('--mx', `${event.clientX - box.left}px`);
-        card.style.setProperty('--my', `${event.clientY - box.top}px`);
-      });
     }
   }
 </script>

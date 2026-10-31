@@ -31,8 +31,30 @@ import LiveDemo from './LiveDemo.astro';
  */
 const lang = Astro.locals.starlightRoute.lang === 'en' ? 'en' : 'fr';
 const { hero } = home[lang];
-const { data } = Astro.locals.starlightRoute.entry;
-const { title = data.title, tagline, actions = [] } = data.hero || {};
+const { data, id } = Astro.locals.starlightRoute.entry;
+
+// Starlight's 404 page has a hero too, and so comes here. It is one page for both
+// languages (the server sends it for any address it does not know), so it says
+// what it has to say in both, the French as the answer line; in its field the dot
+// that goes silent is the page asked for, and it does not come back.
+const lost = id === '404';
+const notFound = {
+  kicker: 'Error 404 · Erreur 404',
+  title: "This page has gone quiet. <span class='sw-answer' lang='fr'>Cette page ne répond plus.</span>",
+  tagline:
+    'It may have moved, or the link may be wrong.<br /><span lang="fr">Elle a peut-être changé d’adresse, ou le lien est erroné.</span>',
+  actions: [
+    { text: 'Back to the home page', link: '/', variant: 'primary' as const },
+    { text: 'Retour à l’accueil', link: '/fr/', variant: 'minimal' as const, attrs: { lang: 'fr' } },
+  ],
+  silent: 'no response',
+  alert: '404 · not found',
+};
+const {
+  title = data.title,
+  tagline,
+  actions = [],
+} = lost ? { title: notFound.title, tagline: notFound.tagline, actions: notFound.actions } : data.hero || {};
 
 // "Words <span class='sw-answer'>Answer.</span>" → each word in its own masked
 // box, the answer's words inside the answer's span, an index for the stagger.
@@ -44,29 +66,29 @@ const words = (text: string) =>
     .filter(Boolean)
     .map((word) => `<span class="w"><span style="--i:${index++}">${word}</span></span>`)
     .join(' ');
-const match = /^([\s\S]*?)<span class=['"]sw-answer['"]>([\s\S]*?)<\/span>([\s\S]*)$/.exec(title);
+const match = /^([\s\S]*?)<span class=['"]sw-answer['"]([^>]*)>([\s\S]*?)<\/span>([\s\S]*)$/.exec(title);
 const titleHtml = match
-  ? `${words(match[1])} <span class="sw-answer">${words(match[2])}</span> ${words(match[3])}`
+  ? `${words(match[1])} <span class="sw-answer"${match[2]}>${words(match[3])}</span> ${words(match[4])}`
   : words(title);
 const after = index;
 ---
 
-<section class="sw-hero" data-hero style={`--after:${after}`}>
+<section class="sw-hero" data-hero data-lost={lost || undefined} style={`--after:${after}`}>
   <div class="field" aria-hidden="true">
     <canvas></canvas>
     <div class="tag" data-tag>
       <span class="tag-dot"></span>
-      <b>{hero.field.job}</b>
+      <b data-tag-job>{lost ? '/' : hero.field.job}</b>
       <span class="tag-text">
-        <span class="t-silent">{hero.field.silent}</span>
-        <span class="t-alert">{hero.field.alert}</span>
+        <span class="t-silent">{lost ? notFound.silent : hero.field.silent}</span>
+        <span class="t-alert">{lost ? notFound.alert : hero.field.alert}</span>
         <span class="t-back">{hero.field.back}</span>
       </span>
     </div>
   </div>
 
   <div class="inner">
-    <p class="kicker rise" style="--d:0"><span class="live"></span>{hero.kicker}</p>
+    <p class="kicker rise" style="--d:0"><span class="live"></span>{lost ? notFound.kicker : hero.kicker}</p>
 
     <h1 id="_top" data-page-title set:html={titleHtml} />
 
@@ -88,24 +110,28 @@ const after = index;
         )}
       </div>
 
-      <div class="meta rise" style="--d:3">
-        <p class="caption">{hero.field.caption}</p>
-        <ul class="legend" aria-hidden="true">
-          <li class="l-alive">{hero.field.legend.alive}</li>
-          <li class="l-silent">{hero.field.legend.silent}</li>
-          <li class="l-back">{hero.field.legend.back}</li>
-        </ul>
-        <ul class="proof">
-          {hero.proof.map((point) => <li>{point}</li>)}
-        </ul>
-      </div>
+      {!lost && (
+        <div class="meta rise" style="--d:3">
+          <p class="caption">{hero.field.caption}</p>
+          <ul class="legend" aria-hidden="true">
+            <li class="l-alive">{hero.field.legend.alive}</li>
+            <li class="l-silent">{hero.field.legend.silent}</li>
+            <li class="l-back">{hero.field.legend.back}</li>
+          </ul>
+          <ul class="proof">
+            {hero.proof.map((point) => <li>{point}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   </div>
 </section>
 
-<div class="sw-hero-product rise" style="--d:4" aria-hidden="true">
-  <LiveDemo />
-</div>
+{!lost && (
+  <div class="sw-hero-product rise" style="--d:4" aria-hidden="true">
+    <LiveDemo />
+  </div>
+)}
 
 <script>
   type Rgb = [number, number, number];
@@ -219,6 +245,15 @@ const after = index;
     const mix = (a: Rgb, b: Rgb, t: number) =>
       `${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)}`;
 
+    // On the 404 page the silent dot is the page asked for, named by its address,
+    // and it stays silent: no pass brings it back.
+    const lost = section.hasAttribute('data-lost');
+    if (lost) {
+      const job = tag.querySelector('[data-tag-job]');
+      const path = location.pathname;
+      if (job) job.textContent = path.length > 28 ? `…${path.slice(-27)}` : path;
+    }
+
     let state = '';
     const setState = (next: string) => {
       if (next !== state) tag.dataset.state = state = next;
@@ -249,6 +284,10 @@ const after = index;
       if (still.matches) {
         red = 1;
         setState('alert');
+      } else if (lost) {
+        const first = t < PASS;
+        red = first ? (passed > 0 ? Math.min(1, since / 0.35) : 0) : 1;
+        setState(first ? (since > 1.4 ? 'alert' : passed > 0 ? 'silent' : '') : 'alert');
       } else if (pass === 0) {
         red = passed > 0 ? Math.min(1, since / 0.35) : 0;
         setState(since > 1.4 ? 'alert' : passed > 0 ? 'silent' : '');
@@ -371,8 +410,8 @@ const after = index;
     --f-base: 0.5;
     position: relative;
     isolation: isolate;
-    width: 100vw;
-    margin-inline: calc(50% - 50vw);
+    width: var(--sw-vw, 100vw);
+    margin-inline: calc(50% - var(--sw-vw, 100vw) / 2);
     /* Under the see-through header: the field starts at the top of the window. */
     margin-top: calc(-1 * var(--sw-hero-lift));
     padding-top: var(--sw-hero-lift);
@@ -577,13 +616,19 @@ const after = index;
     from { transform: translateY(110%) rotate(4deg); }
   }
 
-  /* Where the silent dot goes: right of the title on a wide screen. */
+  /* Where the silent dot goes: right of the title on a wide screen. On the 404
+     page, whose title is wider, lower down, beside the buttons. */
   .spot {
     position: absolute;
     top: 46%;
     right: 16%;
     width: 1px;
     height: 1px;
+  }
+
+  [data-lost] .spot {
+    top: 74%;
+    right: 30%;
   }
 
   .foot {

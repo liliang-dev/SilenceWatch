@@ -34,12 +34,27 @@ export default defineConfig({
       logo: { light: './src/assets/logo.svg', dark: './src/assets/logo-dark.svg', alt: 'SilenceWatch' },
       social: [{ icon: 'github', label: 'GitHub', href: REPOSITORY }],
       customCss: ['./src/styles/brand.css'],
+      // Code blocks in the site's own manner: its mono face, rounder corners,
+      // and the same soft shadow as the panels on the home page.
+      expressiveCode: {
+        styleOverrides: {
+          borderRadius: '0.85rem',
+          codeFontFamily: "'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
+          codeFontSize: '0.85rem',
+          uiFontFamily: "'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          frames: {
+            frameBoxShadowCssValue: '0 30px 60px -45px rgb(0 0 0 / 0.6)',
+          },
+        },
+      },
       lastUpdated: false,
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
       components: {
         Footer: './src/components/Footer.astro',
         Header: './src/components/Header.astro',
         Hero: './src/components/Hero.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        MarkdownContent: './src/components/MarkdownContent.astro',
         ThemeProvider: './src/components/ThemeProvider.astro',
         SocialIcons: './src/components/SocialIcons.astro',
       },
@@ -47,6 +62,8 @@ export default defineConfig({
       head: [
         // Sends a browser set to French to /fr/, unless a language was chosen.
         { tag: 'script', attrs: { src: '/lang-redirect.js' } },
+        // The window's width without its scrollbar, for the full-width sections.
+        { tag: 'script', attrs: { src: '/viewport-width.js' } },
         // The text face, fetched with the page rather than after the stylesheet.
         {
           tag: 'link',
