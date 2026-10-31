@@ -5,6 +5,8 @@ The Laravel package is versioned apart from the application, and tagged
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-31
+
 - **Tasks watched on each server.** Servers running the scheduler declare the same tasks, so
   each task is one check, up while any of them reports it: right for `->onOneServer()`, but a
   server whose scheduler stopped went unnoticed while another worked, for tasks that run

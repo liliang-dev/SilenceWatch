@@ -13,7 +13,7 @@ use Throwable;
  */
 final class Client
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
 
     /** A heartbeat that failed stops the next ones for this long, in this process. */
     private const BACKOFF_SECONDS = 60;
