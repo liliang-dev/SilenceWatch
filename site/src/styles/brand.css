@@ -83,21 +83,7 @@ body::before {
 
 /* No web font is loaded: nothing here fetches from a third party. */
 
-/* --- the home page --------------------------------------------------------- */
-
-.hero {
-  padding-block: clamp(2.5rem, 7vw, 5rem);
-}
-
-.hero h1 {
-  letter-spacing: -0.02em;
-  color: var(--sl-color-white);
-}
-
-.hero .tagline {
-  max-width: 44rem;
-  margin-inline: auto;
-}
+/* --- the home page (its hero is src/components/Hero.astro) ------------------- */
 
 /* Sections on the splash pages breathe a little more than documentation does. */
 [data-has-hero] .sl-markdown-content > h2,
@@ -247,21 +233,6 @@ body::before {
   margin-block: 1.5rem;
 }
 
-/* The home page is centred: it is a poster, not a document. */
-[data-has-hero] .hero {
-  text-align: center;
-  justify-items: center;
-  grid-template-columns: 1fr;
-}
-
-[data-has-hero] .hero .stack {
-  align-items: center;
-}
-
-[data-has-hero] .hero .actions {
-  justify-content: center;
-}
-
 /* Splash pages that are not the home page read like articles. */
 .splash .sl-markdown-content {
   max-width: 52rem;
@@ -272,122 +243,6 @@ body::before {
 [data-has-hero] .sl-markdown-content {
   max-width: none;
   margin-inline: auto;
-}
-
-[data-has-hero] .hero h1 {
-  text-align: center;
-}
-
-/* The slogan: two short sentences, the answer set apart on its own line. The hero
-   heading is longer than a usual one-liner, so it is sized down a step and
-   balanced rather than left to leave a single word on the last line. */
-[data-has-hero] .hero h1 {
-  font-size: clamp(var(--sl-text-3xl), calc(0.75rem + 3.6vw), var(--sl-text-5xl));
-  line-height: 1.15;
-  text-wrap: balance;
-}
-
-/* The answer sits on a line of its own, set apart. */
-
-/* --- the home page hero ---------------------------------------------------- */
-
-/* A flat page: no glow, no grid. The life is in the content. */
-[data-has-hero] .hero {
-  padding-block: clamp(3rem, 9vw, 6.5rem) clamp(1.5rem, 4vw, 3rem);
-}
-
-[data-has-hero] .hero::before {
-  content: none;
-}
-
-[data-has-hero] .hero .tagline {
-  text-align: center;
-}
-
-/* The answer, in the accent colour, underlined by a heartbeat that draws itself. */
-.hero h1 .sw-answer {
-  display: block;
-  width: fit-content;
-  margin-inline: auto;
-  padding-bottom: 0.3em;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M0 7h62l6-5l8 10l7-8l5 3h112' fill='none' stroke='%238b4bf1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-    left bottom / 100% 0.28em no-repeat;
-  color: var(--sl-color-accent-high);
-  -webkit-text-fill-color: currentColor;
-  animation: sw-draw 1.4s 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes sw-draw {
-  from {
-    background-size: 0 0.28em;
-  }
-}
-
-/* Entrance: the hero builds itself in, one piece after another. */
-@media (prefers-reduced-motion: no-preference) {
-  [data-has-hero] .hero h1,
-  [data-has-hero] .hero .tagline,
-  [data-has-hero] .hero .actions {
-    animation: sw-rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-
-  [data-has-hero] .hero .tagline {
-    animation-delay: 120ms;
-  }
-
-  [data-has-hero] .hero .actions {
-    animation-delay: 240ms;
-  }
-
-  /* The sections of the home page rise in on their own, from the script. */
-}
-
-@keyframes sw-rise {
-  from {
-    opacity: 0;
-    transform: translateY(1.2rem);
-  }
-}
-
-/* The way into the application, which is the point of this page. */
-[data-has-hero] .hero .actions {
-  gap: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-[data-has-hero] .hero .sl-link-button {
-  padding: 0.85rem 1.6rem;
-  font-size: var(--sl-text-lg);
-  font-weight: 600;
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
-}
-
-[data-has-hero] .hero .sl-link-button.primary {
-  border-color: transparent;
-  background: #7a35e8;
-  color: #fff;
-  box-shadow: 0 14px 34px -12px color-mix(in srgb, #8b4bf1 85%, transparent);
-}
-
-[data-has-hero] .hero .sl-link-button.primary:hover {
-  background: #6c1bee;
-  transform: translateY(-2px);
-  box-shadow: 0 18px 40px -10px color-mix(in srgb, #8b4bf1 95%, transparent);
-}
-
-[data-has-hero] .hero .sl-link-button.minimal:hover {
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-has-hero] .hero::before,
-  [data-has-hero] .hero::after,
-  .hero h1 .sw-answer {
-    animation: none;
-  }
 }
 
 /* The header's sign-in button: visible on every page, not only the home page. */

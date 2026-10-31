@@ -4,7 +4,6 @@ import { APP, REPOSITORY } from '../site';
 import Faq from './Faq.astro';
 import { iconBody, type IconName } from '../icons';
 import Illustration from './Illustration.astro';
-import LiveDemo from './LiveDemo.astro';
 import { PLANS, pricing } from '../content/plans';
 
 /**
@@ -52,7 +51,6 @@ const login = `${APP}/login`;
     <path class="live" pathLength="1" d="M0 40H430L452 40L470 14L492 66L512 24L528 40H1200" />
   </svg>
 
-  <LiveDemo />
 
   <section class="works" aria-label={copy.works.label}>
     <p class="works-label">{copy.works.label}</p>

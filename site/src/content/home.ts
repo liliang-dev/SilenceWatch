@@ -13,6 +13,12 @@
  */
 export interface HomeCopy {
   app: string;
+  /** Around the hero's title and tagline, which are the page's frontmatter. */
+  hero: {
+    eyebrow: { badge: string; text: string; href: string };
+    proof: string[];
+    floats: { detection: string; discovery: string };
+  };
   demo: {
     caption: string;
     window: string;
@@ -52,6 +58,11 @@ export interface HomeCopy {
 export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
+    hero: {
+      eyebrow: { badge: 'New', text: 'Jobs watched on each instance', href: '/docs/spring-boot/#several-instances' },
+      proof: ['Free up to 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
+      floats: { detection: 'Checked every 10 s', discovery: '@Scheduled jobs found on their own' },
+    },
     demo: {
       caption: 'A job goes quiet. You know within seconds.',
       window: 'Checks',
@@ -197,6 +208,11 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
 
   fr: {
     app: 'Essayer',
+    hero: {
+      eyebrow: { badge: 'Nouveau', text: 'Des jobs surveillés sur chaque instance', href: '/docs/spring-boot/#plusieurs-instances' },
+      proof: ['Gratuit jusqu’à 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
+      floats: { detection: 'Vérifié toutes les 10 s', discovery: 'Jobs @Scheduled trouvés tout seuls' },
+    },
     demo: {
       caption: 'Un job se tait. Vous le savez en quelques secondes.',
       window: 'Checks',
