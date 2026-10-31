@@ -75,7 +75,9 @@ class SilenceWatchAutoConfigurationTest {
                         "silencewatch.auto-register=false",
                         "silencewatch.timeout=1500ms",
                         "silencewatch.queue-capacity=42",
-                        "silencewatch.timezone=Europe/Paris")
+                        "silencewatch.timezone=Europe/Paris",
+                        "silencewatch.per-instance-jobs=com.acme.Cache#evict,com.acme.tmp.*",
+                        "silencewatch.instance-id=app-0")
                 .run(context -> {
                     SilenceWatchProperties properties = context.getBean(SilenceWatchProperties.class);
                     assertThat(properties.getEnvironment()).isEqualTo("staging");
@@ -86,7 +88,100 @@ class SilenceWatchAutoConfigurationTest {
                     assertThat(properties.getTimezone()).isEqualTo("Europe/Paris");
                     assertThat(properties.normalisedBaseUrl()).isEqualTo("https://watch.example.com");
                     assertThat(properties.isUsable()).isTrue();
+                    assertThat(properties.getPerInstanceJobs())
+                            .containsExactly("com.acme.Cache#evict", "com.acme.tmp.*");
+                    assertThat(properties.getInstanceId()).isEqualTo("app-0");
                 });
+    }
+
+    @Test
+    void declaresEveryJobAsOneCheckForAllInstancesByDefault() {
+        runner.withUserConfiguration(SchedulingConfiguration.class, RecordingClientConfiguration.class)
+                .withPropertyValues("silencewatch.api-key=sw_test", "silencewatch.environment=production")
+                .run(context -> {
+                    context.getBean(SilenceWatchRegistrar.class).register();
+
+                    // Replicas declare the same keys in the same environment, so they
+                    // land on the same checks: up while any of them reports.
+                    RecordingClient client = context.getBean(RecordingClient.class);
+                    assertThat(client.syncs).containsOnlyKeys("production");
+                    assertThat(client.syncs.get("production")).hasSize(3);
+                });
+    }
+
+    @Test
+    void declaresPerInstanceJobsInTheInstanceOwnEnvironment() {
+        String poll = NightlyJobs.class.getName() + "#poll";
+        runner.withUserConfiguration(SchedulingConfiguration.class, RecordingClientConfiguration.class)
+                .withPropertyValues(
+                        "silencewatch.api-key=sw_test",
+                        "silencewatch.environment=production",
+                        "silencewatch.per-instance-jobs=" + poll,
+                        "silencewatch.instance-id=app-0")
+                .run(context -> {
+                    context.getBean(SilenceWatchRegistrar.class).register();
+
+                    RecordingClient client = context.getBean(RecordingClient.class);
+                    assertThat(client.syncs.get("production.app-0")).containsExactly(poll);
+                    assertThat(client.syncs.get("production"))
+                            .containsExactlyInAnyOrder(
+                                    NightlyJobs.class.getName() + "#backup",
+                                    NightlyJobs.class.getName() + "#explode");
+                });
+    }
+
+    @Test
+    void watchesPerInstanceJobsAsSharedWithoutAnInstanceId() {
+        // A pod name that changes at every deploy would leave a check behind each
+        // time, so there is no default; without one, the job is still watched.
+        runner.withUserConfiguration(SchedulingConfiguration.class, RecordingClientConfiguration.class)
+                .withPropertyValues(
+                        "silencewatch.api-key=sw_test",
+                        "silencewatch.environment=production",
+                        "silencewatch.per-instance-jobs=" + NightlyJobs.class.getName() + "#*")
+                .run(context -> {
+                    context.getBean(SilenceWatchRegistrar.class).register();
+
+                    RecordingClient client = context.getBean(RecordingClient.class);
+                    assertThat(client.syncs).containsOnlyKeys("production");
+                    assertThat(client.syncs.get("production")).hasSize(3);
+                });
+    }
+
+    @Test
+    void namesTheInstanceEnvironmentWithinWhatTheServerAccepts() {
+        SilenceWatchProperties properties = new SilenceWatchProperties();
+        properties.setEnvironment("production");
+        assertThat(properties.instanceEnvironment()).isNull();
+
+        properties.setInstanceId("app-0");
+        assertThat(properties.instanceEnvironment()).isEqualTo("production.app-0");
+
+        // Characters the server refuses become dashes.
+        properties.setInstanceId("web@host:8080");
+        assertThat(properties.instanceEnvironment()).isEqualTo("production.web-host-8080");
+
+        // Too long: cut from the front, where the pods of a StatefulSet look alike.
+        properties.setInstanceId("billing-reconciliation-worker-statefulset-12");
+        assertThat(properties.instanceEnvironment())
+                .hasSize(40)
+                .startsWith("production.")
+                .endsWith("statefulset-12");
+
+        // No room left at all: no per-instance environment.
+        properties.setEnvironment("e".repeat(39));
+        assertThat(properties.instanceEnvironment()).isNull();
+    }
+
+    @Test
+    void matchesPerInstanceJobsByKeyOrPrefix() {
+        SilenceWatchProperties properties = new SilenceWatchProperties();
+        properties.setPerInstanceJobs(List.of("com.acme.Cache#evict", " com.acme.tmp.* "));
+
+        assertThat(properties.isPerInstance("com.acme.Cache#evict")).isTrue();
+        assertThat(properties.isPerInstance("com.acme.Cache#evictAll")).isFalse();
+        assertThat(properties.isPerInstance("com.acme.tmp.Sweeper#run")).isTrue();
+        assertThat(properties.isPerInstance("com.acme.jobs.Backup#run")).isFalse();
     }
 
     @Test
@@ -217,8 +312,19 @@ class SilenceWatchAutoConfigurationTest {
             return true;
         }
 
+        /** Keys declared, by environment. */
+        final Map<String, List<String>> syncs = new java.util.concurrent.ConcurrentHashMap<>();
+
         @Override
         public Map<String, String> sync(List<DiscoveredJob> jobs) {
+            return sync(jobs, "production");
+        }
+
+        @Override
+        public Map<String, String> sync(List<DiscoveredJob> jobs, String environment) {
+            if (!jobs.isEmpty()) {
+                syncs.put(environment, jobs.stream().map(DiscoveredJob::key).toList());
+            }
             return Map.of();
         }
     }

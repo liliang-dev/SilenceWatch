@@ -57,11 +57,19 @@ public class SilenceWatchClient {
      * carries on regardless.
      */
     public Map<String, String> sync(List<DiscoveredJob> jobs) {
+        return sync(jobs, properties.getEnvironment());
+    }
+
+    /**
+     * Declares jobs in a given environment. Checks of that environment that are
+     * not in the list are flagged orphaned; other environments are not touched.
+     */
+    public Map<String, String> sync(List<DiscoveredJob> jobs, String environment) {
         if (jobs.isEmpty()) {
             return Map.of();
         }
 
-        String payload = buildSyncPayload(jobs);
+        String payload = buildSyncPayload(jobs, environment);
         HttpRequest request = HttpRequest.newBuilder(URI.create(properties.normalisedBaseUrl() + "/api/v1/checks/sync"))
                 .timeout(properties.getTimeout())
                 .header("authorization", "Bearer " + properties.getApiKey())
@@ -118,9 +126,13 @@ public class SilenceWatchClient {
     }
 
     String buildSyncPayload(List<DiscoveredJob> jobs) {
+        return buildSyncPayload(jobs, properties.getEnvironment());
+    }
+
+    String buildSyncPayload(List<DiscoveredJob> jobs, String environment) {
         StringBuilder json = new StringBuilder(128 * jobs.size());
         json.append("{\"environment\":");
-        Json.writeString(json, properties.getEnvironment());
+        Json.writeString(json, environment);
         json.append(",\"source\":\"spring-boot-starter\",\"prune\":true,\"checks\":[");
 
         boolean first = true;

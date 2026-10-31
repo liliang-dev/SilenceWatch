@@ -9,6 +9,7 @@ import com.silencewatch.starter.client.SilenceWatchClient;
 import com.silencewatch.starter.discovery.CronSupport;
 import com.silencewatch.starter.discovery.DiscoveredJob;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -63,15 +64,38 @@ public class SilenceWatchRegistrar {
                 return;
             }
 
-            Map<String, String> pingKeys = client.sync(jobs);
+            List<DiscoveredJob> shared = new ArrayList<>();
+            List<DiscoveredJob> perInstance = new ArrayList<>();
+            for (DiscoveredJob job : jobs) {
+                (properties.isPerInstance(job.key()) ? perInstance : shared).add(job);
+            }
+
+            String instanceEnvironment = properties.instanceEnvironment();
+            if (!perInstance.isEmpty() && instanceEnvironment == null) {
+                // Better one check for all the instances than none at all.
+                log.warn("SilenceWatch per-instance-jobs is set but instance-id is missing, or leaves no "
+                        + "room in the environment name; {} job(s) are watched as one check for all "
+                        + "instances", perInstance.size());
+                shared.addAll(perInstance);
+                perInstance.clear();
+            }
+
+            // Two declarations, each in its own environment: the shared one never
+            // orphans another instance's checks, nor this instance's the shared ones.
+            Map<String, String> pingKeys = new LinkedHashMap<>(client.sync(shared, properties.getEnvironment()));
+            pingKeys.putAll(client.sync(perInstance, instanceEnvironment));
             sender.register(pingKeys);
 
             if (pingKeys.isEmpty()) {
                 log.warn("SilenceWatch declared {} job(s) but received no ping key; "
                         + "heartbeats are disabled until the next restart", jobs.size());
-            } else {
+            } else if (perInstance.isEmpty()) {
                 log.info("SilenceWatch is watching {} job(s) in environment '{}'",
                         pingKeys.size(), properties.getEnvironment());
+            } else {
+                log.info("SilenceWatch is watching {} job(s) in environment '{}', {} of them for this "
+                                + "instance alone in '{}'",
+                        pingKeys.size(), properties.getEnvironment(), perInstance.size(), instanceEnvironment);
             }
         } catch (RuntimeException | LinkageError cause) {
             // Startup must never fail because monitoring could not be set up.
