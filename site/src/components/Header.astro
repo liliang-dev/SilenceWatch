@@ -1,0 +1,194 @@
+---
+import config from 'virtual:starlight/user-config';
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+/**
+ * The bar at the top of every page: Starlight's header (title, search, icons,
+ * theme and language) with the site's main links between the title and the
+ * search, and a glass finish (see the styles below and brand.css).
+ *
+ * Laid out like Starlight's own, three cells, so that on documentation pages the
+ * title still lines up with the sidebar and the search with the content; the
+ * links share the middle cell with the search. On a phone the links go: the
+ * documentation has its menu, the home page its own buttons.
+ *
+ * On a page without a sidebar (the home page and the other landing pages) the
+ * bar is see-through over the top of the page and turns to frosted glass once
+ * the page has scrolled, which a few lines of script note on the root element.
+ */
+const shouldRenderSearch =
+  config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+const lang = Astro.locals.starlightRoute.lang === 'fr' ? 'fr' : 'en';
+const prefix = lang === 'fr' ? '/fr' : '';
+const links =
+  lang === 'fr'
+    ? [
+        { text: 'Comment ça marche', href: '/#how-it-works' },
+        { text: 'Spring Boot', href: '/spring-boot/' },
+        { text: 'Tarifs', href: '/pricing/' },
+        { text: 'Auto-hébergement', href: '/self-hosted/' },
+        { text: 'Documentation', href: '/docs/getting-started/', section: '/docs/' },
+      ]
+    : [
+        { text: 'How it works', href: '/#how-it-works' },
+        { text: 'Spring Boot', href: '/spring-boot/' },
+        { text: 'Pricing', href: '/pricing/' },
+        { text: 'Self-hosting', href: '/self-hosted/' },
+        { text: 'Docs', href: '/docs/getting-started/', section: '/docs/' },
+      ];
+
+const path = Astro.url.pathname.replace(/^\/fr(?=\/)/, '');
+const isCurrent = (link: { href: string; section?: string }) =>
+  link.section ? path.startsWith(link.section) : path === link.href;
+---
+
+<div class="header">
+  <div class="title-wrapper sl-flex">
+    <SiteTitle />
+  </div>
+  <div class="sl-flex print:hidden middle">
+    <nav class="sw-nav" aria-label={lang === 'fr' ? 'Principal' : 'Main'}>
+      {links.map((link) => (
+        <a href={prefix + link.href} aria-current={isCurrent(link) ? 'page' : undefined}>{link.text}</a>
+      ))}
+    </nav>
+    {shouldRenderSearch && <Search />}
+  </div>
+  <div class="sl-hidden md:sl-flex print:hidden right-group">
+    <div class="sl-flex social-icons">
+      <SocialIcons />
+    </div>
+    <ThemeSelect />
+    <LanguageSelect />
+  </div>
+</div>
+
+<script>
+  // The bar turns to glass once the page has scrolled (see brand.css).
+  const root = document.documentElement;
+  const update = () => root.toggleAttribute('data-scrolled', window.scrollY > 8);
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+</script>
+
+<style>
+  @layer starlight.core {
+    .header {
+      display: flex;
+      gap: var(--sl-nav-gap);
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+    }
+
+    .title-wrapper {
+      overflow: clip;
+      padding: 0.25rem;
+      margin: -0.25rem;
+      min-width: 0;
+    }
+
+    .right-group,
+    .social-icons {
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .social-icons::after {
+      content: '';
+      height: 1.5rem;
+      border-inline-end: 1px solid var(--sl-color-hairline);
+    }
+
+    @media (min-width: 50rem) {
+      :global(:root[data-has-sidebar]) {
+        --__sidebar-pad: calc(2 * var(--sl-nav-pad-x));
+      }
+      :global(:root:not([data-has-toc])) {
+        --__toc-width: 0rem;
+      }
+      .header {
+        --__sidebar-width: max(0rem, var(--sl-content-inline-start, 0rem) - var(--sl-nav-pad-x));
+        --__main-column-fr: calc(
+          (
+              100% + var(--__sidebar-pad, 0rem) - var(--__toc-width, var(--sl-sidebar-width)) -
+                (2 * var(--__toc-width, var(--sl-nav-pad-x))) - var(--sl-content-inline-start, 0rem) -
+                var(--sl-content-width)
+            ) / 2
+        );
+        display: grid;
+        grid-template-columns:
+          minmax(calc(var(--__sidebar-width) + max(0rem, var(--__main-column-fr) - var(--sl-nav-gap))), auto)
+          1fr
+          auto;
+        align-content: center;
+      }
+    }
+  }
+
+  .middle {
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .sw-nav {
+    display: none;
+    align-items: center;
+    gap: 0.15rem;
+    margin-inline-end: auto;
+  }
+
+  .sw-nav a {
+    position: relative;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    font-size: var(--sl-text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--sl-color-gray-2);
+    transition:
+      color 150ms,
+      background 150ms;
+  }
+
+  .sw-nav a:hover {
+    color: var(--sl-color-white);
+    background: color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
+  }
+
+  .sw-nav a[aria-current='page'] {
+    color: var(--sl-color-white);
+  }
+
+  /* The page you are on: a short line of light under its link. */
+  .sw-nav a[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0.7rem -0.2rem;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #8b4bf1, #4f8dfa, transparent);
+  }
+
+  /* The links need room: shown from a wide laptop up, only on pages without a
+     sidebar there, and on documentation pages, whose search needs the room, from a
+     wider screen still. */
+  @media (min-width: 64rem) {
+    :global(:root:not([data-has-sidebar])) .sw-nav {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 100rem) {
+    .sw-nav {
+      display: flex;
+    }
+  }
+</style>

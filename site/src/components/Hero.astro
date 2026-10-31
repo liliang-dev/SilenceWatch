@@ -21,6 +21,15 @@ const { data } = Astro.locals.starlightRoute.entry;
 const { title = data.title, tagline, actions = [] } = data.hero || {};
 const prefix = lang === 'fr' ? '/fr' : '';
 
+// The title, a word at a time, for the entrance: each plain word in a span of its
+// own, and the answer (the `.sw-answer` span the frontmatter gives) as the last.
+const [plain = '', answer = ''] = title.split(/(?=<span class='sw-answer'>)/);
+const plainWords = plain.trim().split(/\s+/);
+const titleHtml = [
+  ...plainWords.map((word, index) => `<span class="w" style="--w:${index}">${word}</span>`),
+  answer.replace("<span class='sw-answer'>", `<span class="sw-answer w" style="--w:${plainWords.length + 1}">`),
+].join(' ');
+
 // Three beats, a silence, two beats: the story of one job, as a line.
 const beat = (x: number) => `L${x} 60l10 0l8 -14l8 14l8 0l7 -46l9 86l8 -54l7 14l12 0`;
 const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map(beat).join('')}L1600 60`;
@@ -41,12 +50,12 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
       <span class="arrow" aria-hidden="true">→</span>
     </a>
 
-    <h1 id="_top" data-page-title class="rise" style="--d:1" set:html={title} />
+    <h1 id="_top" data-page-title set:html={titleHtml} />
 
     {tagline && <p class="tagline rise" style="--d:2" set:html={tagline} />}
 
     {actions.length > 0 && (
-      <div class="actions rise" style="--d:3">
+      <div class="actions rise" style="--d:8">
         {actions.map(({ attrs: { class: className, ...attrs } = {}, icon, link: href, text, variant }) => (
           <LinkButton {href} {variant} icon={icon?.name} class:list={[className]} {...attrs}>
             {text}
@@ -56,7 +65,7 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
       </div>
     )}
 
-    <ul class="proof rise" style="--d:4">
+    <ul class="proof rise" style="--d:9">
       {hero.proof.map((point) => (
         <li>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8" /></svg>
@@ -87,8 +96,10 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
   <!-- The product, tilted back, straightening up as the page scrolls. -->
   <div class="product" aria-hidden="true">
     <div class="halo"></div>
-    <div class="frame">
-      <LiveDemo />
+    <div class="parallax">
+      <div class="frame">
+        <LiveDemo />
+      </div>
     </div>
     <p class="float f-detection"><span class="dot"></span>{hero.floats.detection}</p>
     <p class="float f-discovery"><span class="at">@</span>{hero.floats.discovery}</p>
@@ -238,14 +249,24 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     line-height: 0.98;
     letter-spacing: -0.045em;
     text-wrap: balance;
-    background: linear-gradient(180deg, #fff 35%, rgb(255 255 255 / 0.62));
+    color: var(--sl-color-white);
+  }
+
+  /* Each word fades from white to a little less, and arrives on its own. */
+  h1 :global(.w) {
+    display: inline-block;
+    animation: word 900ms calc(220ms + var(--w) * 65ms) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  h1 :global(.w:not(.sw-answer)) {
+    background: linear-gradient(180deg, #fff 45%, rgb(255 255 255 / 0.66));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  :global(:root[data-theme='light']) h1 {
-    background-image: linear-gradient(180deg, #14122a 35%, rgb(20 18 42 / 0.68));
+  :global(:root[data-theme='light']) h1 :global(.w:not(.sw-answer)) {
+    background-image: linear-gradient(180deg, #14122a 45%, rgb(20 18 42 / 0.72));
   }
 
   /* The answer: a moving gradient, and a heartbeat drawn under it. */
@@ -263,8 +284,9 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     color: transparent;
     -webkit-text-fill-color: transparent;
     animation:
-      draw 1.4s 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both,
-      shimmer 6s 2s linear infinite;
+      word 900ms calc(220ms + var(--w) * 65ms) cubic-bezier(0.2, 0.7, 0.2, 1) both,
+      draw 1.4s 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both,
+      shimmer 6s 2.6s linear infinite;
   }
 
   .tagline {
@@ -484,6 +506,13 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     animation: breathe 7s ease-in-out infinite;
   }
 
+  /* Turns a little towards the pointer (see the script). */
+  .parallax {
+    transform: rotateY(calc(var(--px, 0) * 5deg)) rotateX(calc(var(--py, 0) * -4deg));
+    transform-style: preserve-3d;
+    transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
   .frame {
     position: relative;
     padding: 0.55rem;
@@ -612,6 +641,10 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
     from { opacity: 0; transform: translateY(1.2rem); filter: blur(6px); }
   }
 
+  @keyframes word {
+    from { opacity: 0; transform: translateY(0.35em) rotate(2deg); filter: blur(10px); }
+  }
+
   @keyframes fade {
     from { opacity: 0; }
   }
@@ -726,6 +759,7 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
   /* The demo has its own rule for this (it stops on its most telling frame). */
   @media (prefers-reduced-motion: reduce) {
     .rise,
+    h1 :global(.w),
     .beam,
     .pulse,
     .comet,
@@ -756,15 +790,20 @@ const ecg = `M0 60${[80, 330, 580].map(beat).join('')}L1290 60${[1290, 1530].map
 </style>
 
 <script>
-  // The light that follows the pointer over the hero. Decoration only: without
-  // this script, on touch screens or with reduced motion, it stays in the middle.
+  // The light that follows the pointer over the hero, and the product turning a
+  // little towards it. Decoration only: without this script, on touch screens or
+  // with reduced motion, the light stays in the middle and the product still.
   const hero = document.querySelector<HTMLElement>('.sw-hero');
   const spot = hero?.querySelector<HTMLElement>('.spot');
   if (hero && spot && window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) {
+    const product = hero.querySelector<HTMLElement>('.parallax');
     hero.addEventListener('pointermove', (event) => {
       const box = spot.getBoundingClientRect();
       spot.style.setProperty('--mx', `${event.clientX - box.left}px`);
       spot.style.setProperty('--my', `${event.clientY - box.top}px`);
+      // From -1 to 1 across the window, for the product's turn.
+      product?.style.setProperty('--px', ((event.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+      product?.style.setProperty('--py', ((event.clientY / window.innerHeight) * 2 - 1).toFixed(3));
     });
   }
 </script>

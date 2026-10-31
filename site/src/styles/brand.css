@@ -245,12 +245,106 @@ body::before {
   margin-inline: auto;
 }
 
+/* --- the header ------------------------------------------------------------ */
+
+/* Frosted glass over the page, on every page. On a page without a sidebar (the
+   home page and the landing pages) it is see-through over the top of the page
+   and takes the glass once the page has scrolled (Header.astro notes that). */
+.page > .header {
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 70%, transparent);
+  -webkit-backdrop-filter: saturate(1.5) blur(16px);
+  backdrop-filter: saturate(1.5) blur(16px);
+  transition:
+    background 250ms ease,
+    border-color 250ms ease,
+    box-shadow 250ms ease;
+}
+
+:root:not([data-has-sidebar]):not([data-scrolled]) .page > .header {
+  background: transparent;
+  border-bottom-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-scrolled]:not([data-has-sidebar]) .page > .header {
+  box-shadow: 0 10px 30px -20px rgb(10 5 40 / 0.6);
+}
+
+/* The search, a quiet pill. */
+.header site-search > button {
+  height: 2.25rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 55%, transparent);
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+.header site-search > button:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-hairline));
+}
+
+@media (min-width: 50rem) {
+  .header site-search {
+    flex: 0 1 15rem;
+  }
+
+  .header site-search > button {
+    max-width: 15rem;
+    padding-inline: 0.85rem 0.45rem;
+  }
+
+  .header site-search kbd {
+    border-radius: 0.4rem;
+  }
+}
+
+/* The theme picker shows its icon only: the three choices are in the list. */
+.header starlight-theme-select select {
+  width: 2.25rem;
+  padding-inline: 0;
+  color: transparent;
+}
+
+.header starlight-theme-select .caret {
+  display: none;
+}
+
+/* The picker's icon is swapped for the site's (ThemeProvider.astro), which are
+   drawn with a stroke: filled, as Starlight's own are, the sun was a dot. */
+starlight-theme-select svg.label-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header starlight-theme-select .label-icon {
+  inset-inline-start: 0.55rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.header starlight-lang-select select {
+  width: 7.75rem;
+}
+
 /* The header's sign-in button: visible on every page, not only the home page. */
 .sw-login {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  padding: 0.4rem 0.95rem;
+  padding: 0.45rem 1rem;
   border-radius: 999px;
-  background: #7a35e8;
+  background: linear-gradient(135deg, #9a5cff, #6c1bee);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 0 0 1px rgb(139 75 241 / 0.5),
+    0 8px 22px -10px rgb(139 75 241 / 0.9);
   font-size: var(--sl-text-sm);
   font-weight: 600;
   text-decoration: none;
@@ -262,14 +356,12 @@ body::before {
 }
 
 .sw-login:hover {
-  background: #6c1bee;
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px -8px #8b4bf1;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 0 0 1px rgb(139 75 241 / 0.7),
+    0 12px 28px -10px rgb(139 75 241 / 1);
   color: #fff;
-}
-
-.sw-login {
-  display: inline-flex;
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language
