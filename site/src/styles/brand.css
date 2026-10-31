@@ -335,33 +335,26 @@ starlight-theme-select svg.label-icon {
 
 /* The header's sign-in button: visible on every page, not only the home page. */
 .sw-login {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 0.45rem 1rem;
+  padding: 0.4rem 0.95rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #9a5cff, #6c1bee);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.25) inset,
-    0 0 0 1px rgb(139 75 241 / 0.5),
-    0 8px 22px -10px rgb(139 75 241 / 0.9);
+  background: var(--sl-color-accent);
   font-size: var(--sl-text-sm);
   font-weight: 600;
   text-decoration: none;
   color: #fff;
   white-space: nowrap;
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
+  transition: background 150ms ease;
 }
 
 .sw-login:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.25) inset,
-    0 0 0 1px rgb(139 75 241 / 0.7),
-    0 12px 28px -10px rgb(139 75 241 / 1);
+  background: var(--sl-color-accent-high);
   color: #fff;
+}
+
+:root[data-theme='dark'] .sw-login:hover {
+  background: #7a35e8;
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language

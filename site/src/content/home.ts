@@ -15,11 +15,9 @@ export interface HomeCopy {
   app: string;
   /** Around the hero's title and tagline, which are the page's frontmatter. */
   hero: {
-    eyebrow: { badge: string; text: string; href: string };
     proof: string[];
-    floats: { detection: string; discovery: string };
     /** What the heartbeat line under the buttons says when it goes flat, then when it comes back. */
-    pulse: { down: string; downNote: string; up: string };
+    pulse: { down: string; up: string };
   };
   demo: {
     caption: string;
@@ -61,10 +59,8 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
   en: {
     app: 'Try it out',
     hero: {
-      eyebrow: { badge: 'New', text: 'Jobs watched on each instance', href: '/docs/spring-boot/#several-instances' },
       proof: ['Free up to 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
-      floats: { detection: 'Checked every 10 s', discovery: '@Scheduled jobs found on their own' },
-      pulse: { down: 'backup.sh went quiet', downNote: 'Alert sent to Slack', up: 'backup.sh is back' },
+      pulse: { down: 'backup.sh went quiet · alert sent', up: 'backup.sh is back' },
     },
     demo: {
       caption: 'A job goes quiet. You know within seconds.',
@@ -212,10 +208,8 @@ export const home: Record<'en' | 'fr', HomeCopy> = {
   fr: {
     app: 'Essayer',
     hero: {
-      eyebrow: { badge: 'Nouveau', text: 'Des jobs surveillés sur chaque instance', href: '/docs/spring-boot/#plusieurs-instances' },
       proof: ['Gratuit jusqu’à 10 checks', 'Open source, Apache 2.0', 'Spring Boot, Python, Laravel'],
-      floats: { detection: 'Vérifié toutes les 10 s', discovery: 'Jobs @Scheduled trouvés tout seuls' },
-      pulse: { down: 'backup.sh ne répond plus', downNote: 'Alerte envoyée sur Slack', up: 'backup.sh est reparti' },
+      pulse: { down: 'backup.sh ne répond plus · alerte envoyée', up: 'backup.sh est reparti' },
     },
     demo: {
       caption: 'Un job se tait. Vous le savez en quelques secondes.',
