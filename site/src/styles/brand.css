@@ -5,12 +5,31 @@
  * paler #bc95fc on a dark one (where a mid purple would sink into the page).
  * Neutrals are Starlight's own.
  */
+/* The site's typefaces, Geist and Geist Mono (SIL Open Font License, see
+   public/fonts/Geist-LICENSE.txt), served from the site itself. Variable fonts:
+   one file each covers every weight. Until they arrive the system font shows. */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --sl-color-accent-low: #e9dcfd;
   --sl-color-accent: #7a35e8;
   --sl-color-accent-high: #4a14a8;
-  --sl-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --sl-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --sl-font: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sl-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 :root[data-theme='dark'] {
@@ -83,21 +102,7 @@ body::before {
 
 /* No web font is loaded: nothing here fetches from a third party. */
 
-/* --- the home page --------------------------------------------------------- */
-
-.hero {
-  padding-block: clamp(2.5rem, 7vw, 5rem);
-}
-
-.hero h1 {
-  letter-spacing: -0.02em;
-  color: var(--sl-color-white);
-}
-
-.hero .tagline {
-  max-width: 44rem;
-  margin-inline: auto;
-}
+/* --- the home page (its hero is src/components/Hero.astro) ------------------- */
 
 /* Sections on the splash pages breathe a little more than documentation does. */
 [data-has-hero] .sl-markdown-content > h2,
@@ -247,21 +252,6 @@ body::before {
   margin-block: 1.5rem;
 }
 
-/* The home page is centred: it is a poster, not a document. */
-[data-has-hero] .hero {
-  text-align: center;
-  justify-items: center;
-  grid-template-columns: 1fr;
-}
-
-[data-has-hero] .hero .stack {
-  align-items: center;
-}
-
-[data-has-hero] .hero .actions {
-  justify-content: center;
-}
-
 /* Splash pages that are not the home page read like articles. */
 .splash .sl-markdown-content {
   max-width: 52rem;
@@ -274,153 +264,310 @@ body::before {
   margin-inline: auto;
 }
 
-[data-has-hero] .hero h1 {
-  text-align: center;
-}
+/* --- the header ------------------------------------------------------------ */
 
-/* The slogan: two short sentences, the answer set apart on its own line. The hero
-   heading is longer than a usual one-liner, so it is sized down a step and
-   balanced rather than left to leave a single word on the last line. */
-[data-has-hero] .hero h1 {
-  font-size: clamp(var(--sl-text-3xl), calc(0.75rem + 3.6vw), var(--sl-text-5xl));
-  line-height: 1.15;
-  text-wrap: balance;
-}
-
-/* The answer sits on a line of its own, set apart. */
-
-/* --- the home page hero ---------------------------------------------------- */
-
-/* A flat page: no glow, no grid. The life is in the content. */
-[data-has-hero] .hero {
-  padding-block: clamp(3rem, 9vw, 6.5rem) clamp(1.5rem, 4vw, 3rem);
-}
-
-[data-has-hero] .hero::before {
-  content: none;
-}
-
-[data-has-hero] .hero .tagline {
-  text-align: center;
-}
-
-/* The answer, in the accent colour, underlined by a heartbeat that draws itself. */
-.hero h1 .sw-answer {
-  display: block;
-  width: fit-content;
-  margin-inline: auto;
-  padding-bottom: 0.3em;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M0 7h62l6-5l8 10l7-8l5 3h112' fill='none' stroke='%238b4bf1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-    left bottom / 100% 0.28em no-repeat;
-  color: var(--sl-color-accent-high);
-  -webkit-text-fill-color: currentColor;
-  animation: sw-draw 1.4s 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes sw-draw {
-  from {
-    background-size: 0 0.28em;
-  }
-}
-
-/* Entrance: the hero builds itself in, one piece after another. */
-@media (prefers-reduced-motion: no-preference) {
-  [data-has-hero] .hero h1,
-  [data-has-hero] .hero .tagline,
-  [data-has-hero] .hero .actions {
-    animation: sw-rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-
-  [data-has-hero] .hero .tagline {
-    animation-delay: 120ms;
-  }
-
-  [data-has-hero] .hero .actions {
-    animation-delay: 240ms;
-  }
-
-  /* The sections of the home page rise in on their own, from the script. */
-}
-
-@keyframes sw-rise {
-  from {
-    opacity: 0;
-    transform: translateY(1.2rem);
-  }
-}
-
-/* The way into the application, which is the point of this page. */
-[data-has-hero] .hero .actions {
-  gap: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-[data-has-hero] .hero .sl-link-button {
-  padding: 0.85rem 1.6rem;
-  font-size: var(--sl-text-lg);
-  font-weight: 600;
+/* Frosted glass over the page, on every page. On a page without a sidebar (the
+   home page and the landing pages) it is see-through over the top of the page
+   and takes the glass once the page has scrolled (Header.astro notes that). */
+.page > .header {
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 70%, transparent);
+  -webkit-backdrop-filter: saturate(1.5) blur(16px);
+  backdrop-filter: saturate(1.5) blur(16px);
   transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
+    background 250ms ease,
+    border-color 250ms ease,
+    box-shadow 250ms ease;
 }
 
-[data-has-hero] .hero .sl-link-button.primary {
+/* --- the header of the pages without a sidebar: three islands ---------------- */
+
+/* No bar: the title, the links and the right-hand group float over the page, and
+   once it has scrolled the title and the right-hand group take a capsule of glass
+   each, like the links' (Header.astro). */
+:root:not([data-has-sidebar]) .page > .header {
+  background: transparent;
+  border-bottom-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+:root:not([data-has-sidebar]) .page > .header :is(a, button, select, input, site-search, nav, label) {
+  pointer-events: auto;
+}
+
+:root:not([data-has-sidebar]) .header > div.header {
+  grid-template-columns: 1fr auto 1fr;
+}
+
+:root:not([data-has-sidebar]) .header .title-wrapper,
+:root:not([data-has-sidebar]) .header .right-group {
+  pointer-events: auto;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition:
+    background 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+:root:not([data-has-sidebar]) .header .title-wrapper {
+  justify-self: start;
+  margin: 0;
+  padding: 0.3rem 0.95rem 0.3rem 0.3rem;
+  margin-inline-start: -0.3rem;
+}
+
+:root:not([data-has-sidebar]) .header .right-group {
+  justify-self: end;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  margin-inline-end: -0.25rem;
+}
+
+:root[data-scrolled]:not([data-has-sidebar]) .header :is(.title-wrapper, .right-group) {
+  border-color: color-mix(in srgb, var(--sl-color-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 60%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+  box-shadow: 0 10px 30px -18px rgb(10 5 40 / 0.55);
+}
+
+:root:not([data-has-sidebar]) .header .middle {
+  justify-content: center;
+}
+
+:root:not([data-has-sidebar]) .header .sw-nav {
+  margin-inline: 0;
+}
+
+/* The wordmark, in the site's face. */
+.header .site-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--sl-color-white);
+}
+
+.header .site-title img {
+  height: 1.9rem;
+}
+
+/* The right-hand group, compact: the search as an icon and its shortcut, the
+   pickers as icons, then GitHub and the sign-in button, last. */
+:root:not([data-has-sidebar]) .header .right-group > site-search {
+  order: 1;
+}
+
+:root:not([data-has-sidebar]) .header .right-group > starlight-theme-select {
+  order: 2;
+}
+
+:root:not([data-has-sidebar]) .header .right-group > starlight-lang-select {
+  order: 3;
+}
+
+:root:not([data-has-sidebar]) .header .right-group > .social-icons {
+  order: 4;
+  gap: 0.35rem;
+}
+
+:root:not([data-has-sidebar]) .header .social-icons::after {
+  display: none;
+}
+
+:root:not([data-has-sidebar]) .header .social-icons .sw-login {
+  order: 2;
+}
+
+:root:not([data-has-sidebar]) .header .social-icons > :not(.sw-login) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+:root:not([data-has-sidebar]) .header site-search > button {
+  flex: none;
+  width: auto;
+  max-width: none;
+  gap: 0.5rem;
+  padding-inline: 0.75rem 0.4rem;
   border-color: transparent;
-  background: #7a35e8;
-  color: #fff;
-  box-shadow: 0 14px 34px -12px color-mix(in srgb, #8b4bf1 85%, transparent);
+  background: transparent;
 }
 
-[data-has-hero] .hero .sl-link-button.primary:hover {
-  background: #6c1bee;
-  transform: translateY(-2px);
-  box-shadow: 0 18px 40px -10px color-mix(in srgb, #8b4bf1 95%, transparent);
+:root:not([data-has-sidebar]) .header site-search > button > span {
+  display: none;
 }
 
-[data-has-hero] .hero .sl-link-button.minimal:hover {
-  transform: translateY(-2px);
+:root:not([data-has-sidebar]) .header site-search {
+  flex: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-has-hero] .hero::before,
-  [data-has-hero] .hero::after,
-  .hero h1 .sw-answer {
-    animation: none;
+:root:not([data-has-sidebar]) .header :is(site-search > button, .social-icons > :not(.sw-login), starlight-theme-select label, starlight-lang-select label) {
+  border-radius: 999px;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+:root:not([data-has-sidebar]) .header :is(site-search > button, .social-icons > :not(.sw-login), starlight-theme-select label, starlight-lang-select label):hover {
+  background: color-mix(in srgb, var(--sl-color-white) 8%, transparent);
+}
+
+/* The language as its code, FR or EN: the list still names each language in
+   full, and the select keeps its accessible label. */
+:root:not([data-has-sidebar]) .header starlight-lang-select .label-icon {
+  display: none;
+}
+
+:root:not([data-has-sidebar]) .header starlight-lang-select select {
+  width: 3.9rem;
+  margin: 0;
+  padding-inline: 0.8rem 1.4rem;
+  color: transparent;
+}
+
+:root:not([data-has-sidebar]) .header starlight-lang-select .caret {
+  inset-inline-end: 0.35rem;
+  font-size: 1rem;
+}
+
+:root:not([data-has-sidebar]) .header starlight-lang-select label::before {
+  content: 'EN';
+  position: absolute;
+  inset-inline-start: 0.8rem;
+  font-family: var(--sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+:root[lang='fr']:not([data-has-sidebar]) .header starlight-lang-select label::before {
+  content: 'FR';
+}
+
+/* Below a laptop's width the links, the search and the pickers are in the menu:
+   the bar keeps the title, the sign-in button and the "Menu" button. */
+@media (max-width: 63.99rem) {
+  :root:not([data-has-sidebar]) .header .right-group {
+    display: flex !important;
+    margin-inline: auto 0.4rem;
+    padding: 0;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
+
+  :root:not([data-has-sidebar]) .header .right-group > :not(.social-icons),
+  :root:not([data-has-sidebar]) .header .social-icons > :not(.sw-login) {
+    display: none !important;
+  }
+
+  :root:not([data-has-sidebar]) .header > div.header {
+    display: flex;
+  }
+
+  :root:not([data-has-sidebar]) .header .middle {
+    display: none;
+  }
+}
+
+
+/* The search, a quiet pill. */
+.header site-search > button {
+  height: 2.25rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 55%, transparent);
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+.header site-search > button:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-hairline));
+}
+
+@media (min-width: 50rem) {
+  .header site-search {
+    flex: 0 1 15rem;
+  }
+
+  .header site-search > button {
+    max-width: 15rem;
+    padding-inline: 0.85rem 0.45rem;
+  }
+
+  .header site-search kbd {
+    border-radius: 0.4rem;
+  }
+}
+
+/* The theme picker shows its icon only: the three choices are in the list. */
+.header starlight-theme-select select {
+  width: 2.25rem;
+  padding-inline: 0;
+  color: transparent;
+}
+
+.header starlight-theme-select .caret {
+  display: none;
+}
+
+/* The picker's icon is swapped for the site's (ThemeProvider.astro), which are
+   drawn with a stroke: filled, as Starlight's own are, the sun was a dot. */
+starlight-theme-select svg.label-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header starlight-theme-select .label-icon {
+  inset-inline-start: 0.55rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.header starlight-lang-select select {
+  width: 7.75rem;
 }
 
 /* The header's sign-in button: visible on every page, not only the home page. */
 .sw-login {
+  display: inline-flex;
   align-items: center;
   padding: 0.4rem 0.95rem;
   border-radius: 999px;
-  background: #7a35e8;
+  background: var(--sl-color-accent);
   font-size: var(--sl-text-sm);
   font-weight: 600;
   text-decoration: none;
   color: #fff;
   white-space: nowrap;
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
+  transition: background 150ms ease;
 }
 
 .sw-login:hover {
-  background: #6c1bee;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px -8px #8b4bf1;
+  background: var(--sl-color-accent-high);
   color: #fff;
 }
 
-.sw-login {
-  display: inline-flex;
+:root[data-theme='dark'] .sw-login:hover {
+  background: #7a35e8;
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language
-   pickers move into the menu). Keep that group, with the sign-in button in it, and the
-   language picker too on a page that has no menu (the home page), so the language can
-   always be changed. */
+   pickers move into the menu). Keep that group, with the sign-in button in it. The
+   pages without a sidebar have their own menu, with the language in it (Header.astro). */
 @media (max-width: 49.99rem) {
   .header .right-group {
     display: flex !important;
@@ -429,11 +576,6 @@ body::before {
   .header .right-group > :not(.social-icons),
   .header .social-icons > :not(.sw-login) {
     display: none !important;
-  }
-
-  :root:not([data-has-sidebar]) .header .right-group > starlight-lang-select {
-    display: block !important;
-    order: -1;
   }
 
   .sw-login {
@@ -469,4 +611,29 @@ body::before {
 :root[data-theme='light'] .sw-pricing .btn:not(.primary),
 :root[data-theme='light'] .sw-home .path .btn:not(.primary):not(.ghost) {
   background: #ffffff;
+}
+
+/* The home page's hero draws its own field of dots (Hero.astro); the page's grid
+   would sit under it, out of step. The glows stay. */
+[data-has-hero] body::before {
+  background:
+    radial-gradient(60rem 30rem at 12% -8%, var(--sw-glow-a), transparent 70%),
+    radial-gradient(50rem 26rem at 100% 4%, var(--sw-glow-b), transparent 68%);
+}
+
+/* The full-screen menu's theme picker shows its words, unlike the bar's. */
+.header .sw-menu starlight-theme-select select {
+  width: 7.75rem;
+  padding-inline: 1.85rem 1.4rem;
+  color: inherit;
+  font-size: var(--sl-text-sm);
+}
+
+.header .sw-menu starlight-theme-select .label-icon {
+  inset-inline-start: 0;
+}
+
+.header .sw-menu starlight-theme-select .caret {
+  display: block;
+  inset-inline-end: 0;
 }
