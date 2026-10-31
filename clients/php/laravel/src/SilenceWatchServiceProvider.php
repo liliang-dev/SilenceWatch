@@ -39,6 +39,8 @@ final class SilenceWatchServiceProvider extends ServiceProvider
                     'prune' => (bool) $config['prune'],
                     'default_grace' => (int) $config['default_grace'],
                     'report_start' => (bool) $config['report_start'],
+                    'per_instance_tasks' => self::toList($config['per_instance_tasks'] ?? []),
+                    'instance_id' => isset($config['instance_id']) ? (string) $config['instance_id'] : null,
                 ],
             );
         });
@@ -63,5 +65,18 @@ final class SilenceWatchServiceProvider extends ServiceProvider
         $events->listen(ScheduledTaskFinished::class, fn ($e) => $this->app->make(Monitor::class)->finished($e));
         $events->listen(ScheduledTaskFailed::class, fn ($e) => $this->app->make(Monitor::class)->failed($e));
         $events->listen(ScheduledBackgroundTaskFinished::class, fn ($e) => $this->app->make(Monitor::class)->backgroundFinished($e));
+    }
+
+    /**
+     * A list from the config: an array, or a comma-separated string as an
+     * environment variable gives it.
+     *
+     * @return list<string>
+     */
+    private static function toList(mixed $value): array
+    {
+        $items = is_array($value) ? $value : explode(',', (string) $value);
+
+        return array_values(array_filter(array_map(fn ($item) => trim((string) $item), $items), fn ($item) => $item !== ''));
     }
 }

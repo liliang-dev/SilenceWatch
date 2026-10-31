@@ -84,7 +84,45 @@ silencewatch:
   timezone: Europe/Paris                 # pour les cron sans fuseau dans le déclencheur
   discover-spring-tasks: true
   discover-quartz-jobs: true
+  per-instance-jobs: com.acme.cache.LocalCache#evict  # voir « Plusieurs instances » (0.2.0)
+  instance-id: ${HOSTNAME}               # avec per-instance-jobs seulement, et stable
 ```
+
+## Plusieurs instances
+
+Quand une application tourne en plusieurs instances (répliques, pods, serveurs), toutes
+déclarent les mêmes jobs dans le même environnement : chaque job est donc **un seul check pour
+toutes, en bonne santé tant qu’une instance au moins le signale**. C’est ce qu’on attend de la
+plupart des jobs :
+
+- un job **Quartz en cluster**, ou une méthode `@Scheduled` protégée par un verrou (ShedLock),
+  tourne sur une instance à la fois, et le check l’entend quelle qu’elle soit ;
+- une méthode `@Scheduled` **sans verrou** tourne sur chaque instance. Le check reste en bonne
+  santé tant que l’une d’elles l’exécute : une instance dont le planificateur est bloqué passe
+  inaperçue pendant qu’une autre travaille. Si le job doit tourner une seule fois, mettez-le
+  derrière un verrou ; s’il doit tourner partout, lisez la suite.
+
+**Les jobs qui doivent tourner sur chaque instance** (vider un cache local, supprimer des
+fichiers temporaires) peuvent être surveillés sur chacune, à partir du starter 0.2.0 :
+
+```yaml
+silencewatch:
+  per-instance-jobs:
+    - com.acme.cache.LocalCache#evict
+    - com.acme.tmp.*                     # un * final désigne un préfixe
+  instance-id: ${HOSTNAME}
+```
+
+Ces jobs sont déclarés dans un environnement propre à l’instance, `production.app-0` : chaque
+instance a son check, et celle qui se tait est vue pendant que les autres signalent. Les autres
+jobs restent partagés.
+
+`instance-id` n’a **pas de valeur par défaut, et doit rester le même d’un redémarrage et d’un
+déploiement à l’autre** : le nom d’un pod de StatefulSet, le nom d’hôte d’un serveur. Les noms
+des pods d’un Deployment changent à chaque déploiement, ce qui laisserait derrière lui, à chaque
+fois, des checks que plus rien ne signale, et qui tomberaient en panne. Sans `instance-id`, les
+jobs listés sont surveillés comme partagés, avec un avertissement. Quand vous retirez une instance
+pour de bon (réduction d’un StatefulSet), supprimez ses checks.
 
 ## Les règles qu’il ne transgresse pas
 

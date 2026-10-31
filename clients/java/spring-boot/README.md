@@ -12,12 +12,12 @@ application without licence consequences.
 <dependency>
   <groupId>com.silencewatch</groupId>
   <artifactId>silencewatch-spring-boot-starter</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
 ```groovy
-implementation 'com.silencewatch:silencewatch-spring-boot-starter:0.1.0'
+implementation 'com.silencewatch:silencewatch-spring-boot-starter:0.2.0'
 ```
 
 ```yaml
@@ -89,7 +89,42 @@ silencewatch:
   timezone: Europe/Paris                 # for cron jobs whose trigger carries none
   discover-spring-tasks: true
   discover-quartz-jobs: true
+  per-instance-jobs: com.acme.cache.LocalCache#evict  # see "Several instances" (0.2.0)
+  instance-id: ${HOSTNAME}               # with per-instance-jobs only, and stable
 ```
+
+## Several instances
+
+When an application runs as several instances (replicas, pods, servers), they all declare the
+same jobs in the same environment, so each job is **one check for all of them: it is up while
+any instance reports it**. That is what most jobs should be held to:
+
+- a **clustered Quartz** job, or a `@Scheduled` method behind a lock (ShedLock), runs on one
+  instance at a time, and whichever one it is, the check hears from it;
+- a `@Scheduled` method **without a lock** runs on every instance. The check stays up as long as
+  one of them runs it, so an instance whose scheduler is stuck goes unnoticed while another works.
+  If the job should run once, put it behind a lock; if it has to run everywhere, read on.
+
+**Jobs that have to run on every instance** (clearing a local cache, deleting temporary files)
+can be monitored on each one, from starter 0.2.0:
+
+```yaml
+silencewatch:
+  per-instance-jobs:
+    - com.acme.cache.LocalCache#evict
+    - com.acme.tmp.*                     # a trailing * matches a prefix
+  instance-id: ${HOSTNAME}
+```
+
+Those jobs are declared in an environment of the instance's own, `production.app-0`, so each
+instance has its own check and one going quiet is seen while the others report. Every other job
+stays shared.
+
+`instance-id` has **no default, and must stay the same across restarts and deploys**: a
+StatefulSet pod's name, a server's hostname. A Deployment's pod names change at every rollout,
+which would leave behind, each time, checks nobody reports to any more, and they would go down.
+Without `instance-id`, the listed jobs are watched as shared, with a warning. When you remove an
+instance for good (scaling a StatefulSet down), delete its checks.
 
 ## Rules it will not break
 

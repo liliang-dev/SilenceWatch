@@ -5,6 +5,16 @@ The Python library is versioned apart from the application, and tagged
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-31
+
+- **Jobs watched on each instance.** Processes and servers declare the same jobs, so each job is
+  one check, up while any of them reports it: right for Celery, where one worker runs each run,
+  but an APScheduler process whose scheduler is stuck went unnoticed while another worked.
+  `per_instance_jobs` (`SILENCEWATCH_PER_INSTANCE_JOBS`) with a stable `instance_id`
+  (`SILENCEWATCH_INSTANCE_ID`) declares the listed jobs in an environment of the instance's own
+  (`production.web-1`). No default name; without one, or for a Celery task, the job stays shared,
+  with a warning. The README says what a check means across instances.
+
 ## [0.1.1] — 2026-10-24
 
 - **django-celery-beat**: the periodic tasks kept in the database are declared and

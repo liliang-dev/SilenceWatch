@@ -284,6 +284,57 @@ describe('POST /api/v1/checks/sync', () => {
     expect(stored.graceSeconds).toBe(300);
   });
 
+  describe('with several instances of one application', () => {
+    const expire = (checkId: string, secondsAgo: number) =>
+      context.prisma.$executeRawUnsafe(
+        `UPDATE "check" SET next_due_at = now() - make_interval(secs => $2) WHERE id = $1::uuid`,
+        checkId,
+        secondsAgo,
+      );
+
+    it('gives replicas of one environment one check, up while any of them reports', async () => {
+      // Two replicas starting up: the same declaration, twice.
+      const first = await sync({ environment: 'production', checks: [backupJob] });
+      const second = await sync({ environment: 'production', checks: [backupJob] });
+
+      expect(second.checks[0]?.id).toBe(first.checks[0]?.id);
+      expect(second.checks[0]?.pingKey).toBe(first.checks[0]?.pingKey);
+      expect(second.orphaned).toEqual([]);
+
+      // One replica has gone quiet; the other keeps reporting on the shared key.
+      const check = first.checks[0];
+      await expire(check?.id as string, 400);
+      await context.app.inject({ method: 'GET', url: `/p/${check?.pingKey as string}` });
+      await context.detection.tick();
+
+      // "Any instance ran it": what a clustered Quartz job or a job behind a
+      // lock should be held to, and why per-instance jobs need their own checks.
+      expect((await context.prisma.check.findUniqueOrThrow({ where: { id: check?.id } })).state).toBe('UP');
+    });
+
+    it('keeps per-instance checks apart: one instance going quiet is seen while another reports', async () => {
+      // What the starter declares for per-instance-jobs: an environment per instance.
+      const app0 = await sync({ environment: 'production.app-0', checks: [backupJob] });
+      const app1 = await sync({ environment: 'production.app-1', checks: [backupJob] });
+
+      expect(app1.checks[0]?.id).not.toBe(app0.checks[0]?.id);
+      // Neither instance's declaration orphans the other's checks.
+      expect(app1.orphaned).toEqual([]);
+      expect(
+        await context.prisma.check.count({ where: { key: backupJob.key, orphanedAt: { not: null } } }),
+      ).toBe(0);
+
+      await context.app.inject({ method: 'GET', url: `/p/${app1.checks[0]?.pingKey as string}` });
+      await expire(app0.checks[0]?.id as string, 400);
+      await context.detection.tick();
+
+      const state = async (id: string | undefined) =>
+        (await context.prisma.check.findUniqueOrThrow({ where: { id } })).state;
+      expect(await state(app0.checks[0]?.id)).toBe('DOWN');
+      expect(await state(app1.checks[0]?.id)).toBe('UP');
+    });
+  });
+
   it('ingests heartbeats on the ping key it just handed out', async () => {
     const result = await sync({ environment: 'production', checks: [backupJob] });
     const pingKey = result.checks[0]?.pingKey as string;

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from .client import SilenceWatchClient
 from .config import Config
@@ -83,19 +83,59 @@ class Monitor:
             jobs = self._supported_jobs()
             if not jobs:
                 return False
-            sources = sorted(name for name, found in self._jobs.items() if found)
-            try:
-                keys = self._client.sync(jobs, "python-" + "+".join(sources))
-            except Exception:  # noqa: BLE001
-                log.warning("SilenceWatch registration failed", exc_info=True)
-                keys = {}
-            if not keys:
+            source = "python-" + "+".join(sorted(name for name, found in self._jobs.items() if found))
+            shared, per_instance = self._split(jobs)
+            # Two declarations, each in its own environment: the shared one never
+            # orphans another instance's checks, nor this instance's the shared ones.
+            keys: Dict[str, str] = {}
+            complete = True
+            for group, environment in ((shared, None), (per_instance, self.config.instance_environment)):
+                if not group:
+                    continue
+                try:
+                    found = self._client.sync(group, source, environment)
+                except Exception:  # noqa: BLE001
+                    log.warning("SilenceWatch registration failed", exc_info=True)
+                    found = {}
+                complete = complete and bool(found)
+                keys.update(found)
+            if keys:
+                self._sender.register(keys)
+            if not complete:
                 self._next_attempt = time.monotonic() + _RETRY_AFTER_SECONDS
                 return False
-            self._sender.register(keys)
             self._registered = True
-            log.info("SilenceWatch is watching %d job(s) in environment '%s'", len(keys), self.config.environment)
+            if per_instance:
+                log.info("SilenceWatch is watching %d job(s) in environment '%s', %d of them for this "
+                         "instance alone in '%s'", len(keys), self.config.environment, len(per_instance),
+                         self.config.instance_environment)
+            else:
+                log.info("SilenceWatch is watching %d job(s) in environment '%s'", len(keys),
+                         self.config.environment)
             return True
+
+    def _split(self, jobs: List[DiscoveredJob]) -> Tuple[List[DiscoveredJob], List[DiscoveredJob]]:
+        """The jobs watched for all instances, and the ones watched on this one alone."""
+        shared: List[DiscoveredJob] = []
+        per_instance: List[DiscoveredJob] = []
+        for job in jobs:
+            if not self.config.is_per_instance(job.key):
+                shared.append(job)
+            elif job.key.startswith("celery:"):
+                # One worker runs each run of a Celery task: the others would never
+                # report it, and its check on each of them would go down.
+                log.warning("SilenceWatch watches Celery task %s for all workers: one worker runs each run, "
+                            "so it cannot be watched per instance", job.key)
+                shared.append(job)
+            else:
+                per_instance.append(job)
+        if per_instance and self.config.instance_environment is None:
+            # Better one check for all the instances than none at all.
+            log.warning("SilenceWatch per_instance_jobs is set but instance_id is missing, or leaves no room "
+                        "in the environment name; %d job(s) are watched as one check for all instances",
+                        len(per_instance))
+            return shared + per_instance, []
+        return shared, per_instance
 
     def _supported_jobs(self) -> List[DiscoveredJob]:
         jobs: List[DiscoveredJob] = []

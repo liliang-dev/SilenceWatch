@@ -29,6 +29,9 @@ final class ScheduleReader
     /** @var list<string> */
     private array $skipped = [];
 
+    /** @var array<string, true> keys of the tasks that run on one server only (onOneServer) */
+    private array $oneServer = [];
+
     public function __construct(
         private readonly Schedule $schedule,
         private readonly string $appEnvironment,
@@ -41,6 +44,7 @@ final class ScheduleReader
     public function tasks(): array
     {
         $this->skipped = [];
+        $this->oneServer = [];
         /** @var array<string, array{0: array{key: string, name: string, cron: string, timezone: string}, 1: int}> $chosen */
         $chosen = [];
 
@@ -71,6 +75,10 @@ final class ScheduleReader
                 continue;
             }
 
+            if ($event->onOneServer) {
+                $this->oneServer[$key] = true;
+            }
+
             $timezone = self::timezoneOf($event) ?? $this->defaultTimezone;
             $gap = self::gap($cron, $timezone);
             $task = ['key' => $key, 'name' => self::nameOf($event), 'cron' => $cron, 'timezone' => $timezone];
@@ -93,6 +101,12 @@ final class ScheduleReader
     public function skipped(): array
     {
         return $this->skipped;
+    }
+
+    /** Whether the last call to `tasks()` found this task scheduled with onOneServer(). */
+    public function runsOnOneServer(string $key): bool
+    {
+        return isset($this->oneServer[$key]);
     }
 
     /** The stable identity of a task, or null when it has none. */

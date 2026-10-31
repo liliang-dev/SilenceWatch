@@ -95,8 +95,45 @@ Chaque réglage est un argument nommé (`instrument(app, api_key="…", environm
 | `queue_capacity` | `SILENCEWATCH_QUEUE_CAPACITY` | 1000 ; les plus anciens sont abandonnés quand elle est pleine |
 | `timezone` | `SILENCEWATCH_TIMEZONE` | `UTC`, pour les jobs cron dont la planification n’en porte pas |
 | `prune` | `SILENCEWATCH_PRUNE` | `true` |
+| `per_instance_jobs` | `SILENCEWATCH_PER_INSTANCE_JOBS` | aucune ; jobs surveillés sur chaque instance, voir plus bas |
+| `instance_id` | `SILENCEWATCH_INSTANCE_ID` | aucune ; le nom stable de l’instance |
 
 `prune` marque comme orphelins tous les checks du projet et de l’environnement que la déclaration omet. Utilisez **un environnement par application** ; si plusieurs services partagent un même projet et un même environnement, mettez `prune=False`, sinon chacun marquerait les checks des autres comme orphelins.
+
+## Plusieurs instances
+
+Quand une application tourne en plusieurs processus ou serveurs, tous déclarent les mêmes jobs
+dans le même environnement : chaque job est donc **un seul check pour tous, en bonne santé tant
+que l’un d’eux le signale**.
+
+- **Celery** (et django-celery-beat) : beat confie chaque exécution à un seul worker, quel qu’il
+  soit, et le check l’entend. C’est la bonne règle, et la seule.
+- **APScheduler** tourne dans chaque processus. Démarré dans chaque worker Gunicorn ou chaque
+  réplique, un job s’exécute une fois par processus, et le check reste en bonne santé tant que
+  l’un d’eux l’exécute : un processus dont le planificateur est bloqué passe inaperçu pendant
+  qu’un autre travaille. Si le job doit tourner une seule fois, démarrez le planificateur dans un
+  seul processus ; s’il doit tourner dans chacun, lisez la suite.
+
+**Les jobs qui doivent tourner dans chaque instance** (vider un cache local, supprimer des
+fichiers temporaires) peuvent être surveillés sur chacune :
+
+```python
+instrument(scheduler, per_instance_jobs=["apscheduler:evict-cache", "apscheduler:tmp-*"],
+           instance_id=os.environ["HOSTNAME"])
+```
+
+ou `SILENCEWATCH_PER_INSTANCE_JOBS=apscheduler:evict-cache,apscheduler:tmp-*` et
+`SILENCEWATCH_INSTANCE_ID`. Ces jobs sont déclarés dans un environnement propre à l’instance,
+`production.web-1` : chaque instance a son check, et celle qui se tait est vue pendant que les
+autres signalent. Un `*` final désigne un préfixe ; les autres jobs restent partagés. Les tâches
+Celery ne sont jamais surveillées par instance, puisqu’un seul worker exécute chaque exécution :
+la bibliothèque le signale et les garde partagées.
+
+`instance_id` n’a **pas de valeur par défaut, et doit rester le même d’un redémarrage et d’un
+déploiement à l’autre** (le nom d’un pod de StatefulSet, le nom d’hôte d’un serveur) : un nom qui
+change à chaque déploiement laisserait des checks que plus rien ne signale, et qui tomberaient en
+panne. Sans lui, les jobs listés sont surveillés comme partagés, avec un avertissement. Quand vous
+retirez une instance pour de bon, supprimez ses checks.
 
 ## Les règles qu’elle ne brisera pas
 
