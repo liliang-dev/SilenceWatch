@@ -5,24 +5,31 @@ import Search from 'virtual:starlight/components/Search';
 import SiteTitle from 'virtual:starlight/components/SiteTitle';
 import SocialIcons from 'virtual:starlight/components/SocialIcons';
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import { APP } from '../site';
 
 /**
  * The bar at the top of every page: Starlight's header (title, search, icons,
- * theme and language) with the site's main links between the title and the
- * search, and a frosted finish (see the styles below and brand.css).
+ * theme and language) with the site's main links, and two faces.
  *
- * Laid out like Starlight's own, three cells, so that on documentation pages the
- * title still lines up with the sidebar and the search with the content; the
- * links share the middle cell with the search. On a phone the links go: the
- * documentation has its menu, the home page its own buttons.
+ * On the documentation (pages with a sidebar) it is Starlight's frosted bar,
+ * three cells laid out like Starlight's own so that the title lines up with the
+ * sidebar and the search with the content; the links share the middle cell with
+ * the search, from a wide screen up.
  *
- * On a page without a sidebar (the home page and the other landing pages) the
- * bar is see-through over the top of the page and turns to frosted glass once
- * the page has scrolled, which a few lines of script note on the root element.
+ * On the other pages (the home page and the landing pages) there is no bar.
+ * The links sit in a capsule in the middle, with a pill behind them that slides
+ * to the link under the pointer and rests on the page you are on; the title is on
+ * the left and the search, theme, language and sign-in on the right. Over the top
+ * of the page all of it floats on the page; once the page has scrolled, the title
+ * and the right-hand group each take a capsule of frosted glass too, three
+ * islands over the content (a few lines of script note the scroll on the root
+ * element; brand.css does the rest). Below a laptop's width the links, the search
+ * and the pickers move into a full-screen menu behind a "Menu" button.
  */
 const shouldRenderSearch =
   config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
 
+const { hasSidebar } = Astro.locals.starlightRoute;
 const lang = Astro.locals.starlightRoute.lang === 'fr' ? 'fr' : 'en';
 const prefix = lang === 'fr' ? '/fr' : '';
 const links =
@@ -45,6 +52,17 @@ const links =
 const path = Astro.url.pathname.replace(/^\/fr(?=\/)/, '');
 const isCurrent = (link: { href: string; section?: string }) =>
   link.section ? path.startsWith(link.section) : path === link.href;
+
+// The menu's language links: this page, in each language.
+const languages = [
+  { code: 'fr', label: 'Français', href: `/fr${path}` },
+  { code: 'en', label: 'English', href: path },
+];
+
+const t =
+  lang === 'fr'
+    ? { main: 'Principal', menu: 'Menu', close: 'Fermer', search: 'Rechercher', login: 'Connexion', theme: 'Thème', language: 'Langue' }
+    : { main: 'Main', menu: 'Menu', close: 'Close', search: 'Search', login: 'Log in', theme: 'Theme', language: 'Language' };
 ---
 
 <div class="header">
@@ -52,28 +70,157 @@ const isCurrent = (link: { href: string; section?: string }) =>
     <SiteTitle />
   </div>
   <div class="sl-flex print:hidden middle">
-    <nav class="sw-nav" aria-label={lang === 'fr' ? 'Principal' : 'Main'}>
+    <nav class="sw-nav" aria-label={t.main} data-nav>
+      <span class="sw-nav-pill" aria-hidden="true"></span>
       {links.map((link) => (
         <a href={prefix + link.href} aria-current={isCurrent(link) ? 'page' : undefined}>{link.text}</a>
       ))}
     </nav>
-    {shouldRenderSearch && <Search />}
+    {hasSidebar && shouldRenderSearch && <Search />}
   </div>
   <div class="sl-hidden md:sl-flex print:hidden right-group">
+    {!hasSidebar && shouldRenderSearch && <Search />}
     <div class="sl-flex social-icons">
       <SocialIcons />
     </div>
     <ThemeSelect />
     <LanguageSelect />
   </div>
+  {!hasSidebar && (
+    <button class="sw-menu-button print:hidden" type="button" aria-haspopup="dialog" aria-controls="sw-menu" data-menu-open>
+      <span>{t.menu}</span>
+      <i aria-hidden="true"></i>
+    </button>
+  )}
 </div>
 
+{!hasSidebar && (
+  <dialog id="sw-menu" class="sw-menu" aria-label={t.menu} data-menu>
+    <div class="sw-menu-inner">
+      <div class="sw-menu-top">
+        <button class="sw-menu-button is-open" type="button" data-menu-close>
+          <span>{t.close}</span>
+          <i aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <nav aria-label={t.main}>
+        <ol class="sw-menu-links">
+          {links.map((link, i) => (
+            <li style={`--i:${i}`}>
+              <a href={prefix + link.href} aria-current={isCurrent(link) ? 'page' : undefined}>
+                <span class="num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                <span class="text">{link.text}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <div class="sw-menu-foot">
+        <div class="sw-menu-row">
+          {shouldRenderSearch && (
+            <button class="sw-menu-chip" type="button" data-menu-search>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></svg>
+              {t.search}
+            </button>
+          )}
+          <div class="sw-menu-langs" role="group" aria-label={t.language}>
+            {languages.map((l) => (
+              <a href={l.href} hreflang={l.code} lang={l.code} aria-current={l.code === lang ? 'true' : undefined}>
+                {l.label}
+              </a>
+            ))}
+          </div>
+          <div class="sw-menu-theme" aria-label={t.theme}>
+            <ThemeSelect />
+          </div>
+        </div>
+        <a class="sw-menu-login" href={`${APP}/login`}>
+          {t.login}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>
+      </div>
+    </div>
+  </dialog>
+)}
+
 <script>
-  // The bar turns to glass once the page has scrolled (see brand.css).
   const root = document.documentElement;
-  const update = () => root.toggleAttribute('data-scrolled', window.scrollY > 8);
-  update();
-  window.addEventListener('scroll', update, { passive: true });
+
+  // The islands take their glass once the page has scrolled (see brand.css).
+  const scrolled = () => root.toggleAttribute('data-scrolled', window.scrollY > 8);
+  scrolled();
+  window.addEventListener('scroll', scrolled, { passive: true });
+
+  // The pill behind the links: it slides to the link under the pointer (or with
+  // the keyboard's focus) and comes back to rest on the page you are on.
+  const nav = document.querySelector<HTMLElement>('[data-nav]');
+  const pill = nav?.querySelector<HTMLElement>('.sw-nav-pill');
+  if (nav && pill) {
+    const current = nav.querySelector<HTMLElement>('a[aria-current]');
+    const place = (link: HTMLElement | null) => {
+      nav.toggleAttribute('data-pill', Boolean(link));
+      if (!link) return;
+      pill.style.setProperty('--l', `${link.offsetLeft}px`);
+      pill.style.setProperty('--w', `${link.offsetWidth}px`);
+    };
+    place(current);
+    // No slide on arrival, only once the pointer moves it.
+    requestAnimationFrame(() => requestAnimationFrame(() => nav.setAttribute('data-ready', '')));
+    nav.querySelectorAll<HTMLElement>('a').forEach((link) => {
+      link.addEventListener('pointerenter', () => place(link));
+      link.addEventListener('focus', () => place(link));
+    });
+    nav.addEventListener('pointerleave', () => place(current));
+    nav.addEventListener('focusout', (event) => {
+      if (!nav.contains(event.relatedTarget as Node)) place(current);
+    });
+    // The links' widths change when the face arrives.
+    document.fonts?.ready.then(() => place(nav.querySelector('a:hover') ?? current));
+    new ResizeObserver(() => place(current)).observe(nav);
+  }
+
+  // The full-screen menu. A modal dialog: the browser keeps focus inside it and
+  // Escape closes it; the page behind does not scroll while it is open.
+  const menu = document.querySelector<HTMLDialogElement>('[data-menu]');
+  const opener = document.querySelector<HTMLButtonElement>('[data-menu-open]');
+  if (menu && opener) {
+    const close = () => {
+      if (!menu.open || menu.hasAttribute('data-closing')) return;
+      menu.setAttribute('data-closing', '');
+      const done = () => {
+        menu.removeAttribute('data-closing');
+        menu.close();
+      };
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) done();
+      else setTimeout(done, 220);
+    };
+    opener.addEventListener('click', () => {
+      menu.showModal();
+      opener.setAttribute('aria-expanded', 'true');
+    });
+    menu.addEventListener('close', () => {
+      opener.setAttribute('aria-expanded', 'false');
+      opener.focus();
+    });
+    menu.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      close();
+    });
+    menu.querySelector('[data-menu-close]')?.addEventListener('click', close);
+    // A link to a part of this page closes the menu on the way.
+    menu.querySelectorAll('a').forEach((link) => link.addEventListener('click', close));
+    // The search is Starlight's, behind its own (hidden) button.
+    menu.querySelector('[data-menu-search]')?.addEventListener('click', () => {
+      menu.close();
+      document.querySelector<HTMLButtonElement>('site-search button[data-open-modal]')?.click();
+    });
+    // Back to a laptop's width with the menu open: there is nothing to show it for.
+    matchMedia('(min-width: 64rem)').addEventListener('change', (event) => {
+      if (event.matches && menu.open) menu.close();
+    });
+  }
 </script>
 
 <style>
@@ -137,48 +284,81 @@ const isCurrent = (link: { href: string; section?: string }) =>
     min-width: 0;
   }
 
+  /* ---- The links: a capsule, and a pill that follows the pointer ------------------ */
+
   .sw-nav {
+    position: relative;
     display: none;
     align-items: center;
-    gap: 0.15rem;
+    padding: 0.25rem;
     margin-inline-end: auto;
+    border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 80%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 55%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
   }
 
   .sw-nav a {
     position: relative;
-    padding: 0.4rem 0.7rem;
+    z-index: 1;
+    padding: 0.4rem 0.85rem;
     border-radius: 999px;
-    font-size: var(--sl-text-sm);
+    font-size: 0.8125rem;
     font-weight: 500;
+    letter-spacing: -0.005em;
     white-space: nowrap;
     text-decoration: none;
     color: var(--sl-color-gray-2);
-    transition:
-      color 150ms,
-      background 150ms;
+    transition: color 200ms ease;
   }
 
-  .sw-nav a:hover {
-    color: var(--sl-color-white);
-  }
-
+  .sw-nav a:hover,
+  .sw-nav a:focus-visible,
   .sw-nav a[aria-current='page'] {
     color: var(--sl-color-white);
   }
 
-  /* The page you are on: a short line under its link. */
-  .sw-nav a[aria-current='page']::after {
-    content: '';
-    position: absolute;
-    inset: auto 0.7rem -0.15rem;
-    height: 1.5px;
-    border-radius: 2px;
-    background: var(--sl-color-accent);
+  .sw-nav a:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 1px;
   }
 
-  /* The links need room: shown from a wide laptop up, only on pages without a
-     sidebar there, and on documentation pages, whose search needs the room, from a
-     wider screen still. */
+  .sw-nav-pill {
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    left: 0;
+    width: var(--w, 0);
+    translate: var(--l, 0) 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-white) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sl-color-white) 8%, transparent);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  :global(:root[data-theme='light']) .sw-nav-pill {
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(40 30 90 / 0.08),
+      0 4px 12px rgb(40 30 90 / 0.08);
+  }
+
+  .sw-nav[data-pill] .sw-nav-pill {
+    opacity: 1;
+  }
+
+  .sw-nav[data-ready] .sw-nav-pill {
+    transition:
+      translate 420ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 200ms ease;
+  }
+
+  /* The links need room: shown from a laptop up on the pages without a sidebar
+     (the menu has them below that), and on the documentation, whose search needs
+     the room, from a wider screen still (it has its own menu below that). */
   @media (min-width: 64rem) {
     :global(:root:not([data-has-sidebar])) .sw-nav {
       display: flex;
@@ -188,6 +368,314 @@ const isCurrent = (link: { href: string; section?: string }) =>
   @media (min-width: 100rem) {
     .sw-nav {
       display: flex;
+    }
+  }
+
+  /* ---- The "Menu" button ------------------------------------------------------- */
+
+  .sw-menu-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 2.25rem;
+    padding: 0 0.95rem 0 1.05rem;
+    border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 85%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 60%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+
+  /* Two lines that cross when the menu is open. */
+  .sw-menu-button i {
+    position: relative;
+    width: 0.9rem;
+    height: 0.45rem;
+  }
+
+  .sw-menu-button i::before,
+  .sw-menu-button i::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    border-radius: 2px;
+    background: currentColor;
+    transition:
+      rotate 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      top 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sw-menu-button i::before {
+    top: 0;
+  }
+
+  .sw-menu-button i::after {
+    top: calc(100% - 1.5px);
+  }
+
+  .sw-menu-button.is-open i::before,
+  .sw-menu-button.is-open i::after {
+    top: calc(50% - 0.75px);
+  }
+
+  .sw-menu-button.is-open i::before {
+    rotate: 45deg;
+  }
+
+  .sw-menu-button.is-open i::after {
+    rotate: -45deg;
+  }
+
+  .header .sw-menu-button {
+    flex: none;
+  }
+
+  @media (min-width: 64rem) {
+    .header .sw-menu-button {
+      display: none;
+    }
+  }
+
+  /* ---- The full-screen menu ------------------------------------------------------ */
+
+  .sw-menu {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background:
+      radial-gradient(40rem 24rem at 100% 0%, var(--sw-glow-a), transparent 70%),
+      radial-gradient(circle at 1px 1px, var(--sw-dot) 1px, transparent 1.5px) 0 0 / 22px 22px,
+      var(--sl-color-bg);
+    color: var(--sl-color-white);
+    overscroll-behavior: contain;
+  }
+
+  .sw-menu::backdrop {
+    background: transparent;
+  }
+
+  .sw-menu[open] {
+    animation: menu-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .sw-menu[data-closing] {
+    animation: menu-out 220ms ease both;
+  }
+
+  @keyframes menu-in {
+    from { clip-path: inset(0 0 100% 0 round 0 0 2rem 2rem); }
+    to { clip-path: inset(0 0 0 0 round 0); }
+  }
+
+  @keyframes menu-out {
+    to { opacity: 0; }
+  }
+
+  .sw-menu-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 0 var(--sl-nav-pad-x) calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .sw-menu-top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: var(--sl-nav-height);
+    flex: none;
+  }
+
+  .sw-menu-links {
+    display: grid;
+    margin: 1.5rem 0 2.5rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+  }
+
+  .sw-menu-links li {
+    margin: 0;
+    overflow: clip;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .sw-menu-links a {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.85rem 0 0.75rem;
+    text-decoration: none;
+    color: var(--sl-color-white);
+  }
+
+  .sw-menu[open] .sw-menu-links a {
+    animation: link-in 650ms calc(var(--i) * 50ms + 120ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes link-in {
+    from { transform: translateY(105%); }
+  }
+
+  .sw-menu-links .num {
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+  }
+
+  .sw-menu-links .text {
+    font-size: clamp(1.9rem, 1rem + 4.5vw, 3rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+  }
+
+  .sw-menu-links a[aria-current='page'] .text {
+    color: var(--sl-color-accent-high);
+  }
+
+  :global(:root[data-theme='light']) .sw-menu-links a[aria-current='page'] .text {
+    color: var(--sl-color-accent);
+  }
+
+  .sw-menu-links a:active .text {
+    opacity: 0.7;
+  }
+
+  .sw-menu-foot {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: auto;
+    animation: none;
+  }
+
+  .sw-menu[open] .sw-menu-foot {
+    animation: foot-in 600ms 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes foot-in {
+    from { opacity: 0; transform: translateY(0.75rem); }
+  }
+
+  .sw-menu-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .sw-menu-chip,
+  .sw-menu-langs,
+  .sw-menu-theme {
+    display: inline-flex;
+    align-items: center;
+    height: 2.5rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 70%, transparent);
+  }
+
+  .sw-menu-chip {
+    gap: 0.5rem;
+    padding: 0 1rem;
+    font: inherit;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-2);
+    cursor: pointer;
+  }
+
+  .sw-menu-chip svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .sw-menu-langs {
+    padding: 0.2rem;
+  }
+
+  .sw-menu-langs a {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 0.85rem;
+    border-radius: 999px;
+    font-size: var(--sl-text-sm);
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sw-menu-langs a[aria-current] {
+    background: color-mix(in srgb, var(--sl-color-white) 10%, transparent);
+    color: var(--sl-color-white);
+  }
+
+  :global(:root[data-theme='light']) .sw-menu-langs a[aria-current] {
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(40 30 90 / 0.12);
+  }
+
+  .sw-menu-theme {
+    padding-inline: 0.9rem 0.6rem;
+  }
+
+  .sw-menu-login {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.4rem;
+    border-radius: 999px;
+    background: var(--sl-color-white);
+    font-size: var(--sl-text-lg);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--sl-color-black);
+  }
+
+  :global(:root[data-theme='light']) .sw-menu-login {
+    background: var(--sl-color-gray-1);
+    color: #fff;
+  }
+
+  .sw-menu-login svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  :global(html:has(.sw-menu[open])) {
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sw-nav[data-ready] .sw-nav-pill,
+    .sw-menu-button i::before,
+    .sw-menu-button i::after {
+      transition: none;
+    }
+
+    .sw-menu[open],
+    .sw-menu[open] .sw-menu-links a,
+    .sw-menu[open] .sw-menu-foot {
+      animation: none;
     }
   }
 </style>
