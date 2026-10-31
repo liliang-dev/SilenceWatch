@@ -43,3 +43,9 @@ The icons of the web interface (packages/web/src/app/shared/icon.component.ts) a
 of the website (site/src/icons.ts) are from Heroicons, MIT License, Copyright (c)
 Tailwind Labs, Inc. https://github.com/tailwindlabs/heroicons. The interface carries
 copies of the few it shows; the website reads them from the `heroicons` package.
+
+The website's typefaces (site/public/fonts/Geist-Variable.woff2 and
+site/public/fonts/GeistMono-Variable.woff2) are Geist and Geist Mono, Copyright (c)
+2023 Vercel, in collaboration with basement.studio, under the SIL Open Font
+License 1.1, whose text is next to them in site/public/fonts/Geist-LICENSE.txt.
+They are included unmodified, from the `geist` package.
