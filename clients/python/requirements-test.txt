@@ -1,4 +1,4 @@
 # What the tests need, at versions that exist for every supported Python. pytest 9
 # needs Python 3.10, so 3.9 gets a range of 8 (a range is not something Dependabot rewrites).
-pytest==9.1.1; python_version >= "3.10"
+pytest==9.2.0; python_version >= "3.10"
 pytest>=8,<9; python_version < "3.10"

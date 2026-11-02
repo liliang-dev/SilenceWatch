@@ -10,6 +10,10 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-02
+
+No migration and no change to an existing setting: replace the image and restart.
+
 ### Added
 
 - **Spring Boot starter: jobs monitored on each instance** (starter 0.2.0). An application running
@@ -38,6 +42,12 @@ called out under **Changed** with what to do about it.
   state (red when it goes silent, green when it is back, amber when late). The logo is redrawn in
   vector, a black tile for a light background and a white one for a dark one; the favicon, the
   home-screen icon and the social-sharing images follow. Nothing to do on upgrade.
+
+### Dependencies
+
+Angular 22.2.4 (CDK, Material, build and CLI 22.2.5), Better Auth 1.7.14, nodemailer 10.3.1,
+jose 6.2.14, Nest 11.2.8; for the Spring Boot starter and its example, Spring Boot 4.1.2 and
+Surefire 3.6.1; for the Python library, ruff 0.17.3 and pytest 9.2.0.
 
 ## [0.8.0] — 2026-10-30
 
@@ -1239,7 +1249,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
 [0.6.3]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.2...0.6.3
