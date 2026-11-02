@@ -4,8 +4,8 @@
  * light page and white on the dark one, the greys between them are true greys
  * (Starlight's own are tinted blue), and the only colours on the site are the
  * states of a job: red when it goes silent, green when it is back. Starlight's
- * purple and blue, which its "tip" and "note" asides and badges use, are made
- * grey too; its orange and red stay, for cautions and dangers.
+ * purple, blue and orange, which its "tip", "note" and "caution" asides and
+ * badges use, are made grey too: they are told apart by their icon and title.
  */
 /* The site's typefaces, Geist and Geist Mono (SIL Open Font License, see
    public/fonts/Geist-LICENSE.txt), served from the site itself. Variable fonts:
@@ -51,6 +51,9 @@
   --sl-color-blue-low: #1f1f1f;
   --sl-color-blue: #a3a3a3;
   --sl-color-blue-high: #ededed;
+  --sl-color-orange-low: #262626;
+  --sl-color-orange: #c2c2c2;
+  --sl-color-orange-high: #ededed;
   --sl-color-bg: #0a0a0a;
   --sl-color-bg-nav: #141414;
   --sl-color-bg-sidebar: #0f0f0f;
@@ -86,6 +89,9 @@
   --sl-color-blue-high: #262626;
   --sl-color-blue: #6b6b6b;
   --sl-color-blue-low: #ededed;
+  --sl-color-orange-high: #262626;
+  --sl-color-orange: #575757;
+  --sl-color-orange-low: #ededed;
   --sl-color-bg: #f4f4f4;
   --sl-color-bg-nav: #ffffff;
   --sl-color-bg-sidebar: #ffffff;
