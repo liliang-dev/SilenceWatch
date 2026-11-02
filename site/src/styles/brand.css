@@ -1,9 +1,11 @@
-/* SilenceWatch's palette on Starlight's variables.
+/* SilenceWatch's palette on Starlight's variables: black and white.
  *
- * The same purple as the application and the logo, at the two lightnesses the
- * application uses: #8b4bf1 on a light page (white on it clears 4.5:1) and the
- * paler #bc95fc on a dark one (where a mid purple would sink into the page).
- * Neutrals are Starlight's own.
+ * The brand has no hue. Text, buttons, links and the accent are black on the
+ * light page and white on the dark one, the greys between them are true greys
+ * (Starlight's own are tinted blue), and the only colours on the site are the
+ * states of a job: red when it goes silent, green when it is back. Starlight's
+ * purple, blue and orange, which its "tip", "note" and "caution" asides and
+ * badges use, are made grey too: they are told apart by their icon and title.
  */
 /* The site's typefaces, Geist and Geist Mono (SIL Open Font License, see
    public/fonts/Geist-LICENSE.txt), served from the site itself. Variable fonts:
@@ -25,55 +27,79 @@
 }
 
 :root {
-  --sl-color-accent-low: #e9dcfd;
-  --sl-color-accent: #7a35e8;
-  --sl-color-accent-high: #4a14a8;
   --sl-font: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --sl-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
+/* The dark page: near-black, with surfaces a step lighter and a visible edge. */
 :root[data-theme='dark'] {
-  --sl-color-accent-low: #2a1a52;
-  --sl-color-accent: #8b4bf1;
-  --sl-color-accent-high: #d3bafe;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #ededed;
+  --sl-color-gray-2: #c2c2c2;
+  --sl-color-gray-3: #8f8f8f;
+  --sl-color-gray-4: #5c5c5c;
+  --sl-color-gray-5: #3a3a3a;
+  --sl-color-gray-6: #1c1c1c;
+  --sl-color-black: #0a0a0a;
+  --sl-color-accent-low: #262626;
+  --sl-color-accent: #fafafa;
+  --sl-color-accent-high: #ffffff;
+  --sl-color-text-accent: #fafafa;
+  --sl-color-purple-low: #262626;
+  --sl-color-purple: #a3a3a3;
+  --sl-color-purple-high: #ededed;
+  --sl-color-blue-low: #1f1f1f;
+  --sl-color-blue: #a3a3a3;
+  --sl-color-blue-high: #ededed;
+  --sl-color-orange-low: #262626;
+  --sl-color-orange: #c2c2c2;
+  --sl-color-orange-high: #ededed;
+  --sl-color-bg: #0a0a0a;
+  --sl-color-bg-nav: #141414;
+  --sl-color-bg-sidebar: #0f0f0f;
+  --sl-color-hairline: #262626;
+  --sl-color-hairline-light: #333333;
+  --sl-color-hairline-shade: #000000;
+  --sl-color-backdrop-overlay: rgb(10 10 10 / 0.66);
+  --sw-glow-a: rgb(255 255 255 / 0.06);
+  --sw-glow-b: rgb(255 255 255 / 0.03);
+  --sw-dot: rgb(255 255 255 / 0.08);
 }
 
-/* The light page.
- *
- * It used to be white with cards of a very pale grey on it, which is two almost
- * identical lights: the content did not stand out, and the purple (a mid purple
- * on a near-white page) was thin. So the page itself is a cool lavender-grey,
- * the surfaces that carry content (header, cards, panels, the sidebar) are pure
- * white and have a visible edge, and the purple is a step darker. Text is
- * Starlight's own, a touch darker for the muted greys. */
+/* The light page: a light grey, with the surfaces that carry content (header,
+   cards, panels, the sidebar) pure white and edged, so the content stands out
+   from what is behind it. */
 :root[data-theme='light'] {
-  --sl-color-bg: #eceef7;
+  --sl-color-white: #0a0a0a;
+  --sl-color-gray-1: #171717;
+  --sl-color-gray-2: #333333;
+  --sl-color-gray-3: #575757;
+  --sl-color-gray-4: #8a8a8a;
+  --sl-color-gray-5: #c2c2c2;
+  --sl-color-gray-6: #ebebeb;
+  --sl-color-gray-7: #f5f5f5;
+  --sl-color-black: #ffffff;
+  --sl-color-accent-low: #e8e8e8;
+  --sl-color-accent: #0a0a0a;
+  --sl-color-accent-high: #000000;
+  --sl-color-text-accent: #0a0a0a;
+  --sl-color-purple-high: #262626;
+  --sl-color-purple: #6b6b6b;
+  --sl-color-purple-low: #ededed;
+  --sl-color-blue-high: #262626;
+  --sl-color-blue: #6b6b6b;
+  --sl-color-blue-low: #ededed;
+  --sl-color-orange-high: #262626;
+  --sl-color-orange: #575757;
+  --sl-color-orange-low: #ededed;
+  --sl-color-bg: #f4f4f4;
   --sl-color-bg-nav: #ffffff;
   --sl-color-bg-sidebar: #ffffff;
-  --sl-color-hairline: #cdd2e4;
-  --sl-color-gray-3: #484c5a;
-  --sl-color-accent-low: #e6dafc;
-  --sl-color-accent: #6a2be0;
-  --sl-color-accent-high: #3f0f96;
-  --sl-color-text-accent: #5a1fc4;
-  --sw-glow-a: rgb(139 75 241 / 0.17);
-  --sw-glow-b: rgb(56 140 248 / 0.13);
-  --sw-dot: rgb(76 82 130 / 0.18);
-  --sw-lift: 0 1px 2px rgb(40 30 90 / 0.06), 0 6px 18px rgb(40 30 90 / 0.07);
-}
-
-:root[data-theme='dark'] {
-  /* The light page, made dark: the same tinted page, white-on-edge surfaces
-     becoming lighter dark ones, and the same glows and dot grid, stronger. The
-     application uses these very values. */
-  --sl-color-bg: #0d0e19;
-  --sl-color-bg-nav: #171a2c;
-  --sl-color-bg-sidebar: #131527;
-  --sl-color-hairline: #2c3250;
-  --sw-glow-a: rgb(139 75 241 / 0.26);
-  --sw-glow-b: rgb(56 140 248 / 0.14);
-  --sw-dot: rgb(255 255 255 / 0.08);
-  --sw-lift: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.25);
+  --sl-color-hairline: #e0e0e0;
+  --sl-color-hairline-light: #ebebeb;
+  --sw-glow-a: rgb(0 0 0 / 0.04);
+  --sw-glow-b: rgb(0 0 0 / 0.02);
+  --sw-dot: rgb(0 0 0 / 0.14);
 }
 
 /* Something behind the content: two soft glows at the top and a fine dot grid,
@@ -93,10 +119,6 @@ body::before {
   mask-image: linear-gradient(to bottom, #000 0, #000 30%, transparent 92%);
 }
 
-/* Cards and panels sit on the page rather than melting into it. */
-.sw-facts li {
-  box-shadow: var(--sw-lift);
-}
 
 /* The fonts are served by the site itself: nothing here fetches from a third party. */
 
@@ -117,29 +139,6 @@ html {
   line-height: 1.6;
   text-wrap: pretty;
   color: var(--sl-color-gray-2);
-}
-
-/* A row of figures or short facts. */
-.sw-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 1rem;
-  margin-block: 1.5rem;
-  padding: 0;
-  list-style: none;
-}
-
-.sw-facts li {
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--sl-color-hairline);
-  border-radius: 0.75rem;
-  background: var(--sl-color-bg-nav);
-}
-
-.sw-facts strong {
-  display: block;
-  font-size: var(--sl-text-xl);
-  color: var(--sl-color-accent-high);
 }
 
 /* The frequently asked questions: visible, and mirrored in the structured data.
@@ -388,7 +387,7 @@ html {
   background: color-mix(in srgb, var(--sl-color-bg-nav) 60%, transparent);
   -webkit-backdrop-filter: saturate(1.4) blur(14px);
   backdrop-filter: saturate(1.4) blur(14px);
-  box-shadow: 0 10px 30px -18px rgb(10 5 40 / 0.55);
+  box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.55);
 }
 
 :root:not([data-has-sidebar]) .header .middle {
@@ -634,18 +633,14 @@ starlight-theme-select svg.label-icon {
   font-size: var(--sl-text-sm);
   font-weight: 600;
   text-decoration: none;
-  color: #fff;
+  color: var(--sl-color-black);
   white-space: nowrap;
   transition: background 150ms ease;
 }
 
 .sw-login:hover {
-  background: var(--sl-color-accent-high);
-  color: #fff;
-}
-
-:root[data-theme='dark'] .sw-login:hover {
-  background: #7a35e8;
+  background: var(--sl-color-gray-2);
+  color: var(--sl-color-black);
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language
@@ -872,7 +867,7 @@ starlight-theme-select svg.label-icon {
 
 /* --- the documentation: a light touch ----------------------------------------
    It is for reading, so it keeps Starlight's layout. The page you are on in the
-   sidebar is marked quietly (a tint and a line, rather than a block of purple),
+   sidebar is marked quietly (a tint and a line, rather than a solid block),
    headings are drawn tighter in the site's face, and code blocks are the home
    page's panels (astro.config.mjs). */
 #starlight__sidebar a[aria-current='page'],

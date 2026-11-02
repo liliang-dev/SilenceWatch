@@ -78,22 +78,22 @@ function renderHtml(
     .map(
       (field) => `
         <tr>
-          <td style="padding:6px 16px 6px 0;color:#5f6368;font-size:13px;white-space:nowrap">${escapeHtml(field.label)}</td>
-          <td style="padding:6px 0;color:#202124;font-size:13px">${escapeHtml(field.value)}</td>
+          <td style="padding:6px 16px 6px 0;color:#5e5e5e;font-size:13px;white-space:nowrap">${escapeHtml(field.label)}</td>
+          <td style="padding:6px 0;color:#0a0a0a;font-size:13px">${escapeHtml(field.value)}</td>
         </tr>`,
     )
     .join('');
 
   // Inline styles and a table layout: email clients are not browsers.
   return `<!doctype html>
-<html lang="en"><body style="margin:0;padding:24px;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #e0e0e0">
+<html lang="en"><body style="margin:0;padding:24px;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #e2e2e2">
     <tr><td style="padding:24px">
       <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${accent};color:#fff;font-size:11px;font-weight:700;letter-spacing:.6px">${badge}</span>
-      <h1 style="margin:16px 0 4px;font-size:18px;line-height:1.35;color:#202124">${escapeHtml(headline)}</h1>
+      <h1 style="margin:16px 0 4px;font-size:18px;line-height:1.35;color:#0a0a0a">${escapeHtml(headline)}</h1>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;width:100%">${rows}</table>
-      <a href="${escapeAttribute(alert.url)}" style="display:inline-block;margin-top:20px;padding:10px 18px;background:#8b4bf1;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">Open check</a>
-      <p style="margin:20px 0 0;color:#80868b;font-size:12px;line-height:1.5">
+      <a href="${escapeAttribute(alert.url)}" style="display:inline-block;margin-top:20px;padding:10px 18px;background:#0a0a0a;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">Open check</a>
+      <p style="margin:20px 0 0;color:#737373;font-size:12px;line-height:1.5">
         You are receiving this because a SilenceWatch notification channel for
         ${escapeHtml(alert.project.name)} points at this address.
       </p>

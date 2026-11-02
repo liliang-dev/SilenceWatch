@@ -33,6 +33,11 @@ called out under **Changed** with what to do about it.
   an application runs as several instances, which they did not say at all. Two server tests hold
   it: replicas share one check that stays up while any reports, and per-instance checks keep one
   instance going quiet visible while another reports.
+- **Black and white.** The product has no purple left: the interface, the website, the emails
+  and the logo are black, white and true greys, light and dark, and the only colours are a check's
+  state (red when it goes silent, green when it is back, amber when late). The logo is redrawn in
+  vector, a black tile for a light background and a white one for a dark one; the favicon, the
+  home-screen icon and the social-sharing images follow. Nothing to do on upgrade.
 
 ## [0.8.0] — 2026-10-30
 

@@ -104,41 +104,50 @@ for (const [slug, page] of Object.entries(REFERENCE)) {
 const CARDS = {
   fr: {
     title: 'Monitoring de jobs',
-    lines: ['Vos Jobs ne vous préviennent pas', 'quand ils s’arrêtent. Nous oui.'],
-    foot: 'Open source · Auto-hébergeable · Spring Boot · Python',
+    lines: ['Vos jobs ne vous préviennent pas', 'quand ils s’arrêtent. Nous oui.'],
+    foot: 'Open source · Auto-hébergeable · Spring Boot · Python · Laravel',
   },
   en: {
     title: 'Job monitoring',
     lines: ['Your jobs don’t tell you when', 'they stop. We do.'],
-    foot: 'Open source · Self-hostable · Spring Boot · Python',
+    foot: 'Open source · Self-hostable · Spring Boot · Python · Laravel',
   },
 };
 
 // The artwork's children: what sits between the root element's opening tag and
 // its closing one. Sliced rather than stripped with patterns, so the leading
 // licence comment falls outside the slice and nothing has to be "sanitised".
-const logo = readFileSync(join(root, 'src/assets/logo.svg'), 'utf8');
+// The white tile, for the card's black ground.
+const logo = readFileSync(join(root, 'src/assets/logo-dark.svg'), 'utf8');
 const mark = logo.slice(logo.indexOf('>', logo.indexOf('<svg')) + 1, logo.lastIndexOf('</svg>'));
 
 const FONT = "'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif";
 const escape = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
+// Black and white, like the site: white type on black, the question in grey and
+// the answer in white, a field of grey dots, and one dot in red, the only colour,
+// as it is everywhere: a job that has gone quiet.
+const dots = [];
+for (let x = 640; x <= 1176; x += 24) {
+  for (let y = 48; y <= 600; y += 24) {
+    const fade = Math.min(1, (x - 640) / 260) * Math.min(1, (600 - y) / 200, (y - 48) / 120);
+    if (fade > 0.05) dots.push(`<circle cx="${x}" cy="${y}" r="1.6" fill="#ffffff" fill-opacity="${(0.22 * fade).toFixed(3)}"/>`);
+  }
+}
+
 for (const [lang, card] of Object.entries(CARDS)) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#14101f"/>
-      <stop offset="1" stop-color="#2a1a52"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+  ${dots.join('')}
+  <circle cx="1000" cy="264" r="34" fill="none" stroke="#ff5a63" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="1000" cy="264" r="9" fill="#ff5a63"/>
   <g transform="translate(88 96) scale(0.5)">${mark}</g>
-  <text x="248" y="188" font-family="${FONT}" font-size="46" font-weight="700" fill="#ffffff">Silence<tspan fill="#bc95fc" font-weight="500">Watch</tspan></text>
+  <text x="248" y="188" font-family="${FONT}" font-size="46" font-weight="700" fill="#ffffff">Silence<tspan fill="#8f8f8f" font-weight="500">Watch</tspan></text>
   <text x="88" y="340" font-family="${FONT}" font-size="56" font-weight="700" fill="#ffffff">${escape(card.title)}</text>
-  <text x="88" y="418" font-family="${FONT}" font-size="36" fill="#d3bafe">${escape(card.lines[0])}</text>
-  <text x="88" y="466" font-family="${FONT}" font-size="36" fill="#d3bafe">${escape(card.lines[1])}</text>
-  <text x="88" y="560" font-family="${FONT}" font-size="26" fill="#98a2b3">${escape(card.foot)}</text>
-  <text x="1112" y="560" font-family="${FONT}" font-size="26" fill="#bc95fc" text-anchor="end">silencewatch.com</text>
+  <text x="88" y="418" font-family="${FONT}" font-size="36" fill="#a3a3a3">${escape(card.lines[0])}</text>
+  <text x="88" y="466" font-family="${FONT}" font-size="36" fill="#ffffff">${escape(card.lines[1])}</text>
+  <text x="88" y="560" font-family="${FONT}" font-size="26" fill="#8f8f8f">${escape(card.foot)}</text>
+  <text x="1112" y="170" font-family="${FONT}" font-size="26" fill="#ffffff" text-anchor="end">silencewatch.com</text>
 </svg>`;
   const target = join(root, `public/og/${lang}.png`);
   ensure(target);
