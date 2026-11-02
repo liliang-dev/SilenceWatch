@@ -61,7 +61,6 @@
   --sw-glow-a: rgb(255 255 255 / 0.06);
   --sw-glow-b: rgb(255 255 255 / 0.03);
   --sw-dot: rgb(255 255 255 / 0.08);
-  --sw-lift: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.25);
 }
 
 /* The light page: a light grey, with the surfaces that carry content (header,
@@ -95,7 +94,6 @@
   --sw-glow-a: rgb(0 0 0 / 0.04);
   --sw-glow-b: rgb(0 0 0 / 0.02);
   --sw-dot: rgb(0 0 0 / 0.14);
-  --sw-lift: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 18px rgb(0 0 0 / 0.06);
 }
 
 /* Something behind the content: two soft glows at the top and a fine dot grid,
@@ -115,10 +113,6 @@ body::before {
   mask-image: linear-gradient(to bottom, #000 0, #000 30%, transparent 92%);
 }
 
-/* Cards and panels sit on the page rather than melting into it. */
-.sw-facts li {
-  box-shadow: var(--sw-lift);
-}
 
 /* The fonts are served by the site itself: nothing here fetches from a third party. */
 
@@ -139,29 +133,6 @@ html {
   line-height: 1.6;
   text-wrap: pretty;
   color: var(--sl-color-gray-2);
-}
-
-/* A row of figures or short facts. */
-.sw-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 1rem;
-  margin-block: 1.5rem;
-  padding: 0;
-  list-style: none;
-}
-
-.sw-facts li {
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--sl-color-hairline);
-  border-radius: 0.75rem;
-  background: var(--sl-color-bg-nav);
-}
-
-.sw-facts strong {
-  display: block;
-  font-size: var(--sl-text-xl);
-  color: var(--sl-color-accent-high);
 }
 
 /* The frequently asked questions: visible, and mirrored in the structured data.
