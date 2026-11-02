@@ -1,4 +1,52 @@
+@use 'sass:map';
 @use '@angular/material' as mat;
+
+/* Material derives every colour it does not get from the tokens (ripples,
+   selected rows, progress bars, focus rings, containers) from its palettes. Its
+   prebuilt ones are all hues, so the palette here is grey at every tone: nothing
+   Material draws comes out tinted. The error tones are Material's own red. */
+$grey: (
+  0: #000000,
+  10: #1b1b1b,
+  20: #303030,
+  25: #3b3b3b,
+  30: #474747,
+  35: #525252,
+  40: #5e5e5e,
+  50: #777777,
+  60: #919191,
+  70: #ababab,
+  80: #c6c6c6,
+  90: #e2e2e2,
+  95: #f1f1f1,
+  98: #f9f9f9,
+  99: #fcfcfc,
+  100: #ffffff,
+);
+$mono-palette: map.merge(
+  $grey,
+  (
+    secondary: $grey,
+    neutral:
+      map.merge(
+        $grey,
+        (
+          4: #0e0e0e,
+          6: #131313,
+          12: #1f1f1f,
+          17: #2a2a2a,
+          22: #353535,
+          24: #393939,
+          87: #dadada,
+          92: #e8e8e8,
+          94: #eeeeee,
+          96: #f3f3f3,
+        )
+      ),
+    neutral-variant: $grey,
+    error: map.get(mat.$red-palette, error),
+  )
+);
 
 /* Angular Material provides the dialogs, menus, inputs and snackbars. Its own
    palette is bound to the tokens above so its components sit inside this design
@@ -7,8 +55,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$violet-palette,
-        tertiary: mat.$blue-palette,
+        primary: $mono-palette,
+        tertiary: $mono-palette,
       ),
       typography: (
         plain-family: system-ui,

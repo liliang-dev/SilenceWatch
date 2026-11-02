@@ -251,21 +251,21 @@ function pausedHtml(
 ): string {
   const items = names.map((name) => `<li>${escapeHtml(name)}</li>`).join('');
   return `<!doctype html>
-<html lang="en"><body style="margin:0;background:#f7f8fa;padding:24px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:14px;padding:28px">
-    <h1 style="margin:0 0 12px;font-size:18px;color:#101828">Some checks were paused</h1>
-    <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#475467">
+<html lang="en"><body style="margin:0;background:#f4f4f4;padding:24px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:28px">
+    <h1 style="margin:0 0 12px;font-size:18px;color:#0a0a0a">Some checks were paused</h1>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#525252">
       Your ${escapeHtml(plan ?? 'current')} plan includes ${limit} checks and your account is above
       that. These are no longer being watched:
     </p>
-    <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.7;color:#101828">${items}</ul>
-    ${rest > 0 ? `<p style="margin:0 0 16px;font-size:13px;color:#667085">… and ${rest} more.</p>` : ''}
-    <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#475467">
+    <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.7;color:#0a0a0a">${items}</ul>
+    ${rest > 0 ? `<p style="margin:0 0 16px;font-size:13px;color:#737373">… and ${rest} more.</p>` : ''}
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#525252">
       Nothing was deleted and no history was lost. Remove checks you no longer need, or move to a
       larger plan, and they come back on their own.
     </p>
     <p style="margin:0">
-      <a href="${escapeHtml(baseUrl)}/checks" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#8b4bf1;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Review my checks</a>
+      <a href="${escapeHtml(baseUrl)}/checks" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#0a0a0a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">Review my checks</a>
     </p>
   </div>
 </body></html>`;

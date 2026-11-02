@@ -403,8 +403,8 @@ const after = index;
     /* The header's height and the content panel's top padding: the hero moves up
        by that much so its field starts at the very top of the window. */
     --sw-hero-lift: calc(var(--sl-nav-height) + 1.5rem);
-    --f-dot: #9aa0c4;
-    --f-lit: #c9adff;
+    --f-dot: #a3a3a3;
+    --f-lit: #ffffff;
     --f-red: #ff5a63;
     --f-green: #3ddc97;
     --f-base: 0.5;
@@ -419,8 +419,8 @@ const after = index;
   }
 
   :global(:root[data-theme='light']) .sw-hero {
-    --f-dot: #5b6190;
-    --f-lit: #6a2be0;
+    --f-dot: #5e5e5e;
+    --f-lit: #0a0a0a;
     --f-red: #e5484d;
     --f-green: #1f9d63;
     --f-base: 0.42;
@@ -586,7 +586,9 @@ const after = index;
     font-weight: 600;
     line-height: 0.98;
     letter-spacing: -0.055em;
-    color: var(--sl-color-white);
+    /* The question in grey, the answer in full: black and white does the
+       work a colour did. */
+    color: var(--sl-color-gray-3);
   }
 
   h1 :global(.sw-answer) {
@@ -679,7 +681,7 @@ const after = index;
   }
 
   .actions :global(.sl-link-button.primary:hover) {
-    background: var(--sl-color-accent-high);
+    background: var(--sl-color-gray-2);
     transform: translateY(-1px);
   }
 
@@ -689,7 +691,7 @@ const after = index;
   }
 
   :global(:root[data-theme='light']) .actions :global(.sl-link-button.primary:hover) {
-    background: var(--sl-color-accent);
+    background: var(--sl-color-gray-2);
   }
 
   .actions :global(.sl-link-button.minimal) {

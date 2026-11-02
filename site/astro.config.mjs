@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { readFileSync } from 'node:fs';
 
 /**
  * The address the site is served from. Canonical links, the sitemap, hreflang
@@ -30,13 +31,16 @@ export default defineConfig({
         fr: { label: 'Français', lang: 'fr' },
       },
       favicon: '/favicon.svg',
-      // The light tile on a light page, the purple one on a dark page.
+      // The black tile on a light page, the white one on a dark page.
       logo: { light: './src/assets/logo.svg', dark: './src/assets/logo-dark.svg', alt: 'SilenceWatch' },
       social: [{ icon: 'github', label: 'GitHub', href: REPOSITORY }],
       customCss: ['./src/styles/brand.css'],
       // Code blocks in the site's own manner: its mono face, rounder corners,
       // and the same soft shadow as the panels on the home page.
       expressiveCode: {
+        // Black and white, like the rest: the code is told apart by weight and
+        // shade of grey rather than by hue (src/code-themes).
+        themes: [JSON.parse(readFileSync(new URL('./src/code-themes/dark.json', import.meta.url), 'utf8')), JSON.parse(readFileSync(new URL('./src/code-themes/light.json', import.meta.url), 'utf8'))],
         styleOverrides: {
           borderRadius: '0.85rem',
           codeFontFamily: "'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
@@ -72,7 +76,7 @@ export default defineConfig({
         // Browsers that ignore an SVG favicon, and the home screen of an iPhone.
         { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '48x48' } },
         { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
-        { tag: 'meta', attrs: { name: 'theme-color', content: '#8b4bf1' } },
+        { tag: 'meta', attrs: { name: 'theme-color', content: '#0a0a0a' } },
         { tag: 'meta', attrs: { name: 'author', content: 'SilenceWatch' } },
         { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
         { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
