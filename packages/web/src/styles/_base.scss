@@ -66,6 +66,19 @@ a:hover {
   text-decoration: underline;
 }
 
+/* A link in running text is the text's own colour now that the accent is black
+   or white, so it is underlined to stay a link. Links styled as anything else
+   (buttons, navigation) carry a class and keep their own look. */
+a:not([class]) {
+  text-decoration: underline;
+  text-decoration-color: var(--sw-border-strong);
+  text-underline-offset: 0.2em;
+}
+
+a:not([class]):hover {
+  text-decoration-color: currentColor;
+}
+
 /* One visible focus treatment everywhere, including for Material's controls. */
 :focus-visible {
   outline: 2px solid var(--sw-accent);

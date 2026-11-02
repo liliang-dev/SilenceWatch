@@ -20,42 +20,34 @@
   color-scheme: light dark;
 
   /* Neutrals — light */
-  /* The page is a cool lavender-grey and the surfaces that carry content are
-     pure white with a visible edge, so the content stands out from what is
-     behind it (a near-white page under pale cards were two almost identical
-     lights). The same scheme as the website, and the dark theme below is this
-     one made dark, not another design. */
-  --sw-bg: #eceef7;
-  --sw-bg-accent: #e3e6f3;
+  /* Black and white, and true greys between them: no tint. The page is a light
+     grey and the surfaces that carry content are pure white with a visible edge,
+     so the content stands out from what is behind it. The same scheme as the
+     website, and the dark theme below is this one made dark, not another design. */
+  --sw-bg: #f4f4f4;
+  --sw-bg-accent: #ececec;
   --sw-surface: #ffffff;
-  --sw-surface-2: #f6f7fc;
-  --sw-surface-3: #ebedf6;
-  --sw-border: #d4d8e8;
-  --sw-border-strong: #bfc5da;
-  --sw-text: #101828;
-  --sw-text-muted: #566078;
-  --sw-text-subtle: #747d95;
+  --sw-surface-2: #f8f8f8;
+  --sw-surface-3: #efefef;
+  --sw-border: #e2e2e2;
+  --sw-border-strong: #cdcdcd;
+  --sw-text: #0a0a0a;
+  --sw-text-muted: #525252;
+  --sw-text-subtle: #737373;
 
-  /* The decoration behind the page: two soft glows and a dot grid (see _base). */
-  --sw-glow-a: rgb(139 75 241 / 17%);
-  --sw-glow-b: rgb(56 140 248 / 13%);
-  --sw-dot: rgb(76 82 130 / 18%);
+  /* The decoration behind the page: two soft glows and a dot grid (see _base),
+     in grey like everything else. */
+  --sw-glow-a: rgb(0 0 0 / 5%);
+  --sw-glow-b: rgb(0 0 0 / 3%);
+  --sw-dot: rgb(0 0 0 / 14%);
 
-  /* One purple, hsl(263 86% 62%).
-
-     The brand started lighter, at hsl(263 94% 79%), and that shade cannot be
-     an interface: white on it is 2.4:1, so the glyph washed out and a filled
-     button was unreadable. Darkened to 62% lightness it clears 4.5:1 in both
-     directions at once — white on the mark, and the mark's colour as text or a
-     button on white — which is what lets the logo and the accent be the same
-     value instead of two purples that merely resemble each other.
-
-     The original lightness is not thrown away: it is what the dark theme uses
-     below, where a pale lavender is exactly right. */
-  --sw-brand: #8b4bf1;
-  --sw-accent: #7a35e8;
-  --sw-accent-hover: #6c1bee;
-  --sw-accent-soft: #efe7ff;
+  /* The brand is black and white. The accent, for buttons, links and focus, is
+     the text's own colour, so the only saturated colour on screen is a check's
+     state: rule 1 above, taken to its end. White on it is 19:1. */
+  --sw-brand: #0a0a0a;
+  --sw-accent: #0a0a0a;
+  --sw-accent-hover: #2e2e2e;
+  --sw-accent-soft: #ececec;
   --sw-accent-contrast: #ffffff;
 
   /* Status — the only colours allowed to shout */
@@ -65,14 +57,14 @@
   --sw-late-soft: #fffaeb;
   --sw-down: #d92d20;
   --sw-down-soft: #fef3f2;
-  --sw-paused: #667085;
-  --sw-paused-soft: #f2f4f7;
+  --sw-paused: #6b6b6b;
+  --sw-paused-soft: #f2f2f2;
   --sw-new: #175cd3;
   --sw-new-soft: #eff8ff;
 
-  --sw-shadow-sm: 0 1px 2px rgb(40 30 90 / 8%);
-  --sw-shadow: 0 1px 2px rgb(40 30 90 / 6%), 0 6px 18px rgb(40 30 90 / 7%);
-  --sw-shadow-lg: 0 14px 36px -8px rgb(40 30 90 / 18%);
+  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 7%);
+  --sw-shadow: 0 1px 2px rgb(0 0 0 / 5%), 0 6px 18px rgb(0 0 0 / 6%);
+  --sw-shadow-lg: 0 14px 36px -8px rgb(0 0 0 / 16%);
 
   /* One height for every input, select and button. Declared once so a button
      beside a field is the same object, on every screen. */
@@ -85,8 +77,8 @@
   --sw-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --sw-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* Which of the two logos is shown (see the `.mark` images): the light tile on
-     a light page, the purple one on a dark page. `display` values, so that one
+  /* Which of the two logos is shown (see the `.mark` images): the black tile on
+     a light page, the white one on a dark page. `display` values, so that one
      token in each theme is all a template needs. */
   --sw-logo-light: block;
   --sw-logo-dark: none;
@@ -97,34 +89,34 @@
 @mixin dark-tokens {
   color-scheme: dark;
 
-  /* The light scheme, darkened: a violet-tinted page, lighter surfaces with a
+  /* The light scheme, darkened: a near-black page, lighter surfaces with a
      visible edge, and the same glows and dot grid, stronger because they have
-     to show up on a dark ground. */
-  --sw-bg: #0d0e19;
-  --sw-bg-accent: #121428;
-  --sw-surface: #171a2c;
-  --sw-surface-2: #1d2136;
-  --sw-surface-3: #272c47;
-  --sw-border: #2c3250;
-  --sw-border-strong: #3d4565;
-  --sw-text: #e8eaf4;
-  --sw-text-muted: #a3accb;
-  --sw-text-subtle: #7983a3;
+     to show up on a dark ground. True greys, no tint. */
+  --sw-bg: #0a0a0a;
+  --sw-bg-accent: #111111;
+  --sw-surface: #151515;
+  --sw-surface-2: #1b1b1b;
+  --sw-surface-3: #262626;
+  --sw-border: #2a2a2a;
+  --sw-border-strong: #3d3d3d;
+  --sw-text: #ededed;
+  --sw-text-muted: #a3a3a3;
+  --sw-text-subtle: #7a7a7a;
 
-  --sw-glow-a: rgb(139 75 241 / 26%);
-  --sw-glow-b: rgb(56 140 248 / 14%);
+  --sw-glow-a: rgb(255 255 255 / 6%);
+  --sw-glow-b: rgb(255 255 255 / 3%);
   --sw-dot: rgb(255 255 255 / 8%);
 
   --sw-logo-light: none;
   --sw-logo-dark: block;
 
-  /* The brand's own hue at the lightness it was first drawn at, 7.6:1 on the
-     surface it sits on. */
-  --sw-brand: #8b4bf1;
-  --sw-accent: #bc95fc;
-  --sw-accent-hover: #d3bafe;
-  --sw-accent-soft: #2a2050;
-  --sw-accent-contrast: #0d0e19;
+  /* White, the dark theme's text colour: buttons and links are white, with
+     black on them. */
+  --sw-brand: #fafafa;
+  --sw-accent: #fafafa;
+  --sw-accent-hover: #d4d4d4;
+  --sw-accent-soft: #262626;
+  --sw-accent-contrast: #0a0a0a;
 
   /* Lightened so they keep contrast on a dark surface: the light-mode greens
      and reds are unreadable here, which is how status colour quietly stops
@@ -135,8 +127,8 @@
   --sw-late-soft: #241a09;
   --sw-down: #f97066;
   --sw-down-soft: #2a1211;
-  --sw-paused: #98a2b3;
-  --sw-paused-soft: #1b2029;
+  --sw-paused: #a3a3a3;
+  --sw-paused-soft: #1c1c1c;
   --sw-new: #84adff;
   --sw-new-soft: #101c33;
 
