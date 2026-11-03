@@ -389,13 +389,18 @@ the volume is local to it, like Caddy's certificates.
 `BIND_ADDRESS` has no Swarm equivalent: the routing mesh publishes a port on
 every node and cannot be told to bind one address. The application's port is
 still published there, because the deployment check reads `/health` through it,
-so **close it at the firewall** — otherwise it is the same plain-HTTP bypass
-`BIND_ADDRESS` closes under Compose:
+on `127.0.0.1`.
 
-```bash
-sudo ufw allow 80,443/tcp
-sudo ufw deny 8080/tcp
-```
+For information, the ports that have to be open to the internet:
+
+| Port | For |
+| --- | --- |
+| `22/tcp` (or your SSH port) | SSH: administration, and the release and site deploys |
+| `80/tcp` | HTTP: Caddy's certificate challenge, and the redirect to HTTPS |
+| `443/tcp` | HTTPS: the application and the site |
+
+Nothing else needs to be reachable from outside: the application's port
+(`8080`) is only read from the server itself.
 
 ## Who watches the watchman
 
