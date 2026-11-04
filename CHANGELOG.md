@@ -10,6 +10,10 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-11-04
+
+No migration and no change to an existing setting: redeploy the stack.
+
 ### Fixed
 
 - **Swarm: every visitor had the same address.** `docker-stack.yml` published Caddy's ports
@@ -1259,7 +1263,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.1...HEAD
+[0.9.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
