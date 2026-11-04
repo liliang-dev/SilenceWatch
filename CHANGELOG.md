@@ -10,6 +10,20 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-11-04
+
+No migration and no change to an existing setting: redeploy the stack.
+
+### Fixed
+
+- **Swarm: every visitor had the same address.** `docker-stack.yml` published Caddy's ports
+  through the routing mesh, which hands every connection to Caddy from the ingress network's
+  own address. The server therefore saw all its users as one, and every rule kept per address
+  applied to all of them at once. With `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` set, the second person
+  to sign up was told an account already existed from their network. One visitor's failed
+  sign-ins also counted against everyone's. Caddy now publishes 80 and 443 in host mode, on the
+  node it is pinned to. Redeploy the stack; nothing else to do. Compose was never affected.
+
 ## [0.9.0] — 2026-11-02
 
 No migration and no change to an existing setting: replace the image and restart.
@@ -1249,7 +1263,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.1...HEAD
+[0.9.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.6.3...0.7.0
