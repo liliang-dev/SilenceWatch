@@ -81,6 +81,54 @@ describe('one account per connection', () => {
   });
 });
 
+/**
+ * The same rule behind the proxy, as the Swarm stack runs it: every request
+ * comes from Caddy's address on the overlay network, and the visitor's is in
+ * `X-Forwarded-For`. Distinct visitors are distinct connections only if the
+ * proxy passes their address on; when it hands everyone the same one (Caddy
+ * published through the routing mesh), the second person is refused.
+ */
+describe('one account per connection, behind the proxy', () => {
+  let context: TestApp;
+  const CADDY = '10.20.0.7';
+
+  beforeAll(async () => {
+    context = await createTestApp({ SIGNUP_MAX_ACCOUNTS_PER_ADDRESS: '1', TRUST_PROXY: '10.20.0.0/16' });
+  });
+
+  afterAll(async () => {
+    await context.close();
+  });
+
+  beforeEach(async () => {
+    await context.reset();
+  });
+
+  const register = async (email: string, forwardedFor: string) =>
+    (
+      await context.app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-up/email',
+        headers: { origin: TEST_BASE_URL, 'x-forwarded-for': forwardedFor },
+        remoteAddress: CADDY,
+        payload: { email, password: PASSWORD, name: '' },
+      })
+    ).statusCode;
+
+  it('counts each visitor by the address the proxy forwards', async () => {
+    expect(await register('a@example.test', '198.51.100.10')).toBe(200);
+    expect(await register('b@example.test', '203.0.113.50')).toBe(200);
+    expect(await register('c@example.test', '203.0.113.50')).toBe(429);
+  });
+
+  it('refuses the second visitor when the proxy forwards one address for everyone', async () => {
+    // What the routing mesh did: every connection reached Caddy from the
+    // ingress network, and that address was forwarded for all of them.
+    expect(await register('a@example.test', '10.0.0.2')).toBe(200);
+    expect(await register('b@example.test', '10.0.0.2')).toBe(429);
+  });
+});
+
 describe('test alerts', () => {
   let context: TestApp;
 
