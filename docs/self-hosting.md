@@ -402,6 +402,26 @@ For information, the ports that have to be open to the internet:
 Nothing else needs to be reachable from outside: the application's port
 (`8080`) is only read from the server itself.
 
+Two things on the host get in the way. Check both before the first deploy:
+
+- **Nothing else may listen on 80 or 443.** Caddy publishes them on the node
+  itself, so a web server that came with the machine's image (nginx, Apache)
+  stops it from starting: `failed to bind host port 0.0.0.0:80/tcp: address
+  already in use`. Find it, then stop it if nothing of yours depends on it:
+
+  ```bash
+  sudo ss -ltnp | grep -E ':(80|443) '     # should print nothing
+  sudo systemctl disable --now nginx       # or apache2, whichever it is
+  ```
+
+- **Do not turn on UFW on a Swarm node.** It does not filter the ports Docker
+  publishes, which bypass it, so it protects less than it seems to. Turning it
+  on also rewrites the host's firewall under Docker. Filter at your provider's
+  network firewall instead, with the ports above. If the containers stop
+  reaching each other after a change to the host's firewall (the application
+  logging `Can't reach database server at db:5432` while the database is up),
+  `sudo systemctl restart docker` puts Docker's own rules back.
+
 ## Who watches the watchman
 
 **SilenceWatch cannot monitor itself.** A monitoring server that dies quietly is
