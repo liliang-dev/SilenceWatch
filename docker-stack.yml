@@ -274,14 +274,23 @@ services:
         condition: any
         delay: 5s
 
+    # Host mode, not the routing mesh. Through the mesh every connection reaches
+    # Caddy from the ingress network's own address: the client's is lost, Caddy
+    # forwards that one address for everybody, and the server sees all its users
+    # as one. Every per-address rule then applies to all of them at once: one
+    # account per connection refuses the second person to sign up, and one
+    # visitor's failed sign-ins rate-limit everyone. Caddy is pinned to one node
+    # and updated stop-first, so publishing on that node alone costs nothing.
     ports:
       - target: 80
         published: 80
-        mode: ingress
+        protocol: tcp
+        mode: host
       # TCP only. 443/udp was published for HTTP/3, which is switched off above.
       - target: 443
         published: 443
-        mode: ingress
+        protocol: tcp
+        mode: host
 
     volumes:
       - caddy_data:/data

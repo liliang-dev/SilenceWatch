@@ -10,6 +10,16 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Swarm: every visitor had the same address.** `docker-stack.yml` published Caddy's ports
+  through the routing mesh, which hands every connection to Caddy from the ingress network's
+  own address. The server therefore saw all its users as one, and every rule kept per address
+  applied to all of them at once. With `SIGNUP_MAX_ACCOUNTS_PER_ADDRESS` set, the second person
+  to sign up was told an account already existed from their network. One visitor's failed
+  sign-ins also counted against everyone's. Caddy now publishes 80 and 443 in host mode, on the
+  node it is pinned to. Redeploy the stack; nothing else to do. Compose was never affected.
+
 ## [0.9.0] — 2026-11-02
 
 No migration and no change to an existing setting: replace the image and restart.
