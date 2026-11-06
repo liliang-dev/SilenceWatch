@@ -333,6 +333,55 @@ describe('POST /api/v1/checks/sync', () => {
       expect(await state(app0.checks[0]?.id)).toBe('DOWN');
       expect(await state(app1.checks[0]?.id)).toBe('UP');
     });
+
+    it('rolls a deployment over a shared check without disturbing it', async () => {
+      // An old pod reports, the new pods start, declare the same jobs, and the old
+      // pod is terminated: one check the whole time.
+      const old = await sync({ environment: 'production', checks: [backupJob] });
+      const check = old.checks[0];
+      await context.app.inject({ method: 'GET', url: `/p/${check?.pingKey as string}` });
+      const before = await context.prisma.check.findUniqueOrThrow({ where: { id: check?.id } });
+
+      const replacement = await sync({ environment: 'production', checks: [backupJob] });
+
+      expect(replacement.checks[0]?.id).toBe(check?.id);
+      expect(replacement.checks[0]?.pingKey).toBe(check?.pingKey);
+      expect(replacement.checks[0]?.created).toBe(false);
+      expect(replacement.orphaned).toEqual([]);
+      const after = await context.prisma.check.findUniqueOrThrow({ where: { id: check?.id } });
+      // The new pod's start does not hand the job a fresh grace period either.
+      expect(after.nextDueAt?.getTime()).toBe(before.nextDueAt?.getTime());
+
+      // The old pod is gone; the new one takes over the same ping key.
+      await expire(check?.id as string, 400);
+      await context.app.inject({ method: 'GET', url: `/p/${check?.pingKey as string}` });
+      await context.detection.tick();
+
+      expect((await context.prisma.check.findUniqueOrThrow({ where: { id: check?.id } })).state).toBe('UP');
+      expect(await context.prisma.ping.count()).toBe(2);
+    });
+
+    it('leaves a check behind, and down, when the instance id changes at every rollout', async () => {
+      // What the documentation warns about: a Deployment's pod names change at every
+      // rollout. `instance-id` is the pod name here, so the new pod is a new instance.
+      const oldPod = await sync({ environment: 'production.web-7d9f-abc', checks: [backupJob] });
+      await context.app.inject({ method: 'GET', url: `/p/${oldPod.checks[0]?.pingKey as string}` });
+
+      const newPod = await sync({ environment: 'production.web-7d9f-xyz', checks: [backupJob] });
+
+      expect(newPod.checks[0]?.id).not.toBe(oldPod.checks[0]?.id);
+      // The new pod does not orphan the old one's check: it cannot know the pod is gone.
+      expect(newPod.orphaned).toEqual([]);
+
+      await context.app.inject({ method: 'GET', url: `/p/${newPod.checks[0]?.pingKey as string}` });
+      await expire(oldPod.checks[0]?.id as string, 400);
+      await context.detection.tick();
+
+      const state = async (id: string | undefined) =>
+        (await context.prisma.check.findUniqueOrThrow({ where: { id } })).state;
+      expect(await state(oldPod.checks[0]?.id)).toBe('DOWN');
+      expect(await state(newPod.checks[0]?.id)).toBe('UP');
+    });
   });
 
   it('ingests heartbeats on the ping key it just handed out', async () => {
