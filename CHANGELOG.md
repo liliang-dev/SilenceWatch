@@ -10,6 +10,11 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-11-09
+
+One migration, applied on its own at start (a new table, `app_visitor`); no setting changes.
+Replace the image and restart.
+
 ### Added
 
 - **Visitors, in the administrator's statistics.** *Settings › Statistics* now opens on the
@@ -1275,7 +1280,8 @@ versions, so it is recorded as one entry rather than invented history.
   request previously looked like `127.0.0.1`, so no per-source control was
   actually being tested.
 
-[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.1...HEAD
+[Unreleased]: https://github.com/liliang-dev/SilenceWatch/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/liliang-dev/SilenceWatch/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/liliang-dev/SilenceWatch/compare/0.7.0...0.8.0
