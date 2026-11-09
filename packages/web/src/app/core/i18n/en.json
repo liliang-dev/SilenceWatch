@@ -385,6 +385,8 @@
   "stats.refresh": "Refresh",
   "stats.loading": "Loading the figures…",
   "stats.failed": "Could not load the statistics.",
+  "stats.visitors": "Visitors",
+  "stats.visitorsNote": "Unique visitors of the application, each counted once per day. No cookie, and no address kept.",
   "stats.accounts": "Registered accounts",
   "stats.accountsNote": "All accounts, and how they grew over 30 days.",
   "stats.checks": "Checks",

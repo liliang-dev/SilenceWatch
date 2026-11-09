@@ -10,6 +10,18 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Added
+
+- **Visitors, in the administrator's statistics.** *Settings › Statistics* now opens on the
+  number of people who opened the web application in the last 30 days, each counted once per
+  day, with a bar per day: the top of the funnel, above the accounts. No cookie is set and no
+  address is kept. The application reports its own loading (`POST /api/v1/visits`, public, no
+  body), and the server stores a hash of the connection's address, the browser and the day,
+  keyed with `SECRET_KEY`, so the rows cannot be read back and nothing links one day to the
+  next. Robots and scripts that say what they are, and browsers sending Do Not Track or
+  Global Privacy Control, are not counted. Rows are deleted after 31 days. A migration adds
+  the `app_visitor` table; the privacy policy says so.
+
 ## [0.9.1] — 2026-11-04
 
 No migration and no change to an existing setting: redeploy the stack.
