@@ -33,6 +33,19 @@ const urlOf = (file) => {
   return path === '/.' || path === '/' ? '/' : `${path}/`;
 };
 const pages = new Map(files.map((file) => [urlOf(file), file]));
+
+// A redirect (astro.config.mjs `redirects`) is not a page: no title, no
+// description, kept out of the sitemap and out of search with noindex. All it
+// owes is to lead somewhere that exists, so that is all it is checked for.
+const redirects = new Map();
+for (const [url, file] of pages) {
+  const target = readFileSync(file, 'utf8').match(/<meta http-equiv="refresh" content="\d+;url=([^"]+)"/)?.[1];
+  if (target !== undefined) redirects.set(url, target);
+}
+for (const [url, target] of redirects) {
+  pages.delete(url);
+  if (!pages.has(target)) fail(url, `redirects to ${target}, which is not a page`);
+}
 const titles = new Map();
 
 const attr = (html, pattern) => html.match(pattern)?.[1];
