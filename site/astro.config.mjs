@@ -16,6 +16,10 @@ export default defineConfig({
   // `/cron-monitoring/`, not `/cron-monitoring`: one address per page, so the
   // sitemap, the canonical link and the links between pages never disagree.
   trailingSlash: 'always',
+  // Addresses that were handed out with a mistake in them, kept working.
+  redirects: {
+    '/guides/spring-scheduled-job-stopped/': '/guides/spring-scheduled-job-stops/',
+  },
   build: { format: 'directory' },
   integrations: [
     starlight({
