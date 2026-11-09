@@ -33,7 +33,7 @@ export class AdminStatsService {
   ) {}
 
   async stats(): Promise<AdminStatsDto> {
-    const [accounts, checks, pings, alertEmails, activeAccounts, failedAlerts, channels, refusedSignups, subscriptions] =
+    const [accounts, checks, pings, alertEmails, activeAccounts, failedAlerts, channels, refusedSignups, visitors, subscriptions] =
       await Promise.all([
         this.accounts(),
         this.checks(),
@@ -43,6 +43,7 @@ export class AdminStatsService {
         this.failedAlerts(),
         this.channels(),
         this.refusedSignups(),
+        this.visitors(),
         this.config.BILLING_ENABLED ? this.subscriptions() : Promise.resolve(null),
       ]);
     return {
@@ -55,6 +56,7 @@ export class AdminStatsService {
       failedAlerts,
       channels,
       refusedSignups,
+      visitors,
       subscriptions,
     };
   }
@@ -176,6 +178,17 @@ export class AdminStatsService {
       daily,
       byReason: countBy(SIGNUP_REFUSAL_REASONS, recent, (row) => row.reason),
     };
+  }
+
+  /** Unique visitors of the web application, one row per visitor and day (VisitorsService). */
+  private async visitors(): Promise<AdminStatsDto['visitors']> {
+    const recent = await this.prisma.$queryRaw<AgeRow[]>`
+      SELECT floor(extract(epoch FROM (now() - first_seen_at)) / 86400)::int AS age, count(*)::int AS n
+        FROM app_visitor
+       WHERE first_seen_at > now() - make_interval(days => ${DAYS})
+       GROUP BY 1`;
+    const daily = byDay(recent);
+    return { last30Days: sum(daily), daily };
   }
 
   /** Every paid plan, in price order, with the subscriptions to it that are live. */

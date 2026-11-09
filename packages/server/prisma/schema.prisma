@@ -273,6 +273,21 @@ model AuditEvent {
 /// In-memory rate limiting is per-instance and dies with the process; this is
 /// what makes a velocity rule survive a deploy, which is the window a flood
 /// waits for.
+/// One visitor of the web application on one day, for the administrator's count of
+/// unique visitors. `visitor` is a keyed hash of the connection's address and the
+/// browser's user agent together with the day, never either of them: it can be
+/// counted, it cannot be read back, and it does not follow anyone from one day to
+/// the next. Rows older than 31 days are deleted by the retention job.
+model AppVisitor {
+  day         DateTime @db.Date
+  visitor     String
+  firstSeenAt DateTime @default(now()) @map("first_seen_at") @db.Timestamptz(3)
+
+  @@id([day, visitor])
+  @@index([firstSeenAt])
+  @@map("app_visitor")
+}
+
 model SignupAttempt {
   id        BigInt   @id @default(autoincrement())
   network   String

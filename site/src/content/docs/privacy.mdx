@@ -24,15 +24,16 @@ The controller is the publisher of the service, whose details are in the [legal 
 | **Heartbeat history**: time, result, duration, the caller’s IP address and browser, and any text attached (10,000 bytes at most) | To detect that a job has stopped and to show the history | 90 days by default, adjustable per project |
 | **Subscription** (paid plans): plan, subscription state, period dates, and the customer and subscription identifiers at Stripe. The service neither receives nor keeps a card number | Run your subscription and its limits | As long as the account exists; Stripe keeps invoices as long as accounting law requires (10 years) |
 | **Alerts sent**: recipient, time, outcome | To tell you, and to know whether the alert went out | 30 days |
+| **Visits to the application**: a keyed hash of the connection’s address, the browser and the day, never the address or the browser themselves. No cookie is set, and nothing links one day’s visit to the next. Not recorded when your browser sends Do Not Track or Global Privacy Control | To count the application’s unique visitors per day, a figure only the publisher sees | 30 days |
 
 Do not send third parties’ personal data in the text attached to a heartbeat: it is stored as it is with the history.
 
-The service uses **no audience-measurement tool, no advertising and no tracker**, and neither sells nor rents any data.
+The service uses **no third-party audience-measurement tool, no advertising and no tracker**, and neither sells nor rents any data. Its only measurement is the count of unique visitors described above, made on its own servers.
 
 ## Legal bases
 
 - **Performance of the contract** (GDPR article 6.1.b) for everything that makes the account and the service work.
-- **Legitimate interest** (article 6.1.f) for security: rate limiting, the security log, and fighting automated sign-ups.
+- **Legitimate interest** (article 6.1.f) for security: rate limiting, the security log, and fighting automated sign-ups; and for the count of unique visitors, which identifies no one.
 - **A legal obligation** (article 6.1.c) where the law requires information to be kept or disclosed.
 
 ## Who the data is shared with
@@ -70,4 +71,4 @@ Passwords, where they are used, are stored as scrypt hashes, and recovery codes 
 
 This policy may change; the date of the last update is at the foot of the page, and a significant change is brought to the attention of account holders.
 
-*Last updated: 21 October 2026.*
+*Last updated: 9 November 2026.*
