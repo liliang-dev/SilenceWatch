@@ -385,6 +385,8 @@
   "stats.refresh": "Actualiser",
   "stats.loading": "Chargement des chiffres…",
   "stats.failed": "Impossible de charger les statistiques.",
+  "stats.visitors": "Visiteurs",
+  "stats.visitorsNote": "Visiteurs uniques de l’application, chacun compté une fois par jour. Aucun cookie, aucune adresse conservée.",
   "stats.accounts": "Comptes inscrits",
   "stats.accountsNote": "Tous les comptes, et leur évolution sur 30 jours.",
   "stats.checks": "Checks",

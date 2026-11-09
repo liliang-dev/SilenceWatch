@@ -8,6 +8,7 @@ import { AuthService } from './core/auth/auth.service';
 import { PasskeyPromptService } from './core/auth/passkey-prompt.service';
 import { I18n } from './core/i18n/i18n.service';
 import { ProjectStore } from './core/project.store';
+import { reportVisit } from './core/visit';
 import { IconComponent } from './shared/icon.component';
 
 /**
@@ -50,6 +51,8 @@ export class AppComponent {
   protected readonly onAuthScreen = computed(() => /^\/(login|setup)(\?|$)/.test(this.url()));
 
   constructor() {
+    reportVisit();
+
     // Once there is a session, and only once per page: a passkey is offered to
     // someone who came in another way.
     effect(() => {

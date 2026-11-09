@@ -66,6 +66,12 @@ export interface AdminStatsDto {
     daily: number[];
     byReason: Record<SignupRefusalReason, number>;
   };
+  /**
+   * People who opened the web application, each counted once per day, in the last
+   * 30 days. The same person on two days counts twice: nothing links one day's
+   * visit to the next, so there is no count over the period to give.
+   */
+  visitors: { last30Days: number; daily: number[] };
   /** One entry per paid plan; null when the instance sells none. */
   subscriptions: AdminPlanCountDto[] | null;
 }

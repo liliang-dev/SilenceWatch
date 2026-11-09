@@ -126,6 +126,8 @@ export class StatisticsTabComponent {
     const share = accounts === 0 ? 0 : active / accounts;
 
     return [
+      // First, as the top of the funnel: people who opened the application, then accounts.
+      daily('visitors', 'stats.visitors', stats.visitors, 'stats.visitorsNote', 'brand'),
       total('accounts', this.t('stats.accounts'), stats.accounts, 'stats.accountsNote'),
       {
         id: 'active',

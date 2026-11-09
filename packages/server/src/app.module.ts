@@ -21,6 +21,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { AuditModule } from './audit/audit.module';
 import { QuotasModule } from './quotas/quotas.module';
 import { RetentionModule } from './retention/retention.module';
+import { VisitorsModule } from './visitors/visitors.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RetentionModule } from './retention/retention.module';
     RetentionModule,
     HealthModule,
     AdminModule,
+    VisitorsModule,
   ],
   providers: [
     // Order matters: rate limiting runs before authentication, so an unauthenticated

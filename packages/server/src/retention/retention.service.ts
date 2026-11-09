@@ -166,6 +166,11 @@ export class RetentionService implements OnApplicationBootstrap, OnModuleDestroy
         text: 'DELETE FROM session WHERE expires_at < now()',
       });
       await this.apiKeys.purgeDead();
+      // Visitor rows past the 30 days the statistics show.
+      await this.pg.query({
+        name: 'retention_purge_visitors',
+        text: "DELETE FROM app_visitor WHERE first_seen_at < now() - interval '31 days'",
+      });
       // Setup links and passkey challenges that ran out, and the sign-up attempt
       // log past the window it informs.
       const verifications = await this.setupLinks.purgeExpired();
