@@ -31,7 +31,7 @@ That is also what makes it simple to set up: one HTTP request at the end of the 
 
 ## Its limits
 
-A dead man's switch **attests to execution, not to the quality of the work**: a job can run, send its signal and still produce a wrong result. For a backup, the script must therefore check its own result before sending the success signal, as in the [backup monitoring guide](/guides/backup-monitoring/). It also suits **periodic** tasks: for a message queue or on-demand processing, other monitoring is needed. Finally, it is "passive" monitoring: the job calls in, the service does not poll.
+A dead man's switch **attests to execution, not to the quality of the work**: a job can run, send its signal and still produce a wrong result. For a backup, the script must therefore check its own result before sending the success signal, as in the [backup monitoring guide](/blog/backup-monitoring/). It also suits **periodic** tasks: for a message queue or on-demand processing, other monitoring is needed. Finally, it is "passive" monitoring: the job calls in, the service does not poll.
 
 ## SilenceWatch, a dead man's switch for your jobs
 

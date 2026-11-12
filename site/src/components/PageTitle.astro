@@ -4,10 +4,10 @@
  *
  * On the documentation (pages with a sidebar) it is Starlight's own heading,
  * unchanged. On the landing pages (pricing, the integrations, self-hosting, the
- * guides, the legal pages) it opens the page the way the home page's sections
+ * blog, the legal pages) it opens the page the way the home page's sections
  * open: a small label in capitals saying what kind of page it is, then the title,
  * large and left-aligned, whose words rise into place. The label is worked out
- * from the page's address, so that a new page under /guides/ is labelled without
+ * from the page's address, so that a new page under /blog/ is labelled without
  * anyone having to remember to.
  */
 const { hasSidebar, entry, lang } = Astro.locals.starlightRoute;
@@ -16,7 +16,7 @@ const title = entry.data.title;
 
 const slug = entry.id.replace(/^fr\//, '').replace(/\.mdx?$/, '');
 const kinds: [RegExp, string, string][] = [
-  [/^guides\//, 'Guide', 'Guide'],
+  [/^blog(\/|$)/, 'Blog', 'Blog'],
   [/^pricing$/, 'Pricing', 'Tarifs'],
   [/^(spring-boot|python|django|laravel)$/, 'Integration', 'Intégration'],
   [/^self-hosted$/, 'Self-hosting', 'Auto-hébergement'],
@@ -25,6 +25,12 @@ const kinds: [RegExp, string, string][] = [
 ];
 const kind = kinds.find(([pattern]) => pattern.test(slug));
 const label = kind ? (fr ? kind[2] : kind[1]) : 'SilenceWatch';
+
+// A blog post says when it was written, and when it was last revised if it was.
+const date = entry.data.date;
+const updated = entry.data.updated;
+const format = (value: Date) =>
+  new Intl.DateTimeFormat(fr ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(value);
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const words = escape(title)
@@ -40,6 +46,18 @@ const words = escape(title)
   <div class="sw-pagehead">
     <p class="kicker"><span class="live"></span>{label}</p>
     <h1 id="_top" set:html={words} />
+    {date && (
+      <p class="dates">
+        <time datetime={date.toISOString().slice(0, 10)}>{format(date)}</time>
+        {updated && (
+          <>
+            {' · '}
+            {fr ? 'mis à jour le ' : 'updated '}
+            <time datetime={updated.toISOString().slice(0, 10)}>{format(updated)}</time>
+          </>
+        )}
+      </p>
+    )}
   </div>
 )}
 
@@ -60,6 +78,13 @@ const words = escape(title)
 
   .sw-pagehead {
     padding-block: clamp(2rem, 6vw, 4.5rem) clamp(1rem, 3vw, 2rem);
+  }
+
+  .dates {
+    margin: clamp(1rem, 2.5vw, 1.5rem) 0 0;
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-3);
   }
 
   .kicker {
