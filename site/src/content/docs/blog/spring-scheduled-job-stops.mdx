@@ -59,7 +59,7 @@ Without `@EnableScheduling`, a `@Scheduled` annotation is only an annotation: no
 
 ### 3. The schedule is disabled by a property
 
-`@Scheduled(cron = "${report.cron}")` accepts the special value `-`, which Spring documents as a disabled trigger, meant to switch a job off from the outside. A `-` left in one environment’s configuration (copied from a test profile, say), and that job is never scheduled there. Any other invalid value fails at startup instead. To confirm, read the resolved value at `/actuator/env/report.cron`, or note that the task is missing from `scheduledtasks`.
+`@Scheduled(cron = "${report.cron}")` accepts the special value `-`, which Spring documents as a disabled trigger, meant to switch a job off from the outside. A `-` left in one environment’s configuration (copied from a test profile, say), and that job is never scheduled there. Any other invalid value fails at startup instead. To confirm, note that the task is missing from `scheduledtasks`, and look for `report.cron` in that environment’s configuration. `/actuator/env/report.cron` shows where the property comes from, but Spring Boot 3 masks its value unless `management.endpoint.env.show-values` is set.
 
 ### 4. The application is not running where you think
 
@@ -102,7 +102,7 @@ SilenceWatch is watching 2 job(s) in environment 'production'
 
 The starter declares the jobs Spring actually scheduled. A job switched off by `-`, or an application that lost `@EnableScheduling`, is caught if its check was declared before: the check stays and goes *down*. A job that has never run in an environment, or an instance never started there, has no check yet; create that one by hand.
 
-The start of a run is reported separately from its end, and a start alone does not count as a success. A run that begins and never returns therefore leaves the check *late*, then *down* once its grace period has passed, and your alert channels are told. See the [quick start](/docs/spring-boot/#quick-start) to try it, and [check states and schedules](/docs/schedules-and-states/) for the exact rules.
+The start of a run is reported separately from its end, and a start alone does not count as a success. A run that begins and never returns therefore leaves the check *late*, then *down* once its grace period has passed, and your alert channels are told. One exception: when several instances run the same job without a lock, they share one check, and a scheduler stuck on one instance is hidden by the others. List those jobs under `silencewatch.per-instance-jobs`, with a stable `instance-id`, to give each instance its own check ([several instances](/docs/spring-boot/#several-instances)). See the [quick start](/docs/spring-boot/#quick-start) to try it, and [check states and schedules](/docs/schedules-and-states/) for the exact rules.
 
 The starter is built not to hurt the application: it never fails or blocks a job, and with no key or no network the application runs as without it. The details are on the [Spring Boot page](/spring-boot/).
 
