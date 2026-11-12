@@ -31,7 +31,7 @@ C’est aussi ce qui le rend simple à mettre en place : une requête HTTP à la
 
 ## Ses limites
 
-Un dead man’s switch **atteste de l’exécution, pas de la qualité du travail** : un job peut tourner, envoyer son signal et produire un résultat faux. Pour une sauvegarde, il faut donc que le script vérifie son propre résultat avant d’envoyer le signal de réussite, comme dans le [guide de surveillance d’une sauvegarde](/fr/guides/backup-monitoring/). Il convient aussi aux tâches **périodiques** : pour une file de messages ou un traitement à la demande, une autre surveillance est nécessaire. Enfin, c’est une surveillance « passive » : c’est le job qui appelle, et non le service qui interroge.
+Un dead man’s switch **atteste de l’exécution, pas de la qualité du travail** : un job peut tourner, envoyer son signal et produire un résultat faux. Pour une sauvegarde, il faut donc que le script vérifie son propre résultat avant d’envoyer le signal de réussite, comme dans le [guide de surveillance d’une sauvegarde](/fr/blog/backup-monitoring/). Il convient aussi aux tâches **périodiques** : pour une file de messages ou un traitement à la demande, une autre surveillance est nécessaire. Enfin, c’est une surveillance « passive » : c’est le job qui appelle, et non le service qui interroge.
 
 ## SilenceWatch, un dead man’s switch pour vos jobs
 

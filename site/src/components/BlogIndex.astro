@@ -1,0 +1,131 @@
+---
+import { getCollection } from 'astro:content';
+
+/**
+ * The list of blog posts on /blog/ (and /fr/blog/): every page under blog/ in the
+ * page's language, newest first, each with its date, title and description. Built
+ * from the posts themselves, so publishing one is adding its file and nothing else.
+ */
+const { lang } = Astro.locals.starlightRoute;
+const fr = lang === 'fr';
+const prefix = fr ? 'fr/' : '';
+
+const posts = (await getCollection('docs'))
+  .filter((entry) => entry.id.startsWith(`${prefix}blog/`) && entry.id !== `${prefix}blog`)
+  .filter((entry) => entry.data.date !== undefined)
+  .sort((a, b) => (b.data.date as Date).getTime() - (a.data.date as Date).getTime());
+
+const format = (value: Date) =>
+  new Intl.DateTimeFormat(fr ? 'fr-FR' : 'en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(value);
+const href = (id: string) => `/${id.replace(/\.mdx?$/, '')}/`;
+---
+
+<ol class="sw-blog not-content">
+  {posts.map((post) => (
+    <li>
+      <a href={href(post.id)}>
+        <time datetime={(post.data.date as Date).toISOString().slice(0, 10)}>{format(post.data.date as Date)}</time>
+        <strong>{post.data.title}</strong>
+        <span>{post.data.description}</span>
+        <em>
+          {fr ? 'Lire l’article' : 'Read the article'}
+          <span aria-hidden="true">→</span>
+        </em>
+      </a>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .sw-blog {
+    display: grid;
+    margin: clamp(2rem, 4vw, 3rem) 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+
+  li {
+    margin: 0;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  a {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+    gap: 0.5rem clamp(1.5rem, 4vw, 3rem);
+    padding: clamp(1.5rem, 3vw, 2.25rem) 0;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  time {
+    grid-row: span 3;
+    padding-top: 0.35rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  strong {
+    font-size: clamp(1.35rem, 1rem + 1vw, 1.75rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--sl-color-white);
+  }
+
+  a > span {
+    max-width: 44rem;
+    font-size: var(--sl-text-base);
+    line-height: 1.6;
+    color: var(--sl-color-gray-2);
+  }
+
+  em {
+    display: inline-flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    font-style: normal;
+    font-size: var(--sl-text-sm);
+    font-weight: 500;
+    color: var(--sl-color-white);
+  }
+
+  em span {
+    transition: transform 200ms ease;
+  }
+
+  a:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  a:hover em span {
+    transform: translateX(3px);
+  }
+
+  @media (max-width: 40rem) {
+    a {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    time {
+      grid-row: auto;
+      padding-top: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    em span {
+      transition: none;
+    }
+  }
+</style>
