@@ -54,8 +54,9 @@ contradiction) and whatever page of the documentation the post makes claims abou
   no exclamation marks, no filler intro ("In today's fast-paced world…").
 - Short sentences, one idea each; the answer comes before the explanation. A reader
   skimming the headings understands the post.
-- Typography: French uses `’` and non-breaking spaces before `: ; ? !`, as the rest
-  of the site does; English uses `’` too. Code, settings and paths in backticks.
+- Typography: `’` rather than `'` in prose, in both languages. French puts a space
+  before `: ; ? !`, as the rest of the site does (a plain space today; do not fail a
+  post for not using a non-breaking one). Code, settings and paths in backticks.
 
 ### 4. Built to be found (SEO)
 
