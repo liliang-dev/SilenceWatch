@@ -547,8 +547,11 @@ html {
     backdrop-filter: none !important;
   }
 
-  :root:not([data-has-sidebar]) .header .right-group > :not(.social-icons),
-  :root:not([data-has-sidebar]) .header .social-icons > :not(.sw-login) {
+  /* The search stays rendered, only its button goes: the menu's "Search" opens
+     its dialog, and a dialog inside a hidden element opens without showing. */
+  :root:not([data-has-sidebar]) .header .right-group > :not(.social-icons, site-search),
+  :root:not([data-has-sidebar]) .header .social-icons > :not(.sw-login),
+  :root:not([data-has-sidebar]) .header site-search > button {
     display: none !important;
   }
 
@@ -651,8 +654,9 @@ starlight-theme-select svg.label-icon {
     display: flex !important;
   }
 
-  .header .right-group > :not(.social-icons),
-  .header .social-icons > :not(.sw-login) {
+  .header .right-group > :not(.social-icons, site-search),
+  .header .social-icons > :not(.sw-login),
+  :root:not([data-has-sidebar]) .header site-search > button {
     display: none !important;
   }
 

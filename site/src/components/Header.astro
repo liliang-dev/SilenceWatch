@@ -211,8 +211,11 @@ const t =
     menu.querySelector('[data-menu-close]')?.addEventListener('click', close);
     // A link to a part of this page closes the menu on the way.
     menu.querySelectorAll('a').forEach((link) => link.addEventListener('click', close));
-    // The search is Starlight's, behind its own (hidden) button.
-    menu.querySelector('[data-menu-search]')?.addEventListener('click', () => {
+    // The search is Starlight's, behind its own (hidden) button. Opening it starts
+    // a window click listener that closes it on any click outside it, and this very
+    // click, still bubbling, would be the first: so it stops here.
+    menu.querySelector('[data-menu-search]')?.addEventListener('click', (event) => {
+      event.stopPropagation();
       menu.close();
       document.querySelector<HTMLButtonElement>('site-search button[data-open-modal]')?.click();
     });
