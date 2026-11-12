@@ -51,7 +51,7 @@ I reproduced it with three jobs: a heartbeat every second, the failing job above
 
 The heartbeat job and the failing job both stop at that moment. The application is alive, so a liveness probe and a health check are happy.
 
-To confirm, take a thread dump (`jstack <pid>` or Actuator’s `threaddump` endpoint): `scheduling-1` sits in the stuck method, in a socket read or waiting on a lock.
+To confirm, take a thread dump (`jstack <pid>` or Actuator’s `threaddump` endpoint; only `health` is exposed over HTTP by default, so add `management.endpoints.web.exposure.include: scheduledtasks,threaddump,env` for the checks below): `scheduling-1` sits in the stuck method, in a socket read or waiting on a lock.
 
 ### 2. Scheduling is switched off
 
@@ -93,7 +93,7 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-At startup it finds every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around each run, with its duration and whether it returned or threw. The log says so:
+At startup it finds every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around each run, with its duration and whether it returned or threw; a run that throws turns the check *down*. The log says so:
 
 ```text
 SilenceWatch discovered 2 Spring scheduled task(s)

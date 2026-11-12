@@ -51,11 +51,11 @@ Je l’ai reproduit avec trois jobs : un signal chaque seconde, le job qui écho
 
 Le job de signal et le job qui échoue s’arrêtent tous les deux à cet instant. L’application est vivante, donc une liveness probe et un contrôle de santé sont satisfaits.
 
-Pour le confirmer, prenez un thread dump (`jstack <pid>` ou l’endpoint `threaddump` d’Actuator) : `scheduling-1` est dans la méthode bloquée, sur une lecture de socket ou un verrou.
+Pour le confirmer, prenez un thread dump (`jstack <pid>` ou l’endpoint `threaddump` d’Actuator ; seul `health` est exposé en HTTP par défaut, ajoutez donc `management.endpoints.web.exposure.include: scheduledtasks,threaddump,env` pour les vérifications ci-dessous) : `scheduling-1` est dans la méthode bloquée, sur une lecture de socket ou un verrou.
 
 ### 2. La planification est désactivée
 
-Sans `@EnableScheduling`, une annotation `@Scheduled` n’est qu’une annotation : pas d’erreur, pas d’exécution. Elle se perd facilement dans un remaniement des classes de configuration, et l’application démarre et répond quand même. Pour le confirmer, l’endpoint `scheduledtasks` d’Actuator ne liste aucune tâche.
+Sans `@EnableScheduling`, une annotation `@Scheduled` n’est qu’une annotation : pas d’erreur, pas d’exécution. Elle se perd facilement dans un remaniement des classes de configuration, et l’application démarre et répond quand même. Pour le confirmer, consultez l’endpoint `scheduledtasks` d’Actuator : il ne liste aucune tâche.
 
 ### 3. Une propriété désactive le job
 
@@ -93,7 +93,7 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-Au démarrage, il trouve chaque méthode `@Scheduled` et chaque job Quartz, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution, avec sa durée et son issue : terminée normalement ou par une exception. Le journal le dit :
+Au démarrage, il trouve chaque méthode `@Scheduled` et chaque job Quartz, les déclare avec leur vraie planification, et envoie un signal autour de chaque exécution, avec sa durée et son issue : terminée normalement ou par une exception ; une exécution qui lève une exception fait passer le check *en panne*. Le journal le dit :
 
 ```text
 SilenceWatch discovered 2 Spring scheduled task(s)

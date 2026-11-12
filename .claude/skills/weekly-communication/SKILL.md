@@ -83,7 +83,8 @@ comes in once or twice where it helps. No invented figures.
 Run the **communication-reviewer** agent with both paths. Agents are loaded when a
 session starts: if that type is not offered, run a general-purpose agent and tell it
 to follow `.claude/agents/communication-reviewer.md` to the letter. Apply every required
-change, then run it again. Publish only on a `PASS`. After three rounds without a
+change, then run it again. Never edit `.claude/agents/communication-reviewer.md` during a
+run: if a rule looks wrong, apply it anyway and tell the user in the report. Publish only on a `PASS`. After three rounds without a
 pass, do not publish: report the remaining required changes to the user instead.
 
 ### Publish it
