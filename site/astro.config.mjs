@@ -16,9 +16,20 @@ export default defineConfig({
   // `/cron-monitoring/`, not `/cron-monitoring`: one address per page, so the
   // sitemap, the canonical link and the links between pages never disagree.
   trailingSlash: 'always',
-  // Addresses that were handed out with a mistake in them, kept working.
+  // Addresses that moved or were handed out with a mistake in them, kept working:
+  // the guides became the blog, and one newsletter pitch spelled a guide's name wrong.
   redirects: {
-    '/guides/spring-scheduled-job-stopped/': '/guides/spring-scheduled-job-stops/',
+    '/guides/': '/blog/',
+    '/fr/guides/': '/fr/blog/',
+    '/guides/backup-monitoring/': '/blog/backup-monitoring/',
+    '/fr/guides/backup-monitoring/': '/fr/blog/backup-monitoring/',
+    '/guides/cron-not-running/': '/blog/cron-not-running/',
+    '/fr/guides/cron-not-running/': '/fr/blog/cron-not-running/',
+    '/guides/kubernetes-cronjob-monitoring/': '/blog/kubernetes-cronjob-monitoring/',
+    '/fr/guides/kubernetes-cronjob-monitoring/': '/fr/blog/kubernetes-cronjob-monitoring/',
+    '/guides/spring-scheduled-job-stops/': '/blog/spring-scheduled-job-stops/',
+    '/fr/guides/spring-scheduled-job-stops/': '/fr/blog/spring-scheduled-job-stops/',
+    '/guides/spring-scheduled-job-stopped/': '/blog/spring-scheduled-job-stops/',
   },
   build: { format: 'directory' },
   integrations: [

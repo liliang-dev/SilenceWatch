@@ -8,8 +8,8 @@ import { REPOSITORY, SITE } from './site';
  *
  * - the sharing image, in the page's own language;
  * - structured data: the organisation and the software on the home page, an
- *   article for each documentation page, and the breadcrumb trail for every page
- *   below the home page.
+ *   article for each documentation page, a blog post for each post, and the
+ *   breadcrumb trail for every page below the home page.
  *
  * Kept in one place so what the site claims about itself cannot differ from page
  * to page.
@@ -100,8 +100,10 @@ export const onRequest = defineRouteMiddleware((context) => {
       },
     );
   } else {
-    // Home › [Documentation ›] this page.
+    // Home › [Documentation › | Blog ›] this page.
     const trail = [{ name: english ? 'Home' : 'Accueil', item: url(home) }];
+    const post = /\/blog\/[^/]+\/$/.test(path);
+    if (post) trail.push({ name: 'Blog', item: url(`${english ? '' : '/fr'}/blog/`) });
     if (path.includes('/docs/') && !/\/docs\/$/.test(path)) {
       trail.push({
         name: 'Documentation',
@@ -133,6 +135,21 @@ export const onRequest = defineRouteMiddleware((context) => {
           priceCurrency: 'EUR',
           url: url(path),
         })),
+      });
+    }
+
+    if (post && entry.data.date) {
+      graph.push({
+        '@type': 'BlogPosting',
+        headline: title,
+        description,
+        inLanguage: lang,
+        mainEntityOfPage: url(path),
+        datePublished: entry.data.date.toISOString().slice(0, 10),
+        dateModified: (entry.data.updated ?? entry.data.date).toISOString().slice(0, 10),
+        image: image,
+        author: { '@type': 'Organization', name: 'SilenceWatch', url: url('/') },
+        publisher: { '@type': 'Organization', name: 'SilenceWatch', url: url('/'), logo: url('/favicon.svg') },
       });
     }
 

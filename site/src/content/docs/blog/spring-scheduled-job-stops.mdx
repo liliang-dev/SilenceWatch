@@ -2,15 +2,17 @@
 title: "Spring @Scheduled job stopped? Know when it does"
 description: "A Spring Boot @Scheduled job can stop without a single error: a blocked thread, scheduling off, a disabled cron. What really happens, and how to be alerted."
 template: splash
+date: 2026-10-28
+updated: 2026-11-12
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
 import HeroIcon from '../../../components/HeroIcon.astro';
 import Faq from '../../../components/Faq.astro';
 
-<p class="splash-lede">Your Spring Boot application is up, its health endpoint says <code>UP</code>, and a <code>@Scheduled</code> job has not run since Tuesday. Nothing crashed, nothing was logged. Here is how that happens, shown on a real run, and how to find out the day it starts instead of the day someone notices.</p>
+<p class="splash-lede">A Spring Boot <code>@Scheduled</code> job that stops without an error is usually waiting behind another job stuck on the scheduler’s single thread; scheduling switched off, a cron set to <code>-</code> or a missing instance do the same. None of them logs anything, and the health check stays <code>UP</code>. Here is how to confirm each cause, fix it, and be alerted the day it starts.</p>
 
-## A job that throws is the easy case
+## Does an exception stop a @Scheduled job?
 
 Start with what does *not* stop a job. Take a method that always fails:
 
@@ -32,7 +34,7 @@ Spring logs the exception of a repeating task and schedules the next run anyway.
 
 The jobs that really go quiet are the next ones.
 
-## How a job stops without a trace
+## Why a @Scheduled job stops without an error
 
 ### 1. One stuck job freezes all the others
 
@@ -49,30 +51,32 @@ I reproduced it with three jobs: a heartbeat every second, the failing job above
 
 The heartbeat job and the failing job both stop at that moment. The application is alive, so a liveness probe and a health check are happy.
 
+To confirm, take a thread dump (`jstack <pid>` or Actuator’s `threaddump` endpoint; only `health` is exposed over HTTP by default, so add `management.endpoints.web.exposure.include: scheduledtasks,threaddump,env` for the checks below): `scheduling-1` sits in the stuck method, in a socket read or waiting on a lock.
+
 ### 2. Scheduling is switched off
 
-Without `@EnableScheduling`, a `@Scheduled` annotation is only an annotation: no error, no run. It is easy to lose in a refactoring of the configuration classes, and the application still starts and serves requests.
+Without `@EnableScheduling`, a `@Scheduled` annotation is only an annotation: no error, no run. It is easy to lose in a refactoring of the configuration classes, and the application still starts and serves requests. To confirm, look at Actuator’s `scheduledtasks` endpoint: it lists no task.
 
 ### 3. The schedule is disabled by a property
 
-`@Scheduled(cron = "${report.cron}")` accepts the special value `-`, which Spring documents as a disabled trigger, meant to switch a job off from the outside. A wrong value in one environment's configuration, and that job is no longer scheduled there.
+`@Scheduled(cron = "${report.cron}")` accepts the special value `-`, which Spring documents as a disabled trigger, meant to switch a job off from the outside. A `-` left in one environment’s configuration (copied from a test profile, say), and that job is never scheduled there. Any other invalid value fails at startup instead. To confirm, note that the task is missing from `scheduledtasks`, and look for `report.cron` in that environment’s configuration. `/actuator/env/report.cron` shows where the property comes from, but Spring Boot 3 masks its value unless `management.endpoint.env.show-values` is set.
 
 ### 4. The application is not running where you think
 
-A job that runs in a single instance dies with it: a scaled-down deployment, a crash loop, an instance that was never started in that environment. Nothing in the application can report it, because the application is gone.
+A job that runs in a single instance dies with it: a scaled-down deployment, a crash loop, an instance that was never started in that environment. Nothing in the application can report it, because the application is gone. To confirm, check the replica count and restarts (`kubectl get deploy,pods`).
 
 All four have the same signature: **nothing happens, so nothing is written**.
 
-## What does not catch it
+## Why logs and health checks miss it
 
 - **Logs.** There is no line to search for. You can alert on an error; you cannot alert on a line that is not there.
 - **Health checks and liveness probes.** They tell you the process answers, not that its jobs run.
 - **Metrics.** A timer on each job helps, but catching a job that stopped means writing an alert on *absence*, for each job, and keeping those rules in step with the code.
-- **Reading the list of scheduled tasks.** Actuator's `scheduledtasks` endpoint shows what is registered. It is a list of intentions.
+- **Reading the list of scheduled tasks.** Actuator’s `scheduledtasks` endpoint shows each task’s next and last execution, so a stuck run is visible there if someone looks. Nothing alerts on it.
 
-## Look for the missing run: a dead man's switch
+## How to be alerted when a scheduled job stops
 
-The reliable signal is the one that fails in the right direction: the job reports **every successful run** to an outside service, which expects it on a schedule and alerts when it does not come. That is a [dead man's switch](/dead-mans-switch/). A stuck thread, a missing annotation, a disabled cron and a dead instance all raise the same alert: the heartbeat did not arrive.
+The reliable signal is the one that fails in the right direction: the job reports **every successful run** to an outside service, which expects it on a schedule and alerts when it does not come. That is a [dead man’s switch](/dead-mans-switch/). A stuck thread, a missing annotation, a disabled cron and a dead instance all raise the same alert: the heartbeat did not arrive.
 
 With the SilenceWatch Spring Boot starter, the setup is one dependency and one key:
 
@@ -89,24 +93,26 @@ silencewatch:
   api-key: ${SILENCEWATCH_API_KEY}
 ```
 
-At startup it finds every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around each run, with its duration and any exception. The log says so:
+At startup it finds every `@Scheduled` method and every Quartz job, declares them with their real schedule, and sends a heartbeat around each run, with its duration and whether it returned or threw; a run that throws turns the check *down*. The log says so:
 
 ```text
 SilenceWatch discovered 2 Spring scheduled task(s)
 SilenceWatch is watching 2 job(s) in environment 'production'
 ```
 
-The start of a run is reported separately from its end, and a start alone does not count as a success. A run that begins and never returns therefore leaves the check *late*, then *down* once its grace period has passed, and your alert channels are told. See the [quick start](/docs/spring-boot/#quick-start) to try it in five minutes, and [check states and schedules](/docs/schedules-and-states/) for the exact rules.
+The starter declares the jobs Spring actually scheduled. A job switched off by `-`, or an application that lost `@EnableScheduling`, is caught if its check was declared before: the check stays and goes *down*. A job that has never run in an environment, or an instance never started there, has no check yet; create that one by hand.
+
+The start of a run is reported separately from its end, and a start alone does not count as a success. A run that begins and never returns therefore leaves the check *late*, then *down* once its grace period has passed, and your alert channels are told. One exception: when several instances run the same job without a lock, they share one check, and a scheduler stuck on one instance is hidden by the others. List those jobs under `silencewatch.per-instance-jobs`, with a stable `instance-id`, to give each instance its own check ([several instances](/docs/spring-boot/#several-instances)). See the [quick start](/docs/spring-boot/#quick-start) to try it, and [check states and schedules](/docs/schedules-and-states/) for the exact rules.
 
 The starter is built not to hurt the application: it never fails or blocks a job, and with no key or no network the application runs as without it. The details are on the [Spring Boot page](/spring-boot/).
 
-## Fix the cause too
+## How to fix a stuck scheduler
 
 Being alerted is the first half. For the stuck-thread case, the usual remedies are:
 
 - **put a timeout on every outgoing call** a job makes (HTTP client, database, queue): a job that can wait forever eventually will;
 - **give the scheduler more than one thread**, so one slow job cannot hold the others back: `spring.task.scheduling.pool.size: 5`;
-- **keep long jobs out of the scheduler thread**, by handing the work to an executor and returning.
+- **keep long jobs out of the scheduler thread**, by handing the work to an executor and returning; the heartbeat then marks the hand-off, not the work, so give the work itself a check (a ping at its end) or prefer the two fixes above.
 
 <div class="sw-cta">
   <LinkButton href="/docs/spring-boot/" variant="primary">Spring Boot quick start <HeroIcon name="arrow" /></LinkButton>
@@ -119,7 +125,7 @@ Being alerted is the first half. For the stuck-thread case, the usual remedies a
   title="Frequently asked questions: Spring @Scheduled jobs that stop"
   items={[
     { q: 'Why did my @Scheduled method stop running without an error?', a: 'The usual causes are another scheduled method that never returns (Spring Boot runs them all on one thread by default), scheduling not enabled, a cron disabled with the value "-", or an application instance that is no longer running. None of them writes a log line.' },
-    { q: 'What happens when a @Scheduled method throws an exception?', a: 'For a repeating task, Spring logs the exception at ERROR level and runs the method again at the next time. The job does not stop, but it can fail on every run without anyone being told.' },
+    { q: 'What happens when a @Scheduled method throws an exception?', a: 'For a repeating task, Spring logs the exception at ERROR level and runs the method again at its next scheduled time. The job does not stop, but it can fail on every run without anyone being told.' },
     { q: 'How many threads does Spring use for @Scheduled methods?', a: 'One by default in Spring Boot. Raise spring.task.scheduling.pool.size so that a slow job does not delay the others.' },
     { q: 'How can I be alerted when a scheduled job stops?', a: 'Have the job report each successful run to a service that expects it on a schedule and alerts when it is missing, a dead man’s switch. The SilenceWatch starter does it for @Scheduled and Quartz jobs with one dependency and one API key.' },
   ]}
@@ -130,6 +136,6 @@ Being alerted is the first half. For the stuck-thread case, the usual remedies a
 <ul class="sw-related">
   <li><a href="/spring-boot/">Java Spring Boot monitoring</a></li>
   <li><a href="/docs/spring-boot/">Spring Boot starter documentation</a></li>
-  <li><a href="/dead-mans-switch/">Dead man's switch</a></li>
-  <li><a href="/guides/cron-not-running/">Cron job not running</a></li>
+  <li><a href="/dead-mans-switch/">Dead man’s switch</a></li>
+  <li><a href="/blog/cron-not-running/">Cron job not running</a></li>
 </ul>
