@@ -29,13 +29,13 @@ Pour le confirmer, prenez un thread dump (`jstack <pid>`) : les threads de trava
 
 ### 3. La consigne de misfire saute l’exécution
 
-Ce que devient une exécution manquée dépend du trigger. Un `CronTrigger` applique par défaut la politique « smart », qui pour un cron veut dire **exécuter une fois tout de suite** : plusieurs exécutions manquées se résument en une seule, en retard. Un trigger construit avec `withMisfireHandlingInstructionDoNothing()` fait l’inverse : l’exécution manquée est **abandonnée**, et le trigger attend sa prochaine échéance. Rien n’est journalisé pour ce job.
+Ce que devient une exécution manquée dépend du trigger. Un `CronTrigger` applique par défaut la politique « smart », qui pour un cron veut dire **exécuter une fois tout de suite** : plusieurs exécutions manquées se résument en une seule, en retard. Un trigger construit avec `withMisfireHandlingInstructionDoNothing()` fait l’inverse : l’exécution manquée est **abandonnée**, et le trigger attend sa prochaine échéance. Aucune ligne de journal ne nomme le job.
 
 Pour le confirmer, lisez la définition du trigger dans votre code, ou la colonne `MISFIRE_INSTR` de `QRTZ_TRIGGERS` avec un job store JDBC.
 
 ### 4. La planification en base n’est pas celle de votre code
 
-Avec `spring.quartz.job-store-type: jdbc`, jobs et triggers vivent en base de données et survivent aux redémarrages. Le réglage `spring.quartz.overwrite-existing-jobs` de Spring Boot vaut **`false` par défaut** : un trigger qui existe déjà en base **n’est pas mis à jour** au démarrage. Vous changez le cron dans le code, vous déployez, et Quartz continue sur l’ancien, ou sur aucun si l’ancien ne correspond plus au job attendu.
+Avec `spring.quartz.job-store-type: jdbc`, jobs et triggers vivent en base de données et survivent aux redémarrages. Le réglage `spring.quartz.overwrite-existing-jobs` de Spring Boot vaut **`false` par défaut** : un trigger qui existe déjà en base **n’est pas mis à jour** au démarrage. Vous changez le cron dans le code, vous déployez, et Quartz continue sur l’ancien.
 
 Pour le confirmer, comparez le code et la base :
 
@@ -79,7 +79,7 @@ Dès lors, un job dont le trigger est en pause, bloqué ou en `ERROR`, ou dont l
 - **Threads occupés** : mettez un délai maximal sur chaque appel sortant d’un job, et agrandissez le pool si les jobs doivent vraiment se chevaucher : `spring.quartz.properties.org.quartz.threadPool.threadCount: 20`.
 - **Misfires sautés** : choisissez la consigne de misfire en connaissance de cause. Gardez celle par défaut quand une exécution en retard vaut mieux qu’aucune ; n’utilisez `withMisfireHandlingInstructionDoNothing()` que si une exécution en retard ferait du tort.
 - **Ancienne planification en base** : réglez `spring.quartz.overwrite-existing-jobs: true`, pour que les triggers déclarés dans le code remplacent ceux stockés au démarrage, ou replanifiez le trigger vous-même avec `scheduler.rescheduleJob(...)`.
-- **Trigger en `ERROR`** : rendez d’abord le job stocké chargeable : remettez la classe sous son ancien nom, ou remplacez le job stocké avec `scheduler.addJob(jobDetail, true)` (pour les jobs déclarés comme beans, un démarrage avec `spring.quartz.overwrite-existing-jobs: true` suffit). Puis appelez `scheduler.resetTriggerFromErrorState(triggerKey)`, disponible depuis Quartz 2.3.0, ou replanifiez le trigger. Un reset seul renvoie le trigger en `ERROR` à sa prochaine échéance.
+- **Trigger en `ERROR`** : rendez d’abord le job stocké chargeable : remettez la classe sous son ancien nom, ou remplacez le job stocké avec `scheduler.addJob(jobDetail, true, true)` (le dernier `true` permet à Quartz de stocker un job non durable ; pour les jobs déclarés comme beans, un démarrage avec `spring.quartz.overwrite-existing-jobs: true` suffit). Puis appelez `scheduler.resetTriggerFromErrorState(triggerKey)`, disponible depuis Quartz 2.3.0, ou replanifiez le trigger. Un reset seul renvoie le trigger en `ERROR` à sa prochaine échéance.
 - **Bloqué par une exécution figée** : trouvez-la avec un thread dump et mettez un délai maximal sur ses appels sortants ; tant qu’elle ne rend pas la main, un job `@DisallowConcurrentExecution` ne repartira pas.
 
 <div class="sw-cta">
@@ -95,7 +95,7 @@ Dès lors, un job dont le trigger est en pause, bloqué ou en `ERROR`, ou dont l
     { q: 'Pourquoi mon job Quartz ne s’exécute-t-il pas ?', a: 'Le plus souvent, son trigger attend un thread libre, son exécution manquée a été abandonnée par la consigne de misfire, le trigger stocké en base garde une ancienne planification, le trigger est en pause, bloqué ou à l’état ERROR, ou le planificateur n’a jamais démarré. L’état du trigger et sa prochaine échéance disent lequel.' },
     { q: 'Qu’est-ce qu’un misfire dans Quartz ?', a: 'Un misfire est une exécution qui n’a pas pu partir à l’heure, faute de thread libre ou parce que le planificateur était arrêté, et qui a attendu plus que le seuil de misfire. Quartz applique alors la consigne de misfire du trigger : exécuter une fois tout de suite, ou passer à l’échéance suivante.' },
     { q: 'Pourquoi changer l’expression cron n’a-t-il rien changé à mon job Quartz ?', a: 'Avec un job store JDBC, Spring Boot n’écrase pas les triggers qui existent déjà en base, sauf si spring.quartz.overwrite-existing-jobs vaut true. L’ancien trigger garde son ancienne planification.' },
-    { q: 'Comment réparer un trigger Quartz à l’état ERROR ?', a: 'Rendez le job stocké de nouveau chargeable, le plus souvent en remettant une classe renommée ou déplacée ou en remplaçant le job stocké avec scheduler.addJob(jobDetail, true), puis appelez scheduler.resetTriggerFromErrorState avec la clé du trigger. Un reset seul le renvoie en ERROR à sa prochaine échéance.' },
+    { q: 'Comment réparer un trigger Quartz à l’état ERROR ?', a: 'Rendez le job stocké de nouveau chargeable, le plus souvent en remettant une classe renommée ou déplacée ou en remplaçant le job stocké avec scheduler.addJob(jobDetail, true, true), puis appelez scheduler.resetTriggerFromErrorState avec la clé du trigger. Un reset seul le renvoie en ERROR à sa prochaine échéance.' },
     { q: 'Comment être alerté quand un job Quartz ne tourne plus ?', a: 'Faites signaler chaque exécution à un service qui l’attend selon la planification du job et alerte quand elle manque, un dead man’s switch. Le starter SilenceWatch le fait pour les jobs Quartz et @Scheduled avec une dépendance et une clé d’API.' },
   ]}
 />

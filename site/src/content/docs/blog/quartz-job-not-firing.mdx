@@ -29,13 +29,13 @@ To confirm, take a thread dump (`jstack <pid>`): the worker threads (named after
 
 ### 3. The misfire instruction skips the run
 
-What happens to a missed run depends on the trigger. A `CronTrigger` uses the smart policy by default, which for a cron means **fire once now**: several missed runs collapse into one late run. A trigger built with `withMisfireHandlingInstructionDoNothing()` does the opposite: the missed run is **dropped**, and the trigger waits for its next scheduled time. Nothing is logged for that job.
+What happens to a missed run depends on the trigger. A `CronTrigger` uses the smart policy by default, which for a cron means **fire once now**: several missed runs collapse into one late run. A trigger built with `withMisfireHandlingInstructionDoNothing()` does the opposite: the missed run is **dropped**, and the trigger waits for its next scheduled time. No log line names the job.
 
 To confirm, read the trigger’s definition in your code, or the `MISFIRE_INSTR` column of `QRTZ_TRIGGERS` with a JDBC job store.
 
 ### 4. The schedule in the database is not the one in your code
 
-With `spring.quartz.job-store-type: jdbc`, jobs and triggers live in the database and survive restarts. Spring Boot’s `spring.quartz.overwrite-existing-jobs` is **`false` by default**, so a trigger that already exists in the database is **not updated** at startup. You change the cron in the code, deploy, and Quartz keeps firing on the old one, or on none if the old one no longer matches the job you expect.
+With `spring.quartz.job-store-type: jdbc`, jobs and triggers live in the database and survive restarts. Spring Boot’s `spring.quartz.overwrite-existing-jobs` is **`false` by default**, so a trigger that already exists in the database is **not updated** at startup. You change the cron in the code, deploy, and Quartz keeps firing on the old one.
 
 To confirm, compare the code with the database:
 
@@ -79,7 +79,7 @@ From then on, a job whose trigger is paused, blocked or in `ERROR`, or whose run
 - **Busy threads**: put a timeout on every outgoing call a job makes, and raise the pool if the jobs really need to overlap: `spring.quartz.properties.org.quartz.threadPool.threadCount: 20`.
 - **Skipped misfires**: choose the misfire instruction on purpose. Keep the default when one late run is better than none; use `withMisfireHandlingInstructionDoNothing()` only when a late run would do harm.
 - **Old schedule in the database**: set `spring.quartz.overwrite-existing-jobs: true`, so the triggers declared in your code replace the stored ones at startup, or reschedule the trigger yourself with `scheduler.rescheduleJob(...)`.
-- **Trigger in `ERROR`**: make the stored job loadable first: put the class back under its old name, or replace the stored job with `scheduler.addJob(jobDetail, true)` (for jobs declared as beans, one start with `spring.quartz.overwrite-existing-jobs: true` does it). Then call `scheduler.resetTriggerFromErrorState(triggerKey)`, available since Quartz 2.3.0, or reschedule the trigger. A reset alone sends the trigger back to `ERROR` at its next fire time.
+- **Trigger in `ERROR`**: make the stored job loadable first: put the class back under its old name, or replace the stored job with `scheduler.addJob(jobDetail, true, true)` (the last `true` lets Quartz store a non-durable job; for jobs declared as beans, one start with `spring.quartz.overwrite-existing-jobs: true` does it). Then call `scheduler.resetTriggerFromErrorState(triggerKey)`, available since Quartz 2.3.0, or reschedule the trigger. A reset alone sends the trigger back to `ERROR` at its next fire time.
 - **Blocked by a stuck run**: find the stuck run with a thread dump and give its outgoing calls a timeout; until it returns, a `@DisallowConcurrentExecution` job will not run again.
 
 <div class="sw-cta">
@@ -95,7 +95,7 @@ From then on, a job whose trigger is paused, blocked or in `ERROR`, or whose run
     { q: 'Why is my Quartz job not executing?', a: 'Most often its trigger is waiting for a free worker thread, its missed run was dropped by the misfire instruction, the trigger stored in the database still has an old schedule, the trigger is paused, blocked or in the ERROR state, or the scheduler never started. The trigger’s state and next fire time tell you which.' },
     { q: 'What is a misfire in Quartz?', a: 'A misfire is a run that could not start on time, because no worker thread was free or the scheduler was down, and has waited longer than the misfire threshold. Quartz then applies the trigger’s misfire instruction: run once now, or skip to the next scheduled time.' },
     { q: 'Why did changing the cron expression not change my Quartz job?', a: 'With a JDBC job store, Spring Boot does not overwrite triggers that already exist in the database unless spring.quartz.overwrite-existing-jobs is true. The old trigger keeps its old schedule.' },
-    { q: 'How do I fix a Quartz trigger in the ERROR state?', a: 'Make the stored job loadable again, usually by restoring a renamed or moved class or replacing the stored job with scheduler.addJob(jobDetail, true), then call scheduler.resetTriggerFromErrorState with the trigger key. A reset alone puts it back in ERROR at its next fire time.' },
+    { q: 'How do I fix a Quartz trigger in the ERROR state?', a: 'Make the stored job loadable again, usually by restoring a renamed or moved class or replacing the stored job with scheduler.addJob(jobDetail, true, true), then call scheduler.resetTriggerFromErrorState with the trigger key. A reset alone puts it back in ERROR at its next fire time.' },
     { q: 'How can I be alerted when a Quartz job stops running?', a: 'Have each run report to a service that expects it on the job’s schedule and alerts when it is missing, a dead man’s switch. The SilenceWatch starter does this for Quartz and @Scheduled jobs with one dependency and one API key.' },
   ]}
 />
