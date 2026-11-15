@@ -7,8 +7,11 @@ package com.silencewatch.starter.spring;
 import com.silencewatch.starter.client.HeartbeatSender;
 import com.silencewatch.starter.discovery.ScheduledTaskDiscoverer;
 import java.lang.reflect.Method;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Sends a heartbeat around each run of a scheduled method.
@@ -21,12 +24,25 @@ import org.aopalliance.intercept.MethodInvocation;
  */
 public class HeartbeatMethodInterceptor implements MethodInterceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatMethodInterceptor.class);
+
     private final HeartbeatSender sender;
     private final boolean reportStart;
+    private final boolean locked;
+    private final AtomicBoolean misplacedWarned = new AtomicBoolean();
 
     public HeartbeatMethodInterceptor(HeartbeatSender sender, boolean reportStart) {
+        this(sender, reportStart, false);
+    }
+
+    /**
+     * @param locked the methods this intercepts are behind ShedLock's
+     *     {@code @SchedulerLock}, so this must run inside ShedLock's own advisor
+     */
+    public HeartbeatMethodInterceptor(HeartbeatSender sender, boolean reportStart, boolean locked) {
         this.sender = sender;
         this.reportStart = reportStart;
+        this.locked = locked;
     }
 
     @Override
@@ -42,6 +58,10 @@ public class HeartbeatMethodInterceptor implements MethodInterceptor {
             return invocation.proceed();
         }
 
+        if (locked) {
+            safely(() -> warnIfOutsideTheLock(key));
+        }
+
         if (reportStart) {
             safely(() -> sender.started(key));
         }
@@ -54,6 +74,23 @@ public class HeartbeatMethodInterceptor implements MethodInterceptor {
         } catch (Throwable failure) {
             safely(() -> sender.failed(key, elapsedMs(startedAt)));
             throw failure;
+        }
+    }
+
+    /**
+     * Inside ShedLock's advisor, the lock is held by the time this runs. If it is
+     * not, ShedLock was configured to apply after this interceptor (a custom
+     * {@code @EnableSchedulerLock(order = …)}), and instances that do not get the
+     * lock will report runs that did not happen. Said once, at WARN.
+     */
+    private void warnIfOutsideTheLock(String key) {
+        if (misplacedWarned.get() || ShedLockSupport.isLockHeld()) {
+            return;
+        }
+        if (misplacedWarned.compareAndSet(false, true)) {
+            log.warn("SilenceWatch runs outside ShedLock's lock for {}: instances that do not get the lock "
+                    + "would report a run they skipped. Leave @EnableSchedulerLock's order at its default.",
+                    key);
         }
     }
 
