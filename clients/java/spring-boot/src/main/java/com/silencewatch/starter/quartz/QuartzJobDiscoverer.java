@@ -8,6 +8,7 @@ import com.silencewatch.starter.SilenceWatchProperties;
 import com.silencewatch.starter.discovery.DiscoveredJob;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.quartz.CalendarIntervalTrigger;
 import org.quartz.CronTrigger;
@@ -27,7 +28,8 @@ import org.slf4j.LoggerFactory;
  * it is how Quartz itself finds the job in its store.
  *
  * <p>A job with several triggers is declared once, from the trigger that fires
- * most often: that is the deadline a missed run would breach first.
+ * most often, crons and intervals alike: that is the deadline a missed run would
+ * breach first.
  */
 public class QuartzJobDiscoverer {
 
@@ -75,21 +77,21 @@ public class QuartzJobDiscoverer {
         String name = jobKey.getName();
         Duration grace = properties.getDefaultGrace();
 
+        // Every trigger type is compared the same way, by the shortest gap between
+        // its next fire times: a cron and an interval are then comparable, and the
+        // trigger that fires most often wins whatever its type or its position.
+        Date now = new Date();
         DiscoveredJob mostFrequent = null;
+        long shortestGap = Long.MAX_VALUE;
         for (Trigger trigger : triggers) {
             DiscoveredJob candidate = describe(key, name, trigger, grace);
             if (candidate == null) {
                 continue;
             }
-            // Cron wins over an interval only if we have nothing else: comparing a
-            // cron to an interval is not meaningful, so first-wins for cron and
-            // shortest-wins for intervals.
-            if (mostFrequent == null) {
+            long gap = shortestGap(trigger, now);
+            if (mostFrequent == null || gap < shortestGap) {
                 mostFrequent = candidate;
-            } else if (candidate.interval() != null
-                    && mostFrequent.interval() != null
-                    && candidate.interval().compareTo(mostFrequent.interval()) < 0) {
-                mostFrequent = candidate;
+                shortestGap = gap;
             }
         }
 
@@ -118,6 +120,27 @@ public class QuartzJobDiscoverer {
 
         return null;
     }
+
+    /**
+     * The shortest gap, in milliseconds, between a trigger's next fire times,
+     * sampled over a few of them so that a weekday cron read on a Friday is not
+     * taken for a weekly one. A trigger that will not fire twice more sorts last.
+     */
+    static long shortestGap(Trigger trigger, Date from) {
+        long shortest = Long.MAX_VALUE;
+        Date previous = trigger.getFireTimeAfter(from);
+        for (int i = 0; previous != null && i < GAP_SAMPLES; i++) {
+            Date next = trigger.getFireTimeAfter(previous);
+            if (next == null) {
+                break;
+            }
+            shortest = Math.min(shortest, next.getTime() - previous.getTime());
+            previous = next;
+        }
+        return shortest;
+    }
+
+    private static final int GAP_SAMPLES = 10;
 
     /**
      * Calendar intervals are approximated in seconds. A month is not a fixed

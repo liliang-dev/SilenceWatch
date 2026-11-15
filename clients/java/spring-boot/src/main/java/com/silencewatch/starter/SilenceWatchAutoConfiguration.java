@@ -18,6 +18,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -106,7 +107,21 @@ public class SilenceWatchAutoConfiguration {
                     + "cannot send their heartbeats, so they will appear to have stopped running. "
                     + "Enable spring.aop.auto, or ping the check URLs yourself.");
         }
-        return new ScheduledMethodAdvisor(sender, properties);
+        return ScheduledMethodAdvisor.unlocked(sender, properties);
+    }
+
+    /**
+     * The same heartbeat for {@code @Scheduled} methods behind ShedLock's
+     * {@code @SchedulerLock}, applied <em>inside</em> ShedLock's advisor so that an
+     * instance that does not get the lock reports nothing. Only when ShedLock is
+     * on the classpath.
+     */
+    @Bean
+    @ConditionalOnClass(name = ScheduledMethodAdvisor.SHEDLOCK_ANNOTATION)
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    public ScheduledMethodAdvisor silenceWatchLockedScheduledMethodAdvisor(
+            HeartbeatSender sender, SilenceWatchProperties properties) {
+        return ScheduledMethodAdvisor.locked(sender, properties);
     }
 
     @Bean

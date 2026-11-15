@@ -95,7 +95,10 @@ same jobs in the same environment, so each job is **one check for all of them: i
 any instance reports it**. That is what most jobs should be held to:
 
 - a **clustered Quartz** job, or a `@Scheduled` method behind a lock (ShedLock), runs on one
-  instance at a time, and whichever one it is, the check hears from it;
+  instance at a time, and whichever one it is, the check hears from it. With ShedLock, only the
+  instance that got the lock reports the run (from starter 0.2.1: earlier versions also reported
+  the runs the other instances skipped, which could hide a stuck job). Leave
+  `@EnableSchedulerLock`’s `order` at its default; the starter warns if it cannot sit inside the lock;
 - a `@Scheduled` method **without a lock** runs on every instance. The check stays up as long as
   one of them runs it, so an instance whose scheduler is stuck goes unnoticed while another works.
   If the job should run once, put it behind a lock; if it has to run everywhere, read on.
