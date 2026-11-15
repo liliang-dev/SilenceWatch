@@ -44,7 +44,7 @@ class SilenceWatchAutoConfigurationTest {
                 .run(context -> assertThat(context)
                         .hasSingleBean(SilenceWatchClient.class)
                         .hasSingleBean(HeartbeatSender.class)
-                        .hasSingleBean(ScheduledMethodAdvisor.class)
+                        .hasBean("silenceWatchScheduledMethodAdvisor")
                         .hasSingleBean(SilenceWatchRegistrar.class));
     }
 

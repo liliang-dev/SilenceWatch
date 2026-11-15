@@ -96,7 +96,11 @@ toutes, en bonne santé tant qu’une instance au moins le signale**. C’est ce
 plupart des jobs :
 
 - un job **Quartz en cluster**, ou une méthode `@Scheduled` protégée par un verrou (ShedLock),
-  tourne sur une instance à la fois, et le check l’entend quelle qu’elle soit ;
+  tourne sur une instance à la fois, et le check l’entend quelle qu’elle soit. Avec ShedLock,
+  seule l’instance qui a obtenu le verrou signale l’exécution (depuis le starter 0.2.1 : les
+  versions précédentes signalaient aussi les exécutions sautées par les autres instances, ce
+  qui pouvait masquer un job bloqué). Laissez l’`order` de `@EnableSchedulerLock` à sa valeur
+  par défaut ; le starter prévient s’il ne peut pas se placer dans le verrou ;
 - une méthode `@Scheduled` **sans verrou** tourne sur chaque instance. Le check reste en bonne
   santé tant que l’une d’elles l’exécute : une instance dont le planificateur est bloqué passe
   inaperçue pendant qu’une autre travaille. Si le job doit tourner une seule fois, mettez-le

@@ -10,6 +10,30 @@ called out under **Changed** with what to do about it.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Spring Boot starter 0.2.1: a job behind ShedLock is reported only where it ran.** The
+  starter wrapped a `@SchedulerLock` method outside ShedLock's own advisor, so every instance
+  that did not get the lock reported a successful run it had skipped. With several instances,
+  the check stayed up while the job ran nowhere, for example when the instance holding the lock
+  was stuck. These methods now get a heartbeat of their own, inside the lock, and the starter
+  warns once if ShedLock is ordered after it (a custom `@EnableSchedulerLock(order = …)`). Methods
+  without ShedLock are unchanged. Update the starter to 0.2.1.
+- **Spring Boot starter 0.2.1: a Quartz job with several triggers is declared from the one that
+  fires most often**, as the documentation said. With several cron triggers the starter kept the
+  first one it found. Triggers are now compared by the gap between their next fire times, crons
+  and intervals alike.
+- **The site's Astro is updated to 7.4.11** for two advisories (GHSA-r3h5-4585-7x3w, moderate,
+  and GHSA-mh32-jxcr-mh9f, low). The site is built as static pages, without the Node adapter the
+  moderate one concerns; the supply-chain check fails from `moderate` up all the same.
+
+### Changed
+
+- Dependencies: Nest 11.2.9, Angular 22.2.5 (CDK and Material 22.2.7), better-auth 1.7.20,
+  fastify 5.12.8, jose 6.2.17, nodemailer 10.5.0, cron-parser 5.10.4, @fastify/cors 11.4.1,
+  tslib 2.9.1; for development, autocannon 9, jsdom 31, prettier 3.10, vitest 5.1, mypy 2.4.1
+  and ruff 0.17.4; in CI, setup-java 6.2.0 and codeql-action 4.39.3.
+
 ## [0.10.0] — 2026-11-09
 
 One migration, applied on its own at start (a new table, `app_visitor`); no setting changes.
