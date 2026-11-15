@@ -1,0 +1,110 @@
+---
+title: "Job Quartz qui ne se déclenche pas : les causes"
+description: "Un job Quartz qui ne se déclenche plus dans Spring Boot : threads occupés, misfires, planification figée en base, trigger en ERROR. Le confirmer, le corriger."
+template: splash
+date: 2026-11-15
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
+import Faq from '../../../../components/Faq.astro';
+
+<p class="splash-lede">Un job Quartz qui ne se déclenche pas attend le plus souvent un thread libre, a vu son exécution sautée par sa consigne de misfire, tourne sur une ancienne planification gardée en base, ou dépend d’un trigger à l’état <code>ERROR</code>. Quartz sait lequel : l’état du trigger et sa prochaine échéance le disent. Voici comment les lire, corriger chaque cause, et être alerté la prochaine fois qu’un job se tait.</p>
+
+## Pourquoi mon job Quartz ne se déclenche pas ?
+
+Quartz n’exécute pas un job : il déclenche un **trigger**, et le trigger exécute le job. Quand un job se tait, c’est dans le trigger qu’est la réponse. Cinq causes couvrent la plupart des cas, et seule la première se voit de l’extérieur.
+
+### 1. Le planificateur n’a jamais démarré
+
+Dans Spring Boot, le planificateur démarre avec l’application, sauf si `spring.quartz.auto-startup` vaut `false`. Hors de Spring, rien ne se déclenche tant que personne n’appelle `scheduler.start()`.
+
+Pour le confirmer, cherchez la ligne de Quartz au démarrage : `Scheduler <nom> started.` Si elle n’est pas dans le journal, aucun trigger ne se déclenchera.
+
+### 2. Tous les threads sont occupés
+
+Quartz exécute les jobs sur un pool fixe de threads. Le `SchedulerFactoryBean` de Spring, qu’utilise Spring Boot, lui en donne **10** par défaut. Si de longs jobs les occupent tous, le trigger suivant attend. Une fois qu’il a attendu plus longtemps que le seuil de misfire (`org.quartz.jobStore.misfireThreshold`), Quartz cesse d’attendre et applique à la place la **consigne de misfire** du trigger.
+
+Pour le confirmer, prenez un thread dump (`jstack <pid>`) : les threads de travail (nommés d’après le planificateur, de `…_Worker-1` à `…_Worker-10`) sont tous dans vos jobs. Avec un job store JDBC, Quartz écrit aussi `Handling 1 trigger(s) that missed their scheduled fire-time.`
+
+### 3. La consigne de misfire saute l’exécution
+
+Ce que devient une exécution manquée dépend du trigger. Un `CronTrigger` applique par défaut la politique « smart », qui pour un cron veut dire **exécuter une fois tout de suite** : plusieurs exécutions manquées se résument en une seule, en retard. Un trigger construit avec `withMisfireHandlingInstructionDoNothing()` fait l’inverse : l’exécution manquée est **abandonnée**, et le trigger attend sa prochaine échéance. Rien n’est journalisé pour ce job.
+
+Pour le confirmer, lisez la définition du trigger dans votre code, ou la colonne `MISFIRE_INSTR` de `QRTZ_TRIGGERS` avec un job store JDBC.
+
+### 4. La planification en base n’est pas celle de votre code
+
+Avec `spring.quartz.job-store-type: jdbc`, jobs et triggers vivent en base de données et survivent aux redémarrages. Le réglage `spring.quartz.overwrite-existing-jobs` de Spring Boot vaut **`false` par défaut** : un trigger qui existe déjà en base **n’est pas mis à jour** au démarrage. Vous changez le cron dans le code, vous déployez, et Quartz continue sur l’ancien, ou sur aucun si l’ancien ne correspond plus au job attendu.
+
+Pour le confirmer, comparez le code et la base :
+
+```sql
+SELECT trigger_group, trigger_name, trigger_state, next_fire_time
+FROM qrtz_triggers;
+
+SELECT trigger_name, cron_expression
+FROM qrtz_cron_triggers;
+```
+
+`next_fire_time` est en millisecondes depuis l’epoch. Une date loin dans le passé, ou un cron qui n’est pas celui que vous avez écrit, donne la réponse.
+
+### 5. Le trigger est en pause, bloqué ou en ERROR
+
+Un trigger a un état : `NORMAL`, `PAUSED`, `BLOCKED`, `ERROR` ou `COMPLETE`. Seul `NORMAL` se déclenche à l’heure.
+
+- **`ERROR`** : avec un job store JDBC, Quartz le pose quand il ne peut pas charger le job, typiquement après qu’une classe de job a été renommée ou déplacée dans un remaniement. Il écrit une fois `Error retrieving job, setting trigger state to ERROR.`, et le trigger ne se déclenche plus jamais de lui-même.
+- **`PAUSED`** : quelqu’un, ou du code, a appelé `pauseTrigger` ou `pauseJob`.
+- **`BLOCKED`** : le job porte `@DisallowConcurrentExecution` et son exécution précédente n’est pas terminée. Si elle est bloquée, le trigger le reste.
+
+Pour le confirmer, demandez à Quartz. Avec Spring Boot Actuator, `/actuator/quartz/triggers/<groupe>/<nom>` renvoie le `state`, le `previousFireTime` et le `nextFireTime` du trigger (exposez-le avec `management.endpoints.web.exposure.include: quartz`). Sans Actuator, `scheduler.getTriggerState(triggerKey)` donne la même réponse, tout comme la colonne `trigger_state` ci-dessus.
+
+## Pourquoi les journaux et les contrôles de santé ne le voient pas
+
+Les cinq causes ont un point commun : **le job ne s’exécute pas, donc il n’écrit rien**. Une alerte sur les journaux attend une ligne d’erreur qui ne vient jamais. Le contrôle de santé répond `UP`, puisque l’application va bien. Le planificateur aussi ; il n’a simplement rien à déclencher, ou pas de thread pour le faire.
+
+Le seul signal fiable est **l’exécution manquante** elle-même.
+
+## Comment être alerté quand un job Quartz ne se déclenche plus
+
+Faites signaler chaque exécution à un service qui connaît la planification et alerte quand une exécution n’arrive pas : un [dead man’s switch](/fr/dead-mans-switch/). Il détecte les cinq causes de la même façon, sans avoir besoin de savoir laquelle s’est produite.
+
+Avec le starter Spring Boot de SilenceWatch, un `JobListener` signale le début et la fin de chaque exécution Quartz, et la fin dit si le job a levé une exception. Au démarrage, le starter lit les triggers de chaque job dans le planificateur et déclare le job avec la planification **que Quartz détient réellement**. Pour la cause 4, c’est utile : le check montre le cron stocké en base, donc une planification qui n’a pas changé après un déploiement se voit sur le tableau de bord.
+
+Dès lors, un job dont le trigger est en pause, bloqué ou en `ERROR`, ou dont les exécutions sont abandonnées par un misfire, n’envoie rien, et son check passe *en retard*, puis *en panne* une fois le délai de grâce écoulé. Une exécution retardée par des threads occupés finit par arriver : si elle arrive après le délai de grâce, le check passe *en panne*, puis revient *OK* avec elle. La [documentation du starter Spring Boot](/fr/docs/spring-boot/) décrit la mise en place, et [les états et planifications](/fr/docs/schedules-and-states/) les règles exactes.
+
+## Comment corriger un job Quartz qui ne se déclenche pas
+
+- **Pas démarré** : retirez `spring.quartz.auto-startup: false`, ou appelez `scheduler.start()`.
+- **Threads occupés** : mettez un délai maximal sur chaque appel sortant d’un job, et agrandissez le pool si les jobs doivent vraiment se chevaucher : `spring.quartz.properties.org.quartz.threadPool.threadCount: 20`.
+- **Misfires sautés** : choisissez la consigne de misfire en connaissance de cause. Gardez celle par défaut quand une exécution en retard vaut mieux qu’aucune ; n’utilisez `withMisfireHandlingInstructionDoNothing()` que si une exécution en retard ferait du tort.
+- **Ancienne planification en base** : réglez `spring.quartz.overwrite-existing-jobs: true`, pour que les triggers déclarés dans le code remplacent ceux stockés au démarrage, ou replanifiez le trigger vous-même avec `scheduler.rescheduleJob(...)`.
+- **Trigger en `ERROR`** : corrigez d’abord la cause (la classe du job, son package), puis appelez `scheduler.resetTriggerFromErrorState(triggerKey)`, disponible depuis Quartz 2.3.2, ou replanifiez le trigger.
+- **Bloqué par une exécution figée** : trouvez-la avec un thread dump et mettez un délai maximal sur ses appels sortants ; tant qu’elle ne rend pas la main, un job `@DisallowConcurrentExecution` ne repartira pas.
+
+<div class="sw-cta">
+  <LinkButton href="/fr/docs/spring-boot/" variant="primary">Démarrage rapide Spring Boot <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="secondary">Être alerté quand un job s’arrête <HeroIcon name="arrow" /></LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes : jobs Quartz qui ne se déclenchent pas"
+  items={[
+    { q: 'Pourquoi mon job Quartz ne s’exécute-t-il pas ?', a: 'Le plus souvent, son trigger attend un thread libre, son exécution manquée a été abandonnée par la consigne de misfire, le trigger stocké en base garde une ancienne planification, ou le trigger est en pause, bloqué ou à l’état ERROR. L’état du trigger et sa prochaine échéance disent lequel.' },
+    { q: 'Qu’est-ce qu’un misfire dans Quartz ?', a: 'Un misfire est une exécution qui n’a pas pu partir à l’heure, faute de thread libre ou parce que le planificateur était arrêté, et qui a attendu plus que le seuil de misfire. Quartz applique alors la consigne de misfire du trigger : exécuter une fois tout de suite, ou passer à l’échéance suivante.' },
+    { q: 'Pourquoi changer l’expression cron n’a-t-il rien changé à mon job Quartz ?', a: 'Avec un job store JDBC, Spring Boot n’écrase pas les triggers qui existent déjà en base, sauf si spring.quartz.overwrite-existing-jobs vaut true. L’ancien trigger garde son ancienne planification.' },
+    { q: 'Comment réparer un trigger Quartz à l’état ERROR ?', a: 'Corrigez ce que Quartz n’a pas pu charger, le plus souvent une classe de job renommée ou déplacée, puis appelez scheduler.resetTriggerFromErrorState avec la clé du trigger, ou replanifiez le trigger.' },
+    { q: 'Comment être alerté quand un job Quartz ne tourne plus ?', a: 'Faites signaler chaque exécution à un service qui l’attend selon la planification du job et alerte quand elle manque, un dead man’s switch. Le starter SilenceWatch le fait pour les jobs Quartz et @Scheduled avec une dépendance et une clé d’API.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/docs/spring-boot/">Documentation du starter Spring Boot</a></li>
+  <li><a href="/fr/blog/spring-scheduled-job-stops/">Un job @Scheduled Spring qui s’arrête</a></li>
+  <li><a href="/fr/dead-mans-switch/">Dead man’s switch</a></li>
+  <li><a href="/fr/spring-boot/">Monitoring Java Spring Boot</a></li>
+</ul>
