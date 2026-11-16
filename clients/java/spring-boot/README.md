@@ -12,12 +12,12 @@ application without licence consequences.
 <dependency>
   <groupId>com.silencewatch</groupId>
   <artifactId>silencewatch-spring-boot-starter</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
 </dependency>
 ```
 
 ```groovy
-implementation 'com.silencewatch:silencewatch-spring-boot-starter:0.2.0'
+implementation 'com.silencewatch:silencewatch-spring-boot-starter:0.2.1'
 ```
 
 ```yaml
