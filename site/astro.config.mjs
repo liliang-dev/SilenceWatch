@@ -80,7 +80,9 @@ export default defineConfig({
       routeMiddleware: './src/route-middleware.ts',
       head: [
         // Sends a browser set to French to /fr/, unless a language was chosen.
-        { tag: 'script', attrs: { src: '/lang-redirect.js' } },
+        // The query is the script's version: change it with the script, or a browser
+        // that cached the old one keeps running it (the site sends no Cache-Control).
+        { tag: 'script', attrs: { src: '/lang-redirect.js?v=2' } },
         // The window's width without its scrollbar, for the full-width sections.
         { tag: 'script', attrs: { src: '/viewport-width.js' } },
         // The text face, fetched with the page rather than after the stylesheet.
