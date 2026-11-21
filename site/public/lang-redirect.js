@@ -37,6 +37,17 @@
     },
     true,
   );
+  // The phone menu's language links (Header.astro) are plain links, not the
+  // picker: a choice made there has to be remembered too, or a browser set to
+  // French is sent straight back to French after picking English.
+  document.addEventListener(
+    'click',
+    function (event) {
+      var link = event.target && event.target.closest && event.target.closest('a[data-lang-choice]');
+      if (link) write(link.getAttribute('hreflang') === 'fr' ? 'fr' : 'en');
+    },
+    true,
+  );
 
   if (document.documentElement.lang !== 'en' || read() !== null) return;
 

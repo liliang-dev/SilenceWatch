@@ -533,8 +533,8 @@ html {
   content: 'FR';
 }
 
-/* Below a laptop's width the links, the search and the pickers are in the menu:
-   the bar keeps the title, the sign-in button and the "Menu" button. */
+/* Below a laptop's width the links, the search, the pickers and the sign-in are in
+   the menu: the bar keeps the title and the "Menu" button. */
 @media (max-width: 63.99rem) {
   :root:not([data-has-sidebar]) .header .right-group {
     display: flex !important;
@@ -550,7 +550,7 @@ html {
   /* The search stays rendered, only its button goes: the menu's "Search" opens
      its dialog, and a dialog inside a hidden element opens without showing. */
   :root:not([data-has-sidebar]) .header .right-group > :not(.social-icons, site-search),
-  :root:not([data-has-sidebar]) .header .social-icons > :not(.sw-login),
+  :root:not([data-has-sidebar]) .header .social-icons > *,
   :root:not([data-has-sidebar]) .header site-search > button {
     display: none !important;
   }
@@ -647,26 +647,22 @@ starlight-theme-select svg.label-icon {
 }
 
 /* On a phone Starlight hides the whole right-hand group (the theme and language
-   pickers move into the menu). Keep that group, with the sign-in button in it. The
-   pages without a sidebar have their own menu, with the language in it (Header.astro). */
+   pickers move into the menu). Keep that group for the search, without the sign-in
+   button: it is in the menu, Starlight's on the documentation (its footer repeats
+   the header's icons) and our own on the other pages (Header.astro). */
 @media (max-width: 49.99rem) {
   .header .right-group {
     display: flex !important;
   }
 
   .header .right-group > :not(.social-icons, site-search),
-  .header .social-icons > :not(.sw-login),
+  .header .social-icons > *,
   :root:not([data-has-sidebar]) .header site-search > button {
     display: none !important;
   }
 
   .sw-login {
     padding: 0.3rem 0.8rem;
-  }
-
-  /* The menu repeats the header's icons; the button is already one tap away above it. */
-  #starlight__sidebar .sw-login {
-    display: none;
   }
 
   /* Search sits next to the logo, on the left, not in the middle of the bar. */

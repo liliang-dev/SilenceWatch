@@ -96,6 +96,19 @@ overrides:
   # ships a version asking for deepmerge-ts 8.
   'deepmerge-ts@<8.0.0': '^8.0.0'
 
+  # GHSA-7589-6fvf-x4pw (high) — effect up to 3.22.0 compiles a
+  # Schema.TemplateLiteral regex that backtracks catastrophically on crafted
+  # input. It ships, through @prisma/config, which the prisma CLI and
+  # @prisma/client both use and which pins effect 3.20.0 exactly, so Prisma
+  # 7.10.1 (the latest) will not pick the fix up on its own. What it parses is
+  # prisma.config.ts, our own checked-in file, so the practical risk is nil;
+  # it is overridden because CI fails from moderate up.
+  #
+  # Same minor line, but past an exact pin: verified like the one above, with
+  # prisma version, prisma generate, prisma migrate deploy and the end-to-end
+  # suite. Delete this when @prisma/config asks for effect 3.22.1 or later.
+  'effect@<3.22.1': '^3.22.4'
+
   # GHSA-p68q-wchp-6fh7, -667r-xxjv-c9mm, -hwr6-493r-vm6h, -9q9j-q6p8-xq58 and
   # three more — fastify below 5.12.5. Among them an authentication bypass via
   # malformed URLs reaching encapsulated routes, and three ways around request
