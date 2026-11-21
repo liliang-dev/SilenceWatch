@@ -129,7 +129,7 @@ const t =
           )}
           <div class="sw-menu-langs" role="group" aria-label={t.language}>
             {languages.map((l) => (
-              <a href={l.href} hreflang={l.code} lang={l.code} aria-current={l.code === lang ? 'true' : undefined}>
+              <a href={l.href} hreflang={l.code} lang={l.code} data-lang-choice aria-current={l.code === lang ? 'true' : undefined}>
                 {l.label}
               </a>
             ))}
