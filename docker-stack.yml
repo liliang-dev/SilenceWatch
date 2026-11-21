@@ -201,6 +201,8 @@ services:
     #    so a POST stays a POST. Nothing links there any more; this is for the
     #    bookmark, the verification email sent before the move, and a crontab
     #    that has not been updated;
+    #  - sends Cache-Control: built assets (/_astro/, hashed names) are kept a
+    #    year, everything else is revalidated on each visit;
     #  - sets its own security headers. The site is static and loads nothing from
     #    anywhere else, but Starlight writes small inline scripts and styles and
     #    its search runs WebAssembly, hence the two relaxations in the policy
@@ -236,6 +238,12 @@ services:
 
           @immutable path /_astro/*
           header @immutable Cache-Control "public, max-age=31536000, immutable"
+          # Everything else (the pages, and the scripts and images in public/ whose
+          # names never change) is checked again on every visit: an unchanged
+          # file costs a 304. Without it a browser guesses how long to keep each
+          # file, and a phone can keep running a script days after it changed.
+          @revalidate not path /_astro/*
+          header @revalidate Cache-Control "no-cache"
 
           root * /srv/site/live
           file_server
