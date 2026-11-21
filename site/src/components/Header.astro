@@ -221,6 +221,19 @@ const t =
       menu.close();
       document.querySelector<HTMLButtonElement>('site-search button[data-open-modal]')?.click();
     });
+    // The language links remember the choice here as well as in lang-redirect.js:
+    // this script's file name changes with every build, so even a browser still
+    // holding an old copy of lang-redirect.js gets it, and is not sent back to
+    // French after picking English.
+    menu.querySelectorAll<HTMLAnchorElement>('a[data-lang-choice]').forEach((link) =>
+      link.addEventListener('click', () => {
+        try {
+          localStorage.setItem('sw-lang', link.hreflang === 'fr' ? 'fr' : 'en');
+        } catch {
+          /* blocked storage: the choice just is not remembered */
+        }
+      }),
+    );
     // Back to a laptop's width with the menu open: there is nothing to show it for.
     matchMedia('(min-width: 64rem)').addEventListener('change', (event) => {
       if (event.matches && menu.open) menu.close();
