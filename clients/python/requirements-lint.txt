@@ -3,5 +3,5 @@
 # morning. Dependabot moves them.
 build==1.6.1
 mypy==2.4.1
-ruff==0.17.4
+ruff==0.17.5
 twine==7.0.0
