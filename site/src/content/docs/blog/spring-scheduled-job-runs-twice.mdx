@@ -1,0 +1,144 @@
+---
+title: "Spring @Scheduled running twice? Causes and fixes"
+description: "A Spring @Scheduled job that runs twice: several instances, a bean registered twice, @Async or virtual threads, a short lock. How to confirm each and fix it."
+template: splash
+date: 2026-11-22
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../components/HeroIcon.astro';
+import Faq from '../../../components/Faq.astro';
+
+<p class="splash-lede">A Spring <code>@Scheduled</code> job that runs twice is usually running on two instances of the application, or on two instances of the same bean. <code>@Async</code> or virtual threads let its runs overlap, and a distributed lock released too early lets two nodes run it. Here is how to tell which one it is, reproduced on Spring Boot 4.1.2, and how to make the job run once.</p>
+
+## Why does my @Scheduled job run twice?
+
+Spring schedules a `@Scheduled` method once **per bean instance, per running application**. Every cause below breaks one of those two "once". The quickest way to tell them apart is to log, in the job itself, which process and which object ran it:
+
+```java
+@Scheduled(cron = "0 0 * * * *")
+void report() {
+  log.info("report in {} by {}",
+      ManagementFactory.getRuntimeMXBean().getName(), // pid@host
+      System.identityHashCode(this));
+  // …
+}
+```
+
+Two different `pid@host` values in the log: the application runs twice. One process, two object identities: the bean exists twice. One process, one identity, two runs at the same time: the runs overlap.
+
+### 1. The application runs on more than one instance
+
+Each instance of the application has its own scheduler, and nothing in Spring coordinates them. Two replicas behind a load balancer, two pods of a Deployment, the old and new version during a rolling deploy: each runs every `@Scheduled` method on its own schedule. The job is not running twice by mistake; it is running once in each place.
+
+To confirm, look for two different `pid@host` values in the log line above, and check the number of replicas.
+
+### 2. The same class is a bean twice
+
+Spring’s documentation is explicit: *"Make sure that you are not initializing multiple instances of the same `@Scheduled` annotation class at runtime, unless you do want to schedule callbacks to each such instance."* The usual way to get there by accident is a class annotated `@Component` that is also returned by a `@Bean` method:
+
+```java
+@Component
+class Report {
+  @Scheduled(fixedRate = 2000)
+  void run() { log.info("report {}", System.identityHashCode(this)); }
+}
+
+@Bean
+Report reportAgain() { return new Report(); }
+```
+
+Run on Spring Boot 4.1.2, every period logs two lines, from two objects:
+
+```text
+16:01:28.740 [scheduling-1] report 144467413
+16:01:28.741 [scheduling-1] report 159917166
+16:01:30.735 [scheduling-1] report 144467413
+16:01:30.735 [scheduling-1] report 159917166
+```
+
+To confirm, look for two identities in the log, or ask the context: `context.getBeansOfType(Report.class)` returns two entries. Two `@Bean` methods with different names returning the same class have the same effect. Scanning a package twice in one context does not, because Spring skips the second definition. Two contexts that each scan it do, as in a classic Spring MVC application whose root context and `DispatcherServlet` context scan the same packages; there, `getBeansOfType` on either context shows one bean, and only the log shows two identities.
+
+Two `@Scheduled` annotations on one method are another way: the annotation is repeatable, and the documentation warns that such schedules *"may overlap and execute multiple times in parallel or in immediate succession."* And a related case from the same page: `@Configurable` on a class that is also a regular bean gives *"double initialization (once through the container and once through the `@Configurable` aspect), with the consequence of each `@Scheduled` method being invoked twice."*
+
+### 3. @Async or virtual threads make the runs overlap
+
+A plain `fixedRate` job on Spring Boot’s default scheduler does not overlap itself: when a run takes longer than the period, the next one waits for it. With a 1-second rate and a 2.5-second job, the runs follow each other:
+
+```text
+16:01:37.063 [scheduling-1] slow start
+16:01:39.564 [scheduling-1] slow end
+16:01:39.565 [scheduling-1] slow start
+```
+
+Add `@Async` to the same method and the scheduler only hands the work to another thread, which returns at once. The next run starts on time, while the previous one is still working:
+
+```text
+16:01:45.958 [task-1] async start
+16:01:46.952 [task-2] async start
+16:01:47.952 [task-3] async start
+16:01:48.458 [task-1] async end
+```
+
+Virtual threads do the same without `@Async`. With `spring.threads.virtual.enabled=true` (Java 21 and later), Spring Boot schedules with a `SimpleAsyncTaskScheduler` that starts each run on a new thread, so a `fixedRate` or `cron` run no longer waits for the previous one. The same plain job, with that one setting:
+
+```text
+16:08:05.005 [scheduling-2] slow start
+16:08:05.995 [scheduling-3] slow start
+16:08:06.996 [scheduling-4] slow start
+16:08:07.506 [scheduling-2] slow end
+```
+
+`fixedDelay` still waits for the previous run, but every `fixedDelay` job then shares a single scheduler thread, so one slow `fixedDelay` job delays the others, and `spring.task.scheduling.pool.size` is ignored. Three runs at once is not "twice per period", but it reads the same in a log or a database: the job ran again before it had finished.
+
+### 4. The lock is released too early
+
+With [ShedLock](https://github.com/lukas-krecan/ShedLock) on several instances, the lock is what keeps the job to one run. Two settings decide how long it holds:
+
+- **`lockAtMostFor`** must be *"much longer than normal execution time"*. A run that outlasts it loses the lock, and the README warns that *"more than one process will effectively hold the lock"*.
+- **`lockAtLeastFor`** keeps the lock after a short run. Its *"main purpose is to prevent execution from multiple nodes in case of really short tasks and clock difference between the nodes"*: a job that finishes in milliseconds releases the lock before another node, whose clock is slightly behind, reaches the same scheduled time and takes it.
+
+To confirm, compare the run’s duration with both values, and the clocks of the nodes. ShedLock *"assumes that clocks on the nodes are synchronized"*.
+
+## How to make a scheduled job run once
+
+- **Several instances that should run it once: a lock.** ShedLock with `@SchedulerLock(name = "report", lockAtMostFor = "10m", lockAtLeastFor = "1m")`, plus `@EnableSchedulerLock` and a `LockProvider` bean (a JDBC table, for example): the instance that gets the lock runs the job, the others skip that run. *"It’s just a lock"*, not a scheduler: a skipped run is not queued.
+- **Several instances with Quartz: a clustered job store.** With `spring.quartz.job-store-type: jdbc`, `spring.quartz.properties.org.quartz.jobStore.isClustered: true` and a unique instance ID per node (`spring.quartz.properties.org.quartz.scheduler.instanceId: AUTO`), Quartz itself fires each trigger on one node.
+- **One place that schedules.** Turn scheduling on in a single instance (an `@EnableScheduling` configuration behind a property), or move the job out of the application into a [Kubernetes CronJob](/blog/kubernetes-cronjob-monitoring/) with `concurrencyPolicy: Forbid`, so that a slow run is not overlapped. Kubernetes still documents that a CronJob can, rarely, create two Jobs for one time, so the job should tolerate it (see below).
+- **A bean registered twice:** keep one registration, either the `@Component` or the `@Bean`.
+- **`@Async`:** remove it from the scheduled method. If you hand long work to an executor on purpose, as [Spring @Scheduled job stopped](/blog/spring-scheduled-job-stops/) suggests, keep it from overlapping: a single-thread executor, or skip the run while the previous one still holds a flag (`AtomicBoolean.compareAndSet`) or a lock (`ReentrantLock.tryLock()`). If `@Async` was only there so that a slow job stops delaying the others, raise `spring.task.scheduling.pool.size` instead (without virtual threads, where it is ignored): the jobs then run side by side, and each still never overlaps itself.
+- **Virtual threads:** keep `fixedRate` or `cron` and guard the method the same way (a flag or `tryLock()`). `fixedDelay` also stops the overlap, but all `fixedDelay` jobs then run one after another on one thread; use it only for jobs that can wait for each other.
+
+Whatever the cause, a job that can safely run twice is the last line of defence: an upsert instead of an insert, a "processed" flag, a unique key on what the job produces.
+
+## Watching a job that runs on several instances
+
+A [dead man’s switch](/dead-mans-switch/) expects a run on a schedule and alerts when it does not come: it catches a job that stopped, not one that ran twice. With a lock, it must also hear only from the run that happened. An instance that skipped the run should not report a success.
+
+The SilenceWatch Spring Boot starter reports a `@SchedulerLock` method only from the instance that held the lock, from version 0.2.1. Earlier versions also reported the runs the other instances skipped, which could keep the check up while the job was stuck. Leave `@EnableSchedulerLock`’s `order` at its default so that the starter sits inside the lock. The [several instances](/docs/spring-boot/#several-instances) section of the documentation explains how shared and per-instance checks work.
+
+<div class="sw-cta">
+  <LinkButton href="/docs/spring-boot/" variant="primary">Spring Boot quick start <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="secondary">Get alerted when a job stops <HeroIcon name="arrow" /></LinkButton>
+</div>
+
+## Frequently asked questions
+
+<Faq
+  title="Frequently asked questions: Spring @Scheduled jobs that run twice"
+  items={[
+    { q: 'Why does my @Scheduled method run twice?', a: 'Most often the application runs on two instances, each with its own scheduler, or the class is registered as a bean twice, for example both with @Component and a @Bean method. @Async on the method or virtual threads let its runs overlap, and @Configurable on its class invokes it twice.' },
+    { q: 'Does Spring run @Scheduled jobs on every instance?', a: 'Yes. Each running application schedules its own @Scheduled methods, and Spring does not coordinate instances. Use a lock such as ShedLock, a clustered Quartz job store, or a single scheduling instance to run a job once.' },
+    { q: 'Can runs of the same @Scheduled job overlap?', a: 'Not with Spring Boot’s default thread-pool scheduler: when a run takes longer than the rate, the next one waits. They do overlap with @Async on the method, or with spring.threads.virtual.enabled=true, where each fixedRate or cron run starts on a new thread. Guard the method with a flag or a lock there; fixedDelay waits too, but all fixedDelay jobs then share one thread.' },
+    { q: 'Why does ShedLock still run my job twice?', a: 'Either a run outlasted lockAtMostFor, or the job is shorter than the clock difference between the nodes, so the lock is released before another node reaches the same time. Set lockAtMostFor well above a normal run, and lockAtLeastFor.' },
+  ]}
+/>
+
+## See also
+
+<ul class="sw-related">
+  <li><a href="/blog/spring-scheduled-job-stops/">Spring @Scheduled job stopped</a></li>
+  <li><a href="/blog/quartz-job-not-firing/">Quartz job not firing</a></li>
+  <li><a href="/blog/kubernetes-cronjob-monitoring/">Kubernetes CronJob monitoring</a></li>
+  <li><a href="/docs/spring-boot/">Spring Boot starter documentation</a></li>
+</ul>

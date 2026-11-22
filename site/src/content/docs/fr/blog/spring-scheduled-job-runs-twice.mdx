@@ -1,0 +1,144 @@
+---
+title: "Spring @Scheduled lancé deux fois ? Solutions"
+description: "Un job @Scheduled qui s’exécute deux fois : plusieurs instances, un bean déclaré deux fois, @Async ou threads virtuels, un verrou court. Le confirmer, le corriger."
+template: splash
+date: 2026-11-22
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import HeroIcon from '../../../../components/HeroIcon.astro';
+import Faq from '../../../../components/Faq.astro';
+
+<p class="splash-lede">Un job <code>@Scheduled</code> de Spring qui s’exécute deux fois tourne le plus souvent sur deux instances de l’application, ou sur deux instances du même bean. <code>@Async</code> ou les threads virtuels laissent ses exécutions se chevaucher, et un verrou distribué relâché trop tôt laisse deux nœuds l’exécuter. Voici comment savoir lequel, reproduit sur Spring Boot 4.1.2, et comment faire tourner le job une seule fois.</p>
+
+## Pourquoi mon job @Scheduled s’exécute-t-il deux fois ?
+
+Spring planifie une méthode `@Scheduled` une fois **par instance du bean, par application lancée**. Chaque cause ci-dessous casse l’un de ces deux « une fois ». Le plus rapide pour les distinguer est de journaliser, dans le job lui-même, quel processus et quel objet l’ont exécuté :
+
+```java
+@Scheduled(cron = "0 0 * * * *")
+void report() {
+  log.info("report in {} by {}",
+      ManagementFactory.getRuntimeMXBean().getName(), // pid@hôte
+      System.identityHashCode(this));
+  // …
+}
+```
+
+Deux valeurs `pid@hôte` différentes dans le journal : l’application tourne deux fois. Un processus, deux identités d’objet : le bean existe deux fois. Un processus, une identité, deux exécutions en même temps : les exécutions se chevauchent.
+
+### 1. L’application tourne sur plus d’une instance
+
+Chaque instance de l’application a son propre planificateur, et rien dans Spring ne les coordonne. Deux répliques derrière un répartiteur de charge, deux pods d’un Deployment, l’ancienne et la nouvelle version pendant un déploiement progressif : chacune exécute chaque méthode `@Scheduled` selon sa propre planification. Le job ne tourne pas deux fois par erreur ; il tourne une fois à chaque endroit.
+
+Pour le confirmer, cherchez deux valeurs `pid@hôte` différentes dans la ligne de journal ci-dessus, et vérifiez le nombre de répliques.
+
+### 2. La même classe est un bean deux fois
+
+La documentation de Spring est explicite : *« Make sure that you are not initializing multiple instances of the same `@Scheduled` annotation class at runtime, unless you do want to schedule callbacks to each such instance. »* La façon habituelle d’y arriver par accident est une classe annotée `@Component` qui est aussi renvoyée par une méthode `@Bean` :
+
+```java
+@Component
+class Report {
+  @Scheduled(fixedRate = 2000)
+  void run() { log.info("report {}", System.identityHashCode(this)); }
+}
+
+@Bean
+Report reportAgain() { return new Report(); }
+```
+
+Sur Spring Boot 4.1.2, chaque période écrit deux lignes, venant de deux objets :
+
+```text
+16:01:28.740 [scheduling-1] report 144467413
+16:01:28.741 [scheduling-1] report 159917166
+16:01:30.735 [scheduling-1] report 144467413
+16:01:30.735 [scheduling-1] report 159917166
+```
+
+Pour le confirmer, cherchez deux identités dans le journal, ou interrogez le contexte : `context.getBeansOfType(Report.class)` renvoie deux entrées. Deux méthodes `@Bean` aux noms différents qui renvoient la même classe ont le même effet. Scanner deux fois un package dans un même contexte, non : Spring ignore la seconde définition. Deux contextes qui le scannent chacun, si, comme dans une application Spring MVC classique dont le contexte racine et celui du `DispatcherServlet` scannent les mêmes packages ; là, `getBeansOfType` sur l’un ou l’autre contexte ne montre qu’un bean, et seul le journal montre deux identités.
+
+Deux annotations `@Scheduled` sur une même méthode en sont une autre façon : l’annotation est répétable, et la documentation prévient que de telles planifications *« may overlap and execute multiple times in parallel or in immediate succession »*. Et un cas voisin, sur la même page : `@Configurable` sur une classe qui est aussi un bean ordinaire donne une *« double initialization (once through the container and once through the `@Configurable` aspect), with the consequence of each `@Scheduled` method being invoked twice »*.
+
+### 3. @Async ou les threads virtuels font se chevaucher les exécutions
+
+Un job `fixedRate` simple, sur le planificateur par défaut de Spring Boot, ne se chevauche pas lui-même : quand une exécution dure plus que la période, la suivante l’attend. Avec une période d’une seconde et un job de 2,5 secondes, les exécutions se suivent :
+
+```text
+16:01:37.063 [scheduling-1] slow start
+16:01:39.564 [scheduling-1] slow end
+16:01:39.565 [scheduling-1] slow start
+```
+
+Ajoutez `@Async` à la même méthode et le planificateur ne fait plus que confier le travail à un autre thread, qui rend la main aussitôt. L’exécution suivante part à l’heure, pendant que la précédente travaille encore :
+
+```text
+16:01:45.958 [task-1] async start
+16:01:46.952 [task-2] async start
+16:01:47.952 [task-3] async start
+16:01:48.458 [task-1] async end
+```
+
+Les threads virtuels font de même sans `@Async`. Avec `spring.threads.virtual.enabled=true` (Java 21 et au-delà), Spring Boot planifie avec un `SimpleAsyncTaskScheduler` qui lance chaque exécution sur un nouveau thread : une exécution `fixedRate` ou `cron` n’attend plus la précédente. Le même job simple, avec ce seul réglage :
+
+```text
+16:08:05.005 [scheduling-2] slow start
+16:08:05.995 [scheduling-3] slow start
+16:08:06.996 [scheduling-4] slow start
+16:08:07.506 [scheduling-2] slow end
+```
+
+`fixedDelay` attend toujours l’exécution précédente, mais tous les jobs `fixedDelay` partagent alors un seul thread de planification : un job `fixedDelay` lent retarde les autres, et `spring.task.scheduling.pool.size` est ignoré. Trois exécutions à la fois, ce n’est pas « deux fois par période », mais cela se lit de la même façon dans un journal ou une base : le job est reparti avant d’avoir fini.
+
+### 4. Le verrou est relâché trop tôt
+
+Avec [ShedLock](https://github.com/lukas-krecan/ShedLock) sur plusieurs instances, c’est le verrou qui limite le job à une exécution. Deux réglages décident de sa durée :
+
+- **`lockAtMostFor`** doit être *« much longer than normal execution time »*. Une exécution qui le dépasse perd le verrou, et le README prévient que *« more than one process will effectively hold the lock »*.
+- **`lockAtLeastFor`** garde le verrou après une exécution courte. Son *« main purpose is to prevent execution from multiple nodes in case of really short tasks and clock difference between the nodes »* : un job qui finit en quelques millisecondes relâche le verrou avant qu’un autre nœud, dont l’horloge retarde un peu, n’atteigne la même échéance et ne le prenne.
+
+Pour le confirmer, comparez la durée de l’exécution aux deux valeurs, et les horloges des nœuds. ShedLock *« assumes that clocks on the nodes are synchronized »*.
+
+## Comment faire tourner un job planifié une seule fois
+
+- **Plusieurs instances qui doivent l’exécuter une fois : un verrou.** ShedLock avec `@SchedulerLock(name = "report", lockAtMostFor = "10m", lockAtLeastFor = "1m")`, plus `@EnableSchedulerLock` et un bean `LockProvider` (une table JDBC, par exemple) : l’instance qui obtient le verrou exécute le job, les autres sautent cette exécution. *« It’s just a lock »*, pas un planificateur : une exécution sautée n’est pas mise en file d’attente.
+- **Plusieurs instances avec Quartz : un job store en cluster.** Avec `spring.quartz.job-store-type: jdbc`, `spring.quartz.properties.org.quartz.jobStore.isClustered: true` et un identifiant unique par nœud (`spring.quartz.properties.org.quartz.scheduler.instanceId: AUTO`), Quartz déclenche lui-même chaque trigger sur un seul nœud.
+- **Un seul endroit qui planifie.** Activez la planification sur une seule instance (une configuration `@EnableScheduling` derrière une propriété), ou sortez le job de l’application dans un [CronJob Kubernetes](/fr/blog/kubernetes-cronjob-monitoring/) avec `concurrencyPolicy: Forbid`, pour qu’une exécution lente ne soit pas doublée. Kubernetes précise qu’un CronJob peut, rarement, créer deux Jobs pour la même échéance : le job doit le supporter (voir ci-dessous).
+- **Un bean déclaré deux fois :** gardez une seule déclaration, le `@Component` ou le `@Bean`.
+- **`@Async` :** retirez-le de la méthode planifiée. Si vous confiez volontairement un long travail à un exécuteur, comme le suggère [Un job @Scheduled Spring qui s’arrête](/fr/blog/spring-scheduled-job-stops/), empêchez-le de se chevaucher : un exécuteur à un seul thread, ou une exécution sautée tant que la précédente tient un indicateur (`AtomicBoolean.compareAndSet`) ou un verrou (`ReentrantLock.tryLock()`). Si `@Async` n’était là que pour qu’un job lent cesse de retarder les autres, augmentez plutôt `spring.task.scheduling.pool.size` (sans threads virtuels, où il est ignoré) : les jobs tournent alors côte à côte, et aucun ne se chevauche lui-même.
+- **Threads virtuels :** gardez `fixedRate` ou `cron` et protégez la méthode de la même façon (un indicateur ou `tryLock()`). `fixedDelay` empêche aussi le chevauchement, mais tous les jobs `fixedDelay` tournent alors l’un après l’autre sur un seul thread ; réservez-le à des jobs qui peuvent s’attendre.
+
+Quelle que soit la cause, un job qui supporte d’être exécuté deux fois reste la dernière ligne de défense : un upsert plutôt qu’un insert, un indicateur « traité », une clé unique sur ce que le job produit.
+
+## Surveiller un job qui tourne sur plusieurs instances
+
+Un [dead man’s switch](/fr/dead-mans-switch/) attend une exécution selon une planification et alerte quand elle ne vient pas : il détecte un job arrêté, pas un job exécuté deux fois. Avec un verrou, il ne doit aussi entendre que l’exécution qui a eu lieu. Une instance qui a sauté l’exécution ne doit pas signaler un succès.
+
+Le starter Spring Boot de SilenceWatch ne signale une méthode `@SchedulerLock` que depuis l’instance qui détenait le verrou, depuis la version 0.2.1. Les versions précédentes signalaient aussi les exécutions sautées par les autres instances, ce qui pouvait laisser le check au vert pendant que le job était bloqué. Laissez l’`order` de `@EnableSchedulerLock` à sa valeur par défaut, pour que le starter se place dans le verrou. La section [plusieurs instances](/fr/docs/spring-boot/#plusieurs-instances) de la documentation explique les checks partagés et par instance.
+
+<div class="sw-cta">
+  <LinkButton href="/fr/docs/spring-boot/" variant="primary">Démarrage rapide Spring Boot <HeroIcon name="arrow" /></LinkButton>
+  <LinkButton href="https://app.silencewatch.com/login" variant="secondary">Être alerté quand un job s’arrête <HeroIcon name="arrow" /></LinkButton>
+</div>
+
+## Questions fréquentes
+
+<Faq
+  title="Questions fréquentes : jobs @Scheduled de Spring exécutés deux fois"
+  items={[
+    { q: 'Pourquoi ma méthode @Scheduled s’exécute-t-elle deux fois ?', a: 'Le plus souvent, l’application tourne sur deux instances, chacune avec son propre planificateur, ou la classe est déclarée deux fois comme bean, par exemple avec @Component et une méthode @Bean. @Async sur la méthode ou les threads virtuels laissent ses exécutions se chevaucher, et @Configurable sur sa classe l’appelle deux fois.' },
+    { q: 'Spring exécute-t-il les jobs @Scheduled sur chaque instance ?', a: 'Oui. Chaque application lancée planifie ses propres méthodes @Scheduled, et Spring ne coordonne pas les instances. Utilisez un verrou comme ShedLock, un job store Quartz en cluster, ou une seule instance qui planifie, pour exécuter un job une seule fois.' },
+    { q: 'Les exécutions d’un même job @Scheduled peuvent-elles se chevaucher ?', a: 'Pas avec le planificateur à pool de threads par défaut de Spring Boot : quand une exécution dure plus que la période, la suivante l’attend. Elles se chevauchent avec @Async sur la méthode, ou avec spring.threads.virtual.enabled=true, où chaque exécution fixedRate ou cron part sur un nouveau thread. Protégez alors la méthode par un indicateur ou un verrou ; fixedDelay attend aussi, mais tous les jobs fixedDelay partagent alors un seul thread.' },
+    { q: 'Pourquoi ShedLock exécute-t-il encore mon job deux fois ?', a: 'Soit une exécution a dépassé lockAtMostFor, soit le job est plus court que l’écart entre les horloges des nœuds, et le verrou est relâché avant qu’un autre nœud n’atteigne la même échéance. Réglez lockAtMostFor bien au-delà d’une exécution normale, ainsi que lockAtLeastFor.' },
+  ]}
+/>
+
+## Voir aussi
+
+<ul class="sw-related">
+  <li><a href="/fr/blog/spring-scheduled-job-stops/">Un job @Scheduled Spring qui s’arrête</a></li>
+  <li><a href="/fr/blog/quartz-job-not-firing/">Job Quartz qui ne se déclenche pas</a></li>
+  <li><a href="/fr/blog/kubernetes-cronjob-monitoring/">Surveiller un CronJob Kubernetes</a></li>
+  <li><a href="/fr/docs/spring-boot/">Documentation du starter Spring Boot</a></li>
+</ul>
